@@ -15,12 +15,12 @@ class _ValidatorScreenState extends State<ValidatorScreen> {
   final String _venueId = "1"; // Demo Venue ID
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.deepSeaBlueDark,
+      // Background handled by Theme
       appBar: AppBar(
         title: const Text("Waiter Validator"),
-        backgroundColor: AppColors.deepSeaBlue,
       ),
       body: StreamBuilder<List<ScanModel>>(
         stream: _scanRepo.getPendingScansStream(_venueId),
@@ -29,19 +29,19 @@ class _ValidatorScreenState extends State<ValidatorScreen> {
             return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
           }
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.lime));
+            return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
           }
 
           final scans = snapshot.data ?? [];
 
           if (scans.isEmpty) {
-            return const Center(
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.qr_code_2, size: 64, color: Colors.white10),
-                  SizedBox(height: 16),
-                  Text("No Pending Scans", style: TextStyle(color: Colors.white24)),
+                  Icon(Icons.qr_code_2, size: 64, color: Theme.of(context).dividerColor),
+                  const SizedBox(height: 16),
+                  Text("No Pending Scans", style: TextStyle(color: Theme.of(context).disabledColor)),
                 ],
               ),
             );
@@ -89,16 +89,17 @@ class _ValidatorScreenState extends State<ValidatorScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Guest $action")));
       },
       child: Card(
-        color: AppColors.deepSeaBlueLight,
+        color: Theme.of(context).cardColor,
+        elevation: 2,
         margin: const EdgeInsets.only(bottom: 16),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Row(
             children: [
-              const CircleAvatar(
-                backgroundColor: Colors.white10,
-                child: Icon(Icons.person, color: Colors.white),
+              CircleAvatar(
+                backgroundColor: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                child: Icon(Icons.person, color: Theme.of(context).colorScheme.primary),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -107,11 +108,11 @@ class _ValidatorScreenState extends State<ValidatorScreen> {
                   children: [
                     Text(
                       scan.guestName,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     Text(
                       "Requested now",
-                      style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12),
+                      style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
                 ),
@@ -119,13 +120,13 @@ class _ValidatorScreenState extends State<ValidatorScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.lime.withValues(alpha: 0.2),
+                  color: AppColors.lime.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AppColors.lime),
                 ),
                 child: Text(
                   "${scan.applicableDiscount}%",
-                  style: const TextStyle(color: AppColors.lime, fontWeight: FontWeight.bold, fontSize: 20),
+                  style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.bold, fontSize: 20),
                 ),
               ),
             ],

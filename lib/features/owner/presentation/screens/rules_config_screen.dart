@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/colors.dart';
-import '../../../../core/logic/discount_calculator.dart';
+import '../../../../core/logic/reward_calculator.dart';
 
 class RulesConfigScreen extends StatefulWidget {
   const RulesConfigScreen({super.key});
@@ -44,7 +44,7 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Discount Logic Config")),
+      appBar: AppBar(title: const Text("Reward Logic Config")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
@@ -83,7 +83,7 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
 
             Text("Retention Base (Expired)", style: TextStyle(color: AppColors.lime, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            _buildNumInput("Discount %", _baseDiscountCtrl),
+            _buildNumInput("Reward %", _baseDiscountCtrl),
             const Text(
               "Applied when user visits AFTER the last tier limit.",
               style: TextStyle(color: Colors.white38, fontSize: 12),
@@ -137,7 +137,7 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
             children: [
               Expanded(child: _buildNumInput("Visit within (Hrs)", _hoursControllers[index])),
               const SizedBox(width: 16),
-              Expanded(child: _buildNumInput("Discount %", _discountControllers[index])),
+              Expanded(child: _buildNumInput("Reward %", _discountControllers[index])),
             ],
           ),
         ],
@@ -177,21 +177,21 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
     
     final base = int.tryParse(_baseDiscountCtrl.text) ?? 5;
 
-    final newConfig = DiscountConfig(
+    final newConfig = RewardConfig(
       tier1Hours: tier1Hours,
       tier2Hours: tier2Hours,
       tier3Hours: tier3Hours,
-      discountTier1: discount1,
-      discountTier2: discount2,
-      discountTier3: discount3,
-      discountBase: base,
+      rewardTier1: discount1,
+      rewardTier2: discount2,
+      rewardTier3: discount3,
+      rewardBase: base,
     );
 
     // Update Global Logic
-    DiscountCalculator.updateConfig(newConfig);
+    RewardCalculator.updateConfig(newConfig);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Discount Logic Updated!")),
+      const SnackBar(content: Text("Reward Logic Updated!")),
     );
     Navigator.pop(context);
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Add this
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/data/user_repository.dart'; // Import Repo
 import '../../../../core/theme/colors.dart';
@@ -25,132 +26,102 @@ class _ConnectScreenState extends State<ConnectScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: Theme.of(context).iconTheme.color),
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      extendBodyBehindAppBar: true,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.deepSeaBlueDark, AppColors.deepSeaBlue],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Identify Yourself.",
-                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                    color: Colors.white,
-                    fontSize: 32,
-                  ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Welcome!",
+                style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                  fontSize: 32,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  "To receive your Guest Status.",
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 48),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "Let's enable your Guest Rewards. 👋",
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 48),
 
-                // Google Sign In Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton.icon(
-                    onPressed: _isLoading ? null : _signInWithGoogle,
-                    icon: const FaIcon(FontAwesomeIcons.google, color: Colors.white),
-                    label: const Text("SIGN IN WITH GOOGLE", style: TextStyle(fontWeight: FontWeight.bold)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.1),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: Colors.white30),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
+              // ... Google Button (Keep) ...
 
-                // Name Input (Legacy/Manual)
-                Row(
-                  children: [
-                    const Expanded(child: Divider(color: Colors.white24)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Text("OR ENTER MANUALLY", style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white54)),
-                    ),
-                    const Expanded(child: Divider(color: Colors.white24)),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                TextField(
-                  controller: _nameController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    labelText: "YOUR NAME",
-                    labelStyle: const TextStyle(color: Colors.white70),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(color: Colors.white24),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: AppColors.lime),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: Colors.white.withValues(alpha: 0.05),
+              // Name Input (Legacy/Manual)
+              Row(
+                children: [
+                  Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text("OR ENTER MANUALLY", style: Theme.of(context).textTheme.labelSmall),
                   ),
-                ),
-                const SizedBox(height: 32),
-                
-                // Messenger Selection / Connection
-                Text(
-                  "CONNECT VIA MESSENGER",
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.lime,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    _buildMessengerButton('whatsapp', FontAwesomeIcons.whatsapp, "WhatsApp", AppConfig.whatsappBotUrl),
-                    const SizedBox(width: 16),
-                    _buildMessengerButton('telegram', FontAwesomeIcons.telegram, "Telegram", AppConfig.telegramBotUrl),
-                  ],
-                ),
+                  Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+                ],
+              ),
+              const SizedBox(height: 24),
 
-                const Spacer(),
-
-                // Submit Button (Manual)
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _onConnectManual,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.lime,
-                      foregroundColor: AppColors.deepSeaBlueDark,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: _isLoading 
-                      ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: AppColors.deepSeaBlueDark))
-                      : const Text("CONTINUE AS GUEST", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              TextField(
+                controller: _nameController,
+                style: Theme.of(context).textTheme.bodyLarge,
+                decoration: InputDecoration(
+                  labelText: "Your Name",
+                  labelStyle: TextStyle(color: Theme.of(context).colorScheme.secondary),
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.outline ?? Colors.grey.shade400),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  focusedBorder: OutlineInputBorder(
+                    borderSide: BorderSide(color: Theme.of(context).colorScheme.primary),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  filled: true,
+                  fillColor: Theme.of(context).colorScheme.surface,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 32),
+              
+              // Messenger Selection / Connection
+              Text(
+                "CONNECT VIA MESSENGER",
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  _buildMessengerButton('whatsapp', FontAwesomeIcons.whatsapp, "WhatsApp", AppConfig.whatsappBotUrl),
+                  const SizedBox(width: 16),
+                  _buildMessengerButton('telegram', FontAwesomeIcons.telegram, "Telegram", AppConfig.telegramBotUrl),
+                ],
+              ),
+
+              const Spacer(),
+
+              // Submit Button (Manual)
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _onConnectManual,
+                  // Style from Theme
+                  child: _isLoading 
+                    ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white))
+                    : const Text("CONTINUE AS GUEST"),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -159,21 +130,33 @@ class _ConnectScreenState extends State<ConnectScreen> {
 
   Future<void> _signInWithGoogle() async {
       setState(() => _isLoading = true);
-      final user = await _authService.signInWithGoogle();
-      
-      if (user != null) {
-          // Sync existing or new user
-          await _userRepo.syncUser(user, displayName: user.displayName, messenger: 'google');
-          
-          if (mounted) {
-              Navigator.pushReplacement(
-                context, 
-                MaterialPageRoute(builder: (context) => SuccessScreen(guestName: user.displayName ?? "Guest"))
-              );
-          }
-      } else {
-           if (mounted) setState(() => _isLoading = false);
-           // Error handled in service or cancelled
+      try {
+        final user = await _authService.signInWithGoogle();
+        
+        if (user != null) {
+            // Sync existing or new user
+            await _userRepo.syncUser(user, displayName: user.displayName, messenger: 'google');
+            
+            if (mounted) {
+                Navigator.pushReplacement(
+                  context, 
+                  MaterialPageRoute(builder: (context) => SuccessScreen(guestName: user.displayName ?? "Guest"))
+                );
+            }
+        } else {
+             if (mounted) setState(() => _isLoading = false);
+             // User cancelled
+        }
+      } catch (e) {
+        if (mounted) {
+           setState(() => _isLoading = false);
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text("Google Sign-In Error: ${e.toString()}"),
+               backgroundColor: Colors.red,
+             ),
+           );
+        }
       }
   }
 
@@ -189,7 +172,21 @@ class _ConnectScreenState extends State<ConnectScreen> {
     setState(() => _isLoading = true);
     
     // 1. Authenticate Anonymously
-    final user = await _authService.signInAnonymously();
+    User? user;
+    try {
+       user = await _authService.signInAnonymously();
+    } catch (e) {
+       if (mounted) {
+           setState(() => _isLoading = false);
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text("Login Error: ${e.toString()}"),
+               backgroundColor: Colors.red,
+             ),
+           );
+       }
+       return;
+    }
 
     if (user == null) {
       if (mounted) setState(() => _isLoading = false);
@@ -199,7 +196,22 @@ class _ConnectScreenState extends State<ConnectScreen> {
     // 2. Sync
     await _userRepo.syncUser(user, displayName: name, messenger: _selectedMessenger);
 
-    // 3. Navigate
+    // 3. Launch Messenger (Deep Link)
+    if (_selectedMessenger == 'telegram') {
+        final Uri url = Uri.parse("${AppConfig.telegramBotUrl}?start=${user.uid}");
+        if (await canLaunchUrl(url)) {
+            await launchUrl(url, mode: LaunchMode.externalApplication);
+        }
+    } else if (_selectedMessenger == 'whatsapp') {
+        // WhatsApp doesn't support 'start' param in same way without business API, 
+        // but we launch the chat so they can say "Hi".
+        final Uri url = Uri.parse(AppConfig.whatsappBotUrl);
+        if (await canLaunchUrl(url)) {
+             await launchUrl(url, mode: LaunchMode.externalApplication);
+        }
+    }
+
+    // 4. Navigate
     if (mounted) {
       Navigator.pushReplacement(
         context,
@@ -214,36 +226,32 @@ class _ConnectScreenState extends State<ConnectScreen> {
     
     return Expanded(
       child: GestureDetector(
-        onTap: () async {
+        onTap: () {
             setState(() => _selectedMessenger = id);
-            final Uri url = Uri.parse(botUrl);
-            if (await canLaunchUrl(url)) {
-                await launchUrl(url, mode: LaunchMode.externalApplication);
-            }
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.lime.withValues(alpha: 0.1) : Colors.white.withValues(alpha: 0.05),
+            color: isSelected ? Theme.of(context).colorScheme.primary.withOpacity(0.1) : Theme.of(context).cardColor,
             border: Border.all(
-              color: isSelected ? AppColors.lime : Colors.transparent,
+              color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).dividerColor,
               width: 2,
             ),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
             children: [
-              FaIcon(icon, color: isSelected ? AppColors.lime : Colors.white54, size: 32),
+              FaIcon(icon, color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).iconTheme.color?.withOpacity(0.5), size: 32),
               const SizedBox(height: 8),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.white54,
+                  color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).textTheme.bodyMedium?.color,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
               const SizedBox(height: 4),
-              Text("OPEN APP", style: TextStyle(fontSize: 10, color: AppColors.lime))
+              Text("OPEN APP", style: TextStyle(fontSize: 10, color: Theme.of(context).colorScheme.secondary))
             ],
           ),
         ),

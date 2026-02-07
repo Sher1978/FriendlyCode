@@ -24,7 +24,7 @@ firebase deploy --only functions
 
 ## 4. Build & Deploy Web (Super Admin & Guest Web)
 ```bash
-flutter build web --release
+flutter build web --release --no-tree-shake-icons
 firebase deploy --only hosting
 ```
 

@@ -28,41 +28,32 @@ class AuthService {
     if (AppConfig.demoMode) {
       return null;
     }
-    try {
-      final UserCredential userCredential = await _auth.signInAnonymously();
-      return userCredential.user;
-    } catch (e) {
-      debugPrint("Error signing in anonymously: $e");
-      return null;
-    }
+    // Let exceptions bubble up to UI
+    final UserCredential userCredential = await _auth.signInAnonymously();
+    return userCredential.user;
   }
 
   /// Sign in with Google (For Owner/Staff/Returning Guest)
   Future<User?> signInWithGoogle() async {
     if (AppConfig.demoMode) return null;
-    try {
-      if (kIsWeb) {
-        // Web Google Sign In logic (Pure Firebase)
-        final GoogleAuthProvider authProvider = GoogleAuthProvider();
-        final UserCredential userCredential = await _auth.signInWithPopup(authProvider);
-        return userCredential.user;
-      } else {
-        // Mobile Google Sign In logic
-        final dynamic googleUser = await _googleSignIn.signIn();
-        if (googleUser == null) return null; // User canceled
+    if (kIsWeb) {
+      // Web Google Sign In logic (Pure Firebase)
+      final GoogleAuthProvider authProvider = GoogleAuthProvider();
+      final UserCredential userCredential = await _auth.signInWithPopup(authProvider);
+      return userCredential.user;
+    } else {
+      // Mobile Google Sign In logic
+      final dynamic googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null; // User canceled
 
-        final dynamic googleAuth = await googleUser.authentication;
-        final AuthCredential credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
+      final dynamic googleAuth = await googleUser.authentication;
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
 
-        final UserCredential userCredential = await _auth.signInWithCredential(credential);
-        return userCredential.user;
-      }
-    } catch (e) {
-      debugPrint("Error signing in with Google: $e");
-      return null;
+      final UserCredential userCredential = await _auth.signInWithCredential(credential);
+      return userCredential.user;
     }
   }
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/colors.dart';
-import '../../../../core/logic/discount_calculator.dart';
+import '../../../../core/logic/reward_calculator.dart';
 
 class GuestProfileScreen extends StatelessWidget {
   final String guestName;
@@ -14,11 +14,11 @@ class GuestProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Calculate Discount on the fly using our Logic Core
+    // Calculate Reward on the fly using our Logic Core
     // We simulate "now" vs "last visit" based on the passed hours
     final now = DateTime.now();
     final lastVisit = now.subtract(Duration(hours: lastVisitHours));
-    final discount = DiscountCalculator.calculate(lastVisit, now);
+    final reward = RewardCalculator.calculate(lastVisit, now);
 
     return Scaffold(
       appBar: AppBar(title: const Text("Guest Profile")),
@@ -60,7 +60,7 @@ class GuestProfileScreen extends StatelessWidget {
             
             const SizedBox(height: 32),
 
-            // Discount Result
+            // Reward Result
             Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
@@ -69,9 +69,9 @@ class GuestProfileScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const Text("APPLICABLE DISCOUNT", style: TextStyle(color: AppColors.lime, letterSpacing: 1.5)),
+                  const Text("APPLICABLE REWARD", style: TextStyle(color: AppColors.lime, letterSpacing: 1.5)),
                   Text(
-                    "$discount%",
+                    "$reward%",
                     style: Theme.of(context).textTheme.displayLarge?.copyWith(
                       // fontSize: 80,
                       fontWeight: FontWeight.w900,

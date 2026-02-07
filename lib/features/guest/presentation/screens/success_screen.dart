@@ -14,16 +14,10 @@ class SuccessScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.deepSeaBlueDark, AppColors.deepSeaBlue],
-          ),
-        ),
-        child: SafeArea(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -33,12 +27,12 @@ class SuccessScreen extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.05),
+                  color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(color: AppColors.lime, width: 2),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.lime.withValues(alpha: 0.2),
+                      color: AppColors.lime.withOpacity(0.2),
                       blurRadius: 20,
                       spreadRadius: 2,
                     ),
@@ -47,10 +41,10 @@ class SuccessScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     Text(
-                      "STATUS ACTIVATED",
+                      "YAY! REWARD UNLOCKED! 🎉",
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: AppColors.lime,
-                        letterSpacing: 2,
+                        color: AppColors.limeDim,
+                        letterSpacing: 1.5,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -60,15 +54,16 @@ class SuccessScreen extends StatelessWidget {
                       style: Theme.of(context).textTheme.displayLarge?.copyWith(
                         fontSize: 96,
                         height: 1,
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.primary, // Brand Color
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     Text(
-                      "OFF",
+                      "OFF TOTAL BILL",
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: Colors.white54,
+                        color: Theme.of(context).textTheme.bodyMedium?.color,
                         fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
                   ],
@@ -77,15 +72,18 @@ class SuccessScreen extends StatelessWidget {
               const SizedBox(height: 48),
               
               Text(
-                "Welcome, $guestName.",
+                "Enjoy your meal, $guestName! 🍽️",
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
                 ),
+                textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              const Text(
-                "Show this screen to your waiter.",
-                style: TextStyle(color: Colors.white54),
+              Text(
+                "Show this to your waiter to claim your perk! ✨",
+                style: Theme.of(context).textTheme.bodyLarge,
+                textAlign: TextAlign.center,
               ),
 
               const Spacer(),
@@ -93,12 +91,12 @@ class SuccessScreen extends StatelessWidget {
               // Timer or Animation placeholder
               const LinearProgressIndicator(
                 color: AppColors.lime,
-                backgroundColor: Colors.white10,
+                backgroundColor: Colors.grey,
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 "Expires in 24h",
-                style: TextStyle(color: Colors.white38, fontSize: 10),
+                style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: 16),
             ],

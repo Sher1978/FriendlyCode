@@ -75,4 +75,14 @@ class VenueRepository {
         .snapshots()
         .map((doc) => doc.exists ? VenueModel.fromMap(doc.id, doc.data()!) : null);
   }
+
+  /// Update venue data
+  Future<void> updateVenue(String venueId, Map<String, dynamic> data) async {
+    try {
+      await _firestore.collection('venues').doc(venueId).update(data);
+    } catch (e) {
+      debugPrint("Error updating venue: $e");
+      rethrow;
+    }
+  }
 }

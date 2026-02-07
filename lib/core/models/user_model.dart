@@ -3,12 +3,16 @@ class UserModel {
   final String name;
   final Map<String, String> messengers; // { whatsapp: string, telegram: string }
   final Map<String, UserHistoryItem> history; // { venueId: HistoryItem }
+  final bool marketingConsent;
+  final String? contactInfo;
 
   UserModel({
     required this.userId,
     required this.name,
     required this.messengers,
     required this.history,
+    this.marketingConsent = false,
+    this.contactInfo,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> data, String id) {
@@ -19,6 +23,8 @@ class UserModel {
       history: (data['history'] as Map<String, dynamic>? ?? {}).map(
         (key, value) => MapEntry(key, UserHistoryItem.fromMap(value)),
       ),
+      marketingConsent: data['marketingConsent'] ?? false,
+      contactInfo: data['contactInfo'],
     );
   }
 
@@ -27,6 +33,8 @@ class UserModel {
       'name': name,
       'messengers': messengers,
       'history': history.map((key, value) => MapEntry(key, value.toMap())),
+      'marketingConsent': marketingConsent,
+      'contactInfo': contactInfo,
     };
   }
 }

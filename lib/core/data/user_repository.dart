@@ -7,7 +7,12 @@ class UserRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// Creates or Updates a User record in Firestore 'users' collection.
-  Future<void> syncUser(User user, {String? displayName, String? messenger}) async {
+  Future<void> syncUser(User user, {
+    String? displayName, 
+    String? messenger,
+    bool marketingConsent = false,
+    String? contactInfo,
+  }) async {
     try {
       final userRef = _firestore.collection('users').doc(user.uid);
       
@@ -19,22 +24,31 @@ class UserRepository {
           userId: user.uid,
           name: displayName ?? 'Guest',
           messengers: {if (messenger != null) messenger: 'ACTIVE'},
-          history: {}, 
+          history: {},
+          marketingConsent: marketingConsent,
+          contactInfo: contactInfo,
         );
         
         await userRef.set({
           'name': newUser.name,
           'messengers': newUser.messengers,
           'history': {},
+          'marketingConsent': newUser.marketingConsent,
+          'contactInfo': newUser.contactInfo,
           'joinDate': DateTime.now().toIso8601String(),
           'lastSeen': DateTime.now().toIso8601String(),
         });
+        debugPrint("✅ NEW USER REGISTERED: ${newUser.userId}");
       } else {
-        // Update Existing User (Last Seen)
-        await userRef.update({
+        // Update Existing User (Last Seen + potential new info)
+        final updates = <String, dynamic>{
           'lastSeen': DateTime.now().toIso8601String(),
-          if (displayName != null) 'name': displayName, // Update name if provided
-        });
+        };
+        if (displayName != null) updates['name'] = displayName;
+        if (marketingConsent) updates['marketingConsent'] = true; // Only upgrade to true
+        if (contactInfo != null) updates['contactInfo'] = contactInfo;
+
+        await userRef.update(updates);
       }
     } catch (e) {
       debugPrint("Error syncing user to Firestore: $e");

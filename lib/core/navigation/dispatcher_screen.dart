@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/guest/presentation/screens/landing_screen.dart';
+import '../../features/web/presentation/pages/b2c_home_screen.dart';
 import '../../features/guest/presentation/screens/success_screen.dart';
 
 class DispatcherScreen extends StatefulWidget {
@@ -58,6 +60,10 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
           child: CircularProgressIndicator(),
         ),
       );
+    }
+
+    if (kIsWeb) {
+      return const B2CHomeScreen();
     }
 
     return const LandingScreen();

@@ -5,5 +5,5 @@ class AppConfig {
   
   // Bot Connections (Replace with real links)
   static const String whatsappBotUrl = "https://wa.me/15550123456"; 
-  static const String telegramBotUrl = "https://t.me/FriendlyCodeBot";
+  static const String telegramBotUrl = "https://t.me/FriendIycode_bot";
 }

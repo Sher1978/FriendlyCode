@@ -87,6 +87,9 @@ class VenueModel {
   final List<DiscountTier> tiers;
   final VenueSubscription subscription;
   final VenueStats stats;
+  final double latitude; // Added to fix build
+  final double longitude; // Added to fix build
+  final DateTime? lastBlastDate;
 
   VenueModel({
     required this.id,
@@ -98,6 +101,9 @@ class VenueModel {
     required this.tiers,
     required this.subscription,
     required this.stats,
+    this.latitude = 0.0,
+    this.longitude = 0.0,
+    this.lastBlastDate,
   });
 
   Map<String, dynamic> toMap() {
@@ -110,6 +116,9 @@ class VenueModel {
       'tiers': tiers.map((x) => x.toMap()).toList(),
       'subscription': subscription.toMap(),
       'stats': stats.toMap(),
+      'latitude': latitude,
+      'longitude': longitude,
+      'lastBlastDate': lastBlastDate != null ? Timestamp.fromDate(lastBlastDate!) : null,
     };
   }
 
@@ -130,6 +139,9 @@ class VenueModel {
       stats: map['stats'] != null
           ? VenueStats.fromMap(map['stats'])
           : VenueStats(avgReturnHours: 0, totalCheckins: 0),
+      latitude: (map['latitude'] ?? 0.0).toDouble(),
+      longitude: (map['longitude'] ?? 0.0).toDouble(),
+      lastBlastDate: map['lastBlastDate'] != null ? (map['lastBlastDate'] as Timestamp).toDate() : null,
     );
   }
 }

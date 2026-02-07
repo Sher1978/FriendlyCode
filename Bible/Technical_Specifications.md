@@ -14,17 +14,19 @@
 
 ### Screen A1: Discovery Map (Home)
 * **Layout:**
-    * **Top Bar:** Search Field ("Sushi", "Hookah"), Filter Icon.
-    * **Body:** Full-screen Map with custom Pins.
-    * **Bottom Sheet (Swipeable):** List of nearest venues with "Best Discount" badge.
-* **Element:** **Global Scan Button** (Floating Action Button - Centered).
+    * **Header:** "Browse" Title + Top-Right Profile Icon.
+    * **Search:** Inline rounded input (`#F0F3F4`) with "Search resorts" placeholder.
+    * **Body:** Vertical scrollable list of "Popular Resorts" (Horizontal Cards: Image + Title + Description).
+    * **Toggle:** Map View / List View.
+    * **Bottom Nav:** Fixed (Home, Browse, Track, Profile).
+* **Element:** **Global Scan Button** (Floating or integrated in Nav).
 
-### Screen A2: Venue Profile
-* **Header:** Cover Photo, Venue Name, Rating.
-* **Info Block:** Description, Working Hours, "Open/Closed" indicator.
-* **Links:** Buttons [Instagram] [Google Maps Route].
-* **My Status Card:** "Your Discount: X%", "Time left to decrease: HH:MM".
-* **Rules Tab:** Visual timeline showing the 5 discount tiers.
+### Screen A2: Venue Profile (Loyalty View)
+* **Context:** User has valid Guest Token (Post-Connect).
+* **Header:** Friendly Greeting ("Hey, great to have you back! ☀️").
+* **Perk Reminder:** Container showing all 5 Tiers with emoji bullet points (🔥, ✨, 🌿, ☕️).
+* **Action:** "GET DISCOUNT" Button -> Navigates to Validator Code/Animation.
+* **Footer:** Warm closing message ("Until next time...").
 
 ### Screen A3: User Profile
 * **Header:** User Avatar, Name.
@@ -85,3 +87,17 @@
 
 **Collection: `app_config`**
 * `globalSettings`: `{ maxTiersAllowed: 5, maintenanceMode: boolean }`.
+
+## 6. BUSINESS NOTIFICATIONS (TELEGRAM)
+**Target:** Venue Staff & Owners (Alternative to App Interface).
+
+### Feature: Group Integration
+*   **Logic:** Venue Owner creates a Telegram Group.
+*   **Setup:** Owner adds Platform Bot and sends command `/register_venue <VENUE_ID>`.
+*   **Storage:** `telegramGroupId` stored in `venues` document.
+
+### Feature: Live Notifications
+*   **Trigger:** Guest creates a Scan (Check-In).
+*   **Message:** Bot sends "New Guest Details" + "Current Discount" to the linked Group.
+*   **Interaction:** Message contains **Inline Button** [✅ Confirm].
+*   **Action:** Staff clicks Confirm -> Cloud Function updates Scan status in DB -> Database updates analytics.

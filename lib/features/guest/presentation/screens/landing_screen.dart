@@ -12,109 +12,101 @@ class LandingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Cyberpunk Gradient Background
+    // Dynamic Theme Background
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppColors.deepSeaBlueDark,
-              AppColors.deepSeaBlue,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Spacer(),
-                // Hero Text with "Glitch" vibe (simple implementation)
-                ShaderMask(
-                  shaderCallback: (bounds) => const LinearGradient(
-                    colors: [AppColors.lime, Colors.white],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ).createShader(bounds),
-                  child: Text(
-                    "FRIENDLY\nCODE",
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                      fontSize: 48,
-                      height: 0.9,
-                      letterSpacing: -2,
-                      fontWeight: FontWeight.w900, // Black weight
-                      color: Colors.white, // Required for ShaderMask
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                
-                // Value Prop
-                Text(
-                  "Don't just be a customer.",
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Spacer(),
+              // Hero Text
+              ShaderMask(
+                shaderCallback: (bounds) => LinearGradient(
+                  colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ).createShader(bounds),
+                child: Text(
+                  "FRIENDLY\nCODE",
                   textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w300,
+                  style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                    fontSize: 48,
+                    height: 0.9,
+                    letterSpacing: -2,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white, // Required for ShaderMask, but masked by gradient
                   ),
                 ),
-                Text(
-                  "Be a Guest.",
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: AppColors.lime,
-                    fontWeight: FontWeight.bold,
-                  ),
+              ),
+              const SizedBox(height: 32),
+              
+              // Value Prop
+              Text(
+                "Don't just be a customer.",
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                   fontWeight: FontWeight.w300,
+                   // Color inherited from Theme
                 ),
-                
-                const Spacer(),
+              ),
+              Text(
+                "Be a Guest.",
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary, // Brand Color
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              
+              const Spacer(),
 
-                // Pain/Solution Block (Subtle)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.deepSeaBlueDark.withValues(alpha: 0.5),
-                    border: Border.all(color: AppColors.lime.withValues(alpha: 0.3)),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.no_cell, color: Colors.white54, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        "No Downloads. No App Store.",
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
-                      ),
-                    ],
-                  ),
+              // Pain/Solution Block (Subtle)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  border: Border.all(color: Theme.of(context).colorScheme.primary.withOpacity(0.1)),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    )
+                  ],
                 ),
-                const SizedBox(height: 24),
-
-                // CTA Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const ConnectScreen()),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.lime,
-                      foregroundColor: AppColors.deepSeaBlueDark,
-                      elevation: 8,
-                      shadowColor: AppColors.lime.withValues(alpha: 0.5),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.no_cell, color: Theme.of(context).colorScheme.secondary, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      "No Downloads. No App Store.",
+                      style: Theme.of(context).textTheme.bodyMedium,
                     ),
-                    child: const Text("GET STATUS"),
-                  ),
+                  ],
                 ),
+              ),
+              const SizedBox(height: 24),
+
+              // CTA Button
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ConnectScreen()),
+                    );
+                  },
+                  // Style inherited from Theme
+                  child: const Text("GET STATUS"),
+                ),
+              ),
                 const SizedBox(height: 32),
                 
                 // Mock Staff Entry for Development
@@ -173,7 +165,6 @@ class LandingScreen extends StatelessWidget {
             ),
           ),
         ),
-      ),
     );
   }
 }

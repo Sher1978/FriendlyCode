@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/scan_model.dart';
 import '../config/app_config.dart';
-import 'package:flutter/foundation.dart';
 
 class ScanRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

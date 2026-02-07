@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/models/venue_model.dart';
+import 'success_screen.dart'; // Or Validator trigger logic
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class GuestVenueProfileScreen extends StatelessWidget {
@@ -11,160 +12,174 @@ class GuestVenueProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // Header with Parallax-like Effect
-          SliverAppBar(
-            expandedHeight: 250,
-            pinned: true,
-            backgroundColor: AppColors.deepSeaBlue,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(venue.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              background: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Container(color: Colors.grey[800]), // Placeholder for Image
-                  const Center(child: Icon(Icons.store, size: 64, color: Colors.white24)),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.transparent, AppColors.deepSeaBlueDark.withValues(alpha: 0.9)],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.white,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimaryLight),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: const CircleAvatar(
+               backgroundColor: AppColors.backgroundAltLight,
+               radius: 18,
+               child: Icon(Icons.person, color: AppColors.textPrimaryLight, size: 20),
             ),
+            onPressed: () {
+               // Open Settings Bottom Sheet
+               _showProfileSettings(context);
+            },
           ),
-
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   // My Status Card
-                   Container(
-                     padding: const EdgeInsets.all(24),
-                     decoration: BoxDecoration(
-                       gradient: const LinearGradient(
-                         colors: [AppColors.lime, Color(0xFFD4FF55)],
-                         begin: Alignment.topLeft,
-                         end: Alignment.bottomRight,
-                       ),
-                       borderRadius: BorderRadius.circular(24),
-                       boxShadow: [
-                         BoxShadow(color: AppColors.lime.withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 10)),
-                       ],
-                     ),
-                     child: Column(
-                       children: [
-                         const Text("YOUR CURRENT STATUS", style: TextStyle(color: AppColors.deepSeaBlueDark, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
-                         const SizedBox(height: 8),
-                         const Text("20%", style: TextStyle(color: AppColors.deepSeaBlueDark, fontSize: 64, fontWeight: FontWeight.w900, height: 1)),
-                         const SizedBox(height: 8),
-                         Container(
-                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                           decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(20)),
-                           child: const Text("Expires in 12h 30m", style: TextStyle(color: AppColors.deepSeaBlueDark, fontWeight: FontWeight.bold)),
-                         ),
-                       ],
-                     ),
-                   ),
-                   const SizedBox(height: 32),
-
-                   // Info
-                   Text("Description", style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
-                   const SizedBox(height: 8),
-                   Text(venue.description, style: const TextStyle(color: Colors.white70, height: 1.5)),
-                   
-                   const SizedBox(height: 24),
-                   
-                   // Links
-                   Row(
-                     children: [
-                       _buildLinkBtn(Icons.map, "Route"),
-                       const SizedBox(width: 16),
-                       _buildLinkBtn(FontAwesomeIcons.instagram, "Instagram"),
-                     ],
-                   ),
-
-                   const SizedBox(height: 48),
-                   
-                   // Discount Rules Timeline
-                   Text("Discount Rules", style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white)),
-                   const SizedBox(height: 24),
-                   
-                   // Mock Tiers Visualization
-                   _buildTierItem("0 - 24h", "20%", true),
-                   _buildTierConnector(true),
-                   _buildTierItem("24 - 48h", "15%", false),
-                   _buildTierConnector(false),
-                   _buildTierItem("2 - 10 Days", "10%", false),
-                   _buildTierConnector(false),
-                   _buildTierItem("> 10 Days", "5%", false),
-                ],
-              ),
-            ),
-          ),
+          const SizedBox(width: 16),
         ],
       ),
-    );
-  }
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+             // Friendly Header
+             Text(
+               "Hey, great to have you back at ${venue.name}! ☀️",
+               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                 fontSize: 28,
+                 height: 1.2,
+                 letterSpacing: -0.5,
+               ),
+             ),
+             const SizedBox(height: 32),
 
-  Widget _buildLinkBtn(IconData icon, String label) {
-    return Expanded(
-      child: OutlinedButton.icon(
-        onPressed: () {},
-        icon: Icon(icon, size: 18),
-        label: Text(label),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: Colors.white,
-          side: const BorderSide(color: Colors.white24),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+             // Perk Reminder Card
+             Container(
+               padding: const EdgeInsets.all(24),
+               decoration: BoxDecoration(
+                 color: AppColors.backgroundAltLight,
+                 borderRadius: BorderRadius.circular(24),
+               ),
+               child: Column(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+                 children: [
+                   Text(
+                     "Here’s your loyalty perk reminder :",
+                     style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                   ),
+                   const SizedBox(height: 20),
+                   _buildPerkRow(context, "🔥", "Visit tomorrow", "20% OFF"),
+                   const SizedBox(height: 12),
+                   _buildPerkRow(context, "✨", "Visit within 3 days", "15% OFF"),
+                   const SizedBox(height: 12),
+                   _buildPerkRow(context, "🌿", "Visit in next 10 days", "10% OFF"),
+                   const SizedBox(height: 12),
+                   _buildPerkRow(context, "☕️", "Visit anytime after", "5% OFF"),
+                   
+                   const SizedBox(height: 24),
+                   Text(
+                     "(Minimum spend ₹150 per visit applies)",
+                     style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12, color: AppColors.textSecondaryLight),
+                   ),
+                 ],
+               ),
+             ),
+             
+             const SizedBox(height: 32),
+             
+             // GET DISCOUNT Button
+             SizedBox(
+               width: double.infinity,
+               height: 56,
+               child: ElevatedButton(
+                 onPressed: () {
+                    // Trigger Discount Logic / Navigate to "Gold Ticket"
+                    // For now, go to SuccessScreen as demo
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SuccessScreen(guestName: "Guest", discountPercent: 20)),
+                    );
+                 },
+                 style: ElevatedButton.styleFrom(
+                   backgroundColor: AppColors.textPrimaryLight, // #111518
+                   foregroundColor: Colors.white,
+                   elevation: 0,
+                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                 ),
+                 child: const Text("GET REWARD", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+               ),
+             ),
+
+             const SizedBox(height: 32),
+
+             // Footer Message
+             Text(
+               "Until next time — stay safe, stay happy and have a good life! 😄☕️💛",
+               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                 color: AppColors.textSecondaryLight,
+                 height: 1.5,
+               ),
+               textAlign: TextAlign.center,
+             ),
+             const SizedBox(height: 20),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildTierItem(String time, String discount, bool isActive) {
+  Widget _buildPerkRow(BuildContext context, String icon, String condition, String offer) {
     return Row(
       children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: isActive ? AppColors.lime : Colors.white10,
-            shape: BoxShape.circle,
-            border: Border.all(color: isActive ? AppColors.lime : Colors.transparent, width: 2),
+        Text(icon, style: const TextStyle(fontSize: 18)),
+        const SizedBox(width: 12),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontSize: 15),
+              children: [
+                TextSpan(text: "$condition → "),
+                TextSpan(text: "$offer your total bill", style: const TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
           ),
-          child: Center(
-            child: isActive 
-              ? const Icon(Icons.check, size: 20, color: AppColors.deepSeaBlueDark)
-              : Text(discount, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(discount, style: TextStyle(color: isActive ? AppColors.lime : Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            Text(time, style: const TextStyle(color: Colors.white54, fontSize: 12)),
-          ],
         ),
       ],
     );
   }
 
-  Widget _buildTierConnector(bool isActive) {
-    return Container(
-      margin: const EdgeInsets.only(left: 19),
-      height: 30,
-      width: 2,
-      color: isActive ? AppColors.lime : Colors.white10,
+  void _showProfileSettings(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Settings", style: Theme.of(context).textTheme.headlineMedium),
+            const SizedBox(height: 24),
+            ListTile(
+              leading: const Icon(Icons.person_outline),
+              title: const Text("Edit Name"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.notifications_outlined),
+              title: const Text("Notifications"),
+              trailing: Switch(value: true, onChanged: (v) {}),
+            ),
+            ListTile(
+              leading: const Icon(Icons.dark_mode_outlined),
+              title: const Text("Dark Mode"),
+              trailing: Switch(value: false, onChanged: (v) {}),
+            ),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
     );
   }
 }
+

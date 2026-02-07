@@ -5,6 +5,7 @@ import '../../../../core/models/venue_model.dart';
 import '../../../../core/data/venue_repository.dart';
 import 'rules_config_screen.dart';
 import 'venue_profile_edit_screen.dart';
+import 'marketing_blast_screen.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -22,19 +23,17 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.deepSeaBlueDark,
+      // Background handled by Theme
       appBar: AppBar(title: const Text("Owner Dashboard")),
       body: StreamBuilder<VenueModel?>(
         stream: _venueRepo.getVenueStream(_demoVenueId),
         builder: (context, snapshot) {
           if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: AppColors.lime));
+          if (!snapshot.hasData) return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
 
           final venue = snapshot.data!;
           final stats = venue.stats;
           
-          // Calculate Distribution Data for Chart
-          // map: "20" -> count
           final dist = stats.discountDistribution; 
           final double total = dist.values.fold(0, (sum, val) => sum + val);
           
@@ -46,7 +45,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                 Text(
                   "TODAY'S METRICS",
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.lime,
+                    color: Theme.of(context).colorScheme.primary, // Brand Color
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -61,7 +60,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                // Additional Rows can go here...
 
                 const SizedBox(height: 32),
                 
@@ -69,7 +67,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                 Text(
                   "DISCOUNT DISTRIBUTION",
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.lime,
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -79,14 +77,14 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                   height: 250,
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                     color: AppColors.deepSeaBlueLight,
+                     color: Theme.of(context).cardColor,
                      borderRadius: BorderRadius.circular(24),
                   ),
                   child: Row(
                     children: [
                       Expanded(
                         child: total == 0 
-                        ? const Center(child: Text("No Data Yet", style: TextStyle(color: Colors.white54)))
+                        ? Center(child: Text("No Data Yet", style: TextStyle(color: Theme.of(context).disabledColor)))
                         : PieChart(
                           PieChartData(
                             sectionsSpace: 2,
@@ -101,17 +99,17 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                         ),
                       ),
                       const SizedBox(width: 24),
-                      const Column(
+                      Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _LegendItem(color: AppColors.lime, label: "Tier 1 (20%)"),
-                          SizedBox(height: 8),
-                          _LegendItem(color: Colors.blue, label: "Tier 2 (15%)"),
-                          SizedBox(height: 8),
-                          _LegendItem(color: Colors.orange, label: "Tier 3 (10%)"),
-                          SizedBox(height: 8),
-                          _LegendItem(color: Colors.grey, label: "Expired (5%)"),
+                          _LegendItem(context, color: AppColors.lime, label: "Tier 1 (20%)"),
+                          const SizedBox(height: 8),
+                          _LegendItem(context, color: Colors.blue, label: "Tier 2 (15%)"),
+                          const SizedBox(height: 8),
+                          _LegendItem(context, color: Colors.orange, label: "Tier 3 (10%)"),
+                          const SizedBox(height: 8),
+                          _LegendItem(context, color: Colors.grey, label: "Expired (5%)"),
                         ],
                       )
                     ],
@@ -123,7 +121,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                 Text(
                   "MANAGEMENT",
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppColors.lime,
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -136,12 +134,12 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                       MaterialPageRoute(builder: (context) => const VenueProfileEditScreen()),
                     );
                   },
-                  tileColor: AppColors.deepSeaBlueLight,
+                  tileColor: Theme.of(context).cardColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  leading: const Icon(Icons.store, color: AppColors.lime),
-                  title: const Text("Venue Profile", style: TextStyle(color: Colors.white)),
-                  subtitle: const Text("Name, Hours, Photos", style: TextStyle(color: Colors.white54)),
-                  trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 16),
+                  leading: Icon(Icons.store, color: Theme.of(context).colorScheme.primary),
+                  title: Text("Venue Profile", style: Theme.of(context).textTheme.bodyLarge),
+                  subtitle: Text("Name, Hours, Photos", style: Theme.of(context).textTheme.bodySmall),
+                  trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).dividerColor, size: 16),
                 ),
                 const SizedBox(height: 16),
                 // Settings Tile
@@ -152,12 +150,28 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                       MaterialPageRoute(builder: (context) => const RulesConfigScreen()),
                     );
                   },
-                  tileColor: AppColors.deepSeaBlueLight,
+                  tileColor: Theme.of(context).cardColor,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  leading: const Icon(Icons.tune, color: AppColors.lime),
-                  title: const Text("Configure Time Rules", style: TextStyle(color: Colors.white)),
-                  subtitle: const Text("Adjust decay limits and percentages", style: TextStyle(color: Colors.white54)),
-                  trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 16),
+                  leading: Icon(Icons.tune, color: Theme.of(context).colorScheme.primary),
+                  title: Text("Configure Time Rules", style: Theme.of(context).textTheme.bodyLarge),
+                  subtitle: Text("Adjust decay limits and percentages", style: Theme.of(context).textTheme.bodySmall),
+                  trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).dividerColor, size: 16),
+                ),
+                const SizedBox(height: 16),
+                
+                ListTile(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => MarketingBlastScreen(venueId: _demoVenueId)),
+                    );
+                  },
+                  tileColor: Theme.of(context).cardColor,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  leading: const Icon(Icons.campaign, color: AppColors.lime), // Campaign icon
+                  title: Text("Send Marketing Blast", style: Theme.of(context).textTheme.bodyLarge),
+                  subtitle: Text("Re-engage lost customers", style: Theme.of(context).textTheme.bodySmall),
+                  trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).dividerColor, size: 16),
                 ),
               ],
             ),
@@ -183,25 +197,24 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.deepSeaBlueLight,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white10),
+          border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: AppColors.lime, size: 20),
+            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
             const SizedBox(height: 12),
             Text(
               value,
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
             ),
             Text(
               label,
-              style: const TextStyle(color: Colors.white54, fontSize: 12),
+              style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
         ),
@@ -211,9 +224,10 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
 }
 
 class _LegendItem extends StatelessWidget {
+  final BuildContext context;
   final Color color;
   final String label;
-  const _LegendItem({required this.color, required this.label});
+  const _LegendItem(this.context, {required this.color, required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -221,7 +235,7 @@ class _LegendItem extends StatelessWidget {
       children: [
         Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
         const SizedBox(width: 8),
-        Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
       ],
     );
   }

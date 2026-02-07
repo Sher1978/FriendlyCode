@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:flutter/foundation.dart'; // for kIsWeb
-import '../../../../core/theme/colors.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/models/venue_model.dart';
 
 import '../../../../core/data/venue_repository.dart'; // Import Repo
+import '../../../../core/theme/colors.dart'; // Import Colors
 import 'guest_venue_profile_screen.dart';
 
 class DiscoveryScreen extends StatefulWidget {
@@ -19,198 +19,192 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
   final VenueRepository _venueRepo = VenueRepository(); // Init Repo
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.deepSeaBlueDark,
+      // Background handled by Theme
       body: StreamBuilder<List<VenueModel>>(
         stream: _venueRepo.getVenuesStream(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) {
-             return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
-          }
-          
-          if (snapshot.connectionState == ConnectionState.waiting) {
-             return const Center(child: CircularProgressIndicator(color: AppColors.lime));
-          }
+          if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-          final venues = snapshot.data ?? []; // Use real data
+          final venues = snapshot.data ?? []; 
 
-          return Stack(
-            children: [
-              // Content Layer (Map or List)
-              _isMapView ? _buildMap(venues) : _buildList(venues),
-
-              // Top Search Bar
-              Positioned(
-                top: 50,
-                left: 16,
-                right: 16,
-                child: Row(
+          return SafeArea(
+            child: _isMapView 
+              ? Stack(
                   children: [
-                    Expanded(
-                      child: Container(
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: AppColors.deepSeaBlue.withValues(alpha: 0.9),
-                          borderRadius: BorderRadius.circular(25),
-                          boxShadow: [
-                            BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4)),
-                          ],
-                        ),
-                        child: TextField(
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            hintText: "Find sushi, hookah...",
-                            hintStyle: const TextStyle(color: Colors.white54),
-                            prefixIcon: const Icon(Icons.search, color: AppColors.lime),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                     _buildMap(venues),
+                     Positioned(
+                       top: 16, right: 16,
+                       child: FloatingActionButton(
+                         mini: true,
+                         backgroundColor: Colors.white,
+                         child: const Icon(Icons.list, color: AppColors.textPrimaryLight),
+                         onPressed: () => setState(() => _isMapView = false),
+                       ),
+                     ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Icon(Icons.arrow_back, size: 24, color: AppColors.textPrimaryLight),
+                          Text(
+                            "Browse", 
+                            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)
                           ),
+                          const SizedBox(width: 24), // Balance arrow
+                        ],
+                      ),
+                    ),
+
+                    // Search Bar
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      child: TextField(
+                        style: Theme.of(context).textTheme.bodyLarge,
+                        decoration: InputDecoration(
+                          hintText: "Search resorts",
+                          prefixIcon: const Icon(Icons.search),
+                          filled: true,
+                          fillColor: AppColors.backgroundAltLight,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    // Toggle Button
-                    GestureDetector(
-                      onTap: () => setState(() => _isMapView = !_isMapView),
-                      child: Container(
-                        height: 50,
-                        width: 50,
-                        decoration: BoxDecoration(
-                          color: AppColors.lime,
-                          borderRadius: BorderRadius.circular(25),
-                          boxShadow: [
-                            BoxShadow(color: AppColors.lime.withValues(alpha: 0.4), blurRadius: 10, offset: const Offset(0, 4)),
-                          ],
-                        ),
-                        child: Icon(
-                          _isMapView ? Icons.list : Icons.map,
-                          color: AppColors.deepSeaBlueDark,
-                        ),
+
+                    // Title
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text("Popular Resorts", style: Theme.of(context).textTheme.headlineMedium), // 22px bold
+                          IconButton(
+                            icon: const Icon(Icons.map_outlined),
+                            onPressed: () => setState(() => _isMapView = true),
+                            tooltip: "View Map",
+                          )
+                        ],
+                      ),
+                    ),
+
+                    // List
+                    Expanded(
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: venues.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12), // Gap between items
+                        itemBuilder: (context, index) {
+                           final venue = venues[index];
+                           return _buildStitchListItem(context, venue);
+                        },
                       ),
                     ),
                   ],
                 ),
-              ),
-              
-              // Floating Scan Button (Global Action)
-              Positioned(
-                bottom: 30,
-                right: 20,
-                left: 20,
-                child: SizedBox(
-                   height: 60,
-                   child: ElevatedButton.icon(
-                     onPressed: () {
-                        // TODO: Navigate to GuestScanner
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Global Scan Initiated")),
-                        );
-                     },
-                     icon: const Icon(Icons.qr_code_scanner, size: 28),
-                     label: const Text("I'M HERE - SCAN QR", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                     style: ElevatedButton.styleFrom(
-                       backgroundColor: AppColors.lime,
-                       foregroundColor: AppColors.deepSeaBlueDark,
-                       elevation: 8,
-                       shadowColor: AppColors.lime.withValues(alpha: 0.5),
-                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                     ),
-                   ),
-                ),
-              ),
-            ],
           );
         }
       ),
       bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: AppColors.deepSeaBlue,
-        selectedItemColor: AppColors.lime,
-        unselectedItemColor: Colors.white54,
+        backgroundColor: Colors.white,
+        selectedItemColor: AppColors.textPrimaryLight,
+        unselectedItemColor: AppColors.textSecondaryLight,
+        showUnselectedLabels: true,
+        type: BottomNavigationBarType.fixed,
         currentIndex: 0,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Discover'),
-          BottomNavigationBarItem(icon: Icon(Icons.local_offer), label: 'My Wallet'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Browse'), // Active
+          BottomNavigationBarItem(icon: Icon(Icons.map_outlined), label: 'Track'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),
     );
   }
 
-  Widget _buildMap(List<VenueModel> venues) {
-    // Check if running on a platform that supports Google Maps
-    // For Windows Desktop runner (debug), we show a placeholder.
-    // kIsWeb is true for Web. 
-    // defaultTargetPlatform check is needed for Desktop.
-    
-    // Simple check: If not Web and (Windows/Linux/Mac), show placeholder.
-    bool pwaOrMobile = kIsWeb || (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.android);
-    
-    if (!pwaOrMobile) {
-      return Container(
-        color: Colors.grey[900],
-        child: const Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.map, size: 64, color: Colors.white24),
-              SizedBox(height: 16),
-              Text(
-                "Map not supported on Desktop Runner.\nUse Mobile Emulator or Web.",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white54),
+  Widget _buildStitchListItem(BuildContext context, VenueModel venue) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+           context,
+           MaterialPageRoute(builder: (context) => GuestVenueProfileScreen(venue: venue)),
+        );
+      },
+      child: Container(
+        color: Colors.transparent, // Hit test
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center, // Align center vertical
+          children: [
+            // Image
+            Container(
+              width: 80, // h-14 w-fit -> approx aspect video relative to height 56px
+              height: 56,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                color: AppColors.backgroundAltLight,
+                image: const DecorationImage(
+                  image: NetworkImage("https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=800&q=80"), // Mock
+                  fit: BoxFit.cover,
+                ),
               ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 16),
+            // Text
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    venue.name,
+                    style: Theme.of(context).textTheme.titleMedium, // 16px medium
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    venue.description,
+                    style: Theme.of(context).textTheme.bodyMedium, // 14px normal #637c88
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      );
-    }
-  
-    return GoogleMap(
-      initialCameraPosition: const CameraPosition(
-        target: LatLng(25.2048, 55.2708), // Dubai Mock
-        zoom: 12,
       ),
-      style: _darkMapStyle,
-      markers: venues.map((v) => Marker(
-        markerId: MarkerId(v.id),
-        position: const LatLng(25.2048, 55.2708), // All at same spot for mock
-        infoWindow: InfoWindow(title: v.name, snippet: v.description),
-      )).toSet(),
     );
   }
 
-  Widget _buildList(List<VenueModel> venues) {
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 120, bottom: 100, left: 16, right: 16),
-      itemCount: venues.length,
-      itemBuilder: (context, index) {
-         final venue = venues[index];
-         return Card(
-           color: AppColors.deepSeaBlueLight,
-           margin: const EdgeInsets.only(bottom: 16),
-           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-           child: ListTile(
-             contentPadding: const EdgeInsets.all(16),
-             leading: const CircleAvatar(radius: 24, backgroundColor: Colors.white10, child: Icon(Icons.store, color: Colors.white)),
-             title: Text(venue.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-             subtitle: Text(venue.description, style: const TextStyle(color: Colors.white54)),
-             trailing: Column(
-               mainAxisAlignment: MainAxisAlignment.center,
-               children: [
-                 const Text("Up to", style: TextStyle(color: Colors.white38, fontSize: 10)),
-                 Text("20%", style: Theme.of(context).textTheme.titleLarge?.copyWith(color: AppColors.lime, fontWeight: FontWeight.bold)),
-               ],
-             ),
-             onTap: () {
-               Navigator.push(
-                 context,
-                 MaterialPageRoute(builder: (context) => GuestVenueProfileScreen(venue: venue)),
-               );
-             },
-           ),
-         );
+  Widget _buildMap(List<VenueModel> venues) {
+    return GoogleMap(
+      initialCameraPosition: const CameraPosition(
+        target: LatLng(25.2048, 55.2708), // Dubai
+        zoom: 12,
+      ),
+      markers: venues.map((v) => Marker(
+        markerId: MarkerId(v.id),
+        position: LatLng(v.latitude, v.longitude),
+        infoWindow: InfoWindow(title: v.name),
+      )).toSet(),
+      onMapCreated: (GoogleMapController controller) {
+        controller.setMapStyle(_darkMapStyle);
       },
+      myLocationEnabled: true,
+      myLocationButtonEnabled: false,
+      zoomControlsEnabled: false,
     );
   }
   
