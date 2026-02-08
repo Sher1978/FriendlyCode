@@ -1,0 +1,86 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../../../../core/theme/colors.dart';
+
+class LoginScreen extends StatelessWidget {
+  const LoginScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    
+    return Scaffold(
+      backgroundColor: AppColors.backgroundCream,
+      body: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 400),
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Logo
+              ShaderMask(
+                shaderCallback: (bounds) => const LinearGradient(
+                  colors: [AppColors.deepSeaBlue, AppColors.lime],
+                ).createShader(bounds),
+                child: const Text(
+                  "FRIENDLY\nCODE",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 48,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    height: 0.9,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 48),
+              
+              Text(
+                l10n.loginTitle,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: AppColors.deepSeaBlue,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                l10n.loginSubtitle,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.black54,
+                ),
+              ),
+              const SizedBox(height: 48),
+              
+              // Google Sign In Button
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    // Logic for Google Auth
+                    // For now, we simulate success and go to Owner Dashboard
+                    Navigator.pushReplacementNamed(context, '/owner');
+                  },
+                  icon: const FaIcon(FontAwesomeIcons.google, size: 20),
+                  label: Text(l10n.googleSignIn),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black87,
+                    elevation: 1,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: Colors.black12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

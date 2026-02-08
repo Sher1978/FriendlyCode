@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "331010142763",
+    "firebase_url": "https://bot-lab-21910.firebaseio.com",
+    "project_id": "bot-lab-21910",
+    "storage_bucket": "bot-lab-21910.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:331010142763:android:7a5188d055487fe499f06e",
+        "android_client_info": {
+          "package_name": "com.friendlycode.friendly_code"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEinz874_yZycEwKubkgxQWSwmAxrc_MQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
