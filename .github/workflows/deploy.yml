@@ -12,15 +12,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Install Node Dependencies
+        run: npm install
+
+      - name: Build React App
+        run: npm run build
+
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           
-      - name: Install Dependencies
+      - name: Install Flutter Dependencies
         run: flutter pub get
+        working-directory: admin
         
-      - name: Build Web App
-        run: flutter build web --release --no-tree-shake-icons
+      - name: Build Flutter Web App
+        run: flutter build web --release --no-tree-shake-icons --base-href /admin/
+        working-directory: admin
+
+      - name: Combine Builds
+        run: |
+          mkdir -p dist/admin
+          cp -r admin/build/web/* dist/admin/
         
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
