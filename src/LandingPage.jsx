@@ -62,8 +62,8 @@ const LandingPage = () => {
     const show20Percent = status === 'unlocked';
 
     return (
-        <div className="flex flex-col h-screen bg-[#FFF2E2] font-sans text-[#4E342E] antialiased overflow-hidden">
-            <div className="flex-grow flex flex-col items-center justify-between px-6 py-8">
+        <div className="flex flex-col min-h-screen bg-[#FFF2E2] font-sans text-[#4E342E] antialiased">
+            <div className="flex-grow flex flex-col items-center justify-between px-6 pt-8 pb-32">
                 <div className="w-full flex flex-col items-center">
                     {/* Header */}
                     <div className="w-full flex justify-start items-center px-2">
@@ -79,11 +79,11 @@ const LandingPage = () => {
                     </div>
 
                     {/* Headline */}
-                    <div className="mt-8 text-center">
-                        <h1 className="text-[36px] font-black leading-[1.05] tracking-tight text-[#4E342E] whitespace-pre-line">
+                    <div className="mt-8 text-center px-2">
+                        <h1 className="text-[34px] font-black leading-[1.05] tracking-tight text-[#4E342E] whitespace-pre-line">
                             {headline}
                         </h1>
-                        <p className="mt-3 text-[19px] font-bold opacity-80 text-[#4E342E]">
+                        <p className="mt-3 text-[18px] font-bold opacity-80 text-[#4E342E] leading-tight px-4">
                             {subhead}
                         </p>
                     </div>
@@ -114,14 +114,12 @@ const LandingPage = () => {
                                 strokeWidth="22"
                                 strokeLinecap="round"
                             />
-                            {/* Marker Line for 20% */}
-                            <line x1="242" y1="102" x2="252" y2="98" stroke="#4E342E" strokeWidth="4" className="opacity-40" />
 
-                            {/* Labels (Removed 5%, Updated 20%) */}
+                            {/* Labels (Removed 5%, Updated 20% position and color) */}
                             <text x="268" y="115" className="fill-[#8BD38E] text-[16px] font-black">20%</text>
                         </svg>
 
-                        {/* Needle (Pointing to the right as requested) */}
+                        {/* Needle (Pointing to the right) */}
                         <div
                             className="absolute bottom-2 w-2.5 h-[100px] bg-[#4E342E]/80 origin-bottom transition-transform duration-700 ease-out z-10"
                             style={{
@@ -136,12 +134,12 @@ const LandingPage = () => {
 
                         {/* Center Text */}
                         <div className="absolute inset-x-0 bottom-6 text-center">
-                            <span className="text-[64px] font-black text-[#4E342E] tracking-tighter">{gaugeText}</span>
+                            <span className="text-[60px] font-black text-[#4E342E] tracking-tighter">{gaugeText}</span>
                         </div>
                     </div>
 
                     {/* Steps */}
-                    <div className="w-full mt-10 space-y-4 px-2">
+                    <div className="w-full mt-10 space-y-4 px-2 mb-10">
                         <DiscountStep
                             label={t('b2c_step_today_5')}
                             icon={faCheck}
@@ -168,15 +166,13 @@ const LandingPage = () => {
                         />
                     </div>
 
-                    <p className="text-center mt-8 text-[15px] font-bold text-[#4E342E] opacity-70 px-4 leading-snug">
+                    <p className="text-center text-[15px] font-bold text-[#4E342E] opacity-70 px-4 leading-snug">
                         {t('b2c_footer_hint')}
                     </p>
                 </div>
 
-                <div className="h-[100px]"></div> {/* Spacer for fixed button */}
-
                 {/* Fixed Bottom CTA */}
-                <div className="fixed bottom-0 left-0 right-0 p-6 bg-[#FFF2E2]/80 backdrop-blur-md z-30">
+                <div className="fixed bottom-0 left-0 right-0 p-6 bg-[#FFF2E2]/90 backdrop-blur-md z-30">
                     <div className="max-w-md mx-auto">
                         <button
                             onClick={() => navigate('/activate')}
