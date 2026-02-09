@@ -11,6 +11,7 @@ function App() {
       <Routes>
         {/* Guest Flow */}
         <Route path="/" element={<LandingPage />} />
+        <Route path="/qr" element={<LandingPage />} />
         <Route path="/activate" element={<LeadCapture />} />
         <Route path="/thank-you" element={<UnifiedActivation />} />
 

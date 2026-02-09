@@ -123,7 +123,7 @@ const LeadCapture = () => {
                     <div className="mb-6 flex gap-4">
                         <button
                             onClick={() => setIsReviewing(false)}
-                            className="flex-1 h-14 border border-brand-brown text-brand-brown rounded-2xl font-bold"
+                            className="flex-1 h-14 border border-brand-brown text-brand-brown bg-transparent rounded-2xl font-bold active:scale-95 transition-transform"
                         >
                             {t('lead_edit')}
                         </button>

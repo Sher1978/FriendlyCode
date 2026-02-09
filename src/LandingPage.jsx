@@ -65,119 +65,120 @@ const LandingPage = () => {
         <div className="flex flex-col min-h-screen bg-background-cream font-sans text-brand-brown antialiased">
             {/* Scrollable Content */}
             <div className="flex-grow overflow-y-auto px-6 py-4 flex flex-col items-center">
-                {/* Header */}
-                <div className="w-full flex justify-between items-center mt-2 px-2">
-                    <div className="flex items-center gap-2">
-                        <FontAwesomeIcon icon={faLeaf} className="text-[#81C784] text-xl" />
-                        <div className="leading-[0.9] text-sm font-bold uppercase tracking-tight">
-                            Friendly<br />Code
+                <div className="w-full max-w-md flex flex-col items-center">
+                    {/* Header */}
+                    <div className="w-full flex justify-between items-center mt-2 px-2">
+                        <div className="flex items-center gap-2">
+                            <FontAwesomeIcon icon={faLeaf} className="text-[#81C784] text-xl" />
+                            <div className="leading-[0.9] text-sm font-bold uppercase tracking-tight">
+                                Friendly<br />Code
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={toggleLanguage}
+                            className="w-10 h-10 flex items-center justify-center rounded-full bg-white/50 text-brand-brown/70 hover:bg-white transition shadow-sm"
+                        >
+                            <span className="text-xs font-bold uppercase">{i18n.language}</span>
+                        </button>
+                    </div>
+
+                    {/* Headline */}
+                    <h1 className="text-3xl font-black text-center mt-10 whitespace-pre-line leading-[1.1]">
+                        {headline}
+                    </h1>
+                    <p className="text-center mt-3 text-lg font-medium opacity-80 px-4">
+                        {subhead}
+                    </p>
+
+                    {/* Gauge (SVG Port of CustomPainter) */}
+                    <div className="relative w-[280px] h-[160px] mt-8 flex items-end justify-center">
+                        <svg width="280" height="140" viewBox="0 0 280 140" className="absolute bottom-0">
+                            {/* Track */}
+                            <path
+                                d="M 20 140 A 120 120 0 0 1 260 140"
+                                fill="none"
+                                stroke="#D1D5DB"
+                                strokeWidth="20"
+                                strokeLinecap="round"
+                                className="opacity-20"
+                            />
+                            {/* Gradient Arc */}
+                            <defs>
+                                <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#E68A00" />
+                                    <stop offset="100%" stopColor="#81C784" />
+                                </linearGradient>
+                            </defs>
+                            <path
+                                d="M 20 140 A 120 120 0 0 1 260 140"
+                                fill="none"
+                                stroke="url(#gaugeGradient)"
+                                strokeWidth="20"
+                                strokeLinecap="round"
+                            />
+                            {/* Labels */}
+                            <text x="35" y="125" className="fill-brand-brown text-[24px] font-black">5%</text>
+                            <text x="210" y="125" className="fill-brand-brown text-[24px] font-black">20%</text>
+                        </svg>
+
+                        {/* Needle */}
+                        <div
+                            className="absolute bottom-0 w-1.5 h-[95px] bg-brand-brown origin-bottom transition-transform duration-700 ease-out"
+                            style={{
+                                transform: `rotate(${show20Percent ? '75deg' : '-65deg'})`,
+                                borderRadius: '3px'
+                            }}
+                        ></div>
+                        {/* Pivot */}
+                        <div className="absolute bottom-0 w-5 h-5 bg-brand-brown rounded-full translate-y-2"></div>
+
+                        {/* Center Text */}
+                        <div className="absolute inset-x-0 bottom-4 text-center">
+                            <span className="text-5xl font-black">{gaugeText}</span>
                         </div>
                     </div>
 
+                    {/* Steps */}
+                    <div className="w-full mt-12 space-y-3">
+                        <DiscountStep
+                            label={t('b2c_step_today_5')}
+                            icon={faCheck}
+                            isActive={true}
+                            isHighlighted={!show20Percent}
+                        />
+                        <DiscountStep
+                            label={t('b2c_step_tmrw_20')}
+                            icon={show20Percent ? faCheck : faClock}
+                            isActive={true}
+                            isHighlighted={show20Percent}
+                        />
+                        <DiscountStep
+                            label={t('b2c_step_3d_15')}
+                            icon={faClock}
+                            isActive={true}
+                            isHighlighted={false}
+                        />
+                        <DiscountStep
+                            label={t('b2c_step_7d_10')}
+                            icon={faClock}
+                            isActive={true}
+                            isHighlighted={false}
+                        />
+                    </div>
+
+                    <p className="text-center mt-6 text-sm font-medium opacity-70">
+                        {t('b2c_footer_hint')}
+                    </p>
+
                     <button
-                        onClick={toggleLanguage}
-                        className="w-10 h-10 flex items-center justify-center rounded-full bg-white/50 text-brand-brown/70 hover:bg-white transition shadow-sm"
+                        onClick={() => navigate('/partner')}
+                        className="mt-16 px-8 py-4 border-2 border-brand-brown text-brand-brown bg-transparent rounded-2xl font-black hover:bg-brand-brown hover:text-white transition flex items-center justify-center gap-3 uppercase tracking-tight shadow-sm"
                     >
-                        <span className="text-xs font-bold uppercase">{i18n.language}</span>
+                        <span className="text-xl">🤝</span>
+                        {t('become_partner')}
                     </button>
                 </div>
-
-                {/* Headline */}
-                <h1 className="text-3xl font-black text-center mt-10 whitespace-pre-line leading-[1.1]">
-                    {headline}
-                </h1>
-                <p className="text-center mt-3 text-lg font-medium opacity-80 px-4">
-                    {subhead}
-                </p>
-
-                {/* Gauge (SVG Port of CustomPainter) */}
-                <div className="relative w-[280px] h-[160px] mt-8 flex items-end justify-center">
-                    <svg width="280" height="140" viewBox="0 0 280 140" className="absolute bottom-0">
-                        {/* Track */}
-                        <path
-                            d="M 20 140 A 120 120 0 0 1 260 140"
-                            fill="none"
-                            stroke="#D1D5DB"
-                            strokeWidth="20"
-                            strokeLinecap="round"
-                            className="opacity-20"
-                        />
-                        {/* Gradient Arc */}
-                        <defs>
-                            <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stopColor="#E68A00" />
-                                <stop offset="100%" stopColor="#81C784" />
-                            </linearGradient>
-                        </defs>
-                        <path
-                            d="M 20 140 A 120 120 0 0 1 260 140"
-                            fill="none"
-                            stroke="url(#gaugeGradient)"
-                            strokeWidth="20"
-                            strokeLinecap="round"
-                        />
-                        {/* Labels */}
-                        <text x="35" y="125" className="fill-brand-brown text-[24px] font-black">5%</text>
-                        <text x="210" y="125" className="fill-brand-brown text-[24px] font-black">20%</text>
-                    </svg>
-
-                    {/* Needle */}
-                    <div
-                        className="absolute bottom-0 w-1.5 h-[95px] bg-brand-brown origin-bottom transition-transform duration-700 ease-out"
-                        style={{
-                            transform: `rotate(${show20Percent ? '75deg' : '-65deg'})`,
-                            borderRadius: '3px'
-                        }}
-                    ></div>
-                    {/* Pivot */}
-                    <div className="absolute bottom-0 w-5 h-5 bg-brand-brown rounded-full translate-y-2"></div>
-
-                    {/* Center Text */}
-                    <div className="absolute inset-x-0 bottom-4 text-center">
-                        <span className="text-5xl font-black">{gaugeText}</span>
-                    </div>
-                </div>
-
-                {/* Steps */}
-                <div className="w-full max-w-md mt-12 space-y-3">
-                    <DiscountStep
-                        label={t('b2c_step_today_5')}
-                        icon={faCheck}
-                        isActive={true}
-                        isHighlighted={!show20Percent}
-                    />
-                    <DiscountStep
-                        label={t('b2c_step_tmrw_20')}
-                        icon={show20Percent ? faCheck : faClock}
-                        isActive={true}
-                        isHighlighted={show20Percent}
-                    />
-                    <DiscountStep
-                        label={t('b2c_step_3d_15')}
-                        icon={faClock}
-                        isActive={true}
-                        isHighlighted={false}
-                    />
-                    <DiscountStep
-                        label={t('b2c_step_7d_10')}
-                        icon={faClock}
-                        isActive={true}
-                        isHighlighted={false}
-                    />
-                </div>
-
-                <p className="text-center mt-6 text-sm font-medium opacity-70">
-                    {t('b2c_footer_hint')}
-                </p>
-
-                <button
-                    onClick={() => navigate('/partner')}
-                    className="mt-16 px-8 py-4 bg-brand-brown text-white rounded-2xl font-black hover:opacity-90 transition flex items-center justify-center gap-3 uppercase tracking-tight shadow-md"
-                >
-                    <span className="text-xl">🤝</span>
-                    {t('become_partner')}
-                </button>
-
                 <div className="h-16"></div> {/* Tightened spacer for sticky footer */}
             </div>
 

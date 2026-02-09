@@ -21,6 +21,18 @@
         ],
         "rewrites": [
             {
+                "source": "/qr",
+                "destination": "/index.html"
+            },
+            {
+                "source": "/owner",
+                "destination": "/admin/index.html"
+            },
+            {
+                "source": "/Superadmin",
+                "destination": "/admin/index.html"
+            },
+            {
                 "source": "/admin/**",
                 "destination": "/admin/index.html"
             },

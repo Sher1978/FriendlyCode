@@ -57,6 +57,7 @@ class FriendlyCodeApp extends StatelessWidget {
         '/onboarding': (context) => const OnboardingWizardScreen(),
         '/owner': (context) => const OwnerDashboardScreen(),
         '/admin': (context) => const SuperAdminDashboard(),
+        '/Superadmin': (context) => const SuperAdminDashboard(),
         '/partner': (context) => const B2BLandingScreen(),
       },
     );
