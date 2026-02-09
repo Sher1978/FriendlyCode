@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:friendly_code/l10n/app_localizations.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/logic/reward_calculator.dart';
 

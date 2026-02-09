@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_gen/gen_l10n/app_localizations.dart';
+import 'package:friendly_code/l10n/app_localizations.dart';
 import 'core/theme/app_theme.dart';
 import 'core/navigation/dispatcher_screen.dart';
 import 'features/owner/presentation/screens/owner_dashboard_screen.dart';

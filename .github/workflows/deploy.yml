@@ -22,14 +22,6 @@ jobs:
         with:
           channel: 'stable'
           
-      - name: Install Flutter Dependencies
-        run: flutter pub get
-        working-directory: admin
-
-      - name: Generate Localization
-        run: flutter gen-l10n
-        working-directory: admin
-        
       - name: Build Flutter Web App
         run: flutter build web --release --no-tree-shake-icons --base-href /admin/ --no-wasm-dry-run
         working-directory: admin
