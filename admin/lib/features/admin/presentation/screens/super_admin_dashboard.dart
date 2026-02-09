@@ -6,7 +6,7 @@ import '../../../../core/models/venue_model.dart';
 import '../../../../core/localization/locale_provider.dart';
 import 'venue_detail_view.dart';
 import '../widgets/venue_configurator.dart';
-import '../../layout/admin_shell.dart';
+import '../../../../features/web/presentation/layout/admin_shell.dart';
 
 class SuperAdminDashboard extends StatefulWidget {
   const SuperAdminDashboard({super.key});

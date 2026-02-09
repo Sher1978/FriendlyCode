@@ -29,24 +29,35 @@ class AppColors {
     ),
   ];
 
-  // --- LEGACY / COMPATIBILITY (Restoring to prevent breaks) ---
+  // --- FRIENDLY BRAND COLORS (Warm & Energetic) ---
   static const Color brandOrange = Color(0xFFE68A00); 
   static const Color brandOrangeLight = Color(0xFFFFB74D);
   static const Color brandGreen = Color(0xFF81C784); 
   static const Color brandBrown = Color(0xFF4E342E); 
-  static const Color lime = Color(0xFFC0FF00);
-  static const Color limeDim = Color(0xFFDCE775);
+  static const Color backgroundCream = Color(0xFFFFF8E1); 
+  static const Color surfaceCream = Color(0xFFFFFFFF);
+  static const Color backgroundAlt = Color(0xFFFFF3E0);
 
-  // Restored Legacy Colors
-  static const Color deepSeaBlue = Color(0xFF1976D2);
-  static const Color deepSeaBlueDark = Color(0xFF0D47A1);
-  static const Color deepSeaBlueLight = Color(0xFF63A4FF);
+  // --- LEGACY / COMPATIBILITY (Restoring to prevent breaks) ---
+  static const Color deepSeaBlue = Color(0xFF003B5C);
+  static const Color deepSeaBlueDark = Color(0xFF002A42);
+  static const Color deepSeaBlueLight = Color(0xFF005380);
   
-  static const Color textPrimaryLight = Colors.white;
-  static const Color textSecondaryLight = Colors.white70;
-  static const Color textSecondary = Color(0xFF757575);
-  
-  static const Color backgroundAltLight = Color(0xFFF5F5F5);
-  static const Color backgroundCream = Color(0xFFFFF2E2);
-  static const Color surfaceCream = Color(0xFFFFF8E1);
+  static const Color backgroundDark = Color(0xFF001F33); 
+  static const Color surfaceDark = Color(0xFF002A42); 
+  static const Color backgroundLight = Color(0xFFFFFFFF); 
+  static const Color surfaceLight = Color(0xFFFFFFFF); 
+  static const Color backgroundAltLight = Color(0xFFF0F3F4); 
+
+  // Text
+  static const Color textPrimary = Color(0xFF4E342E); 
+  static const Color textPrimaryDark = Colors.white; 
+  static const Color textSecondary = Color(0xFF795548); 
+  static const Color textOnPrimary = Colors.white; 
+
+  static const Color textPrimaryLight = Color(0xFF111518); 
+  static const Color textSecondaryLight = Color(0xFF637C88); 
+  static const Color textOnLime = Color(0xFF111518); 
+  static const Color lime = Color(0xFFC0FF00);
+  static const Color limeDim = Color(0xFFA6DB00);
 }
