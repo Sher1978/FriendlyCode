@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
@@ -46,168 +47,233 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           if (!snapshot.hasData) return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
 
           final venue = snapshot.data!;
-          final stats = venue.stats;
+          final isBlocked = venue.isEffectivelyInactive;
           
-          final dist = stats.discountDistribution; 
-          final double total = dist.values.fold(0, (sum, val) => sum + val);
-          
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Temporal Filter
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                       _buildFilterChip("TODAY", true),
-                       _buildFilterChip("WEEK", false),
-                       _buildFilterChip("MONTH", false),
-                       _buildFilterChip("ALL TIME", false),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                Text(
-                  l10n.metrics,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.primary, // Brand Color
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                // Analytics Cards
-                Row(
-                  children: [
-                    _buildMetricCard(context, l10n.totalCheckins, "${stats.totalCheckins}", Icons.people),
-                    const SizedBox(width: 16),
-                    _buildMetricCard(context, l10n.avgReturn, "${stats.avgReturnHours.toStringAsFixed(1)} h", Icons.loop),
-                  ],
-                ),
-                const SizedBox(height: 24),
-
-                // QR Asset Card
-                _buildQRCard(context, venue),
-                
-                const SizedBox(height: 32),
-                
-                // Charts Section
-                Text(
-                  l10n.discountDist,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                Container(
-                  height: 250,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                     color: Theme.of(context).cardColor,
-                     borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: total == 0 
-                        ? Center(child: Text("No Data Yet", style: TextStyle(color: Theme.of(context).disabledColor)))
-                        : PieChart(
-                          PieChartData(
-                            sectionsSpace: 2,
-                            centerSpaceRadius: 40,
-                            sections: [
-                              _buildPieSection(dist['20'] ?? 0, total, AppColors.lime, '20%'),
-                              _buildPieSection(dist['15'] ?? 0, total, Colors.blue, '15%'),
-                              _buildPieSection(dist['10'] ?? 0, total, Colors.orange, '10%'),
-                              _buildPieSection(dist['5'] ?? 0, total, Colors.grey, '5%'),
-                            ],
+          return Stack(
+            children: [
+              // Main Dashboard Content
+              _buildDashboardContent(context, venue, l10n),
+              
+              // Blocking Overlay (Glassmorphism)
+              if (isBlocked)
+                Positioned.fill(
+                  child: ClipRect(
+                    child: BackdropFilter(
+                      filter: ColorFilter.mode(Colors.black.withValues(alpha: 0.2), BlendMode.darken),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                        child: Container(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.all(48),
+                              margin: const EdgeInsets.symmetric(horizontal: 40),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(24),
+                                boxShadow: AppColors.softShadow,
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.lock_clock_outlined, size: 64, color: AppColors.statusBlockedText),
+                                  const SizedBox(height: 24),
+                                  const Text(
+                                    "Subscription Expired",
+                                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.title),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    "Please contact the administrator to resume service.",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: AppColors.body, fontSize: 16),
+                                  ),
+                                  const SizedBox(height: 32),
+                                  ElevatedButton(
+                                    onPressed: () {}, // Redirect to contact or payment
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.accentTeal,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                    child: const Text("Contact Support"),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 24),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _LegendItem(context, color: AppColors.lime, label: l10n.tier1),
-                          const SizedBox(height: 8),
-                          _LegendItem(context, color: Colors.blue, label: l10n.tier2),
-                          const SizedBox(height: 8),
-                          _LegendItem(context, color: Colors.orange, label: l10n.tier3),
-                          const SizedBox(height: 8),
-                          _LegendItem(context, color: Colors.grey, label: l10n.expired),
-                        ],
-                      )
-                    ],
+                    ),
                   ),
                 ),
-
-                const SizedBox(height: 48),
-
-                Text(
-                  l10n.management,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                ListTile(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const VenueProfileEditScreen()),
-                    );
-                  },
-                  tileColor: Theme.of(context).cardColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  leading: Icon(Icons.store, color: Theme.of(context).colorScheme.primary),
-                  title: Text(l10n.venueProfile, style: Theme.of(context).textTheme.bodyLarge),
-                  subtitle: Text(l10n.venueProfileSub, style: Theme.of(context).textTheme.bodySmall),
-                  trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).dividerColor, size: 16),
-                ),
-                const SizedBox(height: 16),
-                // Settings Tile
-                ListTile(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const RulesConfigScreen()),
-                    );
-                  },
-                  tileColor: Theme.of(context).cardColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  leading: Icon(Icons.tune, color: Theme.of(context).colorScheme.primary),
-                  title: Text(l10n.configRules, style: Theme.of(context).textTheme.bodyLarge),
-                  subtitle: Text(l10n.configRulesSub, style: Theme.of(context).textTheme.bodySmall),
-                  trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).dividerColor, size: 16),
-                ),
-                const SizedBox(height: 16),
-                
-                ListTile(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => MarketingBlastScreen(venueId: _demoVenueId)),
-                    );
-                  },
-                  tileColor: Theme.of(context).cardColor,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  leading: const Icon(Icons.campaign, color: AppColors.lime), // Campaign icon
-                  title: Text(l10n.marketingBlast, style: Theme.of(context).textTheme.bodyLarge),
-                  subtitle: Text(l10n.marketingBlastSub, style: Theme.of(context).textTheme.bodySmall),
-                  trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).dividerColor, size: 16),
-                ),
-              ],
-            ),
+            ],
           );
         }
+      ),
+    );
+  }
+
+  Widget _buildDashboardContent(BuildContext context, VenueModel venue, AppLocalizations l10n) {
+    final stats = venue.stats;
+    final dist = stats.discountDistribution; 
+    final double total = dist.values.fold(0, (sum, val) => sum + val);
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Temporal Filter
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                 _buildFilterChip("TODAY", true),
+                 _buildFilterChip("WEEK", false),
+                 _buildFilterChip("MONTH", false),
+                 _buildFilterChip("ALL TIME", false),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          Text(
+            l10n.metrics,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.primary, // Brand Color
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // Analytics Cards
+          Row(
+            children: [
+              _buildMetricCard(context, l10n.totalCheckins, "${stats.totalCheckins}", Icons.people),
+              const SizedBox(width: 16),
+              _buildMetricCard(context, l10n.avgReturn, "${stats.avgReturnHours.toStringAsFixed(1)} h", Icons.loop),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // QR Asset Card
+          _buildQRCard(context, venue),
+          
+          const SizedBox(height: 32),
+          
+          // Charts Section
+          Text(
+            l10n.discountDist,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          Container(
+            height: 250,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+               color: Theme.of(context).cardColor,
+               borderRadius: BorderRadius.circular(24),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: total == 0 
+                  ? Center(child: Text("No Data Yet", style: TextStyle(color: Theme.of(context).disabledColor)))
+                  : PieChart(
+                    PieChartData(
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 40,
+                      sections: [
+                        _buildPieSection(dist['20'] ?? 0, total, AppColors.lime, '20%'),
+                        _buildPieSection(dist['15'] ?? 0, total, Colors.blue, '15%'),
+                        _buildPieSection(dist['10'] ?? 0, total, Colors.orange, '10%'),
+                        _buildPieSection(dist['5'] ?? 0, total, Colors.grey, '5%'),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 24),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _LegendItem(context, color: AppColors.lime, label: l10n.tier1),
+                    const SizedBox(height: 8),
+                    _LegendItem(context, color: Colors.blue, label: l10n.tier2),
+                    const SizedBox(height: 8),
+                    _LegendItem(context, color: Colors.orange, label: l10n.tier3),
+                    const SizedBox(height: 8),
+                    _LegendItem(context, color: Colors.grey, label: l10n.expired),
+                  ],
+                )
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 48),
+
+          Text(
+            l10n.management,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          ListTile(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const VenueProfileEditScreen()),
+              );
+            },
+            tileColor: Theme.of(context).cardColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            leading: Icon(Icons.store, color: Theme.of(context).colorScheme.primary),
+            title: Text(l10n.venueProfile, style: Theme.of(context).textTheme.bodyLarge),
+            subtitle: Text(l10n.venueProfileSub, style: Theme.of(context).textTheme.bodySmall),
+            trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).dividerColor, size: 16),
+          ),
+          const SizedBox(height: 16),
+          // Settings Tile
+          ListTile(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const RulesConfigScreen()),
+              );
+            },
+            tileColor: Theme.of(context).cardColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            leading: Icon(Icons.tune, color: Theme.of(context).colorScheme.primary),
+            title: Text(l10n.configRules, style: Theme.of(context).textTheme.bodyLarge),
+            subtitle: Text(l10n.configRulesSub, style: Theme.of(context).textTheme.bodySmall),
+            trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).dividerColor, size: 16),
+          ),
+          const SizedBox(height: 16),
+          
+          ListTile(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => MarketingBlastScreen(venueId: _demoVenueId)),
+              );
+            },
+            tileColor: Theme.of(context).cardColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            leading: const Icon(Icons.campaign, color: AppColors.lime), // Campaign icon
+            title: Text(l10n.marketingBlast, style: Theme.of(context).textTheme.bodyLarge),
+            subtitle: Text(l10n.marketingBlastSub, style: Theme.of(context).textTheme.bodySmall),
+            trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).dividerColor, size: 16),
+          ),
+        ],
       ),
     );
   }

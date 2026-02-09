@@ -11,6 +11,8 @@ import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/owner/presentation/screens/onboarding_wizard_screen.dart';
 import 'package:provider/provider.dart';
 import 'core/localization/locale_provider.dart';
+import 'core/auth/role_provider.dart';
+import 'features/web/presentation/layout/admin_shell.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -21,8 +23,11 @@ void main() async {
   );
   
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => LocaleProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => LocaleProvider()),
+        ChangeNotifierProvider(create: (context) => RoleProvider()),
+      ],
       child: const FriendlyCodeApp(),
     ),
   );
@@ -55,9 +60,24 @@ class FriendlyCodeApp extends StatelessWidget {
         '/': (context) => const DispatcherScreen(),
         '/login': (context) => const LoginScreen(),
         '/onboarding': (context) => const OnboardingWizardScreen(),
-        '/owner': (context) => const OwnerDashboardScreen(),
-        '/admin': (context) => const SuperAdminDashboard(),
-        '/Superadmin': (context) => const SuperAdminDashboard(),
+        '/owner': (context) => Consumer<RoleProvider>(
+          builder: (context, roleProvider, _) => AdminShell(
+            role: UserRole.owner,
+            child: const OwnerDashboardScreen(),
+          ),
+        ),
+        '/admin': (context) => Consumer<RoleProvider>(
+          builder: (context, roleProvider, _) => AdminShell(
+            role: UserRole.superAdmin,
+            child: const SuperAdminDashboard(),
+          ),
+        ),
+        '/Superadmin': (context) => Consumer<RoleProvider>(
+          builder: (context, roleProvider, _) => AdminShell(
+            role: UserRole.superAdmin,
+            child: const SuperAdminDashboard(),
+          ),
+        ),
         '/partner': (context) => const B2BLandingScreen(),
       },
     );

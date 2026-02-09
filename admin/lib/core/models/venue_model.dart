@@ -83,12 +83,15 @@ class VenueModel {
   final String description;
   final String ownerEmail;
   final String? coverPhotoUrl;
-  final bool isActive; // Admin control
+  final String category; // Added per Master Spec
+  final String address; // Added per Master Spec
+  final bool isActive; // Admin control - general activation
+  final bool manualBlock; // Added per Master Spec - strict override
   final List<DiscountTier> tiers;
   final VenueSubscription subscription;
   final VenueStats stats;
-  final double latitude; // Added to fix build
-  final double longitude; // Added to fix build
+  final double latitude;
+  final double longitude;
   final DateTime? lastBlastDate;
 
   VenueModel({
@@ -97,7 +100,10 @@ class VenueModel {
     required this.description,
     required this.ownerEmail,
     this.coverPhotoUrl,
+    this.category = 'General',
+    this.address = '',
     this.isActive = true,
+    this.manualBlock = false,
     required this.tiers,
     required this.subscription,
     required this.stats,
@@ -106,13 +112,25 @@ class VenueModel {
     this.lastBlastDate,
   });
 
+  bool get isEffectivelyInactive {
+    if (manualBlock) return true;
+    if (subscription.expiryDate != null &&
+        subscription.expiryDate!.isBefore(DateTime.now())) {
+      return true;
+    }
+    return !isActive;
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'name': name,
       'description': description,
       'ownerEmail': ownerEmail,
+      'category': category,
+      'address': address,
       'coverPhotoUrl': coverPhotoUrl,
       'isActive': isActive,
+      'manualBlock': manualBlock,
       'tiers': tiers.map((x) => x.toMap()).toList(),
       'subscription': subscription.toMap(),
       'stats': stats.toMap(),
@@ -128,11 +146,14 @@ class VenueModel {
       name: map['name'] ?? '',
       description: map['description'] ?? '',
       ownerEmail: map['ownerEmail'] ?? '',
+      category: map['category'] ?? 'General',
+      address: map['address'] ?? '',
       coverPhotoUrl: map['coverPhotoUrl'],
       isActive: map['isActive'] ?? true,
+      manualBlock: map['manualBlock'] ?? false,
       tiers: map['tiers'] != null
           ? List<DiscountTier>.from(map['tiers']?.map((x) => DiscountTier.fromMap(x)))
-          : [], // Should handle defaults if empty
+          : [],
       subscription: map['subscription'] != null
           ? VenueSubscription.fromMap(map['subscription'])
           : VenueSubscription(plan: 'free', isPaid: false),

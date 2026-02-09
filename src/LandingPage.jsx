@@ -20,6 +20,15 @@ const LandingPage = () => {
             const firstVisitIso = localStorage.getItem('firstVisitIso');
             const hasClaimedReturn = sessionStorage.getItem('claimedToday');
 
+            // Mock Venue Status Check (In a real app, this would be a Firestore fetch)
+            const venueStatus = { isBlocked: false };
+            // Change to true to test blocking logic
+            if (venueStatus.isBlocked) {
+                setStatus('blocked');
+                setIsLoading(false);
+                return;
+            }
+
             if (!firstVisitIso) {
                 localStorage.setItem('firstVisitIso', new Date().toISOString());
                 setStatus('first');
@@ -54,6 +63,10 @@ const LandingPage = () => {
             sessionStorage.setItem('claimedToday', 'true');
             setStatus('unlocked');
         }} />;
+    }
+
+    if (status === 'blocked') {
+        return <BlockedView t={t} />;
     }
 
     const headline = status === 'unlocked' ? t('b2c_headline_20') : t('b2c_headline_5');
@@ -297,5 +310,24 @@ const ReturningView = ({ t, onClaim }) => {
         </div>
     );
 };
+
+const BlockedView = ({ t }) => (
+    <div className="flex flex-col items-center justify-center min-h-screen bg-[#FFF2E2] p-8 text-center">
+        <div className="w-20 h-20 bg-[#FFCDD2] rounded-full flex items-center justify-center text-[#C62828] mb-8">
+            <FontAwesomeIcon icon={faLock} size="2x" />
+        </div>
+        <h1 className="text-3xl font-black text-[#4E342E] mb-4">
+            Service Temporarily Unavailable
+        </h1>
+        <p className="text-lg text-[#4E342E] opacity-70 max-w-xs mx-auto leading-relaxed">
+            The loyalty program for this venue is currently inactive. Please check back later or contact the venue staff.
+        </p>
+        <div className="mt-12 w-full max-w-[200px] h-[1px] bg-[#4E342E]/10" />
+        <div className="mt-8 flex items-center gap-2 opacity-40">
+            <FontAwesomeIcon icon={faLeaf} className="text-[#81C784]" />
+            <span className="text-xs font-bold uppercase tracking-widest text-[#4E342E]">Friendly Code</span>
+        </div>
+    </div>
+);
 
 export default LandingPage;
