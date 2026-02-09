@@ -62,85 +62,92 @@ const LandingPage = () => {
     const show20Percent = status === 'unlocked';
 
     return (
-        <div className="flex flex-col min-h-screen bg-background-cream font-sans text-brand-brown antialiased">
+        <div className="flex flex-col min-h-screen bg-[#FFF2E2] font-sans text-[#4E342E] antialiased">
             {/* Scrollable Content */}
             <div className="flex-grow overflow-y-auto px-6 py-4 flex flex-col items-center">
                 <div className="w-full max-w-md flex flex-col items-center">
                     {/* Header */}
                     <div className="w-full flex justify-between items-center mt-2 px-2">
-                        <div className="flex items-center gap-2">
+                        <a
+                            href="https://www.friendlycode.fun"
+                            className="flex items-center gap-2 hover:opacity-80 transition-opacity no-underline"
+                        >
                             <FontAwesomeIcon icon={faLeaf} className="text-[#81C784] text-xl" />
-                            <div className="leading-[0.9] text-sm font-bold uppercase tracking-tight">
+                            <div className="leading-[0.9] text-sm font-bold uppercase tracking-tight text-[#4E342E]">
                                 Friendly<br />Code
                             </div>
-                        </div>
+                        </a>
 
                         <button
                             onClick={toggleLanguage}
-                            className="w-10 h-10 flex items-center justify-center rounded-full bg-white/50 text-brand-brown/70 hover:bg-white transition shadow-sm"
+                            className="w-10 h-10 flex items-center justify-center rounded-full bg-white/50 text-[#4E342E]/70 hover:bg-white transition shadow-sm"
                         >
                             <span className="text-xs font-bold uppercase">{i18n.language}</span>
                         </button>
                     </div>
 
                     {/* Headline */}
-                    <h1 className="text-3xl font-black text-center mt-10 whitespace-pre-line leading-[1.1]">
+                    <h1 className="text-4xl font-black text-center mt-12 whitespace-pre-line leading-[1.1] text-[#4E342E]">
                         {headline}
                     </h1>
-                    <p className="text-center mt-3 text-lg font-medium opacity-80 px-4">
+                    <p className="text-center mt-4 text-xl font-bold opacity-90 px-4 text-[#4E342E]">
                         {subhead}
                     </p>
 
                     {/* Gauge (SVG Port of CustomPainter) */}
-                    <div className="relative w-[280px] h-[160px] mt-8 flex items-end justify-center">
-                        <svg width="280" height="140" viewBox="0 0 280 140" className="absolute bottom-0">
+                    <div className="relative w-[300px] h-[180px] mt-10 flex items-end justify-center">
+                        <svg width="300" height="150" viewBox="0 0 300 150" className="absolute bottom-0 scale-110">
                             {/* Track */}
                             <path
-                                d="M 20 140 A 120 120 0 0 1 260 140"
+                                d="M 30 150 A 120 120 0 0 1 270 150"
                                 fill="none"
-                                stroke="#D1D5DB"
-                                strokeWidth="20"
+                                stroke="#E0E0E0"
+                                strokeWidth="22"
                                 strokeLinecap="round"
-                                className="opacity-20"
+                                className="opacity-40"
                             />
                             {/* Gradient Arc */}
                             <defs>
                                 <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stopColor="#E68A00" />
+                                    <stop offset="0%" stopColor="#FFA726" />
                                     <stop offset="100%" stopColor="#81C784" />
                                 </linearGradient>
                             </defs>
                             <path
-                                d="M 20 140 A 120 120 0 0 1 260 140"
+                                d="M 30 150 A 120 120 0 0 1 270 150"
                                 fill="none"
                                 stroke="url(#gaugeGradient)"
-                                strokeWidth="20"
+                                strokeWidth="22"
                                 strokeLinecap="round"
                             />
+                            {/* Marker Line for 20% */}
+                            <line x1="245" y1="110" x2="255" y2="105" stroke="#4E342E" strokeWidth="3" />
+
                             {/* Labels */}
-                            <text x="35" y="125" className="fill-brand-brown text-[24px] font-black">5%</text>
-                            <text x="210" y="125" className="fill-brand-brown text-[24px] font-black">20%</text>
+                            <text x="50" y="135" className="fill-[#4E342E] text-[18px] font-black opacity-40">5%</text>
+                            <text x="235" y="115" className="fill-[#4E342E] text-[18px] font-black opacity-40">20%</text>
                         </svg>
 
                         {/* Needle */}
                         <div
-                            className="absolute bottom-0 w-1.5 h-[95px] bg-brand-brown origin-bottom transition-transform duration-700 ease-out"
+                            className="absolute bottom-0 w-2 h-[105px] bg-[#4E342E]/80 origin-bottom transition-transform duration-700 ease-out z-10"
                             style={{
                                 transform: `rotate(${show20Percent ? '75deg' : '-65deg'})`,
-                                borderRadius: '3px'
+                                borderRadius: '10px 10px 2px 2px'
                             }}
                         ></div>
                         {/* Pivot */}
-                        <div className="absolute bottom-0 w-5 h-5 bg-brand-brown rounded-full translate-y-2"></div>
+                        <div className="absolute bottom-0 w-6 h-6 bg-[#4E342E]/20 rounded-full translate-y-3"></div>
+                        <div className="absolute bottom-0 w-4 h-4 bg-[#4E342E] rounded-full translate-y-2 z-20"></div>
 
                         {/* Center Text */}
-                        <div className="absolute inset-x-0 bottom-4 text-center">
-                            <span className="text-5xl font-black">{gaugeText}</span>
+                        <div className="absolute inset-x-0 bottom-6 text-center">
+                            <span className="text-6xl font-black text-[#4E342E]">{gaugeText}</span>
                         </div>
                     </div>
 
                     {/* Steps */}
-                    <div className="w-full mt-12 space-y-3">
+                    <div className="w-full mt-14 space-y-4">
                         <DiscountStep
                             label={t('b2c_step_today_5')}
                             icon={faCheck}
@@ -167,30 +174,32 @@ const LandingPage = () => {
                         />
                     </div>
 
-                    <p className="text-center mt-6 text-sm font-medium opacity-70">
+                    <p className="text-center mt-8 text-base font-bold text-[#4E342E] opacity-70 px-4 leading-tight">
                         {t('b2c_footer_hint')}
                     </p>
 
                     <button
                         onClick={() => navigate('/partner')}
-                        className="mt-16 px-8 py-4 border-2 border-brand-brown text-brand-brown bg-transparent rounded-2xl font-black hover:bg-brand-brown hover:text-white transition flex items-center justify-center gap-3 uppercase tracking-tight shadow-sm"
+                        className="mt-16 px-8 py-4 border-2 border-[#4E342E] text-[#4E342E] bg-transparent rounded-2xl font-black hover:bg-[#4E342E] hover:text-white transition flex items-center justify-center gap-3 uppercase tracking-tight shadow-sm"
                     >
                         <span className="text-xl">🤝</span>
                         {t('become_partner')}
                     </button>
                 </div>
-                <div className="h-16"></div> {/* Tightened spacer for sticky footer */}
+                <div className="h-32"></div> {/* Tightened spacer for sticky footer */}
             </div>
 
             {/* Sticky Bottom CTA */}
-            <div className="fixed bottom-0 left-0 right-0 p-6 bg-background-cream/95 backdrop-blur-sm shadow-[0_-10px_20px_rgba(78,52,46,0.08)]">
-                <button
-                    onClick={() => navigate('/activate')}
-                    className="w-full h-14 bg-brand-orange text-white rounded-2xl flex items-center justify-center gap-3 font-bold text-lg active:scale-95 transition-transform shadow-lg"
-                >
-                    <FontAwesomeIcon icon={faRocket} className="text-xl" />
-                    {t('get_reward')}
-                </button>
+            <div className="fixed bottom-0 left-0 right-0 p-6 bg-[#FFF2E2]/90 backdrop-blur-md">
+                <div className="max-w-md mx-auto">
+                    <button
+                        onClick={() => navigate('/activate')}
+                        className="w-full h-16 bg-[#D68A3E] text-white rounded-2xl flex items-center justify-center gap-3 font-black text-xl active:scale-95 transition-transform shadow-[0_8px_20px_rgba(214,138,62,0.3)] uppercase"
+                    >
+                        <FontAwesomeIcon icon={faRocket} className="text-2xl" />
+                        {t('get_reward')}
+                    </button>
+                </div>
             </div>
         </div>
     );
@@ -198,15 +207,14 @@ const LandingPage = () => {
 
 const DiscountStep = ({ label, icon, isActive, isHighlighted }) => (
     <div
-        className={`flex items-center p-4 rounded-xl border-2 transition-all shadow-sm ${isActive ? 'opacity-100' : 'opacity-50'
-            } ${isHighlighted ? 'bg-white border-brand-orange/30' : 'bg-white/60 border-transparent'
+        className={`flex items-center p-4 rounded-2xl transition-all shadow-sm w-full border border-[#4E342E]/5 ${isActive ? 'opacity-100' : 'opacity-50'
+            } ${isHighlighted ? 'bg-white' : 'bg-white/60'
             }`}
     >
-        <div className={`w-5 h-5 flex items-center justify-center rounded-full text-[10px] text-white ${isHighlighted ? 'bg-[#81C784]' : 'bg-gray-400'
-            }`}>
-            <FontAwesomeIcon icon={icon} />
+        <div className={`w-6 h-6 flex items-center justify-center rounded-full text-[10px] text-white bg-[#A5D6A7]`}>
+            <FontAwesomeIcon icon={faCheck} />
         </div>
-        <span className={`ml-4 text-base ${isHighlighted ? 'font-bold' : 'font-semibold'}`}>
+        <span className={`ml-4 text-lg font-bold text-[#4E342E]`}>
             {label}
         </span>
     </div>

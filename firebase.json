@@ -19,18 +19,22 @@
             "**/.*",
             "**/node_modules/**"
         ],
+        "redirects": [
+            {
+                "source": "/owner",
+                "destination": "/admin/#/owner",
+                "type": 301
+            },
+            {
+                "source": "/Superadmin",
+                "destination": "/admin/#/Superadmin",
+                "type": 301
+            }
+        ],
         "rewrites": [
             {
                 "source": "/qr",
                 "destination": "/index.html"
-            },
-            {
-                "source": "/owner",
-                "destination": "/admin/index.html"
-            },
-            {
-                "source": "/Superadmin",
-                "destination": "/admin/index.html"
             },
             {
                 "source": "/admin/**",
