@@ -88,7 +88,7 @@ const LandingPage = () => {
                         </p>
                     </div>
 
-                    {/* Gauge (Strictly Matching Image) */}
+                    {/* Gauge (Strictly Matching Image with Refinements) */}
                     <div className="relative w-full max-w-[340px] aspect-[1.8/1] mt-10 flex items-end justify-center">
                         <svg width="100%" height="100%" viewBox="0 0 300 150" className="absolute bottom-0 scale-110">
                             {/* Track */}
@@ -117,16 +117,15 @@ const LandingPage = () => {
                             {/* Marker Line for 20% */}
                             <line x1="242" y1="102" x2="252" y2="98" stroke="#4E342E" strokeWidth="4" className="opacity-40" />
 
-                            {/* Labels */}
-                            <text x="54" y="125" className="fill-[#4E342E] text-[14px] font-black opacity-40">5%</text>
-                            <text x="218" y="105" className="fill-[#4E342E] text-[14px] font-black opacity-40">20%</text>
+                            {/* Labels (Removed 5%, Updated 20%) */}
+                            <text x="268" y="115" className="fill-[#8BD38E] text-[16px] font-black">20%</text>
                         </svg>
 
-                        {/* Needle */}
+                        {/* Needle (Pointing to the right as requested) */}
                         <div
                             className="absolute bottom-2 w-2.5 h-[100px] bg-[#4E342E]/80 origin-bottom transition-transform duration-700 ease-out z-10"
                             style={{
-                                transform: `rotate(${show20Percent ? '75deg' : '-65deg'}) translate(-50%, 0)`,
+                                transform: `rotate(75deg) translate(-50%, 0)`,
                                 left: '50%',
                                 borderRadius: '15px 15px 4px 4px'
                             }}
@@ -174,15 +173,19 @@ const LandingPage = () => {
                     </p>
                 </div>
 
-                {/* Bottom CTA (Fixed Position replaced by flex) */}
-                <div className="w-full mt-4">
-                    <button
-                        onClick={() => navigate('/activate')}
-                        className="w-full h-[68px] bg-[#D68A3E] text-white rounded-[18px] flex items-center justify-center gap-3 font-black text-[20px] active:scale-95 transition-transform shadow-[0_8px_20px_rgba(214,138,62,0.3)] uppercase tracking-tight"
-                    >
-                        <FontAwesomeIcon icon={faRocket} className="text-2xl" />
-                        {t('get_reward')}
-                    </button>
+                <div className="h-[100px]"></div> {/* Spacer for fixed button */}
+
+                {/* Fixed Bottom CTA */}
+                <div className="fixed bottom-0 left-0 right-0 p-6 bg-[#FFF2E2]/80 backdrop-blur-md z-30">
+                    <div className="max-w-md mx-auto">
+                        <button
+                            onClick={() => navigate('/activate')}
+                            className="w-full h-[68px] bg-[#D68A3E] text-white rounded-[18px] flex items-center justify-center gap-3 font-black text-[20px] active:scale-95 transition-transform shadow-[0_8px_20px_rgba(214,138,62,0.3)] uppercase tracking-tight"
+                        >
+                            <FontAwesomeIcon icon={faRocket} className="text-2xl" />
+                            {t('get_reward')}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

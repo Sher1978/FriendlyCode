@@ -6,7 +6,7 @@ const resources = {
     en: {
         translation: {
             "app_name": "Friendly Code",
-            "get_reward": "GET MY DISCOUNT",
+            "get_reward": "GET MY REWARD",
             "become_partner": "Become a Partner",
             "b2c_headline_5": "Your Discount\nTODAY: 5%",
             "b2c_headline_20": "Your Discount\nTODAY: 20%",
@@ -72,7 +72,7 @@ const resources = {
     ru: {
         translation: {
             "app_name": "Friendly Code",
-            "get_reward": "ПОЛУЧИТЬ СКИДКУ",
+            "get_reward": "ПОЛУЧИТЬ ПОДАРОК",
             "become_partner": "Стать партнером",
             "b2c_headline_5": "Ваша скидка\nСЕГОДНЯ: 5%",
             "b2c_headline_20": "Ваша скидка\nСЕГОДНЯ: 20%",
