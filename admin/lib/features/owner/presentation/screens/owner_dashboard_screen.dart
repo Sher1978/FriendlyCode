@@ -223,11 +223,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     );
   }
 
-    );
-  }
-
-    );
-  }
 
   Widget _buildFilterChip(String label, bool isActive) {
      return Container(

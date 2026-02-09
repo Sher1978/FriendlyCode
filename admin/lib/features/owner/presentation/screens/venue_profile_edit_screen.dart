@@ -40,11 +40,11 @@ class _VenueProfileEditScreenState extends State<VenueProfileEditScreen> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.white24, style: BorderStyle.solid),
                 ),
-                child: const Column(
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.camera_alt, color: Colors.white54, size: 48),
-                    SizedBox(height: 8),
+                    const Icon(Icons.camera_alt, color: Colors.white54, size: 48),
+                    const SizedBox(height: 8),
                     Text(l10n.tapToChangeCover, style: const TextStyle(color: Colors.white54)),
                   ],
                 ),

@@ -110,6 +110,18 @@ abstract class AppLocalizations {
   /// **'Welcome Back'**
   String get loginTitle;
 
+  /// No description provided for @loginSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to manage your venue and view analytics.'**
+  String get loginSubtitle;
+
+  /// No description provided for @googleSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with Google'**
+  String get googleSignIn;
+
   /// No description provided for @ownerDashboard.
   ///
   /// In en, this message translates to:
@@ -139,6 +151,294 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Logout'**
   String get logout;
+
+  /// No description provided for @metrics.
+  ///
+  /// In en, this message translates to:
+  /// **'TODAY\'S METRICS'**
+  String get metrics;
+
+  /// No description provided for @totalCheckins.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Check-ins'**
+  String get totalCheckins;
+
+  /// No description provided for @avgReturn.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg Return'**
+  String get avgReturn;
+
+  /// No description provided for @discountDist.
+  ///
+  /// In en, this message translates to:
+  /// **'DISCOUNT DISTRIBUTION'**
+  String get discountDist;
+
+  /// No description provided for @tier1.
+  ///
+  /// In en, this message translates to:
+  /// **'Tier 1 (20%)'**
+  String get tier1;
+
+  /// No description provided for @tier2.
+  ///
+  /// In en, this message translates to:
+  /// **'Tier 2 (15%)'**
+  String get tier2;
+
+  /// No description provided for @tier3.
+  ///
+  /// In en, this message translates to:
+  /// **'Tier 3 (10%)'**
+  String get tier3;
+
+  /// No description provided for @expired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired (5%)'**
+  String get expired;
+
+  /// No description provided for @management.
+  ///
+  /// In en, this message translates to:
+  /// **'MANAGEMENT'**
+  String get management;
+
+  /// No description provided for @venueProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue Profile'**
+  String get venueProfile;
+
+  /// No description provided for @venueProfileSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Name, Hours, Photos'**
+  String get venueProfileSub;
+
+  /// No description provided for @configRules.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure Time Rules'**
+  String get configRules;
+
+  /// No description provided for @configRulesSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust decay limits and percentages'**
+  String get configRulesSub;
+
+  /// No description provided for @marketingBlast.
+  ///
+  /// In en, this message translates to:
+  /// **'Send Marketing Blast'**
+  String get marketingBlast;
+
+  /// No description provided for @marketingBlastSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-engage lost customers'**
+  String get marketingBlastSub;
+
+  /// No description provided for @adminConsole.
+  ///
+  /// In en, this message translates to:
+  /// **'SUPER ADMIN CONSOLE'**
+  String get adminConsole;
+
+  /// No description provided for @platformOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Platform Overview'**
+  String get platformOverview;
+
+  /// No description provided for @totalVenues.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Venues'**
+  String get totalVenues;
+
+  /// No description provided for @totalGuests.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Guests'**
+  String get totalGuests;
+
+  /// No description provided for @pendingApproval.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending Approval'**
+  String get pendingApproval;
+
+  /// No description provided for @activeVenues.
+  ///
+  /// In en, this message translates to:
+  /// **'Active Venues'**
+  String get activeVenues;
+
+  /// No description provided for @manage.
+  ///
+  /// In en, this message translates to:
+  /// **'MANAGE'**
+  String get manage;
+
+  /// No description provided for @venues.
+  ///
+  /// In en, this message translates to:
+  /// **'Venues'**
+  String get venues;
+
+  /// No description provided for @users.
+  ///
+  /// In en, this message translates to:
+  /// **'Users'**
+  String get users;
+
+  /// No description provided for @systemStats.
+  ///
+  /// In en, this message translates to:
+  /// **'System Stats'**
+  String get systemStats;
+
+  /// No description provided for @rewardLogicConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Reward Logic Config'**
+  String get rewardLogicConfig;
+
+  /// No description provided for @configTierLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure up to 5 Time Tiers.'**
+  String get configTierLimit;
+
+  /// No description provided for @addTier.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Tier'**
+  String get addTier;
+
+  /// No description provided for @retentionBase.
+  ///
+  /// In en, this message translates to:
+  /// **'Retention Base (Expired)'**
+  String get retentionBase;
+
+  /// No description provided for @rewardPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Reward %'**
+  String get rewardPercent;
+
+  /// No description provided for @tierHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied when user visits AFTER the last tier limit.'**
+  String get tierHint;
+
+  /// No description provided for @saveLogic.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE LOGIC'**
+  String get saveLogic;
+
+  /// No description provided for @logicUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Reward Logic Updated!'**
+  String get logicUpdated;
+
+  /// No description provided for @visitWithinHrs.
+  ///
+  /// In en, this message translates to:
+  /// **'Visit within (Hrs)'**
+  String get visitWithinHrs;
+
+  /// No description provided for @tierLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Tier {index}'**
+  String tierLabel(int index);
+
+  /// No description provided for @marketingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Marketing Blast'**
+  String get marketingTitle;
+
+  /// No description provided for @marketingDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a nudge to clients who haven\'t visited in a while.'**
+  String get marketingDesc;
+
+  /// No description provided for @sendBlast.
+  ///
+  /// In en, this message translates to:
+  /// **'SEND BLAST'**
+  String get sendBlast;
+
+  /// No description provided for @blastSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Marketing Blast Sent!'**
+  String get blastSuccess;
+
+  /// No description provided for @editVenueProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Venue Profile'**
+  String get editVenueProfile;
+
+  /// No description provided for @venueName.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue Name'**
+  String get venueName;
+
+  /// No description provided for @description.
+  ///
+  /// In en, this message translates to:
+  /// **'Description'**
+  String get description;
+
+  /// No description provided for @workingHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Working Hours'**
+  String get workingHours;
+
+  /// No description provided for @instagram.
+  ///
+  /// In en, this message translates to:
+  /// **'Instagram'**
+  String get instagram;
+
+  /// No description provided for @saveChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE CHANGES'**
+  String get saveChanges;
+
+  /// No description provided for @profileUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile Updated Successfully'**
+  String get profileUpdated;
+
+  /// No description provided for @tapToChangeCover.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to change Cover Photo'**
+  String get tapToChangeCover;
+
+  /// No description provided for @uploadPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload Photo Placeholder'**
+  String get uploadPhoto;
 }
 
 class _AppLocalizationsDelegate
