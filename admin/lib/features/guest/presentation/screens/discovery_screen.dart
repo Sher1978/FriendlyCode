@@ -194,11 +194,13 @@ class _DiscoveryScreenState extends State<DiscoveryScreen> {
         target: LatLng(25.2048, 55.2708), // Dubai
         zoom: 12,
       ),
-      markers: venues.map((v) => Marker(
-        markerId: MarkerId(v.id),
-        position: LatLng(v.latitude, v.longitude),
-        infoWindow: InfoWindow(title: v.name),
-      )).toSet(),
+      markers: venues
+          .where((v) => v.latitude != null && v.longitude != null)
+          .map((v) => Marker(
+            markerId: MarkerId(v.id),
+            position: LatLng(v.latitude!, v.longitude!),
+            infoWindow: InfoWindow(title: v.name),
+          )).toSet(),
       onMapCreated: (GoogleMapController controller) {
         controller.setMapStyle(_darkMapStyle);
       },

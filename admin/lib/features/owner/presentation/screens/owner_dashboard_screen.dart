@@ -10,6 +10,7 @@ import '../../../../core/localization/locale_provider.dart';
 import 'rules_config_screen.dart';
 import 'venue_profile_edit_screen.dart';
 import 'marketing_blast_screen.dart';
+import '../../../../core/auth/role_provider.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -19,15 +20,37 @@ class OwnerDashboardScreen extends StatefulWidget {
 }
 
 class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
-  // For Dev, we hardcode the ID to the first one created usually, or use a known ID.
-  // In real app, we get this from AuthService -> UserRepository -> User.venueId
-  final String _demoVenueId = "1"; 
   final VenueRepository _venueRepo = VenueRepository();
+  // We will add VisitsService later or use it here if needed for stats
+  // final VisitsService _visitsService = VisitsService();
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final localeProvider = Provider.of<LocaleProvider>(context);
+    final roleProvider = Provider.of<RoleProvider>(context);
+    final venueId = roleProvider.venueId;
+
+    if (venueId == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Owner Dashboard")),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text("No Venue Linked"),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                   Navigator.pushNamed(context, '/onboarding'); 
+                }, 
+                child: const Text("Create Venue")
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       // Background handled by Theme
@@ -41,13 +64,15 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         ],
       ),
       body: StreamBuilder<VenueModel?>(
-        stream: _venueRepo.getVenueStream(_demoVenueId),
+        stream: _venueRepo.getVenueStream(venueId),
         builder: (context, snapshot) {
           if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
           if (!snapshot.hasData) return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
+          if (snapshot.data == null) return const Center(child: Text("Venue not found"));
 
           final venue = snapshot.data!;
-          final isBlocked = venue.isEffectivelyInactive;
+          // Use subscriptionEndDate for logic
+          final isBlocked = venue.isManuallyBlocked || (venue.subscriptionEndDate != null && venue.subscriptionEndDate!.isBefore(DateTime.now()));
           
           return Stack(
             children: [
@@ -263,7 +288,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => MarketingBlastScreen(venueId: _demoVenueId)),
+                MaterialPageRoute(builder: (context) => MarketingBlastScreen(venueId: venue.id)),
               );
             },
             tileColor: Theme.of(context).cardColor,

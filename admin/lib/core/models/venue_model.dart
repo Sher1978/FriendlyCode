@@ -1,50 +1,115 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class DiscountTier {
-  final int maxHours; // e.g., 24
-  final int discountPercent; // e.g., 20
+class VenueModel {
+  final String id;
+  final String ownerId; // Changed from ownerEmail
+  final String name;
+  final String address;
+  final String? logoUrl; // Changed from coverPhotoUrl to logoUrl per request, or alias? User said logoUrl.
+  final String? linkUrl;
+  final DateTime? subscriptionEndDate;
+  final bool isManuallyBlocked;
 
-  DiscountTier({required this.maxHours, required this.discountPercent});
+  // Discount Levels
+  final int level1Discount;
+  final int level1Days;
+  final int level2Discount;
+  final int level2Days;
+  final int level3Discount;
+  final int level3Days;
+  final int level4Discount;
+  final int level4Days;
+
+  // Legacy/UI fields that might still be useful but not in strict schema list?
+  // User didn't explicitly forbid others, but let's stick to their list + essential UI fields.
+  final String description;
+  final String category;
+  final bool isActive;
+
+  // Restored missing fields for UI compatibility
+  final VenueStats stats;
+  final DateTime? lastBlastDate;
+  final double? latitude;
+  final double? longitude;
+
+  VenueModel({
+    required this.id,
+    required this.ownerId,
+    required this.name,
+    required this.address,
+    this.logoUrl,
+    this.linkUrl,
+    this.subscriptionEndDate,
+    this.isManuallyBlocked = false,
+    this.level1Discount = 0,
+    this.level1Days = 0,
+    this.level2Discount = 0,
+    this.level2Days = 0,
+    this.level3Discount = 0,
+    this.level3Days = 0,
+    this.level4Discount = 0,
+    this.level4Days = 0,
+    this.description = '',
+    this.category = 'General',
+    this.isActive = true,
+    this.lastBlastDate,
+    this.latitude,
+    this.longitude,
+    VenueStats? stats,
+  }) : stats = stats ?? VenueStats(avgReturnHours: 0, totalCheckins: 0);
 
   Map<String, dynamic> toMap() {
     return {
-      'maxHours': maxHours,
-      'discountPercent': discountPercent,
+      'ownerId': ownerId,
+      'name': name,
+      'address': address,
+      'logoUrl': logoUrl,
+      'linkUrl': linkUrl,
+      'subscriptionEndDate': subscriptionEndDate != null ? Timestamp.fromDate(subscriptionEndDate!) : null,
+      'isManuallyBlocked': isManuallyBlocked,
+      'level1Discount': level1Discount,
+      'level1Days': level1Days,
+      'level2Discount': level2Discount,
+      'level2Days': level2Days,
+      'level3Discount': level3Discount,
+      'level3Days': level3Days,
+      'level4Discount': level4Discount,
+      'level4Days': level4Days,
+      'description': description,
+      'category': category,
+      'isActive': isActive,
+      'lastBlastDate': lastBlastDate != null ? Timestamp.fromDate(lastBlastDate!) : null,
+      'latitude': latitude,
+      'longitude': longitude,
+      'stats': stats.toMap(),
     };
   }
 
-  factory DiscountTier.fromMap(Map<String, dynamic> map) {
-    return DiscountTier(
-      maxHours: map['maxHours'] ?? 0,
-      discountPercent: map['discountPercent'] ?? 0,
-    );
-  }
-}
-
-class VenueSubscription {
-  final String plan; // "free", "pro", "enterprise"
-  final bool isPaid;
-  final DateTime? expiryDate;
-
-  VenueSubscription({
-    required this.plan,
-    required this.isPaid,
-    this.expiryDate,
-  });
-
-  Map<String, dynamic> toMap() {
-    return {
-      'plan': plan,
-      'isPaid': isPaid,
-      'expiryDate': expiryDate != null ? Timestamp.fromDate(expiryDate!) : null,
-    };
-  }
-
-  factory VenueSubscription.fromMap(Map<String, dynamic> map) {
-    return VenueSubscription(
-      plan: map['plan'] ?? 'free',
-      isPaid: map['isPaid'] ?? false,
-      expiryDate: map['expiryDate'] != null ? (map['expiryDate'] as Timestamp).toDate() : null,
+  factory VenueModel.fromMap(String id, Map<String, dynamic> map) {
+    return VenueModel(
+      id: id,
+      ownerId: map['ownerId'] ?? '',
+      name: map['name'] ?? '',
+      address: map['address'] ?? '',
+      logoUrl: map['logoUrl'],
+      linkUrl: map['linkUrl'],
+      subscriptionEndDate: map['subscriptionEndDate'] != null ? (map['subscriptionEndDate'] as Timestamp).toDate() : null,
+      isManuallyBlocked: map['isManuallyBlocked'] ?? false,
+      level1Discount: map['level1Discount'] ?? 0,
+      level1Days: map['level1Days'] ?? 0,
+      level2Discount: map['level2Discount'] ?? 0,
+      level2Days: map['level2Days'] ?? 0,
+      level3Discount: map['level3Discount'] ?? 0,
+      level3Days: map['level3Days'] ?? 0,
+      level4Discount: map['level4Discount'] ?? 0,
+      level4Days: map['level4Days'] ?? 0,
+      description: map['description'] ?? '',
+      category: map['category'] ?? 'General',
+      isActive: map['isActive'] ?? true,
+      lastBlastDate: map['lastBlastDate'] != null ? (map['lastBlastDate'] as Timestamp).toDate() : null,
+      latitude: map['latitude']?.toDouble(),
+      longitude: map['longitude']?.toDouble(),
+      stats: map['stats'] != null ? VenueStats.fromMap(map['stats']) : null,
     );
   }
 }
@@ -52,7 +117,7 @@ class VenueSubscription {
 class VenueStats {
   final double avgReturnHours;
   final int totalCheckins;
-  final Map<String, int> discountDistribution; // e.g. {"20": 10, "15": 5}
+  final Map<String, int> discountDistribution;
 
   VenueStats({
     required this.avgReturnHours,
@@ -73,96 +138,6 @@ class VenueStats {
       avgReturnHours: (map['avgReturnHours'] ?? 0).toDouble(),
       totalCheckins: map['totalCheckins'] ?? 0,
       discountDistribution: Map<String, int>.from(map['discountDistribution'] ?? {}),
-    );
-  }
-}
-
-class VenueModel {
-  final String id;
-  final String name;
-  final String description;
-  final String ownerEmail;
-  final String? coverPhotoUrl;
-  final String category; // Added per Master Spec
-  final String address; // Added per Master Spec
-  final bool isActive; // Admin control - general activation
-  final bool manualBlock; // Added per Master Spec - strict override
-  final List<DiscountTier> tiers;
-  final VenueSubscription subscription;
-  final VenueStats stats;
-  final double latitude;
-  final double longitude;
-  final DateTime? lastBlastDate;
-
-  VenueModel({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.ownerEmail,
-    this.coverPhotoUrl,
-    this.category = 'General',
-    this.address = '',
-    this.isActive = true,
-    this.manualBlock = false,
-    required this.tiers,
-    required this.subscription,
-    required this.stats,
-    this.latitude = 0.0,
-    this.longitude = 0.0,
-    this.lastBlastDate,
-  });
-
-  bool get isEffectivelyInactive {
-    if (manualBlock) return true;
-    if (subscription.expiryDate != null &&
-        subscription.expiryDate!.isBefore(DateTime.now())) {
-      return true;
-    }
-    return !isActive;
-  }
-
-  Map<String, dynamic> toMap() {
-    return {
-      'name': name,
-      'description': description,
-      'ownerEmail': ownerEmail,
-      'category': category,
-      'address': address,
-      'coverPhotoUrl': coverPhotoUrl,
-      'isActive': isActive,
-      'manualBlock': manualBlock,
-      'tiers': tiers.map((x) => x.toMap()).toList(),
-      'subscription': subscription.toMap(),
-      'stats': stats.toMap(),
-      'latitude': latitude,
-      'longitude': longitude,
-      'lastBlastDate': lastBlastDate != null ? Timestamp.fromDate(lastBlastDate!) : null,
-    };
-  }
-
-  factory VenueModel.fromMap(String id, Map<String, dynamic> map) {
-    return VenueModel(
-      id: id,
-      name: map['name'] ?? '',
-      description: map['description'] ?? '',
-      ownerEmail: map['ownerEmail'] ?? '',
-      category: map['category'] ?? 'General',
-      address: map['address'] ?? '',
-      coverPhotoUrl: map['coverPhotoUrl'],
-      isActive: map['isActive'] ?? true,
-      manualBlock: map['manualBlock'] ?? false,
-      tiers: map['tiers'] != null
-          ? List<DiscountTier>.from(map['tiers']?.map((x) => DiscountTier.fromMap(x)))
-          : [],
-      subscription: map['subscription'] != null
-          ? VenueSubscription.fromMap(map['subscription'])
-          : VenueSubscription(plan: 'free', isPaid: false),
-      stats: map['stats'] != null
-          ? VenueStats.fromMap(map['stats'])
-          : VenueStats(avgReturnHours: 0, totalCheckins: 0),
-      latitude: (map['latitude'] ?? 0.0).toDouble(),
-      longitude: (map['longitude'] ?? 0.0).toDouble(),
-      lastBlastDate: map['lastBlastDate'] != null ? (map['lastBlastDate'] as Timestamp).toDate() : null,
     );
   }
 }

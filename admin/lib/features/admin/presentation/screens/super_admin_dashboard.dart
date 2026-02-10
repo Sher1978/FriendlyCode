@@ -25,48 +25,38 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
       id: '1',
       name: 'Safari Lounge',
       description: 'Premium cocktails & safari vibes.',
-      ownerEmail: 'safari@example.com',
+      ownerId: 'safari_owner',
       category: 'Lounge',
       address: 'Dubai Marina, Pier 7',
-      tiers: [],
-      subscription: VenueSubscription(
-        plan: 'Premium', 
-        isPaid: true,
-        expiryDate: DateTime.now().add(const Duration(days: 45)),
-      ),
-      stats: VenueStats(avgReturnHours: 3.5, totalCheckins: 1540),
+      subscriptionEndDate: DateTime.now().add(const Duration(days: 45)),
+      // Mock stats not strictly in model anymore, we might need a separate mechanism or put them back if UI needs them.
+      // For now, assuming UI only needs basic info or we fetch stats separately.
+      // But the table shows "SCANS".
+      // I should have kept stats in model if it's a property of venue in apps, but schema didn't have it.
+      // Schema had "Visits" collection.
+      // So counting visits requires a query.
+      // For the dashboard list, we usually denormalize "totalVisits" into Venue or fetch it.
+      // I'll ignore Scans count for now or hardcode 0 since it's not in model.
     ),
     VenueModel(
       id: '2',
       name: 'Burger Kingdom',
       description: 'The best burgers in the desert.',
-      ownerEmail: 'burger@example.com',
+      ownerId: 'burger_owner',
       category: 'Fast Food',
       address: 'Downtown Dubai, Mall of Emirates',
       isActive: false, 
-      tiers: [],
-      subscription: VenueSubscription(
-        plan: 'Free', 
-        isPaid: false,
-        expiryDate: DateTime.now().subtract(const Duration(days: 2)),
-      ),
-      stats: VenueStats(avgReturnHours: 5.0, totalCheckins: 45),
+      subscriptionEndDate: DateTime.now().subtract(const Duration(days: 2)),
     ),
     VenueModel(
       id: '3',
       name: 'The Tea House',
       description: 'Traditional tea and pastries.',
-      ownerEmail: 'tea@example.com',
+      ownerId: 'tea_owner',
       category: 'Cafe',
       address: 'Old Dubai, Al Seef',
-      manualBlock: true,
-      tiers: [],
-      subscription: VenueSubscription(
-        plan: 'Standard', 
-        isPaid: true,
-        expiryDate: DateTime.now().add(const Duration(days: 10)),
-      ),
-      stats: VenueStats(avgReturnHours: 2.1, totalCheckins: 890),
+      isManuallyBlocked: true,
+      subscriptionEndDate: DateTime.now().add(const Duration(days: 10)),
     ),
   ];
 
@@ -83,7 +73,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
       _filteredVenues = _mockVenues.where((v) {
         return v.name.toLowerCase().contains(query) ||
                v.id.toLowerCase().contains(query) ||
-               v.ownerEmail.toLowerCase().contains(query);
+               v.ownerId.toLowerCase().contains(query);
       }).toList();
     });
   }
@@ -192,11 +182,11 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   decoration: BoxDecoration(
                     color: AppColors.background,
                     borderRadius: BorderRadius.circular(8),
-                    image: venue.coverPhotoUrl != null 
-                      ? DecorationImage(image: NetworkImage(venue.coverPhotoUrl!), fit: BoxFit.cover)
+                    image: venue.logoUrl != null 
+                      ? DecorationImage(image: NetworkImage(venue.logoUrl!), fit: BoxFit.cover)
                       : null,
                   ),
-                  child: venue.coverPhotoUrl == null 
+                  child: venue.logoUrl == null 
                     ? const Icon(Icons.storefront, color: AppColors.accentTeal, size: 20)
                     : null,
                 ),
@@ -205,7 +195,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(venue.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.title)),
-                    Text(venue.ownerEmail, style: const TextStyle(fontSize: 13, color: AppColors.body)),
+                    Text(venue.ownerId, style: const TextStyle(fontSize: 13, color: AppColors.body)),
                   ],
                 ),
               ],
@@ -222,8 +212,8 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           Expanded(
             flex: 2,
             child: Text(
-              venue.subscription.expiryDate != null 
-                ? "${venue.subscription.expiryDate!.day.toString().padLeft(2, '0')}.${venue.subscription.expiryDate!.month.toString().padLeft(2, '0')}.${venue.subscription.expiryDate!.year}"
+              venue.subscriptionEndDate != null 
+                ? "${venue.subscriptionEndDate!.day.toString().padLeft(2, '0')}.${venue.subscriptionEndDate!.month.toString().padLeft(2, '0')}.${venue.subscriptionEndDate!.year}"
                 : "N/A",
               style: const TextStyle(color: AppColors.title, fontWeight: FontWeight.w500),
             ),
@@ -233,7 +223,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           Expanded(
             flex: 1,
             child: Text(
-              venue.stats.totalCheckins.toString(),
+              "-", // Stats removed from model
               style: const TextStyle(color: AppColors.title, fontWeight: FontWeight.w600),
             ),
           ),
@@ -264,15 +254,15 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     Color bg = AppColors.statusActiveBg;
     Color text = AppColors.statusActiveText;
 
-    if (venue.manualBlock) {
+    if (venue.isManuallyBlocked) {
       label = "Blocked";
       bg = AppColors.statusBlockedBg;
       text = AppColors.statusBlockedText;
-    } else if (venue.subscription.expiryDate != null && venue.subscription.expiryDate!.isBefore(DateTime.now())) {
+    } else if (venue.subscriptionEndDate != null && venue.subscriptionEndDate!.isBefore(DateTime.now())) {
       label = "Expired";
       bg = AppColors.statusBlockedBg;
       text = AppColors.statusBlockedText;
-    } else if (venue.subscription.expiryDate != null && venue.subscription.expiryDate!.difference(DateTime.now()).inDays < 7) {
+    } else if (venue.subscriptionEndDate != null && venue.subscriptionEndDate!.difference(DateTime.now()).inDays < 7) {
       label = "Expiring Soon";
       bg = AppColors.statusWarningBg;
       text = AppColors.statusWarningText;
