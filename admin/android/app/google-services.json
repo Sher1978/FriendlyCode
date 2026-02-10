@@ -21,7 +21,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "331010142763-0c3p7dpntpus6njn3eqe0uav1mice84j.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "331010142763-rviabm6o7i364elvqunpmfgi2infc1mu.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.friendlycode.friendlyCode"
+              }
+            }
+          ]
         }
       }
     }

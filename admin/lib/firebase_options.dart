@@ -42,7 +42,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyDYqvC0Ti6ChVnz5eMQhxms4hkgMUxF9PY',
-    appId: '1:331010142763:web:18d8549078a1f50a99f06e',
+    appId: '1:331010142763:web:cfd9fa17ed9bf99a99f06e',
     messagingSenderId: '331010142763',
     projectId: 'bot-lab-21910',
     authDomain: 'bot-lab-21910.firebaseapp.com',
@@ -66,6 +66,7 @@ class DefaultFirebaseOptions {
     projectId: 'bot-lab-21910',
     databaseURL: 'https://bot-lab-21910.firebaseio.com',
     storageBucket: 'bot-lab-21910.firebasestorage.app',
+    iosClientId: '331010142763-rviabm6o7i364elvqunpmfgi2infc1mu.apps.googleusercontent.com',
     iosBundleId: 'com.friendlycode.friendlyCode',
   );
 
@@ -76,6 +77,7 @@ class DefaultFirebaseOptions {
     projectId: 'bot-lab-21910',
     databaseURL: 'https://bot-lab-21910.firebaseio.com',
     storageBucket: 'bot-lab-21910.firebasestorage.app',
+    iosClientId: '331010142763-rviabm6o7i364elvqunpmfgi2infc1mu.apps.googleusercontent.com',
     iosBundleId: 'com.friendlycode.friendlyCode',
   );
 

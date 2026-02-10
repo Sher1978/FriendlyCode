@@ -19,6 +19,20 @@ class AuthService {
   // Get current user
   User? get currentUser => _auth.currentUser;
 
+  // Sign in with Email and Password
+  Future<User?> signInWithEmailAndPassword(String email, String password) async {
+    try {
+      final UserCredential userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return userCredential.user;
+    } catch (e) {
+      print("Error signing in with Email: $e");
+      rethrow;
+    }
+  }
+
   // Sign in with Google
   Future<User?> signInWithGoogle() async {
     try {
