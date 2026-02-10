@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingPage from './LandingPage';
 import LeadCapture from './LeadCapture';
 import UnifiedActivation from './UnifiedActivation';
+import TelegramAuth from './TelegramAuth';
 import MarketingB2C from './MarketingB2C';
 import PartnerMap from './PartnerMap';
 import MarketingB2B from './MarketingB2B';
@@ -20,6 +21,7 @@ function App() {
         <Route path="/qr" element={<LandingPage />} />
         <Route path="/activate" element={<LeadCapture />} />
         <Route path="/thank-you" element={<UnifiedActivation />} />
+        <Route path="/telegram-auth" element={<TelegramAuth />} />
 
         {/* Redirects for Admin/Owner panels to sub-path handled by Flutter */}
         <Route path="/owner" element={<NavigateToAdmin path="owner" />} />

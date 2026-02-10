@@ -68,45 +68,69 @@ const LandingPage = () => {
                 </div>
 
                 {/* Gauge Visual */}
-                <div className="relative w-full h-48 flex items-center justify-center mb-12">
+                <div className="relative w-full h-48 flex items-center justify-center mb-8 scale-110 origin-bottom">
                     <svg viewBox="0 0 200 120" className="w-64 h-40 overflow-visible">
-                        {/* Background Track (Thick & Soft) */}
-                        <path
-                            d="M 30 100 A 70 70 0 0 1 170 100"
-                            fill="none"
-                            stroke="#E68A00"
-                            strokeOpacity="0.15"
-                            strokeWidth="24"
-                            strokeLinecap="round"
-                        />
-
-                        {/* Progress Arch (Aligned precisely with background radius) */}
-                        <path
-                            d="M 30 100 A 70 70 0 0 1 30.9 89.1"
-                            fill="none"
-                            stroke="url(#gaugeGradient)"
-                            strokeWidth="24"
-                            strokeLinecap="round"
-                        />
-
-                        {/* Gradient Definition */}
                         <defs>
                             <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stopColor="#E68A00" />
-                                <stop offset="100%" stopColor="#81C784" />
+                                <stop offset="0%" stopColor="#FFA726" />
+                                <stop offset="100%" stopColor="#66BB6A" />
                             </linearGradient>
+                            <filter id="gaugeShadow" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur in="SourceAlpha" stdDeviation="2" />
+                                <feOffset dx="0" dy="2" result="offsetblur" />
+                                <feComponentTransfer>
+                                    <feFuncA type="linear" slope="0.2" />
+                                </feComponentTransfer>
+                                <feMerge>
+                                    <feMergeNode />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
                         </defs>
 
-                        {/* Needle (Substantial, rounded design) */}
-                        <circle cx="100" cy="100" r="12" fill="#4E342E" />
+                        {/* Background Track (Soft Creamy/Orange) */}
                         <path
-                            d="M 100 108 L 45 92 L 100 92 Z"
-                            fill="#4E342E"
+                            d="M 25 100 A 75 75 0 0 1 175 100"
+                            fill="none"
+                            stroke="#FFCC80"
+                            strokeOpacity="0.3"
+                            strokeWidth="28"
+                            strokeLinecap="round"
                         />
 
-                        {/* Labels positioned relative to the sweep */}
-                        <text x="100" y="85" textAnchor="middle" className="text-[32px] font-black fill-[#4E342E]">5%</text>
-                        <text x="175" y="80" textAnchor="middle" className="text-[12px] font-bold fill-[#4E342E] opacity-40">20%</text>
+                        {/* Progress Arch (5% Segment) */}
+                        <path
+                            d="M 25 100 A 75 75 0 0 1 25.8 89.6"
+                            fill="none"
+                            stroke="url(#gaugeGradient)"
+                            strokeWidth="28"
+                            strokeLinecap="round"
+                            filter="url(#gaugeShadow)"
+                        />
+
+                        {/* Needle (Tapered & Rounded) */}
+                        <g transform="rotate(9, 100, 100)">
+                            {/* Pivot */}
+                            <circle cx="100" cy="100" r="8" fill="#5D4037" />
+                            {/* Tapered Body */}
+                            <path
+                                d="M 100 106 L 38 100 L 100 94 Z"
+                                fill="#5D4037"
+                                stroke="#5D4037"
+                                strokeWidth="2"
+                                strokeLinejoin="round"
+                            />
+                        </g>
+
+                        {/* Percentage Text */}
+                        <text x="100" y="80" textAnchor="middle" className="text-[36px] font-black fill-[#5D4037] drop-shadow-sm">
+                            5%
+                        </text>
+
+                        {/* Max Label */}
+                        <text x="180" y="95" textAnchor="middle" className="text-[14px] font-bold fill-[#5D4037] opacity-60">
+                            20%
+                        </text>
                     </svg>
                 </div>
 
