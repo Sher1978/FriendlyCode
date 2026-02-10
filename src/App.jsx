@@ -3,20 +3,23 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingPage from './LandingPage';
 import LeadCapture from './LeadCapture';
 import UnifiedActivation from './UnifiedActivation';
-import B2BLanding from './B2BLanding';
+import MarketingB2C from './MarketingB2C';
+import PartnerMap from './PartnerMap';
+import MarketingB2B from './MarketingB2B';
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Guest Flow */}
-        <Route path="/" element={<LandingPage />} />
+        {/* Marketing Logic (Friendly Code 2.0) */}
+        <Route path="/" element={<MarketingB2C />} />
+        <Route path="/map" element={<PartnerMap />} />
+        <Route path="/business" element={<MarketingB2B />} />
+
+        {/* Guest QR Logic */}
         <Route path="/qr" element={<LandingPage />} />
         <Route path="/activate" element={<LeadCapture />} />
         <Route path="/thank-you" element={<UnifiedActivation />} />
-
-        {/* B2B Landing */}
-        <Route path="/partner" element={<B2BLanding />} />
 
         {/* Redirects for Admin/Owner panels to sub-path handled by Flutter */}
         <Route path="/owner" element={<NavigateToAdmin path="owner" />} />

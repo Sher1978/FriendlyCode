@@ -18,6 +18,9 @@ const LeadCapture = () => {
     const handleContinue = () => {
         if (!name.trim()) return;
 
+        // Save guest name for future "Welcome Back" auto-login
+        localStorage.setItem('guestName', name);
+
         // Mocking the behavior of launching messenger then navigating to success
         const link = messengerLinks[selectedMessenger];
         if (selectedMessenger === 'telegram') {
@@ -110,8 +113,8 @@ const MessengerButton = ({ label, isSelected, onClick }) => (
     <button
         onClick={onClick}
         className={`flex-1 flex flex-col items-center justify-center p-5 rounded-[22px] border-2 transition-all ${isSelected
-                ? 'bg-[#E68A00]/5 border-[#E68A00] scale-[1.02]'
-                : 'bg-white border-[#E68A00]/10'
+            ? 'bg-[#E68A00]/5 border-[#E68A00] scale-[1.02]'
+            : 'bg-white border-[#E68A00]/10'
             }`}
     >
         <span className={`text-[16px] font-bold ${isSelected ? 'text-[#E68A00]' : 'text-[#4E342E]'}`}>
