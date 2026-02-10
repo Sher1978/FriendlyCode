@@ -20,8 +20,11 @@ const MarketingB2B = () => {
                 <div className="font-black text-xl tracking-tighter cursor-pointer flex items-center gap-2" onClick={() => navigate('/')}>
                     <span>FRIENDLY CODE</span>
                 </div>
-                <div className="text-xs font-bold bg-brand-orange/10 text-brand-orange px-3 py-1 rounded-full uppercase tracking-widest border border-brand-orange/20">
-                    For Business
+                <div
+                    className="text-xs font-bold bg-brand-orange/10 text-brand-orange px-3 py-1 rounded-full uppercase tracking-widest border border-brand-orange/20 cursor-pointer hover:bg-brand-orange/20 transition-all"
+                    onClick={() => window.location.href = '/admin/'}
+                >
+                    LOGIN
                 </div>
             </nav>
 
