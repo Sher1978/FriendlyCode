@@ -10,17 +10,17 @@ const UnifiedActivation = () => {
     const guestName = location.state?.guestName || 'Guest';
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#FFF2E2] font-sans text-[#4E342E] antialiased">
+        <div className="flex flex-col min-h-screen bg-[#FFF8E1] font-sans text-[#4E342E] antialiased">
             <div className="flex-grow flex flex-col items-center justify-between px-6 py-12">
                 <div className="flex-grow flex flex-col items-center justify-center w-full">
 
                     {/* Status Card */}
-                    <div className="w-full max-w-sm bg-white border-2 border-[#81C784] rounded-[32px] p-10 text-center shadow-xl shadow-[#81C784]/10">
+                    <div className="w-full max-w-sm bg-white border-2 border-[#81C784] rounded-[32px] p-10 text-center shadow-xl shadow-[#4E342E]/5">
                         <span className="text-[12px] font-black uppercase tracking-[0.2em] text-[#81C784]">
                             {t('success_unlocked')}
                         </span>
 
-                        <h1 className="text-[96px] font-black leading-none text-[#D68A3E] mt-4">
+                        <h1 className="text-[96px] font-black leading-none text-[#E68A00] mt-4">
                             20%
                         </h1>
 
