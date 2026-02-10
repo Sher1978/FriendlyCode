@@ -14,6 +14,12 @@
     ],
     "hosting": {
         "public": "dist",
+        "predeploy": [
+            "npm run build",
+            "powershell -Command \"Set-Location admin; flutter build web --release --no-tree-shake-icons --base-href /admin/\"",
+            "powershell -Command \"if (!(Test-Path dist/admin)) { New-Item -ItemType Directory -Path dist/admin -Force }\"",
+            "powershell -Command \"Copy-Item -Path admin/build/web/* -Destination dist/admin/ -Recurse -Force\""
+        ],
         "ignore": [
             "firebase.json",
             "**/.*",

@@ -29,7 +29,7 @@ const MarketingB2C = () => {
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 1.2 }}
-                    className="w-full mb-12 rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white group relative aspect-[16/9]"
+                    className="w-full mb-12 rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white group relative aspect-square md:aspect-video max-w-2xl md:max-w-full mx-auto"
                 >
                     <img
                         src="/hero_pov_v4_no_glare.png"
@@ -256,7 +256,7 @@ const MarketingB2C = () => {
                             </p>
                             <button
                                 onClick={() => navigate('/qr')}
-                                className="w-full md:w-auto bg-brand-orange text-white px-12 py-6 rounded-full font-black text-lg md:text-xl shadow-xl shadow-brand-orange/40 hover:shadow-brand-orange/60 hover:scale-[1.02] transition-all flex items-center justify-center gap-4 uppercase tracking-wider mx-auto"
+                                className="w-full md:w-auto bg-brand-orange text-white px-8 py-4 md:px-12 md:py-6 rounded-full font-black text-base md:text-xl shadow-xl shadow-brand-orange/40 hover:shadow-brand-orange/60 hover:scale-[1.02] transition-all flex items-center justify-center gap-4 uppercase tracking-wider mx-auto"
                             >
                                 <FontAwesomeIcon icon={faRocket} />
                                 Запустить демку

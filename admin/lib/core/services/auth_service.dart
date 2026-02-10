@@ -1,0 +1,61 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import '../auth/google_auth.dart';
+import 'package:flutter/foundation.dart';
+
+class AuthService {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  // Use dynamic to bypass compile-time checks on the Web
+  late final dynamic _googleSignIn;
+
+  AuthService() {
+    if (!kIsWeb) {
+      _googleSignIn = GoogleSignIn();
+    }
+  }
+
+  // Stream of auth changes
+  Stream<User?> get authStateChanges => _auth.authStateChanges();
+
+  // Get current user
+  User? get currentUser => _auth.currentUser;
+
+  // Sign in with Google
+  Future<User?> signInWithGoogle() async {
+    try {
+      if (kIsWeb) {
+        // Web specific logic
+        GoogleAuthProvider authProvider = GoogleAuthProvider();
+        // Force account selection prompt
+        authProvider.setCustomParameters({'prompt': 'select_account'});
+        
+        final UserCredential userCredential = await _auth.signInWithPopup(authProvider);
+        return userCredential.user;
+      } else {
+        // Mobile logic (Android/iOS)
+        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+        if (googleUser == null) return null; // User canceled
+
+        final dynamic googleAuth = await googleUser.authentication;
+
+        final OAuthCredential credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken,
+          idToken: googleAuth.idToken,
+        );
+
+        final UserCredential userCredential = await _auth.signInWithCredential(credential);
+        return userCredential.user;
+      }
+    } catch (e) {
+      print("Error signing in with Google: $e");
+      rethrow;
+    }
+  }
+
+  // Sign out
+  Future<void> signOut() async {
+    if (!kIsWeb) {
+      await _googleSignIn.signOut();
+    }
+    await _auth.signOut();
+  }
+}

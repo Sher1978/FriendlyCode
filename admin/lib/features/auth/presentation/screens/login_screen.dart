@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../core/theme/colors.dart';
+import '../../../../core/services/auth_service.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -59,10 +60,23 @@ class LoginScreen extends StatelessWidget {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton.icon(
-                  onPressed: () {
+                  onPressed: () async {
                     // Logic for Google Auth
-                    // For now, we simulate success and go to Owner Dashboard
-                    Navigator.pushReplacementNamed(context, '/owner');
+                    try {
+                      final authService = AuthService();
+                      final user = await authService.signInWithGoogle();
+                      
+                      if (user != null && context.mounted) {
+                        // Navigate to Owner Dashboard on success
+                        Navigator.pushReplacementNamed(context, '/owner');
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Login Failed: $e")),
+                        );
+                      }
+                    }
                   },
                   icon: const FaIcon(FontAwesomeIcons.google, size: 20),
                   label: Text(l10n.googleSignIn),
