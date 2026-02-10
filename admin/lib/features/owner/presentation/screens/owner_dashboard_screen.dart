@@ -3,14 +3,15 @@ import 'dart:ui';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/theme/colors.dart';
-import '../../../../core/models/venue_model.dart';
-import '../../../../core/data/venue_repository.dart';
-import '../../../../core/localization/locale_provider.dart';
-import 'rules_config_screen.dart';
-import 'venue_profile_edit_screen.dart';
-import 'marketing_blast_screen.dart';
-import '../../../../core/auth/role_provider.dart';
+import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/core/models/venue_model.dart';
+import 'package:friendly_code/core/data/venue_repository.dart';
+import 'package:friendly_code/core/localization/locale_provider.dart';
+import 'package:friendly_code/features/owner/presentation/screens/rules_config_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/marketing_blast_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
+import 'package:friendly_code/core/auth/role_provider.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -256,7 +257,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const VenueProfileEditScreen()),
+                MaterialPageRoute(builder: (context) => VenueEditorScreen(venue: venue)),
               );
             },
             tileColor: Theme.of(context).cardColor,
@@ -283,6 +284,21 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).dividerColor, size: 16),
           ),
           const SizedBox(height: 16),
+          
+          ListTile(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => StaffManagementScreen(venueId: venue.id)),
+              );
+            },
+            tileColor: Theme.of(context).cardColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            leading: Icon(Icons.people, color: Theme.of(context).colorScheme.primary),
+            title: Text("Staff Management", style: Theme.of(context).textTheme.bodyLarge),
+            subtitle: Text("Manage your personnel", style: Theme.of(context).textTheme.bodySmall),
+            trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).dividerColor, size: 16),
+          ),
           
           ListTile(
             onTap: () {

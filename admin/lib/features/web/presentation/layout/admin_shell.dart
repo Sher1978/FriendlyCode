@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/colors.dart';
-import '../../../admin/presentation/widgets/analytics_module.dart';
-
-enum UserRole { superAdmin, owner }
+import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/features/admin/presentation/widgets/analytics_module.dart';
+import 'package:friendly_code/core/auth/role_provider.dart';
 
 class AdminShell extends StatefulWidget {
   final Widget child; // Default/Initial screen

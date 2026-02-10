@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
-import 'package:provider/provider.dart';
-import '../../../../core/theme/colors.dart';
-import '../../../../core/models/venue_model.dart';
-import '../../../../core/localization/locale_provider.dart';
-import 'venue_detail_view.dart';
-import '../widgets/venue_configurator.dart';
-import '../../../../features/web/presentation/layout/admin_shell.dart';
+import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/core/models/venue_model.dart';
+import 'package:friendly_code/features/admin/presentation/screens/venue_detail_view.dart';
+import 'package:friendly_code/features/admin/presentation/widgets/venue_configurator.dart';
+import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
+import 'package:friendly_code/core/auth/role_provider.dart';
+import 'package:friendly_code/core/services/venue_service.dart';
 
 class SuperAdminDashboard extends StatefulWidget {
   const SuperAdminDashboard({super.key});
@@ -17,66 +18,14 @@ class SuperAdminDashboard extends StatefulWidget {
 
 class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   final TextEditingController _searchCtrl = TextEditingController();
-  List<VenueModel> _filteredVenues = [];
-
-  // Mock Data
-  final List<VenueModel> _mockVenues = [
-    VenueModel(
-      id: '1',
-      name: 'Safari Lounge',
-      description: 'Premium cocktails & safari vibes.',
-      ownerId: 'safari_owner',
-      category: 'Lounge',
-      address: 'Dubai Marina, Pier 7',
-      subscriptionEndDate: DateTime.now().add(const Duration(days: 45)),
-      // Mock stats not strictly in model anymore, we might need a separate mechanism or put them back if UI needs them.
-      // For now, assuming UI only needs basic info or we fetch stats separately.
-      // But the table shows "SCANS".
-      // I should have kept stats in model if it's a property of venue in apps, but schema didn't have it.
-      // Schema had "Visits" collection.
-      // So counting visits requires a query.
-      // For the dashboard list, we usually denormalize "totalVisits" into Venue or fetch it.
-      // I'll ignore Scans count for now or hardcode 0 since it's not in model.
-    ),
-    VenueModel(
-      id: '2',
-      name: 'Burger Kingdom',
-      description: 'The best burgers in the desert.',
-      ownerId: 'burger_owner',
-      category: 'Fast Food',
-      address: 'Downtown Dubai, Mall of Emirates',
-      isActive: false, 
-      subscriptionEndDate: DateTime.now().subtract(const Duration(days: 2)),
-    ),
-    VenueModel(
-      id: '3',
-      name: 'The Tea House',
-      description: 'Traditional tea and pastries.',
-      ownerId: 'tea_owner',
-      category: 'Cafe',
-      address: 'Old Dubai, Al Seef',
-      isManuallyBlocked: true,
-      subscriptionEndDate: DateTime.now().add(const Duration(days: 10)),
-    ),
-  ];
+  final VenuesService _venuesService = VenuesService();
 
   @override
   void initState() {
     super.initState();
-    _filteredVenues = _mockVenues;
-    _searchCtrl.addListener(_onSearchChanged);
+    _searchCtrl.addListener(() => setState(() {}));
   }
 
-  void _onSearchChanged() {
-    final query = _searchCtrl.text.toLowerCase();
-    setState(() {
-      _filteredVenues = _mockVenues.where((v) {
-        return v.name.toLowerCase().contains(query) ||
-               v.id.toLowerCase().contains(query) ||
-               v.ownerId.toLowerCase().contains(query);
-      }).toList();
-    });
-  }
 
   @override
   void dispose() {
@@ -104,7 +53,9 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 ),
               ),
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () {
+                   Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen()));
+                },
                 icon: const Icon(Icons.add, size: 18),
                 label: const Text("Create Venue"),
                 style: ElevatedButton.styleFrom(
@@ -132,9 +83,26 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                     const Divider(height: 1),
                     // Table Content
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: _filteredVenues.length,
-                        itemBuilder: (context, index) => _buildVenueRow(_filteredVenues[index]),
+                      child: StreamBuilder<List<VenueModel>>(
+                        stream: _venuesService.getAllVenues(),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
+                          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+                          final query = _searchCtrl.text.toLowerCase();
+                          final venues = snapshot.data!.where((v) {
+                            return v.name.toLowerCase().contains(query) ||
+                                   v.id.toLowerCase().contains(query) ||
+                                   v.ownerId.toLowerCase().contains(query);
+                          }).toList();
+
+                          if (venues.isEmpty) return const Center(child: Text("No venues found."));
+
+                          return ListView.builder(
+                            itemCount: venues.length,
+                            itemBuilder: (context, index) => _buildVenueRow(venues[index]),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -231,17 +199,28 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           // Actions
           Expanded(
             flex: 1,
-            child: TextButton(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => VenueConfigurator(
-                    venue: venue,
-                    userRole: UserRole.superAdmin,
-                  ),
-                );
+            child: PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'edit') {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue)));
+                } else if (value == 'staff') {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => StaffManagementScreen(venueId: venue.id)));
+                } else if (value == 'config') {
+                  showDialog(
+                    context: context,
+                    builder: (context) => VenueConfigurator(
+                      venue: venue,
+                      userRole: UserRole.superAdmin,
+                    ),
+                  );
+                }
               },
-              child: const Text("Edit", style: TextStyle(color: AppColors.accentIndigo, fontWeight: FontWeight.bold)),
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 'edit', child: Text("Edit Details")),
+                const PopupMenuItem(value: 'staff', child: Text("Manage Staff")),
+                const PopupMenuItem(value: 'config', child: Text("Config Rules")),
+              ],
+              child: const Text("Options", style: TextStyle(color: AppColors.accentIndigo, fontWeight: FontWeight.bold)),
             ),
           ),
         ],

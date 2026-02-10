@@ -25,7 +25,12 @@ service cloud.firestore {
     // - Users can read/write their own profile
     // - SuperAdmins can read/write all
     match /users/{userId} {
-      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
+      // MVP: Allow auth users to read/list to find by email.
+      // MVP: Allow auth users to update (e.g. Owner adding staff).
+      // Ideally restricted via custom function or strict ownership checks.
+      allow read, update: if isAuthenticated();
+      allow create: if isAuthenticated(); // For initial signup
+      allow delete: if isSuperAdmin();
     }
 
     // 2. Venues Collection

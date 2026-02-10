@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
-import '../models/venue_model.dart'; // Just for context if needed
-import '../auth/auth_service.dart';
-import '../../features/web/presentation/layout/admin_shell.dart';
-
+import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+
+enum UserRole { superAdmin, owner, staff }
 
 class RoleProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
   UserRole _currentRole = UserRole.owner; // Default to owner for safety
   String? _venueId;
+  String? _uid;
 
   UserRole get currentRole => _currentRole;
   String? get venueId => _venueId;
+  String? get uid => _uid;
 
   void setRole(UserRole role) {
     _currentRole = role;
@@ -22,6 +23,7 @@ class RoleProvider extends ChangeNotifier {
   Future<void> refreshRole() async {
     final user = _authService.currentUser;
     if (user != null) {
+      _uid = user.uid;
       try {
         final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
         if (doc.exists && doc.data() != null) {
@@ -41,6 +43,10 @@ class RoleProvider extends ChangeNotifier {
         _currentRole = UserRole.owner;
         _venueId = null;
       }
+    } else {
+      _uid = null;
+      _venueId = null;
+      _currentRole = UserRole.owner;
     }
     notifyListeners();
   }

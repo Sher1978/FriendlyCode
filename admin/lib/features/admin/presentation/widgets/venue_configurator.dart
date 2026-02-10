@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/colors.dart';
-import '../../../../core/models/venue_model.dart';
-import '../../../../features/web/presentation/layout/admin_shell.dart';
+import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/core/models/venue_model.dart';
+import 'package:friendly_code/core/auth/role_provider.dart';
 
 class VenueConfigurator extends StatefulWidget {
   final VenueModel venue;

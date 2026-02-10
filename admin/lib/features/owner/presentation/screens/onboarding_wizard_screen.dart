@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
-import '../../../../core/theme/colors.dart';
+import 'package:provider/provider.dart';
+import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/core/models/venue_model.dart';
+import 'package:friendly_code/core/services/venue_service.dart';
+import 'package:friendly_code/core/auth/role_provider.dart';
 
 class OnboardingWizardScreen extends StatefulWidget {
   const OnboardingWizardScreen({super.key});
@@ -11,20 +15,43 @@ class OnboardingWizardScreen extends StatefulWidget {
 
 class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
   final PageController _pageController = PageController();
+  final VenuesService _venuesService = VenuesService();
   int _currentPage = 0;
 
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descController = TextEditingController();
 
-  void _nextPage() {
+  Future<void> _nextPage() async {
     if (_currentPage < 2) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
     } else {
-      // Finish onboarding
-      Navigator.pushReplacementNamed(context, '/owner');
+      // Finish onboarding - Save Venue
+      try {
+        final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+        final venue = VenueModel(
+          id: '', // Auto-ID
+          ownerId: roleProvider.uid ?? '',
+          name: _nameController.text,
+          address: 'Default Address', // Or add field to wizard
+          description: _descController.text,
+          isActive: true,
+        );
+        await _venuesService.saveVenue(venue);
+        
+        // Refresh role to get the new venueId
+        await roleProvider.refreshRole();
+
+        if (mounted) Navigator.pushReplacementNamed(context, '/owner');
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Error creating venue: $e")),
+          );
+        }
+      }
     }
   }
 

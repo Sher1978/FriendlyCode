@@ -7,7 +7,10 @@ class VenuesService {
 
   // Create or Update Venue
   Future<void> saveVenue(VenueModel venue) async {
-    await _firestore.collection(_collection).doc(venue.id).set(venue.toMap(), SetOptions(merge: true));
+    final docRef = venue.id.isEmpty 
+        ? _firestore.collection(_collection).doc() 
+        : _firestore.collection(_collection).doc(venue.id);
+    await docRef.set(venue.toMap(), SetOptions(merge: true));
   }
 
   // Get Venue by Owner ID
