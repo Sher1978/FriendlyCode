@@ -10,39 +10,34 @@ service cloud.firestore {
     // Helper: User has specific role
     function hasRole(role) {
       return isAuthenticated() && 
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'guest') == role;
     }
 
     function isSuperAdmin() {
-      return hasRole('superAdmin');
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'guest') == 'superAdmin';
     }
 
     function isOwner() {
-      return hasRole('owner');
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'guest') == 'owner';
     }
 
     // 1. Users Collection
-    // - Users can read/write their own profile
-    // - SuperAdmins can read/write all
     match /users/{userId} {
-      // MVP: Allow auth users to read/list to find by email.
-      // MVP: Allow auth users to update (e.g. Owner adding staff).
-      // Ideally restricted via custom function or strict ownership checks.
-      allow read, update: if isAuthenticated();
-      allow create: if isAuthenticated(); // For initial signup
-      allow delete: if isSuperAdmin();
+      allow read: if isAuthenticated();
+      allow write: if request.auth.uid == userId || isSuperAdmin();
     }
 
     // 2. Venues Collection
-    // - Public read (for guest app/landing)
-    // - Owners can write their own venue (matched by ownerId)
-    // - SuperAdmins can write all
     match /venues/{venueId} {
       allow read: if true;
-      allow create: if isAuthenticated(); // Allow creation (e.g. during onboarding)
-      allow update, delete: if isAuthenticated() && (
-        resource.data.ownerId == request.auth.uid || isSuperAdmin()
-      );
+      allow write: if isSuperAdmin() || (isAuthenticated() && (
+        // For existing docs: check ownership
+        (resource != null && resource.data.ownerId == request.auth.uid) ||
+        // For new docs: allow create if authenticated (onboarding flow)
+        (resource == null)
+      ));
     }
 
     // 3. Visits Collection

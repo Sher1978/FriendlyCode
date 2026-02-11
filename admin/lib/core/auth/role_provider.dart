@@ -6,12 +6,13 @@ enum UserRole { superAdmin, owner, staff }
 
 class RoleProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
-  UserRole _currentRole = UserRole.owner; // Default to owner for safety
-  String? _venueId;
+  UserRole _currentRole = UserRole.owner; 
+  List<String> _venueIds = [];
   String? _uid;
 
   UserRole get currentRole => _currentRole;
-  String? get venueId => _venueId;
+  List<String> get venueIds => _venueIds;
+  String? get venueId => _venueIds.isNotEmpty ? _venueIds.first : null;
   String? get uid => _uid;
 
   void setRole(UserRole role) {
@@ -19,7 +20,6 @@ class RoleProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Logic to determine role based on Firestore doc
   Future<void> refreshRole() async {
     final user = _authService.currentUser;
     if (user != null) {
@@ -31,21 +31,28 @@ class RoleProvider extends ChangeNotifier {
           if (data['role'] == 'superAdmin') {
             _currentRole = UserRole.superAdmin;
           } else {
-             _currentRole = UserRole.owner;
+            _currentRole = UserRole.owner;
           }
-           _venueId = data['venueId'];
         } else {
           _currentRole = UserRole.owner;
-          _venueId = null;
         }
+
+        // Fetch all venues for this user
+        final venuesSnap = await FirebaseFirestore.instance
+            .collection('venues')
+            .where('ownerId', isEqualTo: user.uid)
+            .get();
+        
+        _venueIds = venuesSnap.docs.map((doc) => doc.id).toList();
+
       } catch (e) {
-        debugPrint("Error fetching role: $e");
+        debugPrint("Error fetching role/venues: $e");
         _currentRole = UserRole.owner;
-        _venueId = null;
+        _venueIds = [];
       }
     } else {
       _uid = null;
-      _venueId = null;
+      _venueIds = [];
       _currentRole = UserRole.owner;
     }
     notifyListeners();

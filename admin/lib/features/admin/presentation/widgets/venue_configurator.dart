@@ -34,7 +34,7 @@ class _VenueConfiguratorState extends State<VenueConfigurator> with SingleTicker
     _categoryCtrl = TextEditingController(text: widget.venue.category);
     _addressCtrl = TextEditingController(text: widget.venue.address);
     _manualBlock = widget.venue.isManuallyBlocked;
-    _subEndDate = widget.venue.subscriptionEndDate;
+    _subEndDate = widget.venue.subscription.expiryDate;
   }
 
   @override

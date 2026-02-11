@@ -56,6 +56,24 @@ class UserService {
     });
   }
 
+  // Add Personnel (Owner/Staff) by Email
+  Future<void> addPersonnelByEmail({
+    required String email,
+    required String venueId,
+    required UserRole role,
+  }) async {
+    final user = await getUserByEmail(email);
+    if (user == null) {
+      throw "User with email $email not found. They must sign in at least once or be added manually.";
+    }
+    
+    await assignUserToVenue(
+      uid: user['uid'],
+      venueId: venueId,
+      role: role,
+    );
+  }
+
   // Remove User from Venue
   Future<void> removeUserFromVenue(String uid) async {
     await _firestore.collection(_collection).doc(uid).update({

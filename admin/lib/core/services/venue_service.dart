@@ -2,8 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 
 class VenuesService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
   final String _collection = 'venues';
+
+  VenuesService({FirebaseFirestore? firestore}) 
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
   // Create or Update Venue
   Future<void> saveVenue(VenueModel venue) async {

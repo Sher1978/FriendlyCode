@@ -41,21 +41,21 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     }
   }
 
-  Future<void> _assignRole(String uid, UserRole role) async {
+  Future<void> _assignRole(String email, UserRole role) async {
     try {
-      await _userService.assignUserToVenue(
-        uid: uid,
+      await _userService.addPersonnelByEmail(
+        email: email,
         venueId: widget.venueId,
         role: role,
       );
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("User assigned as ${role.name}")),
+        SnackBar(content: Text("User with email $email assigned as ${role.name}")),
       );
       setState(() => _foundUser = null); // Reset search
       _searchCtrl.clear();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error assigning role: $e")),
+        SnackBar(content: Text("Error: $e")),
       );
     }
   }
@@ -76,78 +76,100 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text("Staff & Owners"),
+        title: const Text("STAFF MANAGEMENT"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline, color: AppColors.accentOrange),
+            onPressed: () {},
+          ),
+        ],
       ),
       body: Column(
         children: [
-          // Search Bar
+          // Search Card
           Padding(
             padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("ADD PERSONNEL", style: TextStyle(color: AppColors.lime, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _searchCtrl,
-                        decoration: InputDecoration(
-                          hintText: "Search by email...",
-                          prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: _isSearching ? null : _searchUser,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.lime,
-                        foregroundColor: AppColors.deepSeaBlueDark,
-                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-                      ),
-                      child: _isSearching 
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text("FIND"),
-                    ),
-                  ],
-                ),
-              ],
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: AppColors.softShadow,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   const Text("ADD PERSONNEL", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.5)),
+                   const SizedBox(height: 16),
+                   TextField(
+                     controller: _searchCtrl,
+                     decoration: InputDecoration(
+                       hintText: "Enter email address...",
+                       prefixIcon: const Icon(Icons.search, color: AppColors.accentOrange),
+                       suffixIcon: IconButton(
+                         icon: _isSearching 
+                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                           : const Icon(Icons.arrow_forward_rounded, color: AppColors.accentOrange),
+                         onPressed: _isSearching ? null : _searchUser,
+                       ),
+                     ),
+                     onSubmitted: (_) => _searchUser(),
+                   ),
+                ],
+              ),
             ),
           ),
 
-          // Found User Result
+          // Search Results
           if (_foundUser != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Card(
-                color: AppColors.deepSeaBlue,
-                child: ListTile(
-                  title: Text(_foundUser!['email'] ?? 'Unknown', style: const TextStyle(color: Colors.white)),
-                  subtitle: Text("Current Role: ${_foundUser!['role'] ?? 'guest'}", style: const TextStyle(color: Colors.white54)),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextButton(
-                        onPressed: () => _assignRole(_foundUser!['uid'], UserRole.staff),
-                        child: const Text("ADD STAFF", style: TextStyle(color: AppColors.lime)),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.title, // Deep Brown
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(_foundUser!['email'] ?? 'Unknown', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                          Text("ROLE: ${(_foundUser!['role'] ?? 'GUEST').toString().toUpperCase()}", style: const TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
+                        ],
                       ),
-                      TextButton(
-                        onPressed: () => _assignRole(_foundUser!['uid'], UserRole.owner),
-                        child: const Text("MAKE OWNER", style: TextStyle(color: Colors.orange)),
-                      ),
-                    ],
-                  ),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => _assignRole(_foundUser!['email'], UserRole.staff),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentGreen, foregroundColor: Colors.white),
+                      child: const Text("ADD STAFF"),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () => _assignRole(_foundUser!['email'], UserRole.owner),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentOrange, foregroundColor: Colors.white),
+                      child: const Text("MAKE OWNER"),
+                    ),
+                  ],
                 ),
               ),
             ),
 
-          const Divider(height: 48, color: Colors.white10),
+          const Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Row(
+              children: [
+                Text("CURRENT PERSONNEL", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppColors.body)),
+                Spacer(),
+              ],
+            ),
+          ),
 
-          // Current Staff List
+          // Personnel List
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: _userService.getStaffForVenue(widget.venueId),
@@ -165,17 +187,24 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                     final user = personnel[index];
                     final isOwner = user['role'] == 'owner';
 
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(
-                        backgroundColor: isOwner ? Colors.orange : AppColors.lime,
-                        child: Icon(isOwner ? Icons.admin_panel_settings : Icons.badge, color: AppColors.deepSeaBlueDark),
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.title.withValues(alpha: 0.05)),
                       ),
-                      title: Text(user['email'] ?? 'No Email', style: const TextStyle(color: Colors.white)),
-                      subtitle: Text(user['role']?.toString().toUpperCase() ?? 'STAFF', style: const TextStyle(color: Colors.white54, fontSize: 12)),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
-                        onPressed: () => _removeUser(user['uid']),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: (isOwner ? AppColors.accentOrange : AppColors.accentGreen).withValues(alpha: 0.1),
+                          child: Icon(isOwner ? Icons.admin_panel_settings_outlined : Icons.badge_outlined, color: isOwner ? AppColors.accentOrange : AppColors.accentGreen, size: 20),
+                        ),
+                        title: Text(user['email'] ?? 'No Email', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                        subtitle: Text(user['role']?.toString().toUpperCase() ?? 'STAFF', style: TextStyle(color: AppColors.body.withValues(alpha: 0.5), fontSize: 11, fontWeight: FontWeight.bold)),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 20),
+                          onPressed: () => _removeUser(user['uid']),
+                        ),
                       ),
                     );
                   },

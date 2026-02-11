@@ -23,379 +23,225 @@ class OwnerDashboardScreen extends StatefulWidget {
 
 class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   final VenueRepository _venueRepo = VenueRepository();
-  final NotificationService _notificationService = NotificationService();
+  String? _selectedVenueId;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final localeProvider = Provider.of<LocaleProvider>(context);
     final roleProvider = Provider.of<RoleProvider>(context);
-    final venueId = roleProvider.venueId;
+    final venueIds = roleProvider.venueIds;
 
-    if (venueId == null) {
+    // Default to first venue if none selected
+    if (_selectedVenueId == null && venueIds.isNotEmpty) {
+      _selectedVenueId = venueIds.first;
+    }
+
+    if (venueIds.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text("Owner Dashboard")),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text("No Venue Linked"),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                   Navigator.pushNamed(context, '/onboarding'); 
-                }, 
-                child: const Text("Create Venue")
-              ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.storefront_outlined, size: 80, color: AppColors.accentOrange),
+                const SizedBox(height: 24),
+                Text(
+                  "Welcome to Friendly Code",
+                  style: Theme.of(context).textTheme.displayLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "You don't have any venues registered yet. Start your journey by creating your first venue.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, height: 1.5),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())),
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text("CREATE MY FIRST VENUE"),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
     return Scaffold(
-      // Background handled by Theme
       appBar: AppBar(
-        title: Text(l10n.ownerDashboard),
+        title: Row(
+          children: [
+            const Text("DASHBOARD"),
+            if (venueIds.length > 1) ...[
+              const SizedBox(width: 24),
+              _buildVenueSwitcher(venueIds),
+            ],
+          ],
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.language),
-            onPressed: () => localeProvider.toggleLocale(),
+            icon: const Icon(Icons.add_business_outlined, color: AppColors.accentOrange),
+            tooltip: "Add Venue",
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())),
           ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            onPressed: () {}, // Profile
+          ),
+          const SizedBox(width: 16),
         ],
       ),
       body: StreamBuilder<VenueModel?>(
-        stream: _venueRepo.getVenueStream(venueId),
+        stream: _venueRepo.getVenueStream(_selectedVenueId!),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
-          if (!snapshot.hasData) return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
-          if (snapshot.data == null) return const Center(child: Text("Venue not found"));
-
-          final venue = snapshot.data!;
-          // Use subscriptionEndDate for logic
-          final isBlocked = venue.isManuallyBlocked || (venue.subscriptionEndDate != null && venue.subscriptionEndDate!.isBefore(DateTime.now()));
+          if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           
+          final venue = snapshot.data!;
+          final isBlocked = venue.isManuallyBlocked || (venue.subscription.expiryDate != null && venue.subscription.expiryDate!.isBefore(DateTime.now()));
+
           return Stack(
             children: [
-              // Main Dashboard Content
-              _buildDashboardContent(context, venue, l10n),
-              
-              // Blocking Overlay (Glassmorphism)
-              if (isBlocked)
-                Positioned.fill(
-                  child: ClipRect(
-                    child: BackdropFilter(
-                      filter: ColorFilter.mode(Colors.black.withValues(alpha: 0.2), BlendMode.darken),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                        child: Container(
-                          color: Colors.white.withValues(alpha: 0.1),
-                          child: Center(
-                            child: Container(
-                              padding: const EdgeInsets.all(48),
-                              margin: const EdgeInsets.symmetric(horizontal: 40),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(24),
-                                boxShadow: AppColors.softShadow,
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.lock_clock_outlined, size: 64, color: AppColors.statusBlockedText),
-                                  const SizedBox(height: 24),
-                                  const Text(
-                                    "Subscription Expired",
-                                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.title),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  const Text(
-                                    "Please contact the administrator to resume service.",
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(color: AppColors.body, fontSize: 16),
-                                  ),
-                                  const SizedBox(height: 32),
-                                  ElevatedButton(
-                                    onPressed: () {}, // Redirect to contact or payment
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.accentTeal,
-                                      foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                    ),
-                                    child: const Text("Contact Support"),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+              _buildModernDashboard(context, venue, l10n),
+              if (isBlocked) _buildBlockingOverlay(),
             ],
           );
-        }
+        },
       ),
     );
   }
 
-  Widget _buildDashboardContent(BuildContext context, VenueModel venue, AppLocalizations l10n) {
-    final stats = venue.stats;
-    final dist = stats.discountDistribution; 
-    final double total = dist.values.fold(0, (sum, val) => sum + val);
+  Widget _buildVenueSwitcher(List<String> venueIds) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.title.withValues(alpha: 0.1)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: _selectedVenueId,
+          icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+          items: venueIds.map((id) => DropdownMenuItem(value: id, child: Text("ID: ...${id.substring(id.length - 4)}", style: const TextStyle(fontWeight: FontWeight.bold)))).toList(),
+          onChanged: (val) => setState(() => _selectedVenueId = val),
+        ),
+      ),
+    );
+  }
 
+  Widget _buildModernDashboard(BuildContext context, VenueModel venue, AppLocalizations l10n) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Temporal Filter
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                 _buildFilterChip("TODAY", true),
-                 _buildFilterChip("WEEK", false),
-                 _buildFilterChip("MONTH", false),
-                 _buildFilterChip("ALL TIME", false),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          
-          // Pending Discount Requests
-          _buildPendingRequests(venue.id),
-          
-          const SizedBox(height: 24),
-
-          Text(
-            l10n.metrics,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.primary, // Brand Color
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          // Analytics Cards
+          // Welcome Header
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildMetricCard(context, l10n.totalCheckins, "${stats.totalCheckins}", Icons.people),
-              const SizedBox(width: 16),
-              _buildMetricCard(context, l10n.avgReturn, "${stats.avgReturnHours.toStringAsFixed(1)} h", Icons.loop),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Hello, ${venue.ownerEmail.split('@').first}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.accentOrange)),
+                  const SizedBox(height: 4),
+                  Text(venue.name, style: Theme.of(context).textTheme.displayLarge),
+                ],
+              ),
+              _buildQuickAction(Icons.campaign_outlined, l10n.marketingBlast, () => Navigator.push(context, MaterialPageRoute(builder: (_) => MarketingBlastScreen(venueId: venue.id)))),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 40),
 
-          // QR Asset Card
-          _buildQRCard(context, venue),
-          
+          // Stats Grid
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 24,
+            mainAxisSpacing: 24,
+            childAspectRatio: 1.5,
+            children: [
+              _buildStatCard(l10n.totalCheckins, "${venue.stats.totalCheckins}", Icons.people_outline, AppColors.accentOrange),
+              _buildStatCard(l10n.avgReturn, "${venue.stats.avgReturnHours.toStringAsFixed(1)}h", Icons.loop, AppColors.accentGreen),
+            ],
+          ),
           const SizedBox(height: 32),
-          
-          // Charts Section
-          Text(
-            l10n.discountDist,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          Container(
-            height: 250,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-               color: Theme.of(context).cardColor,
-               borderRadius: BorderRadius.circular(24),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: total == 0 
-                  ? Center(child: Text("No Data Yet", style: TextStyle(color: Theme.of(context).disabledColor)))
-                  : PieChart(
-                    PieChartData(
-                      sectionsSpace: 2,
-                      centerSpaceRadius: 40,
-                      sections: [
-                        _buildPieSection(dist['20'] ?? 0, total, AppColors.lime, '20%'),
-                        _buildPieSection(dist['15'] ?? 0, total, Colors.blue, '15%'),
-                        _buildPieSection(dist['10'] ?? 0, total, Colors.orange, '10%'),
-                        _buildPieSection(dist['5'] ?? 0, total, Colors.grey, '5%'),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 24),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _LegendItem(context, color: AppColors.lime, label: l10n.tier1),
-                    const SizedBox(height: 8),
-                    _LegendItem(context, color: Colors.blue, label: l10n.tier2),
-                    const SizedBox(height: 8),
-                    _LegendItem(context, color: Colors.orange, label: l10n.tier3),
-                    const SizedBox(height: 8),
-                    _LegendItem(context, color: Colors.grey, label: l10n.expired),
-                  ],
-                )
-              ],
-            ),
-          ),
 
-          const SizedBox(height: 48),
+          // QR Card (Premium Look)
+          _buildPremiumQRCard(venue),
+          const SizedBox(height: 32),
 
-          Text(
-            l10n.management,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          // Settings Section
+          Text(l10n.management, style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 16),
-
-          ListTile(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => VenueEditorScreen(venue: venue)),
-              );
-            },
-            tileColor: Theme.of(context).cardColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            leading: Icon(Icons.store, color: Theme.of(context).colorScheme.primary),
-            title: Text(l10n.venueProfile, style: Theme.of(context).textTheme.bodyLarge),
-            subtitle: Text(l10n.venueProfileSub, style: Theme.of(context).textTheme.bodySmall),
-            trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).dividerColor, size: 16),
-          ),
+          _buildManagementLink(Icons.tune, l10n.configRules, l10n.configRulesSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RulesConfigScreen()))),
           const SizedBox(height: 16),
-          // Settings Tile
-          ListTile(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const RulesConfigScreen()),
-              );
-            },
-            tileColor: Theme.of(context).cardColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            leading: Icon(Icons.tune, color: Theme.of(context).colorScheme.primary),
-            title: Text(l10n.configRules, style: Theme.of(context).textTheme.bodyLarge),
-            subtitle: Text(l10n.configRulesSub, style: Theme.of(context).textTheme.bodySmall),
-            trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).dividerColor, size: 16),
-          ),
+          _buildManagementLink(Icons.badge_outlined, "Staff Management", "Manage your personnel", () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffManagementScreen(venueId: venue.id)))),
           const SizedBox(height: 16),
-          
-          ListTile(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => StaffManagementScreen(venueId: venue.id)),
-              );
-            },
-            tileColor: Theme.of(context).cardColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            leading: Icon(Icons.people, color: Theme.of(context).colorScheme.primary),
-            title: Text("Staff Management", style: Theme.of(context).textTheme.bodyLarge),
-            subtitle: Text("Manage your personnel", style: Theme.of(context).textTheme.bodySmall),
-            trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).dividerColor, size: 16),
-          ),
-          
-          ListTile(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MarketingBlastScreen(venueId: venue.id)),
-              );
-            },
-            tileColor: Theme.of(context).cardColor,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            leading: const Icon(Icons.campaign, color: AppColors.lime), // Campaign icon
-            title: Text(l10n.marketingBlast, style: Theme.of(context).textTheme.bodyLarge),
-            subtitle: Text(l10n.marketingBlastSub, style: Theme.of(context).textTheme.bodySmall),
-            trailing: Icon(Icons.arrow_forward_ios, color: Theme.of(context).dividerColor, size: 16),
-          ),
+          _buildManagementLink(Icons.storefront_outlined, l10n.venueProfile, l10n.venueProfileSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue)))),
         ],
       ),
     );
   }
 
-  PieChartSectionData _buildPieSection(int value, double total, Color color, String title) {
-    final double percent = (value / total) * 100;
-    return PieChartSectionData(
-      color: color,
-      value: value.toDouble(),
-      title: percent >= 5 ? title : '', // Hide title if too small
-      radius: 50,
-      titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-    );
-  }
-
-
-  Widget _buildFilterChip(String label, bool isActive) {
-     return Container(
-       margin: const EdgeInsets.only(right: 8),
-       child: ChoiceChip(
-         label: Text(label, style: TextStyle(color: isActive ? Colors.black : Colors.white70, fontSize: 10)),
-         selected: isActive,
-         onSelected: (val) {},
-         selectedColor: AppColors.lime,
-         backgroundColor: Colors.white.withValues(alpha: 0.1),
-         side: BorderSide.none,
-       ),
-     );
-  }
-
-  Widget _buildQRCard(BuildContext context, VenueModel venue) {
-    final deepLink = "https://app.friendlycode.com/v/${venue.id}";
-    
+  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.deepSeaBlue,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
+        boxShadow: AppColors.softShadow,
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(height: 16),
+          Text(value, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 28)),
+          Text(label, style: TextStyle(color: AppColors.body.withValues(alpha: 0.6), fontWeight: FontWeight.bold, fontSize: 12)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumQRCard(VenueModel venue) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.title, // Deep Brown
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: AppColors.softShadow,
+      ),
+      padding: const EdgeInsets.all(32),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.qr_code, size: 64, color: AppColors.deepSeaBlue),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
+            child: const Icon(Icons.qr_code_2_outlined, size: 64, color: AppColors.title),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 24),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "YOUR GUEST LINK",
-                  style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  deepLink,
-                  style: const TextStyle(color: AppColors.lime, fontWeight: FontWeight.bold),
-                  overflow: TextOverflow.ellipsis,
-                ),
+                const Text("SHARE TO CLIENTS", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.5)),
+                const SizedBox(height: 4),
+                Text(venue.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.lime,
-                        foregroundColor: AppColors.deepSeaBlue,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                      ),
-                      child: const Text("DOWNLOAD QR"),
-                    ),
-                  ],
+                ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.surface, foregroundColor: AppColors.title),
+                  child: const Text("DOWNLOAD QR"),
                 ),
               ],
             ),
@@ -405,100 +251,87 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     );
   }
 
-  Widget _buildMetricCard(BuildContext context, String label, String value, IconData icon) {
-    return Expanded(
+  Widget _buildManagementLink(IconData icon, String title, String sub, VoidCallback tap) {
+    return InkWell(
+      onTap: tap,
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Theme.of(context).dividerColor),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.title.withValues(alpha: 0.05)),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 20),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: AppColors.accentOrange, size: 24),
+            ),
+            const SizedBox(width: 20),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                  Text(sub, style: TextStyle(color: AppColors.body.withValues(alpha: 0.6), fontSize: 13)),
+                ],
               ),
             ),
-            Text(
-              label,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
+            const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.body),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPendingRequests(String venueId) {
-    return StreamBuilder<List<DiscountRequest>>(
-      stream: _notificationService.getPendingRequests(venueId),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
-        
-        final requests = snapshot.data!;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "PENDING DISCOUNT REQUESTS",
-              style: TextStyle(color: AppColors.accentIndigo, fontWeight: FontWeight.bold, fontSize: 12),
-            ),
-            const SizedBox(height: 12),
-            ...requests.map((req) => _buildRequestItem(req)),
-          ],
-        );
-      },
+  Widget _buildQuickAction(IconData icon, String label, VoidCallback tap) {
+    return InkWell(
+      onTap: tap,
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: AppColors.accentOrange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)),
+            child: Icon(icon, color: AppColors.accentOrange),
+          ),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 
-  Widget _buildRequestItem(DiscountRequest req) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.accentTeal.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.accentTeal.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: AppColors.accentTeal,
-            child: Text(req.guestName.isNotEmpty ? req.guestName[0].toUpperCase() : "?", 
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(req.guestName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text("${req.discountAmount}% Discount Requested", style: const TextStyle(color: AppColors.body, fontSize: 13)),
-              ],
+  Widget _buildBlockingOverlay() {
+    return Positioned.fill(
+      child: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            color: AppColors.title.withValues(alpha: 0.2),
+            child: Center(
+              child: Card(
+                margin: const EdgeInsets.symmetric(horizontal: 40),
+                child: Padding(
+                  padding: const EdgeInsets.all(40),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.lock_clock_outlined, size: 64, color: AppColors.statusBlockedText),
+                      const SizedBox(height: 24),
+                      const Text("Subscription Check", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                      const SizedBox(height: 12),
+                      const Text("Your venue activity is currently paused. Please review your subscription or contact support.", textAlign: TextAlign.center),
+                      const SizedBox(height: 32),
+                      ElevatedButton(onPressed: () {}, child: const Text("SUPPORT")),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
-          ElevatedButton(
-            onPressed: () => _notificationService.approveRequest(req),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accentTeal,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text("Approve"),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: () => _notificationService.rejectRequest(req.id),
-            icon: const Icon(Icons.close, color: Colors.redAccent),
-          ),
-        ],
+        ),
       ),
     );
   }

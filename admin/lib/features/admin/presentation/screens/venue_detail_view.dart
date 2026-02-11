@@ -19,7 +19,7 @@ class _VenueDetailViewState extends State<VenueDetailView> {
   void initState() {
     super.initState();
     _isActive = widget.venue.isActive;
-    _isPaid = widget.venue.subscriptionEndDate != null && widget.venue.subscriptionEndDate!.isAfter(DateTime.now());
+    _isPaid = widget.venue.subscription.isPaid || (widget.venue.subscription.expiryDate != null && widget.venue.subscription.expiryDate!.isAfter(DateTime.now()));
   }
 
   @override

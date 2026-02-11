@@ -37,58 +37,81 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      primaryColor: AppColors.deepSeaBlue, // Brand Color
-      scaffoldBackgroundColor: AppColors.backgroundLight, // White
+      primaryColor: AppColors.accentOrange,
+      scaffoldBackgroundColor: AppColors.background, // Cream
       
       colorScheme: const ColorScheme.light(
-        primary: AppColors.textPrimaryLight, // "Stitch" Black for primary contrast
+        primary: AppColors.accentOrange,
+        secondary: AppColors.accentGreen,
+        surface: AppColors.surface,
+        onSurface: AppColors.title,
         onPrimary: Colors.white,
-        secondary: AppColors.textSecondaryLight, // "Stitch" Slate
-        onSecondary: Colors.white,
-        surface: AppColors.surfaceLight, // White
-        onSurface: AppColors.textPrimaryLight,
-        outline: AppColors.backgroundAltLight, // Light Gray for borders
       ),
 
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.backgroundLight,
+        backgroundColor: AppColors.background,
         elevation: 0,
-        centerTitle: true,
-        iconTheme: IconThemeData(color: AppColors.textPrimaryLight),
+        centerTitle: false,
+        iconTheme: IconThemeData(color: AppColors.title),
         titleTextStyle: TextStyle(
-          color: AppColors.textPrimaryLight,
+          color: AppColors.title,
           fontSize: 20,
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w900,
+          letterSpacing: -0.5,
         ),
       ),
 
-      textTheme: GoogleFonts.plusJakartaSansTextTheme(
+      textTheme: GoogleFonts.interTextTheme(
         ThemeData.light().textTheme,
       ).apply(
-        bodyColor: AppColors.textPrimaryLight,
-        displayColor: AppColors.textPrimaryLight,
+        bodyColor: AppColors.body,
+        displayColor: AppColors.title,
       ).copyWith(
-        displayLarge: GoogleFonts.plusJakartaSans(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.textPrimaryLight),
-        headlineMedium: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimaryLight), // "Popular Resorts" size
-        titleMedium: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w500, color: AppColors.textPrimaryLight),
-        bodyLarge: GoogleFonts.plusJakartaSans(fontSize: 16, color: AppColors.textPrimaryLight),
-        bodyMedium: GoogleFonts.plusJakartaSans(fontSize: 14, color: AppColors.textSecondaryLight), // "Iconic Matterhorn..."
+        displayLarge: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.w900, color: AppColors.title, letterSpacing: -1.0),
+        headlineMedium: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.title, letterSpacing: -0.5),
+        titleMedium: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.title),
+        bodyLarge: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500, color: AppColors.title),
+        bodyMedium: GoogleFonts.inter(fontSize: 14, color: AppColors.body, fontWeight: FontWeight.w500),
       ),
       
-      iconTheme: const IconThemeData(
-        color: AppColors.textPrimaryLight,
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.accentOrange,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.5),
+        ),
+      ),
+
+      cardTheme: CardTheme(
+        color: AppColors.surface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: AppColors.title.withValues(alpha: 0.05)),
+        ),
       ),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.backgroundAltLight, // #F0F3F4
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        fillColor: AppColors.surface,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: AppColors.title.withValues(alpha: 0.1)),
         ),
-        hintStyle: GoogleFonts.plusJakartaSans(color: AppColors.textSecondaryLight, fontSize: 16),
-        prefixIconColor: AppColors.textSecondaryLight,
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: AppColors.title.withValues(alpha: 0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.accentOrange, width: 2),
+        ),
+        hintStyle: GoogleFonts.inter(color: AppColors.body.withValues(alpha: 0.5), fontSize: 15),
+        prefixIconColor: AppColors.accentOrange,
       ),
     );
   }

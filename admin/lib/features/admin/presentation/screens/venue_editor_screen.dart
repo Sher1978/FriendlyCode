@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/services/venue_service.dart';
 import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -19,6 +20,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
   final VenuesService _venuesService = VenuesService();
 
   late TextEditingController _nameCtrl;
+  late TextEditingController _ownerEmailCtrl;
   late TextEditingController _ownerIdCtrl;
   late TextEditingController _categoryCtrl;
   late TextEditingController _addressCtrl;
@@ -26,23 +28,46 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
   late TextEditingController _logoUrlCtrl;
   late TextEditingController _linkUrlCtrl;
 
+  List<VenueTier> _tiers = [];
   bool _isSaving = false;
 
   @override
   void initState() {
     super.initState();
+    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+    final isSuperAdmin = roleProvider.currentRole == UserRole.superAdmin;
+    final currentUser = AuthService().currentUser;
+
     _nameCtrl = TextEditingController(text: widget.venue?.name ?? '');
-    _ownerIdCtrl = TextEditingController(text: widget.venue?.ownerId ?? '');
+    
+    // Auto-fill owner info if NOT super admin or if editing existing
+    String ownerEmail = widget.venue?.ownerEmail ?? '';
+    String ownerId = widget.venue?.ownerId ?? '';
+
+    if (widget.venue == null && !isSuperAdmin && currentUser != null) {
+      ownerEmail = currentUser.email ?? '';
+      ownerId = currentUser.uid;
+    }
+
+    _ownerEmailCtrl = TextEditingController(text: ownerEmail);
+    _ownerIdCtrl = TextEditingController(text: ownerId);
+    
     _categoryCtrl = TextEditingController(text: widget.venue?.category ?? 'General');
     _addressCtrl = TextEditingController(text: widget.venue?.address ?? '');
     _descCtrl = TextEditingController(text: widget.venue?.description ?? '');
     _logoUrlCtrl = TextEditingController(text: widget.venue?.logoUrl ?? '');
     _linkUrlCtrl = TextEditingController(text: widget.venue?.linkUrl ?? '');
+    _tiers = widget.venue?.tiers != null ? List.from(widget.venue!.tiers) : [
+      VenueTier(maxHours: 24, percentage: 20),
+      VenueTier(maxHours: 72, percentage: 10),
+      VenueTier(maxHours: 168, percentage: 5),
+    ];
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _ownerEmailCtrl.dispose();
     _ownerIdCtrl.dispose();
     _categoryCtrl.dispose();
     _addressCtrl.dispose();
@@ -59,19 +84,22 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
 
     try {
       final roleProvider = Provider.of<RoleProvider>(context, listen: false);
-      final isSuperAdmin = roleProvider.currentRole == UserRole.superAdmin;
-
-      // If creating new venue and NOT super admin, ownerId should be current user
-      String finalOwnerId = _ownerIdCtrl.text;
-      if (widget.venue == null && !isSuperAdmin) {
-        // This case might not happen if only SuperAdmin creates, 
-        // but if Owner starts onboarding, we use their UID.
-        finalOwnerId = roleProvider.venueId ?? ''; // Fallback or handle null
+      final userService = UserService();
+      
+      // Look up UID by email
+      final ownerEmail = _ownerEmailCtrl.text.trim();
+      final userDoc = await userService.getUserByEmail(ownerEmail);
+      
+      if (userDoc == null) {
+        throw "User with email $ownerEmail not found in database. Please ensure the user has signed in once or add them manually.";
       }
 
+      final ownerId = userDoc['uid'];
+
       final newVenue = VenueModel(
-        id: widget.venue?.id ?? '', // VenuesService handles auto-id if blank or we can generate one
-        ownerId: finalOwnerId,
+        id: widget.venue?.id ?? '',
+        ownerEmail: ownerEmail,
+        ownerId: ownerId,
         name: _nameCtrl.text,
         address: _addressCtrl.text,
         category: _categoryCtrl.text,
@@ -79,7 +107,8 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         logoUrl: _logoUrlCtrl.text.isNotEmpty ? _logoUrlCtrl.text : null,
         linkUrl: _linkUrlCtrl.text.isNotEmpty ? _linkUrlCtrl.text : null,
         isActive: widget.venue?.isActive ?? true,
-        subscriptionEndDate: widget.venue?.subscriptionEndDate,
+        tiers: _tiers,
+        subscription: widget.venue?.subscription ?? VenueSubscription(plan: 'pro', isPaid: true, expiryDate: DateTime.now().add(const Duration(days: 365))),
         isManuallyBlocked: widget.venue?.isManuallyBlocked ?? false,
         lastBlastDate: widget.venue?.lastBlastDate,
         latitude: widget.venue?.latitude,
@@ -98,7 +127,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error saving venue: $e")),
+          SnackBar(content: Text("Error: $e")),
         );
       }
     } finally {
@@ -139,12 +168,13 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
               const SizedBox(height: 16),
               if (isSuperAdmin) ...[
                 _buildTextField(
-                  controller: _ownerIdCtrl,
-                  label: "Owner User ID",
-                  icon: Icons.person,
-                  hint: "UID from users collection",
-                  validator: (val) => val == null || val.isEmpty ? "Owner ID is required" : null,
+                  controller: _ownerEmailCtrl,
+                  label: "Owner Email",
+                  icon: Icons.email,
+                  hint: "owner@example.com",
+                  validator: (val) => val == null || val.isEmpty ? "Owner Email is required" : null,
                 ),
+                const SizedBox(height: 16),
                 const SizedBox(height: 16),
               ],
               _buildTextField(
@@ -154,6 +184,51 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
               ),
               const SizedBox(height: 24),
               
+              _buildSectionTitle("Loyalty Tiers (Max 5)"),
+              ..._tiers.asMap().entries.map((entry) {
+                int idx = entry.key;
+                VenueTier tier = entry.value;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildTextField(
+                          controller: TextEditingController(text: tier.maxHours.toString()),
+                          label: "Max Hours",
+                          icon: Icons.timer,
+                          onChanged: (val) {
+                            _tiers[idx] = VenueTier(maxHours: int.tryParse(val) ?? tier.maxHours, percentage: tier.percentage);
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _buildTextField(
+                          controller: TextEditingController(text: tier.percentage.toString()),
+                          label: "Discount %",
+                          icon: Icons.percent,
+                          onChanged: (val) {
+                            _tiers[idx] = VenueTier(maxHours: tier.maxHours, percentage: int.tryParse(val) ?? tier.percentage);
+                          },
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => setState(() => _tiers.removeAt(idx)),
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+              if (_tiers.length < 5)
+                TextButton.icon(
+                  onPressed: () => setState(() => _tiers.add(VenueTier(maxHours: 0, percentage: 0))),
+                  icon: const Icon(Icons.add),
+                  label: const Text("ADD TIER"),
+                ),
+              const SizedBox(height: 24),
+
               _buildSectionTitle("Content & Branding"),
               _buildTextField(
                 controller: _descCtrl,
@@ -216,11 +291,13 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     String? hint,
     int maxLines = 1,
     String? Function(String?)? validator,
+    void Function(String)? onChanged,
   }) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
       validator: validator,
+      onChanged: onChanged,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,

@@ -26,7 +26,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     _searchCtrl.addListener(() => setState(() {}));
   }
 
-
   @override
   void dispose() {
     _searchCtrl.dispose();
@@ -35,171 +34,164 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(32.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Venue Management",
-                style: TextStyle(
-                  color: AppColors.title,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: () {
-                   Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen()));
-                },
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text("Create Venue"),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.accentTeal,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  elevation: 0,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-          
-          // Wide Data Table
-          Expanded(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                width: 1000,
-                child: Column(
-                  children: [
-                    // Table Header
-                    _buildTableHeader(),
-                    const Divider(height: 1),
-                    // Table Content
-                    Expanded(
-                      child: StreamBuilder<List<VenueModel>>(
-                        stream: _venuesService.getAllVenues(),
-                        builder: (context, snapshot) {
-                          if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
-                          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-
-                          final query = _searchCtrl.text.toLowerCase();
-                          final venues = snapshot.data!.where((v) {
-                            return v.name.toLowerCase().contains(query) ||
-                                   v.id.toLowerCase().contains(query) ||
-                                   v.ownerId.toLowerCase().contains(query);
-                          }).toList();
-
-                          if (venues.isEmpty) return const Center(child: Text("No venues found."));
-
-                          return ListView.builder(
-                            itemCount: venues.length,
-                            itemBuilder: (context, index) => _buildVenueRow(venues[index]),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTableHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-      color: Colors.black.withValues(alpha: 0.02),
-      child: Row(
-        children: const [
-          Expanded(flex: 3, child: Text("VENUE IDENTITY", style: _headerStyle)),
-          Expanded(flex: 2, child: Text("STATUS", style: _headerStyle)),
-          Expanded(flex: 2, child: Text("SUBSCRIPTION END", style: _headerStyle)),
-          Expanded(flex: 1, child: Text("SCANS", style: _headerStyle)),
-          Expanded(flex: 1, child: Text("ACTIONS", style: _headerStyle)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVenueRow(VenueModel venue) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Color(0xFFF3F4F6))),
-      ),
-      child: Row(
-        children: [
-          // Identity
-          Expanded(
-            flex: 3,
-            child: Row(
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Padding(
+        padding: const EdgeInsets.all(40.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    borderRadius: BorderRadius.circular(8),
-                    image: venue.logoUrl != null 
-                      ? DecorationImage(image: NetworkImage(venue.logoUrl!), fit: BoxFit.cover)
-                      : null,
-                  ),
-                  child: venue.logoUrl == null 
-                    ? const Icon(Icons.storefront, color: AppColors.accentTeal, size: 20)
-                    : null,
-                ),
-                const SizedBox(width: 16),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(venue.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.title)),
-                    Text(venue.ownerId, style: const TextStyle(fontSize: 13, color: AppColors.body)),
+                    const Text("SYSTEM CONTROL", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)),
+                    const SizedBox(height: 4),
+                    Text("Venue Management", style: Theme.of(context).textTheme.displayLarge),
                   ],
+                ),
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())),
+                  icon: const Icon(Icons.add, size: 20),
+                  label: const Text("CREATE NEW VENUE"),
                 ),
               ],
             ),
-          ),
-          
-          // Status Badge
-          Expanded(
-            flex: 2,
-            child: _buildStatusBadge(venue),
-          ),
-          
-          // Sub End
-          Expanded(
-            flex: 2,
-            child: Text(
-              venue.subscriptionEndDate != null 
-                ? "${venue.subscriptionEndDate!.day.toString().padLeft(2, '0')}.${venue.subscriptionEndDate!.month.toString().padLeft(2, '0')}.${venue.subscriptionEndDate!.year}"
-                : "N/A",
-              style: const TextStyle(color: AppColors.title, fontWeight: FontWeight.w500),
+            const SizedBox(height: 40),
+
+            // Search Bar
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: AppColors.softShadow,
+              ),
+              child: TextField(
+                controller: _searchCtrl,
+                decoration: InputDecoration(
+                  hintText: "Search by name, ID or owner...",
+                  prefixIcon: const Icon(Icons.search, color: AppColors.accentOrange),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                ),
+              ),
             ),
-          ),
-          
-          // Stats
-          Expanded(
-            flex: 1,
-            child: Text(
-              "-", // Stats removed from model
-              style: const TextStyle(color: AppColors.title, fontWeight: FontWeight.w600),
+            const SizedBox(height: 32),
+
+            // Metrics Summary (Optional but looks good)
+            Text("Overview", style: Theme.of(context).textTheme.headlineMedium),
+            const SizedBox(height: 16),
+
+            // Venue List
+            Expanded(
+              child: StreamBuilder<List<VenueModel>>(
+                stream: _venuesService.getAllVenues(),
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
+                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+                  final query = _searchCtrl.text.toLowerCase();
+                  final venues = snapshot.data!.where((v) {
+                    return v.name.toLowerCase().contains(query) ||
+                           v.id.toLowerCase().contains(query) ||
+                           v.ownerEmail.toLowerCase().contains(query);
+                  }).toList();
+
+                  if (venues.isEmpty) return const Center(child: Text("No venues found."));
+
+                  return ListView.builder(
+                    itemCount: venues.length,
+                    itemBuilder: (context, index) => _buildVenueCard(venues[index]),
+                  );
+                },
+              ),
             ),
-          ),
-          
-          // Actions
-          Expanded(
-            flex: 1,
-            child: PopupMenuButton<String>(
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVenueCard(VenueModel venue) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: AppColors.softShadow,
+        border: Border.all(color: AppColors.title.withValues(alpha: 0.05)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Row(
+          children: [
+            // Logo
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(16),
+                image: venue.logoUrl != null 
+                  ? DecorationImage(image: NetworkImage(venue.logoUrl!), fit: BoxFit.cover)
+                  : null,
+              ),
+              child: venue.logoUrl == null 
+                ? const Icon(Icons.storefront, color: AppColors.accentOrange, size: 24)
+                : null,
+            ),
+            const SizedBox(width: 24),
+            
+            // Name & Info
+            Expanded(
+              flex: 3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(venue.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppColors.title)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.person_outline, size: 14, color: AppColors.body),
+                      const SizedBox(width: 4),
+                      Text(venue.ownerEmail, style: TextStyle(fontSize: 13, color: AppColors.body.withValues(alpha: 0.7), fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            
+            // Status Badge
+            Expanded(
+              flex: 2,
+              child: _buildStatusBadge(venue),
+            ),
+            
+            // Sub Info
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("EXPIRES", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.body.withValues(alpha: 0.4), letterSpacing: 1)),
+                  const SizedBox(height: 4),
+                  Text(
+                    venue.subscription.expiryDate != null 
+                      ? "${venue.subscription.expiryDate!.day.toString().padLeft(2, '0')}.${venue.subscription.expiryDate!.month.toString().padLeft(2, '0')}.${venue.subscription.expiryDate!.year}"
+                      : "PERPETUAL",
+                    style: const TextStyle(color: AppColors.title, fontWeight: FontWeight.w800, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            
+            // Actions
+            PopupMenuButton<String>(
               onSelected: (value) {
                 if (value == 'edit') {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue)));
@@ -220,29 +212,36 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 const PopupMenuItem(value: 'staff', child: Text("Manage Staff")),
                 const PopupMenuItem(value: 'config', child: Text("Config Rules")),
               ],
-              child: const Text("Options", style: TextStyle(color: AppColors.accentIndigo, fontWeight: FontWeight.bold)),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.accentOrange.withValues(alpha: 0.3)),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Text("OPTIONS", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900, fontSize: 11)),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildStatusBadge(VenueModel venue) {
-    String label = "Active";
+    String label = "ACTIVE";
     Color bg = AppColors.statusActiveBg;
     Color text = AppColors.statusActiveText;
 
     if (venue.isManuallyBlocked) {
-      label = "Blocked";
+      label = "BLOCKED";
       bg = AppColors.statusBlockedBg;
       text = AppColors.statusBlockedText;
-    } else if (venue.subscriptionEndDate != null && venue.subscriptionEndDate!.isBefore(DateTime.now())) {
-      label = "Expired";
+    } else if (venue.subscription.expiryDate != null && venue.subscription.expiryDate!.isBefore(DateTime.now())) {
+      label = "EXPIRED";
       bg = AppColors.statusBlockedBg;
       text = AppColors.statusBlockedText;
-    } else if (venue.subscriptionEndDate != null && venue.subscriptionEndDate!.difference(DateTime.now()).inDays < 7) {
-      label = "Expiring Soon";
+    } else if (venue.subscription.expiryDate != null && venue.subscription.expiryDate!.difference(DateTime.now()).inDays < 7) {
+      label = "EXPIRING";
       bg = AppColors.statusWarningBg;
       text = AppColors.statusWarningText;
     }
@@ -250,23 +249,16 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     return UnconstrainedBox(
       alignment: Alignment.centerLeft,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: bg,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
           label,
-          style: TextStyle(color: text, fontSize: 12, fontWeight: FontWeight.w700),
+          style: TextStyle(color: text, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
         ),
       ),
     );
   }
-
-  static const TextStyle _headerStyle = TextStyle(
-    fontSize: 11,
-    fontWeight: FontWeight.w700,
-    color: Color(0xFF9CA3AF),
-    letterSpacing: 0.5,
-  );
 }
