@@ -43,8 +43,8 @@ class VenueSubscription {
 
 class VenueModel {
   final String id;
-  final String ownerEmail; // Per Bible
-  final String ownerId;    // UID for linkage
+  final String? ownerEmail; // Optional for unclaimed venues
+  final String? ownerId;    // Optional for unclaimed venues
   final String name;
   final String address;
   final String? logoUrl;
@@ -64,8 +64,8 @@ class VenueModel {
 
   VenueModel({
     required this.id,
-    required this.ownerEmail,
-    required this.ownerId,
+    this.ownerEmail,
+    this.ownerId,
     required this.name,
     required this.address,
     this.logoUrl,
@@ -109,8 +109,8 @@ class VenueModel {
   factory VenueModel.fromMap(String id, Map<String, dynamic> map) {
     return VenueModel(
       id: id,
-      ownerEmail: map['ownerEmail'] ?? '',
-      ownerId: map['ownerId'] ?? '',
+      ownerEmail: map['ownerEmail'],
+      ownerId: map['ownerId'],
       name: map['name'] ?? '',
       address: map['address'] ?? '',
       logoUrl: map['logoUrl'],

@@ -25,8 +25,10 @@ class _AdminShellState extends State<AdminShell> {
   void initState() {
     super.initState();
     _screens = [
-      widget.child, // 0: Overview/Home
-      const Center(child: Text("Venues List / Detail View")), // 1: Venues (Placeholder for detail management)
+      widget.child, // 0: Overview (SuperAdminDashboard or OwnerDashboardScreen)
+      widget.role == UserRole.superAdmin 
+        ? widget.child // Super Admin: Venues = Overall list
+        : const VenueEditorScreen(), // Owner: My Venue = Editor screen
       const AnalyticsModule(), // 2: Analytics
       const Center(child: Text("Billing Screen")), // 3: Billing
       const Center(child: Text("Settings Screen")), // 4: Settings
@@ -84,7 +86,7 @@ class _AdminShellState extends State<AdminShell> {
             padding: const EdgeInsets.only(left: 12, bottom: 48),
             child: Row(
               children: [
-                const Icon(Icons.auto_awesome, color: AppColors.accentTeal, size: 28),
+                const Icon(Icons.auto_awesome, color: AppColors.accentOrange, size: 28),
                 const SizedBox(width: 12),
                 const Text(
                   "FRIENDLY CODE",
@@ -138,14 +140,14 @@ class _AdminShellState extends State<AdminShell> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.accentTeal.withValues(alpha: 0.1) : Colors.transparent,
+            color: isSelected ? AppColors.accentOrange.withValues(alpha: 0.1) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
             children: [
               Icon(
                 icon,
-                color: isSelected ? AppColors.accentTeal : AppColors.body,
+                color: isSelected ? AppColors.accentOrange : AppColors.body,
                 size: 22,
               ),
               const SizedBox(width: 16),
@@ -229,7 +231,7 @@ class _AdminShellState extends State<AdminShell> {
               const CircleAvatar(
                 radius: 20,
                 backgroundColor: AppColors.background,
-                child: Icon(Icons.person_outline, color: AppColors.accentTeal),
+                child: Icon(Icons.person_outline, color: AppColors.accentOrange),
               ),
             ],
           ),

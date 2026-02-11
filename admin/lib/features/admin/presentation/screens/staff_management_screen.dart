@@ -101,7 +101,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   const Text("ADD PERSONNEL", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.5)),
+                   const Text("ADD PERSONNEL", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.5)),
                    const SizedBox(height: 16),
                    TextField(
                      controller: _searchCtrl,
@@ -129,7 +129,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.title, // Deep Brown
+                  color: AppColors.accentOrange,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Row(
@@ -192,11 +192,11 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                       decoration: BoxDecoration(
                         color: AppColors.surface,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: AppColors.title.withValues(alpha: 0.05)),
+                        border: Border.all(color: AppColors.accentOrange.withOpacity(0.05)),
                       ),
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: (isOwner ? AppColors.accentOrange : AppColors.accentGreen).withValues(alpha: 0.1),
+                          backgroundColor: (isOwner ? AppColors.accentOrange : AppColors.accentGreen).withOpacity(0.1),
                           child: Icon(isOwner ? Icons.admin_panel_settings_outlined : Icons.badge_outlined, color: isOwner ? AppColors.accentOrange : AppColors.accentGreen, size: 20),
                         ),
                         title: Text(user['email'] ?? 'No Email', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),

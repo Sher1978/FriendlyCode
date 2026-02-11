@@ -42,7 +42,7 @@ class AppTheme {
       
       colorScheme: const ColorScheme.light(
         primary: AppColors.accentOrange,
-        secondary: AppColors.accentGreen,
+        secondary: AppColors.accentOrange, // Removed Mint
         surface: AppColors.surface,
         onSurface: AppColors.title,
         onPrimary: Colors.white,
@@ -90,7 +90,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: AppColors.title.withValues(alpha: 0.05)),
+          side: BorderSide(color: AppColors.title.withValues(alpha: 0.1)),
         ),
       ),
 
@@ -100,16 +100,17 @@ class AppTheme {
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.title.withValues(alpha: 0.1)),
+          borderSide: BorderSide(color: AppColors.title.withValues(alpha: 0.15)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.title.withValues(alpha: 0.1)),
+          borderSide: BorderSide(color: AppColors.title.withValues(alpha: 0.15)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(color: AppColors.accentOrange, width: 2),
         ),
+        labelStyle: const TextStyle(color: AppColors.title, fontWeight: FontWeight.bold),
         hintStyle: GoogleFonts.inter(color: AppColors.body.withValues(alpha: 0.5), fontSize: 15),
         prefixIconColor: AppColors.accentOrange,
       ),

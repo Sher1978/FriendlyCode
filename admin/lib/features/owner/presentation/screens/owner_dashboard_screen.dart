@@ -102,7 +102,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
           
           final venue = snapshot.data!;
-          final isBlocked = venue.isManuallyBlocked || (venue.subscription.expiryDate != null && venue.subscription.expiryDate!.isBefore(DateTime.now()));
+          final isBlocked = venue.isManuallyBlocked || 
+                           (venue.subscription.expiryDate != null && venue.subscription.expiryDate!.isBefore(DateTime.now())) ||
+                           (!venue.subscription.isPaid && venue.subscription.plan != 'free');
 
           return Stack(
             children: [
@@ -167,7 +169,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             childAspectRatio: 1.5,
             children: [
               _buildStatCard(l10n.totalCheckins, "${venue.stats.totalCheckins}", Icons.people_outline, AppColors.accentOrange),
-              _buildStatCard(l10n.avgReturn, "${venue.stats.avgReturnHours.toStringAsFixed(1)}h", Icons.loop, AppColors.accentGreen),
+              _buildStatCard(l10n.avgReturn, "${venue.stats.avgReturnHours.toStringAsFixed(1)}h", Icons.loop, Colors.blueAccent),
             ],
           ),
           const SizedBox(height: 32),

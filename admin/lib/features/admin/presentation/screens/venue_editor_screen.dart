@@ -85,31 +85,35 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
 
     try {
       final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+      final isSuperAdmin = roleProvider.currentRole == UserRole.superAdmin;
       final userService = UserService();
       
-      // Look up UID by email
       final ownerEmail = _ownerEmailCtrl.text.trim();
-      final userDoc = await userService.getUserByEmail(ownerEmail);
-      
-      if (userDoc == null) {
-        throw "User with email $ownerEmail not found in database. Please ensure the user has signed in once or add them manually.";
+      String? ownerId = _ownerIdCtrl.text.trim();
+
+      // If owner email is provided, try to resolve UID
+      if (ownerEmail.isNotEmpty && (ownerId.isEmpty || (widget.venue != null && widget.venue!.ownerEmail != ownerEmail))) {
+        final userDoc = await userService.getUserByEmail(ownerEmail);
+        if (userDoc != null) {
+          ownerId = userDoc['uid'];
+        } else if (!isSuperAdmin) {
+          throw "User with email $ownerEmail not found. They must sign in once first.";
+        }
       }
 
-      final ownerId = userDoc['uid'];
-
-      final newVenue = VenueModel(
+      final updatedVenue = VenueModel(
         id: widget.venue?.id ?? '',
-        ownerEmail: ownerEmail,
-        ownerId: ownerId,
-        name: _nameCtrl.text,
-        address: _addressCtrl.text,
-        category: _categoryCtrl.text,
-        description: _descCtrl.text,
-        logoUrl: _logoUrlCtrl.text.isNotEmpty ? _logoUrlCtrl.text : null,
-        linkUrl: _linkUrlCtrl.text.isNotEmpty ? _linkUrlCtrl.text : null,
+        ownerEmail: ownerEmail.isNotEmpty ? ownerEmail : null,
+        ownerId: ownerId.isNotEmpty ? ownerId : null,
+        name: _nameCtrl.text.trim(),
+        address: _addressCtrl.text.trim(),
+        category: _categoryCtrl.text.trim(),
+        description: _descCtrl.text.trim(),
+        logoUrl: _logoUrlCtrl.text.trim().isNotEmpty ? _logoUrlCtrl.text.trim() : null,
+        linkUrl: _linkUrlCtrl.text.trim().isNotEmpty ? _linkUrlCtrl.text.trim() : null,
         isActive: widget.venue?.isActive ?? true,
         tiers: _tiers,
-        subscription: widget.venue?.subscription ?? VenueSubscription(plan: 'pro', isPaid: true, expiryDate: DateTime.now().add(const Duration(days: 365))),
+        subscription: _subscription, // Use local state
         isManuallyBlocked: widget.venue?.isManuallyBlocked ?? false,
         lastBlastDate: widget.venue?.lastBlastDate,
         latitude: widget.venue?.latitude,
@@ -117,18 +121,18 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         stats: widget.venue?.stats,
       );
 
-      await _venuesService.saveVenue(newVenue);
+      await _venuesService.saveVenue(updatedVenue);
 
       if (mounted) {
         Navigator.pop(context, true);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Venue saved successfully")),
+          const SnackBar(content: Text("Success! Venue profile updated.")),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: $e")),
+          SnackBar(content: Text("Error: $e"), backgroundColor: Colors.red),
         );
       }
     } finally {
@@ -143,126 +147,181 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     final isEditing = widget.venue != null;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(isEditing ? "Edit Venue" : "Create New Venue"),
+        title: Text(isEditing ? "VENUE PROFILE" : "NEW VENUE"),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(40),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildSectionTitle("Basic Information"),
-              _buildTextField(
-                controller: _nameCtrl,
-                label: "Venue Name",
-                icon: Icons.store,
-                validator: (val) => val == null || val.isEmpty ? "Name is required" : null,
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                controller: _categoryCtrl,
-                label: "Category",
-                icon: Icons.category,
-              ),
-              const SizedBox(height: 16),
-              if (isSuperAdmin) ...[
-                _buildTextField(
-                  controller: _ownerEmailCtrl,
-                  label: "Owner Email",
-                  icon: Icons.email,
-                  hint: "owner@example.com",
-                  validator: (val) => val == null || val.isEmpty ? "Owner Email is required" : null,
-                ),
-                const SizedBox(height: 16),
-                const SizedBox(height: 16),
-              ],
-              _buildTextField(
-                controller: _addressCtrl,
-                label: "Address",
-                icon: Icons.location_on,
-              ),
-              const SizedBox(height: 24),
-              
-              _buildSectionTitle("Loyalty Tiers (Max 5)"),
-              ..._tiers.asMap().entries.map((entry) {
-                int idx = entry.key;
-                VenueTier tier = entry.value;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _buildTextField(
-                          controller: TextEditingController(text: tier.maxHours.toString()),
-                          label: "Max Hours",
-                          icon: Icons.timer,
-                          onChanged: (val) {
-                            _tiers[idx] = VenueTier(maxHours: int.tryParse(val) ?? tier.maxHours, percentage: tier.percentage);
-                          },
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Left Side: Main Info
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      children: [
+                        _buildSectionCard(
+                          title: "BASIC INFORMATION",
+                          children: [
+                            _buildTextField(
+                              controller: _nameCtrl,
+                              label: "Venue Name",
+                              icon: Icons.store,
+                              validatorFunc: (val) => val == null || val.isEmpty ? "Name is required" : null,
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(child: _buildTextField(controller: _categoryCtrl, label: "Category", icon: Icons.category)),
+                                const SizedBox(width: 16),
+                                Expanded(child: _buildTextField(controller: _addressCtrl, label: "Address", icon: Icons.location_on)),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              controller: _ownerEmailCtrl,
+                              label: "Owner Email",
+                              icon: Icons.email,
+                              hintText: isSuperAdmin ? "Optional for now" : "Required",
+                              validatorFunc: (val) {
+                                if (!isSuperAdmin && (val == null || val.isEmpty)) {
+                                  return "Required for non-admins";
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildTextField(
-                          controller: TextEditingController(text: tier.percentage.toString()),
-                          label: "Discount %",
-                          icon: Icons.percent,
-                          onChanged: (val) {
-                            _tiers[idx] = VenueTier(maxHours: tier.maxHours, percentage: int.tryParse(val) ?? tier.percentage);
-                          },
+                        const SizedBox(height: 24),
+                        _buildSectionCard(
+                          title: "LOYALTY TIERS (DISCOUNT POLICY)",
+                          children: [
+                            const Text("Define how many hours a guest has to return to get a discount.", style: TextStyle(fontSize: 12, color: AppColors.body)),
+                            const SizedBox(height: 16),
+                            ..._buildTierList(),
+                            if (_tiers.length < 5)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: TextButton.icon(
+                                  onPressed: () => setState(() => _tiers.add(VenueTier(maxHours: 0, percentage: 0))),
+                                  icon: const Icon(Icons.add, color: AppColors.accentOrange),
+                                  label: const Text("ADD NEW TIER", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.bold)),
+                                ),
+                              ),
+                          ],
                         ),
-                      ),
-                      IconButton(
-                        onPressed: () => setState(() => _tiers.removeAt(idx)),
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                );
-              }).toList(),
-              if (_tiers.length < 5)
-                TextButton.icon(
-                  onPressed: () => setState(() => _tiers.add(VenueTier(maxHours: 0, percentage: 0))),
-                  icon: const Icon(Icons.add),
-                  label: const Text("ADD TIER"),
-                ),
-              const SizedBox(height: 24),
-
-              _buildSectionTitle("Content & Branding"),
-              _buildTextField(
-                controller: _descCtrl,
-                label: "Description",
-                icon: Icons.description,
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                controller: _logoUrlCtrl,
-                label: "Logo Image URL",
-                icon: Icons.image,
-                hint: "https://example.com/logo.png",
-              ),
-              const SizedBox(height: 16),
-              _buildTextField(
-                controller: _linkUrlCtrl,
-                label: "Website / Social Link",
-                icon: Icons.link,
-                hint: "https://instagram.com/venue",
+                  const SizedBox(width: 24),
+                  // Right Side: Media & Settings
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _buildSectionCard(
+                          title: "BRANDING",
+                          children: [
+                            _buildTextField(controller: _logoUrlCtrl, label: "Logo URL", icon: Icons.image),
+                            const SizedBox(height: 16),
+                            _buildTextField(controller: _descCtrl, label: "Description", icon: Icons.description, maxLines: 4),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        if (isSuperAdmin) ...[
+                          _buildSectionCard(
+                            title: "SUBSCRIPTION CONTROL",
+                            children: [
+                              DropdownButtonFormField<String>(
+                                value: _subscription.plan,
+                                decoration: const InputDecoration(labelText: "Plan", prefixIcon: Icon(Icons.stars)),
+                                items: ['free', 'pro', 'enterprise'].map((p) => DropdownMenuItem(value: p, child: Text(p.toUpperCase()))).toList(),
+                                onChanged: (val) => setState(() => _subscription = VenueSubscription(plan: val!, isPaid: _subscription.isPaid, expiryDate: _subscription.expiryDate)),
+                              ),
+                              const SizedBox(height: 16),
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.calendar_today, color: AppColors.accentOrange),
+                                title: const Text("Expiry Date", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                subtitle: Text(
+                                  _subscription.expiryDate != null 
+                                    ? "${_subscription.expiryDate!.day}/${_subscription.expiryDate!.month}/${_subscription.expiryDate!.year}"
+                                    : "NEVER",
+                                ),
+                                trailing: TextButton(
+                                  onPressed: () async {
+                                    final date = await showDatePicker(
+                                      context: context,
+                                      initialDate: _subscription.expiryDate ?? DateTime.now(),
+                                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                                      lastDate: DateTime.now().add(const Duration(days: 3650)),
+                                    );
+                                    if (date != null) {
+                                      setState(() => _subscription = VenueSubscription(plan: _subscription.plan, isPaid: _subscription.isPaid, expiryDate: date));
+                                    }
+                                  },
+                                  child: const Text("CHANGE"),
+                                ),
+                              ),
+                              SwitchListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: const Text("Is Paid", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                value: _subscription.isPaid,
+                                activeColor: AppColors.accentOrange,
+                                onChanged: (val) => setState(() => _subscription = VenueSubscription(plan: _subscription.plan, isPaid: val, expiryDate: _subscription.expiryDate)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                        _buildSectionCard(
+                          title: "VENUE QR ACCESS",
+                          children: [
+                            const Center(
+                              child: Icon(Icons.qr_code_2, size: 100, color: AppColors.title),
+                            ),
+                            const SizedBox(height: 16),
+                            const Text("QR code is generated based on your Venue URL. Clients scan this to check-in.", textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
+                            const SizedBox(height: 16),
+                            _buildTextField(controller: _linkUrlCtrl, label: "Deep-link / Website", icon: Icons.link),
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () {}, // Download logic
+                                icon: const Icon(Icons.download),
+                                label: const Text("DOWNLOAD PRINTABLE QR"),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 48),
-
-              ElevatedButton(
-                onPressed: _isSaving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.lime,
-                  foregroundColor: AppColors.deepSeaBlueDark,
-                  minimumSize: const Size(double.infinity, 56),
+              Center(
+                child: SizedBox(
+                  width: 300,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isSaving ? null : _save,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accentOrange,
+                      foregroundColor: AppColors.deepSeaBlueDark,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                    ),
+                    child: _isSaving 
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(isEditing ? "SAVE CHANGES" : "CREATE VENUE", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  ),
                 ),
-                child: _isSaving 
-                  ? const CircularProgressIndicator()
-                  : Text(isEditing ? "UPDATE VENUE" : "CREATE VENUE"),
               ),
             ],
           ),
@@ -271,16 +330,64 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Text(
-        title,
-        style: const TextStyle(
-          color: AppColors.lime,
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
+  List<Widget> _buildTierList() {
+    return _tiers.asMap().entries.map((entry) {
+      int idx = entry.key;
+      VenueTier tier = entry.value;
+      
+      // Use unique keys for internal state management if needed, 
+      // but here we rely on the list index.
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextFormField(
+                initialValue: tier.maxHours.toString(),
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: "Max Hours", prefixIcon: Icon(Icons.timer)),
+                onChanged: (val) {
+                  _tiers[idx] = VenueTier(maxHours: int.tryParse(val) ?? 0, percentage: tier.percentage);
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextFormField(
+                initialValue: tier.percentage.toString(),
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: "Discount %", prefixIcon: Icon(Icons.percent)),
+                onChanged: (val) {
+                  _tiers[idx] = VenueTier(maxHours: tier.maxHours, percentage: int.tryParse(val) ?? 0);
+                },
+              ),
+            ),
+            IconButton(
+              onPressed: () => setState(() => _tiers.removeAt(idx)),
+              icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent),
+            ),
+          ],
         ),
+      );
+    }).toList();
+  }
+
+  Widget _buildSectionCard({required String title, required List<Widget> children}) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.accentOrange,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: AppColors.softShadow,
+        border: Border.all(color: AppColors.title.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1.5)),
+          const SizedBox(height: 24),
+          ...children,
+        ],
       ),
     );
   }
@@ -289,21 +396,17 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     required TextEditingController controller,
     required String label,
     required IconData icon,
-    String? hint,
     int maxLines = 1,
-    String? Function(String?)? validator,
-    void Function(String)? onChanged,
+    String? validator,
+    String? Function(String?)? validatorFunc,
   }) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
-      validator: validator,
-      onChanged: onChanged,
+      validator: validatorFunc,
       decoration: InputDecoration(
         labelText: label,
-        hintText: hint,
-        prefixIcon: Icon(icon, color: AppColors.lime),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        prefixIcon: Icon(icon),
       ),
     );
   }

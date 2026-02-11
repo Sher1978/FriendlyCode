@@ -159,7 +159,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                     children: [
                       const Icon(Icons.person_outline, size: 14, color: AppColors.body),
                       const SizedBox(width: 4),
-                      Text(venue.ownerEmail, style: TextStyle(fontSize: 13, color: AppColors.body.withValues(alpha: 0.7), fontWeight: FontWeight.w500)),
+                      Text(venue.ownerEmail ?? 'UNCLAIMED', style: TextStyle(fontSize: 13, color: AppColors.body.withValues(alpha: 0.7), fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ],
@@ -240,6 +240,10 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
       label = "EXPIRED";
       bg = AppColors.statusBlockedBg;
       text = AppColors.statusBlockedText;
+    } else if (!venue.subscription.isPaid && venue.subscription.plan != 'free') {
+      label = "UNPAID";
+      bg = AppColors.statusWarningBg;
+      text = AppColors.statusWarningText;
     } else if (venue.subscription.expiryDate != null && venue.subscription.expiryDate!.difference(DateTime.now()).inDays < 7) {
       label = "EXPIRING";
       bg = AppColors.statusWarningBg;
