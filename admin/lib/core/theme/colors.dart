@@ -31,8 +31,28 @@ class AppColors {
     ),
   ];
 
-  // Legacy/Compatibility
+  // Legacy/Compatibility & Aliases
+  static const Color backgroundCream = background;
+  static const Color surfaceCream = background;
+  static const Color brandOrange = accentOrange;
+  static const Color brandGreen = accentGreen;
+  static const Color brandBrown = title;
+  static const Color textSecondary = body;
+  
+  static const Color textPrimaryLight = title;
+  static const Color textSecondaryLight = body;
+  static const Color backgroundAltLight = Color(0xFFF0F3F4);
+  
+  static const Color backgroundDark = Color(0xFF111111);
+  static const Color surfaceDark = Color(0xFF1E1E1E);
+  static const Color backgroundLight = Colors.white;
+  static const Color surfaceLight = Colors.white;
+  static const Color textOnLime = title;
+
+  // Specific Legacy Hits
   static const Color deepSeaBlue = Color(0xFF003B5C);
   static const Color deepSeaBlueDark = Color(0xFF002A42);
+  static const Color deepSeaBlueLight = Color(0xFF005687);
   static const Color lime = Color(0xFFC0FF00);
+  static const Color limeDim = Color(0xFF94C000);
 }

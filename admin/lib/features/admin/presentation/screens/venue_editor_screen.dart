@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/services/venue_service.dart';
+import 'package:friendly_code/core/services/user_service.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';

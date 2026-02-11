@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/services/venue_service.dart';
+import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
 
 class OnboardingWizardScreen extends StatefulWidget {
@@ -34,6 +35,7 @@ class _OnboardingWizardScreenState extends State<OnboardingWizardScreen> {
         final venue = VenueModel(
           id: '', // Auto-ID
           ownerId: roleProvider.uid ?? '',
+          ownerEmail: AuthService().currentUser?.email ?? '',
           name: _nameController.text,
           address: 'Default Address', // Or add field to wizard
           description: _descController.text,

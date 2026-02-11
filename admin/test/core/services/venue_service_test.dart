@@ -18,6 +18,7 @@ void main() {
       final testVenue = VenueModel(
         id: '', // Empty ID means new venue
         ownerId: 'test_owner_123',
+        ownerEmail: 'test@example.com',
         name: 'Test Coffee Shop',
         address: '123 Test St, Dubai',
         category: 'Cafe',
