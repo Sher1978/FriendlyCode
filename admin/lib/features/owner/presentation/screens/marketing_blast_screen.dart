@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
 import '../../../../core/theme/colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../../../core/data/venue_repository.dart';
 
@@ -15,6 +16,9 @@ class MarketingBlastScreen extends StatefulWidget {
 
 class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
   final _messageController = TextEditingController();
+  final _titleController = TextEditingController();
+  final _imageUrlController = TextEditingController();
+  final _linkController = TextEditingController();
   final VenueRepository _venueRepo = VenueRepository();
   bool _isLoading = true;
   bool _canSend = true;
@@ -92,27 +96,33 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
 
                   _buildSectionHeader("Message Content", "Write a compelling reason for them to return."),
                   const SizedBox(height: 20),
-                  TextField(
-                    controller: _messageController,
-                    maxLines: 6,
-                    decoration: InputDecoration(
-                      hintText: "Hey! We miss you. Show this message for a free coffee with your next meal! ☕",
-                      prefixIcon: const Icon(Icons.edit_note, size: 28),
-                      alignLabelWithHint: true,
-                    ),
+                  _buildClassicTextField(
+                    controller: _titleController,
+                    label: "Campaign Title",
+                    hint: "Weekend Brunch 20% Off!",
+                    icon: Icons.title,
                   ),
-                  const SizedBox(height: 24),
-                  
-                  _buildSectionHeader("Media Attachment", "Add a photo to catch their eye (max 3MB)."),
                   const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () {}, // Image Picker
-                    icon: const Icon(Icons.add_a_photo_outlined),
-                    label: const Text("UPLOAD PROMO IMAGE"),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      side: const BorderSide(color: AppColors.accentOrange),
-                    ),
+                  _buildClassicTextField(
+                    controller: _messageController,
+                    label: "Message Body",
+                    hint: "Hey! We miss you. Show this message for a free coffee with your next meal! ☕",
+                    icon: Icons.edit_note,
+                    maxLines: 4,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildClassicTextField(
+                    controller: _imageUrlController,
+                    label: "Image URL (Optional)",
+                    hint: "https://example.com/banner.jpg",
+                    icon: Icons.image_outlined,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildClassicTextField(
+                    controller: _linkController,
+                    label: "Action Link (Optional)",
+                    hint: "https://menu.link/specials",
+                    icon: Icons.link_rounded,
                   ),
                   const SizedBox(height: 40),
 
@@ -253,39 +263,85 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
     );
   }
 
+  Widget _buildClassicTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    int maxLines = 1,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.body, letterSpacing: 1.1)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          maxLines: maxLines,
+          decoration: InputDecoration(
+            hintText: hint,
+            prefixIcon: Icon(icon, size: 20),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.title.withValues(alpha: 0.1)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.title.withValues(alpha: 0.1)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _sendBlast() async {
-    if (_messageController.text.isEmpty) return;
+    if (_titleController.text.isEmpty || _messageController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Title and Message are required.")));
+      return;
+    }
 
     setState(() => _isLoading = true);
 
     try {
-      // 1. Update Venue Last Blast Date
+      // 1. Update Venue Last Blast Date (Local eligibility check)
       await _venueRepo.updateVenue(widget.venueId, {
         'lastBlastDate': Timestamp.fromDate(DateTime.now()),
       });
 
-      // 2. Here we would trigger the Cloud Function to actually send messages
-      // await CloudFunctions.instance.call("sendBlast", { ... });
+      // 2. Trigger the Cloud Function
+      final result = await FirebaseFunctions.instanceFor(region: 'asia-south1')
+          .httpsCallable('sendBulkCampaign')
+          .call({
+            'title': _titleController.text,
+            'text': _messageController.text,
+            'imageUrl': _imageUrlController.text.isNotEmpty ? _imageUrlController.text : null,
+            'actionLink': _linkController.text.isNotEmpty ? _linkController.text : null,
+          });
 
       if (mounted) {
         setState(() {
           _isLoading = false;
           _canSend = false;
-          _cooldownMessage = "Blast sent! You can send another one in 7 days.";
+          _cooldownMessage = "Blast sent to ${result.data['count']} guests!";
         });
 
         showDialog(
           context: context, 
           builder: (context) => AlertDialog(
-            title: Text("🚀 ${AppLocalizations.of(context)!.marketingTitle}"),
-            content: Text(AppLocalizations.of(context)!.blastSuccess),
+            backgroundColor: AppColors.background,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            title: const Text("🚀 CAMPAIGN SENT", style: TextStyle(fontWeight: FontWeight.w900)),
+            content: Text("Your marketing message has been successfully dispatched to ${result.data['count']} guests."),
             actions: [
               TextButton(
                 onPressed: () {
                   Navigator.pop(context); // Close dialog
                   Navigator.pop(context); // Close screen
                 },
-                child: const Text("AWESOME"),
+                child: const Text("AWESOME", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900)),
               ),
             ],
           ),

@@ -7,6 +7,7 @@ import TelegramAuth from './TelegramAuth';
 import MarketingB2C from './MarketingB2C';
 import PartnerMap from './PartnerMap';
 import MarketingB2B from './MarketingB2B';
+import Unsubscribe from './Unsubscribe';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path="/activate" element={<LeadCapture />} />
         <Route path="/thank-you" element={<UnifiedActivation />} />
         <Route path="/telegram-auth" element={<TelegramAuth />} />
+        <Route path="/unsubscribe" element={<Unsubscribe />} />
 
         {/* Redirects for Admin/Owner panels to sub-path handled by Flutter */}
         <Route path="/owner" element={<NavigateToAdmin path="owner" />} />

@@ -6,6 +6,7 @@ import 'package:friendly_code/features/admin/presentation/screens/venue_detail_v
 import 'package:friendly_code/features/admin/presentation/widgets/venue_configurator.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/marketing_campaign_screen.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:friendly_code/core/services/venue_service.dart';
 
@@ -53,10 +54,24 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                     Text("Venue Management", style: Theme.of(context).textTheme.displayLarge),
                   ],
                 ),
-                ElevatedButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())),
-                  icon: const Icon(Icons.add, size: 20),
-                  label: const Text("CREATE NEW VENUE"),
+                Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MarketingCampaignScreen())),
+                      icon: const Icon(Icons.campaign_outlined, size: 20, color: AppColors.accentOrange),
+                      label: const Text("MARKETING CAMPAIGN", style: TextStyle(color: AppColors.accentOrange)),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.accentOrange),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    ElevatedButton.icon(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())),
+                      icon: const Icon(Icons.add, size: 20),
+                      label: const Text("CREATE NEW VENUE"),
+                    ),
+                  ],
                 ),
               ],
             ),
