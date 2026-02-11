@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/services/auth_service.dart';
@@ -67,6 +68,24 @@ class LoginScreen extends StatelessWidget {
                       final user = await authService.signInWithGoogle();
                       
                       if (user != null && context.mounted) {
+                        // Check if user is authorized in Firestore
+                        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+                        
+                        if (!doc.exists) {
+                          // Unrecognized user
+                          await authService.signOut();
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Access denied. Please contact friendlycode@gmail.com for authorization."),
+                                backgroundColor: Colors.redAccent,
+                                duration: Duration(seconds: 10),
+                              ),
+                            );
+                          }
+                          return;
+                        }
+
                         // Navigate to Owner Dashboard on success
                         Navigator.pushReplacementNamed(context, '/owner');
                       }

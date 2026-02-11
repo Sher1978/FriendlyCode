@@ -1,11 +1,11 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'lead_capture_screen.dart';
 import 'b2b_landing_screen.dart';
+import 'package:friendly_code/core/logic/reward_calculator.dart';
 
 class B2CHomeScreen extends StatefulWidget {
   const B2CHomeScreen({super.key});
@@ -14,11 +14,13 @@ class B2CHomeScreen extends StatefulWidget {
   State<B2CHomeScreen> createState() => _B2CHomeScreenState();
 }
 
-enum VisitStatus { first, tooSoon, unlocked }
+enum VisitStatus { first, recognized }
 
 class _B2CHomeScreenState extends State<B2CHomeScreen> {
   VisitStatus _status = VisitStatus.first;
   bool _isLoading = true;
+  String? _guestName;
+  int _currentDiscount = 5;
 
   @override
   void initState() {
@@ -29,27 +31,22 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
   Future<void> _checkVisit() async {
     final prefs = await SharedPreferences.getInstance();
     final firstVisitIso = prefs.getString('firstVisitIso');
+    _guestName = prefs.getString('guestName');
     
     if (firstVisitIso == null) {
       await prefs.setString('firstVisitIso', DateTime.now().toIso8601String());
-      setState(() {
-        _status = VisitStatus.first;
-        _isLoading = false;
-      });
+      _currentDiscount = 5;
+      _status = VisitStatus.first;
     } else {
       final firstVisit = DateTime.parse(firstVisitIso);
-      final diff = DateTime.now().difference(firstVisit).inHours;
-      if (diff >= 24) {
-        setState(() {
-          _status = VisitStatus.unlocked;
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _status = VisitStatus.tooSoon;
-          _isLoading = false;
-        });
-      }
+      _currentDiscount = RewardCalculator.calculate(firstVisit, DateTime.now());
+      _status = VisitStatus.recognized;
+    }
+    
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -60,29 +57,17 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
     // Dynamic UI data
     final String headline;
     final String subhead;
-    final String gaugeText;
-    final bool show20Percent;
+    final String gaugeText = '$_currentDiscount%';
+    final bool isHighTier = _currentDiscount >= 15;
 
-    switch (_status) {
-      case VisitStatus.unlocked:
-        headline = 'Your Reward\nTODAY: 20%';
-        subhead = 'You returned! You earned it.';
-        gaugeText = '20%';
-        show20Percent = true;
-        break;
-      case VisitStatus.tooSoon:
-        headline = 'Your Reward\nTODAY: 5%';
-        subhead = 'Come back tomorrow for 20%!';
-        gaugeText = '5%';
-        show20Percent = false;
-        break;
-      case VisitStatus.first:
-      default:
-        headline = 'Your Reward\nTODAY: 5%';
-        subhead = 'Want 20%? Come back tomorrow!';
-        gaugeText = '5%';
-        show20Percent = false;
-        break;
+    if (_guestName != null && _guestName!.isNotEmpty) {
+      headline = '$_guestName, мы рады Вашему визиту 💗\nВаша скидка сегодня $_currentDiscount%🥳';
+      subhead = 'The sooner you return, the bigger the reward.';
+    } else {
+      headline = 'Your Reward\nTODAY: $_currentDiscount%';
+      subhead = _currentDiscount > 5 
+          ? 'You returned! You earned it.' 
+          : 'Want 20%? Come back tomorrow!';
     }
 
     return Scaffold(
@@ -128,7 +113,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
                       height: 160,
                       width: 280,
                       child: CustomPaint(
-                        painter: GaugePainter(isMax: show20Percent),
+                        painter: GaugePainter(discount: _currentDiscount),
                         child: Center(
                           child: Padding(
                             padding: const EdgeInsets.only(top: 40),
@@ -149,10 +134,10 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
 
                     // 4. Logic Steps
                     _DiscountStep(
-                      label: 'Today: 5%',
+                      label: 'Today: $_currentDiscount%',
                       icon: FontAwesomeIcons.check,
                       isActive: true,
-                      isHighlighted: !show20Percent,
+                      isHighlighted: _currentDiscount == 5,
                     ),
                     const SizedBox(height: 12),
                     _DiscountStep(
@@ -347,8 +332,8 @@ class _DiscountStep extends StatelessWidget {
 }
 
 class GaugePainter extends CustomPainter {
-  final bool isMax;
-  const GaugePainter({required this.isMax});
+  final int discount;
+  const GaugePainter({required this.discount});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -395,9 +380,14 @@ class GaugePainter extends CustomPainter {
     _drawText(canvas, center, radius, '20%', 2 * pi - 0.2, alignLeft: false);
 
     // 4. Draw Needle 
-    // 5% = 15% progress (pi + pi*0.15)
-    // 20% = 100% progress (2*pi - epsilon)
-    final needleAngle = isMax ? (2 * pi - 0.2) : (pi + (pi * 0.15)); 
+    // Map discount % to angle
+    // 5% -> pi + pi*0.1
+    // 20% -> 2*pi - 0.2
+    double progress = (discount - 5) / 15.0; // 0.0 to 1.0
+    if (progress < 0) progress = 0;
+    if (progress > 1) progress = 1;
+    
+    final needleAngle = pi + (pi * 0.1) + (progress * (pi * 0.7)); 
     final needleLen = radius - 30;
     final needlePaint = Paint()
       ..color = AppColors.brandBrown
@@ -441,5 +431,5 @@ class GaugePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant GaugePainter oldDelegate) => oldDelegate.isMax != isMax;
+  bool shouldRepaint(covariant GaugePainter oldDelegate) => oldDelegate.discount != discount;
 }

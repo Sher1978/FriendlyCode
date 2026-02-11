@@ -11,6 +11,10 @@ const LandingPage = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const [status, setStatus] = useState('loading');
+    const [discount, setDiscount] = useState(5);
+    const [guestName, setGuestName] = useState('');
+
+    const location = useLocation();
 
     useEffect(() => {
         const checkVisit = async () => {
@@ -21,22 +25,6 @@ const LandingPage = () => {
 
             try {
                 // 1. Check Venue Status (Access Control)
-                const venueDoc = await getDocs(query(collection(db, 'venues'), where('id', '==', venueId), limit(1)));
-
-                if (venueDoc.empty) {
-                    // Fallback to older query style if id is not a field but the doc name
-                    const docSnap = await getDocs(query(collection(db, 'venues'), limit(1))); // Just a placeholder for safety
-                }
-
-                // Actually, let's just fetch by doc ID directly if 'id' field isn't reliable
-                // But wait, our React 'db' might not have direct doc() helper easily used here without importing
-                // let's stick to collection/where for now or get doc directly if possible.
-
-                // Assuming venues are stored with docId == venueId
-                const venueRef = collection(db, 'venues');
-                // Since 'db' is from './firebase', let's assume it's the standard Firestore instance
-
-                // For now, let's use searchParams and fetch from Firestore to check isActive and subscription
                 const qVenue = query(collection(db, 'venues'), where('__name__', '==', venueId));
                 const venueSnap = await getDocs(qVenue);
 
@@ -58,6 +46,9 @@ const LandingPage = () => {
                 const savedGuestEmail = localStorage.getItem('guestEmail');
                 const savedGuestName = localStorage.getItem('guestName');
 
+                if (savedGuestName) setGuestName(savedGuestName);
+
+                let calculatedDiscount = 5; // Base
                 if (savedGuestEmail && savedGuestName) {
                     const qVisits = query(
                         collection(db, 'visits'),
@@ -68,58 +59,51 @@ const LandingPage = () => {
                     );
                     const querySnapshot = await getDocs(qVisits);
 
-                    let discount = 5; // Base
                     if (!querySnapshot.empty) {
                         const lastVisit = querySnapshot.docs[0].data().timestamp.toDate();
                         const hoursPassed = (now - lastVisit) / (1000 * 60 * 60);
 
-                        if (hoursPassed <= 24) discount = 20;
-                        else if (hoursPassed <= 36) discount = 15;
-                        else if (hoursPassed <= 240) discount = 10;
+                        if (hoursPassed <= 24) calculatedDiscount = 20;
+                        else if (hoursPassed <= 36) calculatedDiscount = 15;
+                        else if (hoursPassed <= 240) calculatedDiscount = 10;
                     }
+                    setDiscount(calculatedDiscount);
 
-                    navigate('/thank-you', {
-                        state: {
-                            guestName: savedGuestName,
-                            guestEmail: savedGuestEmail,
-                            discountValue: discount,
-                            venueId: venueId
-                        }
-                    });
-                    return;
+                    // If they are already recognized, we stay on this page to show the greeting 
+                    // unless you want to auto-redirect. The user specifically asked for "Имя, мы рады..." on QR screen.
                 }
             } catch (e) {
                 console.error("Error checking venue status or visit history:", e);
-                // On error, let them proceed but log? Or block?
-                // Directive says block if DB check fails/inactive.
             }
             setStatus('first');
         };
         checkVisit();
-    }, [navigate, location]);
+    }, [location]);
 
     if (status === 'loading') return null;
 
-    if (status === 'blocked') {
+    if (status === 'error' || status === 'blocked') {
         return (
-            <div className="flex flex-col min-h-screen bg-[#FFF8E1] items-center justify-center p-8 text-center">
-                <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center text-red-600 text-4xl mb-6">
-                    <FontAwesomeIcon icon={faLeaf} className="opacity-40" />
+            <div className="min-h-screen bg-[#FFF8E1] flex flex-col items-center justify-center p-6 text-center">
+                <div className="w-20 h-20 bg-[#FEE2E2] rounded-full flex items-center justify-center mb-6">
+                    <svg className="w-10 h-10 text-[#991B1B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
                 </div>
-                <h1 className="text-2xl font-black mb-4 uppercase tracking-tight">System Access Paused</h1>
-                <p className="text-[#4E342E]/70 font-medium max-w-[280px]">
-                    This venue's digital menu and rewards are currently unavailable. Please check back later.
+                <h1 className="text-2xl font-black text-[#4E342E] mb-2 uppercase">
+                    {status === 'error' ? t('venue_not_found') : t('system_access_paused')}
+                </h1>
+                <p className="text-[#4E342E] opacity-70 max-w-xs font-medium">
+                    {status === 'error'
+                        ? 'Please scan a valid QR code or contact the venue staff.'
+                        : "This venue's rewards program is currently unavailable. Please check back later."}
                 </p>
-                <div className="mt-12 opacity-30 font-black text-xs tracking-[0.3em]">FRIENDLY CODE</div>
-            </div>
-        );
-    }
-
-    if (status === 'error') {
-        return (
-            <div className="flex flex-col min-h-screen bg-[#FFF8E1] items-center justify-center p-8 text-center">
-                <h1 className="text-xl font-black mb-2 uppercase">Venue Not Found</h1>
-                <p className="opacity-60 text-sm">Please scan a valid QR code.</p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="mt-8 px-8 py-3 bg-[#E68A00] text-white font-black rounded-xl shadow-lg border-b-4 border-orange-800 active:border-b-0 active:translate-y-1 transition-all"
+                >
+                    RETRY
+                </button>
             </div>
         );
     }
@@ -141,12 +125,17 @@ const LandingPage = () => {
 
                 {/* Hero */}
                 <div className="text-center mb-8">
-                    <h1 className="text-[32px] font-black leading-tight mb-2">
-                        {t('your_discount_today').split(':')[0]}: <span className="text-[#E68A00]">5%</span>
+                    <h1 className="text-[28px] font-black leading-tight mb-2">
+                        {guestName
+                            ? `${guestName}, мы рады Вашему визиту 💗 Ваша скидка сегодня ${discount}%🥳`
+                            : `${t('your_discount_today').split(':')[0]}: ${discount}%`
+                        }
                     </h1>
-                    <p className="text-[#4E342E] opacity-60 font-medium text-sm">
-                        {t('want_max_discount')}
-                    </p>
+                    {!guestName && (
+                        <p className="text-[#4E342E] opacity-60 font-medium text-sm">
+                            {t('want_max_discount')}
+                        </p>
+                    )}
                 </div>
 
                 {/* Gauge Visual */}
@@ -191,7 +180,7 @@ const LandingPage = () => {
                         />
 
                         {/* Needle (Tapered & Rounded) */}
-                        <g transform="rotate(9, 100, 100)">
+                        <g transform={`rotate(${9 + (discount - 5) * 10}, 100, 100)`}>
                             {/* Pivot */}
                             <circle cx="100" cy="100" r="8" fill="#5D4037" />
                             {/* Tapered Body */}
@@ -206,7 +195,7 @@ const LandingPage = () => {
 
                         {/* Percentage Text */}
                         <text x="100" y="80" textAnchor="middle" className="text-[36px] font-black fill-[#5D4037] drop-shadow-sm">
-                            5%
+                            {discount}%
                         </text>
 
                         {/* Max Label */}

@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/features/admin/presentation/widgets/analytics_module.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
-import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/global_venues_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/settings_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/analytics_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/billing_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/global_venues_screen.dart';
 
 class AdminShell extends StatefulWidget {
   final Widget child; // Default/Initial screen
@@ -26,13 +30,17 @@ class _AdminShellState extends State<AdminShell> {
   void initState() {
     super.initState();
     _screens = [
-      widget.child, // 0: Overview (SuperAdminDashboard or OwnerDashboardScreen)
+      widget.child, // 0: Overview
       widget.role == UserRole.superAdmin 
-        ? widget.child // Super Admin: Venues = Overall list
-        : VenueEditorScreen(), // Owner: My Venue = Editor screen
-      const AnalyticsModule(), // 2: Analytics
-      const Center(child: Text("Billing Screen")), // 3: Billing
-      const Center(child: Text("Settings Screen")), // 4: Settings
+        ? const GlobalVenuesScreen() // Super Admin: Venues Master
+        : VenueEditorScreen(), // Owner: My Venue Profile
+      widget.role == UserRole.superAdmin
+        ? const AnalyticsModule() // Admin Global Analytics
+        : const OwnerAnalyticsScreen(), // Owner Venue Analytics
+      widget.role == UserRole.superAdmin
+        ? const Center(child: Text("System Billing", style: TextStyle(color: AppColors.title)))
+        : const OwnerBillingScreen(), // Owner Billing
+      const GeneralSettingsScreen(), // 4: Settings
     ];
   }
 

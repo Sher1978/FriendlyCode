@@ -64,14 +64,14 @@ class AppTheme {
       textTheme: GoogleFonts.interTextTheme(
         ThemeData.light().textTheme,
       ).apply(
-        bodyColor: AppColors.body,
+        bodyColor: AppColors.title, // Changed from AppColors.body to Brown
         displayColor: AppColors.title,
       ).copyWith(
         displayLarge: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.w900, color: AppColors.title, letterSpacing: -1.0),
         headlineMedium: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.title, letterSpacing: -0.5),
         titleMedium: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.title),
         bodyLarge: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500, color: AppColors.title),
-        bodyMedium: GoogleFonts.inter(fontSize: 14, color: AppColors.body, fontWeight: FontWeight.w500),
+        bodyMedium: GoogleFonts.inter(fontSize: 14, color: AppColors.title, fontWeight: FontWeight.w500),
       ),
       
       elevatedButtonTheme: ElevatedButtonThemeData(

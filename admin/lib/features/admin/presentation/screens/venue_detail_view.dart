@@ -90,6 +90,17 @@ class _VenueDetailViewState extends State<VenueDetailView> {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Payment Status: ${val ? 'PAID' : 'UNPAID'}")));
                 },
               ),
+              const Divider(color: Colors.white10),
+              ListTile(
+                title: const Text("Subscription Expiry", style: TextStyle(color: Colors.white)),
+                subtitle: Text(
+                  widget.venue.subscription.expiryDate != null 
+                    ? "${widget.venue.subscription.expiryDate!.toLocal()}".split(' ')[0] 
+                    : "No Expiry Set",
+                  style: const TextStyle(color: Colors.white54),
+                ),
+                trailing: const Icon(Icons.calendar_today, color: Colors.white54),
+              ),
 
               const Spacer(),
               

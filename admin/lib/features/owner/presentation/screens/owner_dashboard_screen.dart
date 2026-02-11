@@ -59,7 +59,12 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())),
+                  onPressed: () async {
+                    final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen()));
+                    if (result == true && context.mounted) {
+                      Provider.of<RoleProvider>(context, listen: false).refreshRole();
+                    }
+                  },
                   icon: const Icon(Icons.add_circle_outline),
                   label: const Text("CREATE MY FIRST VENUE"),
                 ),
@@ -85,7 +90,12 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           IconButton(
             icon: const Icon(Icons.add_business_outlined, color: AppColors.accentOrange),
             tooltip: "Add Venue",
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())),
+            onPressed: () async {
+              final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen()));
+              if (result == true && context.mounted) {
+                Provider.of<RoleProvider>(context, listen: false).refreshRole();
+              }
+            },
           ),
           const SizedBox(width: 8),
           IconButton(

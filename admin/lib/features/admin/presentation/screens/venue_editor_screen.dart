@@ -159,6 +159,10 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(isEditing ? "VENUE PROFILE" : "NEW VENUE"),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.brandBrown,
+        elevation: 0,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(40),
@@ -439,10 +443,10 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.accentOrange,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
         boxShadow: AppColors.softShadow,
-        border: Border.all(color: AppColors.title.withValues(alpha: 0.05)),
+        border: Border.all(color: AppColors.title.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
