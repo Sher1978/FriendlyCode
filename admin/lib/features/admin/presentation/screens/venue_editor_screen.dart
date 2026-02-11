@@ -5,6 +5,8 @@ import 'package:friendly_code/core/services/user_service.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:provider/provider.dart';
 
 class VenueEditorScreen extends StatefulWidget {
@@ -287,22 +289,76 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                           const SizedBox(height: 24),
                         ],
                         _buildSectionCard(
-                          title: "VENUE QR ACCESS",
+                          title: "SYSTEM ACCESS",
                           children: [
-                            const Center(
-                              child: Icon(Icons.qr_code_2, size: 100, color: AppColors.title),
+                            const Text("GUEST QR CODE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.body, letterSpacing: 1.2)),
+                            const SizedBox(height: 16),
+                            Center(
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: AppColors.title.withValues(alpha: 0.1)),
+                                ),
+                                child: Image.network(
+                                  "https://quickchart.io/qr?text=${Uri.encodeComponent('https://www.friendlycode.fun/qr?id=${widget.venue?.id ?? 'NEW'}')}&size=300&ecLevel=H",
+                                  width: 180,
+                                  height: 180,
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return const SizedBox(width: 180, height: 180, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
+                                  },
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 16),
-                            const Text("QR code is generated based on your Venue URL. Clients scan this to check-in.", textAlign: TextAlign.center, style: TextStyle(fontSize: 12)),
-                            const SizedBox(height: 16),
-                            _buildTextField(controller: _linkUrlCtrl, label: "Deep-link / Website", icon: Icons.link),
+                            const Text("This QR code leads to your guest portal. Print it and place it on tables.", textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.body)),
                             const SizedBox(height: 24),
                             SizedBox(
                               width: double.infinity,
                               child: OutlinedButton.icon(
-                                onPressed: () {}, // Download logic
-                                icon: const Icon(Icons.download),
-                                label: const Text("DOWNLOAD PRINTABLE QR"),
+                                onPressed: () {
+                                  final url = "https://quickchart.io/qr?text=${Uri.encodeComponent('https://www.friendlycode.fun/qr?id=${widget.venue?.id ?? ''}')}&size=1000&format=png&ecLevel=H";
+                                  url_launcher.launchUrl(Uri.parse(url));
+                                },
+                                icon: const Icon(Icons.download_rounded),
+                                label: const Text("DOWNLOAD (1000px PNG)"),
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(color: AppColors.accentOrange),
+                                  foregroundColor: AppColors.accentOrange,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            const Divider(),
+                            const SizedBox(height: 16),
+                            const Text("DEEP LINK", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.body, letterSpacing: 1.2)),
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: AppColors.background,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      "https://www.friendlycode.fun/qr?id=${widget.venue?.id ?? '...'}",
+                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      final link = "https://www.friendlycode.fun/qr?id=${widget.venue?.id ?? ''}";
+                                      Clipboard.setData(ClipboardData(text: link));
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Link copied to clipboard")));
+                                    },
+                                    icon: const Icon(Icons.copy_all, size: 20, color: AppColors.accentOrange),
+                                    tooltip: "Copy to Clipboard",
+                                  ),
+                                ],
                               ),
                             ),
                           ],

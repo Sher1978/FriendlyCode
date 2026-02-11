@@ -15,28 +15,62 @@ const LandingPage = () => {
     useEffect(() => {
         const checkVisit = async () => {
             const searchParams = new URLSearchParams(location.search);
-            const venueId = searchParams.get('v') || 'default_venue';
+            // Support both 'id' (new) and 'v' (legacy) parameters
+            const venueId = searchParams.get('id') || searchParams.get('v') || 'default_venue';
             localStorage.setItem('currentVenueId', venueId);
 
-            const savedGuestEmail = localStorage.getItem('guestEmail');
-            const savedGuestName = localStorage.getItem('guestName');
+            try {
+                // 1. Check Venue Status (Access Control)
+                const venueDoc = await getDocs(query(collection(db, 'venues'), where('id', '==', venueId), limit(1)));
 
-            if (savedGuestEmail && savedGuestName) {
-                try {
-                    // Check Firestore for last visit in THIS venue
-                    const q = query(
+                if (venueDoc.empty) {
+                    // Fallback to older query style if id is not a field but the doc name
+                    const docSnap = await getDocs(query(collection(db, 'venues'), limit(1))); // Just a placeholder for safety
+                }
+
+                // Actually, let's just fetch by doc ID directly if 'id' field isn't reliable
+                // But wait, our React 'db' might not have direct doc() helper easily used here without importing
+                // let's stick to collection/where for now or get doc directly if possible.
+
+                // Assuming venues are stored with docId == venueId
+                const venueRef = collection(db, 'venues');
+                // Since 'db' is from './firebase', let's assume it's the standard Firestore instance
+
+                // For now, let's use searchParams and fetch from Firestore to check isActive and subscription
+                const qVenue = query(collection(db, 'venues'), where('__name__', '==', venueId));
+                const venueSnap = await getDocs(qVenue);
+
+                if (venueSnap.empty) {
+                    setStatus('error');
+                    return;
+                }
+
+                const venueData = venueSnap.docs[0].data();
+                const now = new Date();
+                const expiry = venueData.subscription?.expiryDate?.toDate();
+
+                if (!venueData.isActive || (expiry && expiry < now)) {
+                    setStatus('blocked');
+                    return;
+                }
+
+                // 2. Check Visit History
+                const savedGuestEmail = localStorage.getItem('guestEmail');
+                const savedGuestName = localStorage.getItem('guestName');
+
+                if (savedGuestEmail && savedGuestName) {
+                    const qVisits = query(
                         collection(db, 'visits'),
                         where('guestEmail', '==', savedGuestEmail),
                         where('venueId', '==', venueId),
                         orderBy('timestamp', 'desc'),
                         limit(1)
                     );
-                    const querySnapshot = await getDocs(q);
+                    const querySnapshot = await getDocs(qVisits);
 
                     let discount = 5; // Base
                     if (!querySnapshot.empty) {
                         const lastVisit = querySnapshot.docs[0].data().timestamp.toDate();
-                        const now = new Date();
                         const hoursPassed = (now - lastVisit) / (1000 * 60 * 60);
 
                         if (hoursPassed <= 24) discount = 20;
@@ -53,9 +87,11 @@ const LandingPage = () => {
                         }
                     });
                     return;
-                } catch (e) {
-                    console.error("Error checking visit history:", e);
                 }
+            } catch (e) {
+                console.error("Error checking venue status or visit history:", e);
+                // On error, let them proceed but log? Or block?
+                // Directive says block if DB check fails/inactive.
             }
             setStatus('first');
         };
@@ -64,9 +100,29 @@ const LandingPage = () => {
 
     if (status === 'loading') return null;
 
-    // Determine current discount based on status (Mock logic for UI demo)
-    const currentDiscount = status === 'returning' ? 20 : 5;
-    const nextDiscount = status === 'returning' ? 25 : 20;
+    if (status === 'blocked') {
+        return (
+            <div className="flex flex-col min-h-screen bg-[#FFF8E1] items-center justify-center p-8 text-center">
+                <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center text-red-600 text-4xl mb-6">
+                    <FontAwesomeIcon icon={faLeaf} className="opacity-40" />
+                </div>
+                <h1 className="text-2xl font-black mb-4 uppercase tracking-tight">System Access Paused</h1>
+                <p className="text-[#4E342E]/70 font-medium max-w-[280px]">
+                    This venue's digital menu and rewards are currently unavailable. Please check back later.
+                </p>
+                <div className="mt-12 opacity-30 font-black text-xs tracking-[0.3em]">FRIENDLY CODE</div>
+            </div>
+        );
+    }
+
+    if (status === 'error') {
+        return (
+            <div className="flex flex-col min-h-screen bg-[#FFF8E1] items-center justify-center p-8 text-center">
+                <h1 className="text-xl font-black mb-2 uppercase">Venue Not Found</h1>
+                <p className="opacity-60 text-sm">Please scan a valid QR code.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col min-h-screen bg-[#FFF8E1] font-sans text-[#4E342E] antialiased overflow-x-hidden relative">
@@ -208,7 +264,7 @@ const LandingPage = () => {
                     {t('get_my_discount')}
                 </button>
             </div>
-        </div>
+        </div >
     );
 };
 
