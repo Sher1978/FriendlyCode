@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../models/lead_model.dart';
+import 'package:friendly_code/core/models/lead_model.dart';
 
 class LeadsService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

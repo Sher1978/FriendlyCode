@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLeaf, faCheckCircle, faRocket, faGift } from '@fortawesome/free-solid-svg-icons';
 import { motion } from 'framer-motion';
+import { db } from './firebase';
+import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
 
 const LandingPage = () => {
     const { t } = useTranslation();
@@ -11,30 +13,54 @@ const LandingPage = () => {
     const [status, setStatus] = useState('loading');
 
     useEffect(() => {
-        const checkVisit = () => {
-            // Check if user is already "subscribed" (has a name saved)
+        const checkVisit = async () => {
+            const searchParams = new URLSearchParams(location.search);
+            const venueId = searchParams.get('v') || 'default_venue';
+            localStorage.setItem('currentVenueId', venueId);
+
+            const savedGuestEmail = localStorage.getItem('guestEmail');
             const savedGuestName = localStorage.getItem('guestName');
 
-            if (savedGuestName) {
-                // If we know the user, skip capture and go to Success
-                navigate('/thank-you', { state: { guestName: savedGuestName } });
-                return;
-            }
+            if (savedGuestEmail && savedGuestName) {
+                try {
+                    // Check Firestore for last visit in THIS venue
+                    const q = query(
+                        collection(db, 'visits'),
+                        where('guestEmail', '==', savedGuestEmail),
+                        where('venueId', '==', venueId),
+                        orderBy('timestamp', 'desc'),
+                        limit(1)
+                    );
+                    const querySnapshot = await getDocs(q);
 
-            const firstVisitIso = localStorage.getItem('firstVisitIso');
-            const hasClaimedToday = sessionStorage.getItem('claimedToday');
+                    let discount = 5; // Base
+                    if (!querySnapshot.empty) {
+                        const lastVisit = querySnapshot.docs[0].data().timestamp.toDate();
+                        const now = new Date();
+                        const hoursPassed = (now - lastVisit) / (1000 * 60 * 60);
 
-            if (!firstVisitIso) {
-                localStorage.setItem('firstVisitIso', new Date().toISOString());
-                setStatus('first');
-            } else if (!hasClaimedToday) {
-                setStatus('returning');
-            } else {
-                setStatus('first');
+                        if (hoursPassed <= 24) discount = 20;
+                        else if (hoursPassed <= 36) discount = 15;
+                        else if (hoursPassed <= 240) discount = 10;
+                    }
+
+                    navigate('/thank-you', {
+                        state: {
+                            guestName: savedGuestName,
+                            guestEmail: savedGuestEmail,
+                            discountValue: discount,
+                            venueId: venueId
+                        }
+                    });
+                    return;
+                } catch (e) {
+                    console.error("Error checking visit history:", e);
+                }
             }
+            setStatus('first');
         };
         checkVisit();
-    }, [navigate]);
+    }, [navigate, location]);
 
     if (status === 'loading') return null;
 

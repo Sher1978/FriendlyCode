@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/venue_model.dart';
+import 'package:friendly_code/core/models/venue_model.dart';
 
 class VenuesService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;

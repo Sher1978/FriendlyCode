@@ -12,6 +12,7 @@ import 'package:friendly_code/features/owner/presentation/screens/marketing_blas
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
+import 'package:friendly_code/core/services/notification_service.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -22,8 +23,7 @@ class OwnerDashboardScreen extends StatefulWidget {
 
 class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   final VenueRepository _venueRepo = VenueRepository();
-  // We will add VisitsService later or use it here if needed for stats
-  // final VisitsService _visitsService = VisitsService();
+  final NotificationService _notificationService = NotificationService();
 
   @override
   Widget build(BuildContext context) {
@@ -163,6 +163,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               ],
             ),
           ),
+          const SizedBox(height: 24),
+          
+          // Pending Discount Requests
+          _buildPendingRequests(venue.id),
+          
           const SizedBox(height: 24),
 
           Text(
@@ -426,6 +431,74 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPendingRequests(String venueId) {
+    return StreamBuilder<List<DiscountRequest>>(
+      stream: _notificationService.getPendingRequests(venueId),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) return const SizedBox.shrink();
+        
+        final requests = snapshot.data!;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "PENDING DISCOUNT REQUESTS",
+              style: TextStyle(color: AppColors.accentIndigo, fontWeight: FontWeight.bold, fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            ...requests.map((req) => _buildRequestItem(req)),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildRequestItem(DiscountRequest req) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.accentTeal.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.accentTeal.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: AppColors.accentTeal,
+            child: Text(req.guestName.isNotEmpty ? req.guestName[0].toUpperCase() : "?", 
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(req.guestName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Text("${req.discountAmount}% Discount Requested", style: const TextStyle(color: AppColors.body, fontSize: 13)),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => _notificationService.approveRequest(req),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accentTeal,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text("Approve"),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            onPressed: () => _notificationService.rejectRequest(req.id),
+            icon: const Icon(Icons.close, color: Colors.redAccent),
+          ),
+        ],
       ),
     );
   }

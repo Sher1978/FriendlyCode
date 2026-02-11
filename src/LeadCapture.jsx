@@ -4,6 +4,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faEnvelope, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
+import { db } from './firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const LeadCapture = () => {
     const { t } = useTranslation();
@@ -14,16 +16,40 @@ const LeadCapture = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
 
-    const handleContinue = () => {
+    const handleContinue = async () => {
         if (!name.trim() || !email.trim()) return;
 
-        // Save guest data
-        localStorage.setItem('guestName', name);
-        localStorage.setItem('guestEmail', email);
-        console.log('Saved Guest:', { name, email });
+        try {
+            const venueId = localStorage.getItem('currentVenueId') || 'unknown';
 
-        // Navigate to UnifiedActivation (Reward Screen)
-        navigate('/thank-you', { state: { guestName: name, discountValue: discount } });
+            // Save to Firestore 'leads'
+            await addDoc(collection(db, 'leads'), {
+                name: name.trim(),
+                email: email.trim(),
+                venueId: venueId,
+                timestamp: serverTimestamp(),
+            });
+
+            // Save guest data locally for recognition
+            localStorage.setItem('guestName', name.trim());
+            localStorage.setItem('guestEmail', email.trim());
+
+            // Navigate to UnifiedActivation (Reward Screen)
+            navigate('/thank-you', {
+                state: {
+                    guestName: name,
+                    guestEmail: email,
+                    discountValue: discount,
+                    venueId: venueId
+                }
+            });
+        } catch (e) {
+            console.error("Error saving lead:", e);
+            // Fallback to offline/local only for MVP stability if needed
+            localStorage.setItem('guestName', name.trim());
+            localStorage.setItem('guestEmail', email.trim());
+            navigate('/thank-you', { state: { guestName: name, discountValue: discount } });
+        }
     };
 
     return (
@@ -89,8 +115,8 @@ const LeadCapture = () => {
                     onClick={handleContinue}
                     disabled={!name.trim() || !email.trim()}
                     className={`w-full h-[64px] rounded-[24px] font-black text-[20px] uppercase transition-all flex items-center justify-center shadow-xl ${name.trim() && email.trim()
-                            ? 'bg-[#E68A00] text-white active:scale-95 shadow-[#E68A00]/30'
-                            : 'bg-[#4E342E]/10 text-[#4E342E]/40 cursor-not-allowed shadow-none'
+                        ? 'bg-[#E68A00] text-white active:scale-95 shadow-[#E68A00]/30'
+                        : 'bg-[#4E342E]/10 text-[#4E342E]/40 cursor-not-allowed shadow-none'
                         }`}
                 >
                     {t('continue_reward', "Get Reward")}

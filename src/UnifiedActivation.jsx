@@ -4,6 +4,8 @@ import { faClock, faUser, faStar, faGift } from '@fortawesome/free-solid-svg-ico
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { db } from './firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const UnifiedActivation = () => {
     const { t } = useTranslation();
@@ -37,9 +39,27 @@ const UnifiedActivation = () => {
         return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
     };
 
-    const handleClaim = () => {
-        setIsClaimed(true);
-        // Here you might trigger backend logic to record the claim
+    const handleClaim = async () => {
+        try {
+            const venueId = location.state?.venueId || localStorage.getItem('currentVenueId') || 'unknown';
+            const guestEmail = location.state?.guestEmail || localStorage.getItem('guestEmail') || 'unknown';
+
+            // Create notification for owner
+            await addDoc(collection(db, 'discount_requests'), {
+                venueId: venueId,
+                guestEmail: guestEmail,
+                guestName: guestName,
+                discountAmount: discountValue,
+                status: 'pending',
+                timestamp: serverTimestamp(),
+            });
+
+            setIsClaimed(true);
+        } catch (e) {
+            console.error("Error creating claim request:", e);
+            // Fallback for demo
+            setIsClaimed(true);
+        }
     };
 
     return (
