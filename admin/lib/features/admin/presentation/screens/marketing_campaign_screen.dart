@@ -58,7 +58,7 @@ class _MarketingCampaignScreenState extends State<MarketingCampaignScreen> {
       ),
       body: Center(
         child: Container(
-          maxWidth: 600,
+          constraints: const BoxConstraints(maxWidth: 600),
           margin: const EdgeInsets.all(40),
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(

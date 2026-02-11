@@ -113,7 +113,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
       final updatedVenue = VenueModel(
         id: widget.venue?.id ?? '',
         ownerEmail: ownerEmail.isNotEmpty ? ownerEmail : null,
-        ownerId: ownerId.isNotEmpty ? ownerId : null,
+        ownerId: ownerId != null && ownerId.isNotEmpty ? ownerId : null,
         name: _nameCtrl.text.trim(),
         address: _addressCtrl.text.trim(),
         category: _categoryCtrl.text.trim(),

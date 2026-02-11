@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/features/admin/presentation/widgets/analytics_module.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
+import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
 
 class AdminShell extends StatefulWidget {
   final Widget child; // Default/Initial screen
@@ -28,7 +29,7 @@ class _AdminShellState extends State<AdminShell> {
       widget.child, // 0: Overview (SuperAdminDashboard or OwnerDashboardScreen)
       widget.role == UserRole.superAdmin 
         ? widget.child // Super Admin: Venues = Overall list
-        : const VenueEditorScreen(), // Owner: My Venue = Editor screen
+        : VenueEditorScreen(), // Owner: My Venue = Editor screen
       const AnalyticsModule(), // 2: Analytics
       const Center(child: Text("Billing Screen")), // 3: Billing
       const Center(child: Text("Settings Screen")), // 4: Settings
