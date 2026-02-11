@@ -50,6 +50,8 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
     }
   }
 
+  bool get show20Percent => _currentDiscount == 20;
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) return const Scaffold(backgroundColor: AppColors.backgroundCream, body: Center(child: CircularProgressIndicator()));

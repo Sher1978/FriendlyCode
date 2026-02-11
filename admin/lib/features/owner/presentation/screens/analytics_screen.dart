@@ -40,7 +40,7 @@ class OwnerAnalyticsScreen extends StatelessWidget {
                 child: _buildChartCard(
                   "RETENTION TREND", 
                   "Average return time in hours.",
-                  SizedBox(height: 250, child: LineChart(_retention trendData)),
+                  SizedBox(height: 250, child: LineChart(_retentionTrendData)),
                 ),
               ),
               const SizedBox(width: 32),
@@ -103,7 +103,7 @@ class OwnerAnalyticsScreen extends StatelessWidget {
     );
   }
 
-  LineChartData get _retention trendData => LineChartData(
+  LineChartData get _retentionTrendData => LineChartData(
     gridData: FlGridData(show: false),
     titlesData: FlTitlesData(show: false),
     borderData: FlBorderData(show: false),
