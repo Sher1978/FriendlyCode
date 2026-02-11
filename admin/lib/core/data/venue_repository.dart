@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/models/venue_model.dart';
-import '../../core/config/app_config.dart';
 import 'package:flutter/foundation.dart';
 
 class VenueRepository {

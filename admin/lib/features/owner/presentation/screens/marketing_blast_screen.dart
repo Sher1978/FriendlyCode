@@ -4,7 +4,6 @@ import '../../../../core/theme/colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../../core/data/venue_repository.dart';
-import '../../../../core/models/venue_model.dart';
 
 class MarketingBlastScreen extends StatefulWidget {
   final String venueId;

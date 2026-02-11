@@ -99,7 +99,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   final venues = snapshot.data!.where((v) {
                     return v.name.toLowerCase().contains(query) ||
                            v.id.toLowerCase().contains(query) ||
-                           v.ownerEmail.toLowerCase().contains(query);
+                           (v.ownerEmail ?? '').toLowerCase().contains(query);
                   }).toList();
 
                   if (venues.isEmpty) return const Center(child: Text("No venues found."));

@@ -30,6 +30,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
   late TextEditingController _linkUrlCtrl;
 
   List<VenueTier> _tiers = [];
+  late VenueSubscription _subscription;
   bool _isSaving = false;
 
   @override
@@ -63,6 +64,12 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
       VenueTier(maxHours: 72, percentage: 10),
       VenueTier(maxHours: 168, percentage: 5),
     ];
+
+    _subscription = widget.venue?.subscription ?? VenueSubscription(
+      plan: 'pro', 
+      isPaid: true, 
+      expiryDate: DateTime.now().add(const Duration(days: 365))
+    );
   }
 
   @override
@@ -397,6 +404,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     required String label,
     required IconData icon,
     int maxLines = 1,
+    String? hintText,
     String? validator,
     String? Function(String?)? validatorFunc,
   }) {
@@ -406,6 +414,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
       validator: validatorFunc,
       decoration: InputDecoration(
         labelText: label,
+        hintText: hintText,
         prefixIcon: Icon(icon),
       ),
     );

@@ -52,7 +52,7 @@ class _VenueDetailViewState extends State<VenueDetailView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(widget.venue.name, style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white)),
-                        Text(widget.venue.ownerId, style: const TextStyle(color: Colors.white54)),
+                        Text(widget.venue.ownerId ?? '', style: const TextStyle(color: Colors.white54)),
                         const SizedBox(height: 8),
                         Chip(
                           label: Text(_isActive ? "ACTIVE" : "FROZEN"),

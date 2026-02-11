@@ -149,7 +149,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Hello, ${venue.ownerEmail.split('@').first}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.accentOrange)),
+                  Text("Hello, ${(venue.ownerEmail ?? '').split('@').first}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.accentOrange)),
                   const SizedBox(height: 4),
                   Text(venue.name, style: Theme.of(context).textTheme.displayLarge),
                 ],
