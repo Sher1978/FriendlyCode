@@ -6,6 +6,8 @@ import 'package:friendly_code/core/services/user_service.dart';
 import 'package:friendly_code/core/data/venue_repository.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class GeneralSettingsScreen extends StatefulWidget {
   const GeneralSettingsScreen({super.key});
@@ -141,6 +143,13 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
             [
               _buildSwitchTile(Icons.notifications_active_outlined, "Push Notifications", "Receive real-time visit alerts.", true),
               _buildSwitchTile(Icons.alternate_email, "Email Reports", "Weekly performance summaries.", false),
+              ListTile(
+                leading: const Icon(Icons.telegram, color: Colors.blue),
+                title: const Text("Connect Telegram", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.title)),
+                subtitle: const Text("Receive instant alerts in Telegram bot.", style: TextStyle(fontSize: 12)),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.accentOrange),
+                onTap: _connectTelegram,
+              ),
             ],
           ),
           const SizedBox(height: 40),

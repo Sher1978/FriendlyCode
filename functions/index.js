@@ -13,6 +13,30 @@ const db = admin.firestore();
 const { Resend } = require("resend");
 const resend = new Resend("re_hhcZAqvV_PrA1srdegsuaoqkQEVZoGCNc");
 
+// SuperAdmin Chat ID
+const SUPER_ADMIN_CHAT_ID = "YOUR_SUPER_ADMIN_CHAT_ID"; // Replace with actual ID or logic to fetch
+
+/**
+ * 1. Generate Telegram Auth Link
+ */
+exports.generateTelegramLink = onCall(async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) {
+        throw new HttpsError("unauthenticated", "User must be logged in.");
+    }
+
+    // Generate 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    await db.collection("telegram_codes").doc(code).set({
+        uid,
+        expiresAt
+    });
+
+    return { url: `https://t.me/FriendlyCodeBot?start=auth_${code}` };
+});
+
 /**
  * Secures the Discount Calculation logic on the server.
  */
@@ -237,6 +261,28 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
                 logger.error("FCM multicast error", fcmErr);
             }
         }
+
+        // 5. Send Telegram Notification
+        // Find users with telegramChatId
+        const telegramUsers = [];
+        staffSnapshot.forEach(doc => {
+            const d = doc.data();
+            if (d.telegramChatId) telegramUsers.push(d.telegramChatId);
+        });
+
+        if (venueData.ownerId) {
+            const ownerDoc = await db.collection("users").doc(venueData.ownerId).get();
+            if (ownerDoc.exists && ownerDoc.data().telegramChatId && !telegramUsers.includes(ownerDoc.data().telegramChatId)) {
+                telegramUsers.push(ownerDoc.data().telegramChatId);
+            }
+        }
+
+        if (telegramUsers.length > 0) {
+            const message = `🔔 <b>Новый визит!</b>\n\n👤 <b>Гость:</b> ${guestName}\n🎁 <b>Скидка:</b> ${discountValue}%\n🕓 <b>Время:</b> ${new Date().toLocaleTimeString('ru-RU', { timeZone: 'Asia/Dubai' })}`;
+            for (const chatId of telegramUsers) {
+                await sendTelegramMessage(chatId, message);
+            }
+        }
     } catch (err) {
         logger.error("Failed to send instant notification", err);
         await db.collection("email_logs").add({
@@ -272,26 +318,56 @@ exports.telegramWebhook = onRequest(async (req, res) => {
         const text = update.message.text;
         const chatId = update.message.chat.id;
 
-        // COMMAND: /start <uid>
-        // Example: /start 7u4h5j3k2...
+        // COMMAND: /start <uid> OR /start auth_{code}
+        // Example: /start 7u4h5j3k2... OR /start auth_123456
         if (text.startsWith("/start")) {
             const parts = text.split(" ");
             if (parts.length > 1) {
-                const uid = parts[1].trim();
+                const param = parts[1].trim();
 
-                // 1. Link Chat ID to User in Firestore
-                const userRef = db.collection("users").doc(uid);
-                await userRef.set({
-                    telegramChatId: chatId,
-                    messenger: "telegram",
-                    lastSeen: new Date().toISOString()
-                }, { merge: true });
+                if (param.startsWith("auth_")) {
+                    // LINKING FLOW
+                    const code = param.split("_")[1];
+                    const codeDoc = await db.collection("telegram_codes").doc(code).get();
 
-                // 2. Send Welcome Message
-                await sendTelegramMessage(chatId, "✅ You are now connected! I'll send your discounts here.");
-                logger.info(`Linked telegram chat ${chatId} to user ${uid}`);
+                    if (codeDoc.exists) {
+                        const { uid, expiresAt } = codeDoc.data();
+                        if (Date.now() > expiresAt) {
+                            await sendTelegramMessage(chatId, "❌ Code expired. Please generate a new one.");
+                        } else {
+                            // Link User
+                            await db.collection("users").doc(uid).set({
+                                telegramChatId: chatId,
+                                telegramUsername: update.message.chat.username || "Unknown",
+                                messenger: "telegram",
+                                lastSeen: new Date().toISOString()
+                            }, { merge: true });
+
+                            // Cleanup
+                            await db.collection("telegram_codes").doc(code).delete();
+                            await sendTelegramMessage(chatId, "✅ Account Linked! You will now receive notifications here.");
+                            logger.info(`Linked telegram chat ${chatId} to user ${uid} via auth code.`);
+                        }
+                    } else {
+                        await sendTelegramMessage(chatId, "❌ Invalid code.");
+                    }
+                } else {
+                    // LEGACY UID CONNECTION (Keep for backward compatibility if needed)
+                    const uid = param;
+                    // 1. Link Chat ID to User in Firestore
+                    const userRef = db.collection("users").doc(uid);
+                    await userRef.set({
+                        telegramChatId: chatId,
+                        messenger: "telegram",
+                        lastSeen: new Date().toISOString()
+                    }, { merge: true });
+
+                    // 2. Send Welcome Message
+                    await sendTelegramMessage(chatId, "✅ You are now connected! I'll send your discounts here.");
+                    logger.info(`Linked telegram chat ${chatId} to user ${uid}`);
+                }
             } else {
-                await sendTelegramMessage(chatId, "👋 Hello! Please use the 'Telegram' button in the FriendlyCode app to connect.");
+                await sendTelegramMessage(chatId, "👋 Hello! Please connect via the FriendlyCode app.");
             }
         }
 
@@ -564,9 +640,40 @@ async function sendTelegramMessage(chatId, text) {
     await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: text })
+        body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'HTML' })
     });
 }
+
+/**
+ * SuperAdmin Notification: New User Registration
+ */
+exports.onUserCreated = onDocumentCreated("users/{uid}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+    const data = snapshot.data();
+
+    // Notify Super Admin
+    if (SUPER_ADMIN_CHAT_ID === "YOUR_SUPER_ADMIN_CHAT_ID") return; // Skip if not configured
+
+    const message = `🚀 <b>Новый пользователь!</b>\n\n👤 ${data.name || "No Name"}\n📧 ${data.email || "No Email"}`;
+    await sendTelegramMessage(SUPER_ADMIN_CHAT_ID, message);
+});
+
+/**
+ * SuperAdmin Notification: Role Promotion (New Owner)
+ */
+exports.onUserUpdated = onDocumentUpdated("users/{uid}", async (event) => {
+    const before = event.data.before.data();
+    const after = event.data.after.data();
+
+    // Check if role changed to 'owner'
+    if (before.role !== 'owner' && after.role === 'owner') {
+        if (SUPER_ADMIN_CHAT_ID === "YOUR_SUPER_ADMIN_CHAT_ID") return;
+
+        const message = `👑 <b>Новый Владелец!</b>\n\nПользователь <b>${after.name}</b> теперь управляет заведением.\n📧 ${after.email}`;
+        await sendTelegramMessage(SUPER_ADMIN_CHAT_ID, message);
+    }
+});
 
 /**
  * Scheduled Job placeholder (v2).
