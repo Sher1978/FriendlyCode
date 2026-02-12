@@ -339,13 +339,12 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  Expanded(
                                     child: OutlinedButton.icon(
                                       onPressed: () {
                                         final url = "https://quickchart.io/qr?text=${Uri.encodeComponent('https://www.friendlycode.fun/qr?id=${widget.venue?.id ?? ''}')}&format=svg&ecLevel=H";
                                         url_launcher.launchUrl(Uri.parse(url));
                                       },
-                                      icon: const Icon(Icons.vector_square_outlined, size: 18),
+                                      icon: const Icon(Icons.crop_free_outlined, size: 18),
                                       label: const Text("SVG (Vector)", style: TextStyle(fontSize: 11)),
                                       style: OutlinedButton.styleFrom(
                                         side: const BorderSide(color: AppColors.accentOrange),
