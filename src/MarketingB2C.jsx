@@ -255,7 +255,7 @@ const MarketingB2C = () => {
                                 Попробуй демку прямо сейчас и ощути магию Friendly Code.
                             </p>
                             <button
-                                onClick={() => navigate('/qr')}
+                                onClick={() => navigate('/qr?id=komKf0beSnsuuZ6p0Igh')}
                                 className="w-full md:w-auto bg-brand-orange text-white px-8 py-4 md:px-12 md:py-6 rounded-full font-black text-base md:text-xl shadow-xl shadow-brand-orange/40 hover:shadow-brand-orange/60 hover:scale-[1.02] transition-all flex items-center justify-center gap-4 uppercase tracking-wider mx-auto"
                             >
                                 <FontAwesomeIcon icon={faRocket} />
