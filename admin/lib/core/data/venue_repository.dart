@@ -56,9 +56,6 @@ class VenueRepository {
     } catch (e) {
       debugPrint("Error updating venue: $e");
       rethrow;
-    }
-  }
-
   /// Delete a venue
   Future<void> deleteVenue(String venueId) async {
     try {
@@ -67,5 +64,23 @@ class VenueRepository {
       debugPrint("Error deleting venue: $e");
       rethrow;
     }
+  }
+
+  // Search venues by name (case-insensitive simulation)
+  Future<List<VenueModel>> searchVenues(String query) async {
+    final snapshot = await _firestore
+        .collection('venues')
+        .where('name', isGreaterThanOrEqualTo: query)
+        .where('name', isLessThan: query + 'z')
+        .where('isActive', isEqualTo: true)
+        .limit(10)
+        .get();
+
+    return snapshot.docs.map((doc) => VenueModel.fromMap(doc.id, doc.data())).toList();
+  }
+
+  // Create a join request
+  Future<void> createJoinRequest(VenueRequestModel request) async {
+    await _firestore.collection('venue_requests').add(request.toMap());
   }
 }

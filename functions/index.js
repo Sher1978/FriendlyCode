@@ -504,6 +504,130 @@ async function sendTelegramMessage(chatId, text) {
 /**
  * Scheduled Job placeholder (v2).
  */
-exports.calculateRetentionCron = onCall(async (request) => {
-    return { status: "success" };
+/**
+ * Scenario D: New B2B Lead Notification
+ * Trigger: onDocumentCreated("leads/{leadId}")
+ */
+exports.onLeadCreated = onDocumentCreated("leads/{leadId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+
+    const leadData = snapshot.data();
+    const { email, phone, city, source } = leadData;
+
+    try {
+        await resend.emails.send({
+            from: "Friendly Code <no-reply@friendlycode.fun>",
+            to: ["friiendlycode@gmail.com"],
+            subject: `🔥 Новый лид (B2B): ${email}`,
+            html: `
+                <div style="font-family: sans-serif; padding: 20px;">
+                    <h1>Новая заявка на подключение!</h1>
+                    <p><strong>Email:</strong> ${email}</p>
+                    <p><strong>Телефон:</strong> ${phone || "Не указан"}</p>
+                    <p><strong>Город:</strong> ${city || "Не указан"}</p>
+                    <p><strong>Источник:</strong> ${source || "Неизвестно"}</p>
+                    <p><strong>Время:</strong> ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Dubai' })}</p>
+                </div>
+            `
+        });
+        logger.info(`Lead notification sent for ${event.params.leadId}`);
+    } catch (err) {
+        logger.error("Failed to send lead notification", err);
+    }
+});
+
+/**
+ * Scenario E: Discount Expiry Reminder (Hourly)
+ * Logic: Checks specific window (expiry - 6h)
+ */
+exports.checkExpiringDiscounts = onSchedule({
+    schedule: "0 * * * *", // Every hour
+    timeZone: "Asia/Dubai",
+    region: "asia-south1"
+}, async (event) => {
+    logger.info("Starting discount expiry check...");
+    const venuesSnapshot = await db.collection("venues").where("isActive", "==", true).get();
+
+    const now = new Date();
+
+    for (const venueDoc of venuesSnapshot.docs) {
+        const venueData = venueDoc.data();
+        const venueId = venueDoc.id;
+        const tiers = venueData.tiers || []; // [{ maxHours: 12, ... }, { maxHours: 24, ... }]
+
+        if (tiers.length === 0) continue;
+
+        // Find the absolute maximum duration of the discount (usually the last tier)
+        // Assuming sorted or we just take max
+        const maxDurationHours = Math.max(...tiers.map(t => t.maxHours));
+
+        if (maxDurationHours <= 6) continue; // Logic doesn't apply if total duration is short
+
+        // We want to notify 6 hours BEFORE expiry
+        // So User has been here for (maxDuration - 6) hours
+        const targetDuration = maxDurationHours - 6;
+
+        // Calculate the timestamp window:
+        // Visit time = Now - targetDuration hours
+        // Window = [TargetTime - 30min, TargetTime + 30min] to catch them in this hourly run
+
+        const targetTime = new Date(now.getTime() - (targetDuration * 60 * 60 * 1000));
+        const windowStart = new Date(targetTime.getTime() - (30 * 60 * 1000));
+        const windowEnd = new Date(targetTime.getTime() + (30 * 60 * 1000));
+
+        // Query visits created in this window
+        // Note: This relies on 'timestamp' being the creation of the visit/scan
+        const visitsSnapshot = await db.collection("visits")
+            .where("venueId", "==", venueId)
+            .where("timestamp", ">=", admin.firestore.Timestamp.fromDate(windowStart))
+            .where("timestamp", "<=", admin.firestore.Timestamp.fromDate(windowEnd))
+            .get();
+
+        for (const visitDoc of visitsSnapshot.docs) {
+            const visitData = visitDoc.data();
+
+            if (visitData.reminderSent) continue;
+
+            // Get Guest Email
+            const guestId = visitData.guestId;
+            const guestDoc = await db.collection("users").doc(guestId).get();
+            if (!guestDoc.exists || !guestDoc.data().email) continue;
+
+            const guestEmail = guestDoc.data().email;
+            const guestName = guestDoc.data().name || "Гость";
+
+            // Get Current Discount (approximated or max)
+            // Just say "Your discount" or calculate based on tiers?
+            // Let's use generic copy as requested.
+
+            try {
+                await resend.emails.send({
+                    from: "Friendly Code <no-reply@friendlycode.fun>",
+                    to: [guestEmail],
+                    subject: `⏳ Ваша скидка в ${venueData.name} скоро сгорит!`,
+                    html: `
+                        <div style="font-family: sans-serif; padding: 20px; background-color: #FFF8E1; border-radius: 16px;">
+                            <h2 style="color: #4E342E;">Привет, ${guestName}!</h2>
+                            <p style="font-size: 16px; color: #5D4037;">
+                                Ваша суперскидка в <strong>${venueData.name}</strong> действует еще <strong>6 часов</strong>.
+                            </p>
+                            <p style="font-size: 16px; color: #5D4037;">
+                                Мы приглашаем вас воспользоваться ей, пока она не исчезла!
+                            </p>
+                            <div style="text-align: center; margin-top: 30px;">
+                                <a href="https://friendlycode.fun" style="background-color: #E68A00; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Мой QR-код</a>
+                            </div>
+                        </div>
+                    `
+                });
+
+                await visitDoc.ref.update({ reminderSent: true });
+                logger.info(`Reminder sent to ${guestEmail} for visit ${visitDoc.id}`);
+
+            } catch (err) {
+                logger.error(`Failed to send reminder for visit ${visitDoc.id}`, err);
+            }
+        }
+    }
 });

@@ -1,6 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../features/auth/presentation/screens/join_venue_screen.dart';
+import '../../features/owner/presentation/screens/owner_dashboard_screen.dart';
 import '../../features/guest/presentation/screens/landing_screen.dart';
 import '../../features/web/presentation/pages/b2c_home_screen.dart';
 import '../../features/web/presentation/pages/platform_landing_screen.dart';
@@ -23,22 +27,54 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
   }
 
   Future<void> _checkToken() async {
-    // Simulating delay for "Loading Spinner"
-    await Future.delayed(const Duration(seconds: 1));
+    // Wait for Firebase Auth to initialize
+    await Future.delayed(const Duration(seconds: 1)); 
     
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('user_token');
+    final user = FirebaseAuth.instance.currentUser;
 
     if (mounted) {
-      if (token != null) {
-        // Smart Bypass
-        _navigateToSuccess();
+      if (user != null) {
+        // User is logged in, check if they have a venue
+        final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        
+        if (userDoc.exists) {
+           final venueId = userDoc.data()?['venueId'];
+           if (venueId != null && (venueId as String).isNotEmpty) {
+              // Assigned to a venue -> Dashboard
+              _navigateToDashboard();
+           } else {
+             // Not assigned -> Join Screen
+             _navigateToJoin();
+           }
+        } else {
+           // User authenticated but no DB record? Create stub or send to Join?
+           // If they logged in via Admin panel (Google), they might not have a doc yet if we didn't create it.
+           // But our new flow says "creates new user in base". 
+           // Let's send to Join Screen, which is safe.
+           _navigateToJoin();
+        }
       } else {
+         // Not logged in
         setState(() {
           _isLoading = false;
         });
       }
     }
+  }
+
+  void _navigateToJoin() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const JoinVenueScreen()),
+    );
+  }
+
+  void _navigateToDashboard() {
+     // For now, default to OwnerDashboard as it handles both or checks roles
+     Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const OwnerDashboardScreen()),
+    ); 
   }
 
   Future<void> _navigateToSuccess() async {
