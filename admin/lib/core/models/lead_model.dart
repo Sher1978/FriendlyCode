@@ -51,9 +51,9 @@ class LeadModel {
     return LeadModel(
       id: id,
       venueId: map['venueId'] ?? '',
-      guestId: map['guestId'] ?? '',
-      guestName: map['guestName'] ?? '',
-      guestContact: map['guestContact'] ?? '',
+      guestId: map['uid'] ?? map['guestId'] ?? '', // Handle both new 'uid' and legacy 'guestId'
+      guestName: map['name'] ?? map['guestName'] ?? 'Guest', // Handle 'name' from Leads collection
+      guestContact: map['email'] ?? map['guestContact'] ?? '',
       source: map['source'] ?? 'scan_qr',
       status: map['status'] ?? 'new',
       notes: map['notes'] ?? '',

@@ -12,6 +12,7 @@ import 'package:friendly_code/features/owner/presentation/screens/rules_config_s
 import 'package:friendly_code/features/owner/presentation/screens/marketing_blast_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/guest_list_screen.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/services/notification_service.dart';
@@ -225,6 +226,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           Text(l10n.management, style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 16),
           _buildManagementLink(Icons.tune, l10n.configRules, l10n.configRulesSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RulesConfigScreen()))),
+          const SizedBox(height: 16),
+          _buildManagementLink(Icons.people_alt_outlined, "Guest Database", "View your loyal customers", () => Navigator.push(context, MaterialPageRoute(builder: (_) => GuestListScreen(venueId: venue.id)))),
           const SizedBox(height: 16),
           _buildManagementLink(Icons.badge_outlined, "Staff Management", "Manage your personnel", () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffManagementScreen(venueId: venue.id)))),
           const SizedBox(height: 16),
