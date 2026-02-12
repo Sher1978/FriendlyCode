@@ -110,6 +110,18 @@ class LoginScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 24),
+              TextButton(
+                onPressed: () => Navigator.pushReplacementNamed(context, '/'),
+                child: Text(
+                  "Return to Selection Portal",
+                  style: TextStyle(
+                    color: AppColors.deepSeaBlue.withOpacity(0.6),
+                    fontWeight: FontWeight.bold,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

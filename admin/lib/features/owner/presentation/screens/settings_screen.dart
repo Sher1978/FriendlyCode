@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:friendly_code/core/services/auth_service.dart';
 import 'package:friendly_code/core/services/user_service.dart';
 import 'package:friendly_code/core/data/venue_repository.dart';
+import 'package:friendly_code/core/models/venue_model.dart';
+import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
 
 class GeneralSettingsScreen extends StatefulWidget {
   const GeneralSettingsScreen({super.key});
@@ -18,7 +20,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
   final VenueRepository _venueRepo = VenueRepository();
   
   User? _currentUser;
-  String? _venueName;
+  VenueModel? _venue;
   bool _isLoading = true;
 
   @override
@@ -35,7 +37,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
       final userDoc = await _userService.getUserByEmail(_currentUser!.email!);
       if (userDoc != null && userDoc['venueId'] != null) {
         final venue = await _venueRepo.getVenueById(userDoc['venueId']);
-        _venueName = venue?.name;
+        _venue = venue;
       }
     }
     
@@ -122,7 +124,15 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
             [
               _buildSettingTile(Icons.person_outline, "Public Profile", _currentUser?.displayName ?? "Not Set", onTap: _updateName),
               _buildSettingTile(Icons.email_outlined, "Email Address", _currentUser?.email ?? "Not Set", onTap: _updateEmail),
-              _buildSettingTile(Icons.store, "Connected Venue", _venueName ?? "None Assigned"),
+              _buildSettingTile(
+                Icons.store, 
+                "Connected Venue", 
+                _venue?.name ?? "None Assigned",
+                onTap: _venue != null ? () {
+                  // Navigate to Venue Editor
+                   Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: _venue!)));
+                } : null,
+              ),
             ],
           ),
           const SizedBox(height: 40),
