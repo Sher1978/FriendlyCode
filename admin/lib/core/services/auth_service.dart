@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import '../auth/google_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'fcm_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -57,8 +59,17 @@ class AuthService {
         );
 
         final UserCredential userCredential = await _auth.signInWithCredential(credential);
-        return userCredential.user;
+      if (userCredential.user != null) {
+        // Save FCM Token
+        final token = await FCMService().getToken();
+        if (token != null) {
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userCredential.user!.uid)
+              .set({'fcmToken': token}, SetOptions(merge: true));
+        }
       }
+      return userCredential.user;
     } catch (e) {
       print("Error signing in with Google: $e");
       rethrow;

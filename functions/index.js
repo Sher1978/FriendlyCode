@@ -183,6 +183,60 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
 
         if (error) throw error;
         logger.info(`Email sent to ${ownerEmail} for visit ${event.params.visitId}`);
+        // 4. Send Push Notification (FCM) to Owner AND Staff
+        // Find all users linked to this venue (Owner + Staff)
+        const staffSnapshot = await db.collection("users")
+            .where("venueId", "==", venueId)
+            .get();
+
+        const tokens = [];
+        staffSnapshot.forEach(doc => {
+            const userData = doc.data();
+            if (userData.fcmToken) {
+                tokens.push(userData.fcmToken);
+            }
+        });
+
+        // Also check if owner is not in the list (if they haven't set their venueId in profile but are listed in venue doc)
+        if (venueData.ownerId) {
+            const ownerDoc = await db.collection("users").doc(venueData.ownerId).get();
+            if (ownerDoc.exists && ownerDoc.data().fcmToken && !tokens.includes(ownerDoc.data().fcmToken)) {
+                tokens.push(ownerDoc.data().fcmToken);
+            }
+        }
+
+        if (tokens.length > 0) {
+            try {
+                // Multicast message
+                await admin.messaging().sendEachForMulticast({
+                    tokens: tokens,
+                    notification: {
+                        title: `🚀 New Guest in ${venueName}!`,
+                        body: `${guestName} just checked in. Discount: ${discountValue}%`,
+                    },
+                    android: {
+                        notification: {
+                            sound: "doorbell"
+                        }
+                    },
+                    apns: {
+                        payload: {
+                            aps: {
+                                sound: "doorbell.mp3"
+                            }
+                        }
+                    },
+                    data: {
+                        visitId: event.params.visitId,
+                        venueId: venueId,
+                        type: "new_visit"
+                    }
+                });
+                logger.info(`FCM sent to ${tokens.length} devices for ${venueName}`);
+            } catch (fcmErr) {
+                logger.error("FCM multicast error", fcmErr);
+            }
+        }
     } catch (err) {
         logger.error("Failed to send instant notification", err);
         await db.collection("email_logs").add({
