@@ -339,6 +339,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
+                                  Expanded(
                                     child: OutlinedButton.icon(
                                       onPressed: () {
                                         final url = "https://quickchart.io/qr?text=${Uri.encodeComponent('https://www.friendlycode.fun/qr?id=${widget.venue?.id ?? ''}')}&format=svg&ecLevel=H";
