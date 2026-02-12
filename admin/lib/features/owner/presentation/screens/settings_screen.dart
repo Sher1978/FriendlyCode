@@ -106,6 +106,24 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
         ],
       ),
     );
+  Future<void> _connectTelegram() async {
+    try {
+      setState(() => _isLoading = true);
+      final result = await FirebaseFunctions.instance.httpsCallable('generateTelegramLink').call();
+      final url = result.data['url'];
+      if (url != null) {
+        final uri = Uri.parse(url);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          throw "Could not launch $url";
+        }
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
