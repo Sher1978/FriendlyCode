@@ -81,4 +81,30 @@ class UserService {
       'role': FieldValue.delete(), // Or set to 'game' or 'guest'
     });
   }
+  // Create User Stub (for adding new staff)
+  Future<void> createUserStub({
+    required String email,
+    required String name,
+    required String venueId,
+    required UserRole role,
+  }) async {
+    final existingUser = await getUserByEmail(email);
+    if (existingUser != null) {
+      throw "User with email $email already exists.";
+    }
+
+    final newDoc = _firestore.collection(_collection).doc(); // Auto-ID
+    await newDoc.set({
+      'email': email,
+      'name': name,
+      'venueId': venueId,
+      'role': role == UserRole.owner ? 'owner' : 'staff',
+      'joinDate': DateTime.now().toIso8601String(),
+    });
+  }
+
+  // Update User Profile
+  Future<void> updateUser(String uid, Map<String, dynamic> data) async {
+    await _firestore.collection(_collection).doc(uid).update(data);
+  }
 }

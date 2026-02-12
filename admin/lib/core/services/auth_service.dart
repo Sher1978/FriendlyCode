@@ -72,4 +72,25 @@ class AuthService {
     }
     await _auth.signOut();
   }
+
+  // Update Profile
+  Future<void> updateProfile({String? name, String? email}) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) throw "No user signed in.";
+
+      if (name != null && name != user.displayName) {
+        await user.updateDisplayName(name);
+      }
+
+      if (email != null && email != user.email) {
+        await user.verifyBeforeUpdateEmail(email);
+        // Note: verifyBeforeUpdateEmail sends an email to the new address.
+        // The email isn't updated until the user clicks the link.
+      }
+    } catch (e) {
+      print("Error updating profile: $e");
+      rethrow;
+    }
+  }
 }

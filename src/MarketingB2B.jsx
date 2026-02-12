@@ -26,9 +26,34 @@ const MarketingB2B = () => {
         transition: { duration: 0.8, ease: "easeOut" }
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        alert(i18n.language === 'ru' ? "Заявка принята! Мы свяжемся с вами в течение 24 часов." : "Request received! We will contact you within 24 hours.");
+
+        try {
+            // dynamic import to avoid breaking if firebase not set up
+            const { collection, addDoc, query, where, getDocs } = await import('firebase/firestore');
+            const { db } = await import('./firebase');
+
+            const q = query(collection(db, 'leads'), where('email', '==', formData.email));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                alert(i18n.language === 'ru' ? "Вы уже оставили заявку! Мы скоро свяжемся с вами." : "You have already submitted a request! We will contact you soon.");
+                return;
+            }
+
+            await addDoc(collection(db, 'leads'), {
+                ...formData,
+                createdAt: new Date(),
+                source: 'b2b_landing'
+            });
+
+            alert(i18n.language === 'ru' ? "Заявка принята! Мы свяжемся с вами в течение 24 часов." : "Request received! We will contact you within 24 hours.");
+            setFormData({ city: '', phone: '', email: '' });
+        } catch (error) {
+            console.error("Error adding document: ", error);
+            alert("Error submitting form. Please try again.");
+        }
     };
 
     return (

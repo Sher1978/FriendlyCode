@@ -60,14 +60,61 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
     }
   }
 
+  Future<void> _createUser(String name, String email) async {
+    try {
+      await _userService.createUserStub(
+        email: email, 
+        name: name, 
+        venueId: widget.venueId, 
+        role: UserRole.staff
+      );
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User created and assigned!")));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
+  }
+
+  void _showCreateUserDialog() {
+    final nameCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Create New User"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("This creates a placeholder account. The user can claim it by signing up with this email."),
+            const SizedBox(height: 16),
+            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Full Name", filled: true)),
+            const SizedBox(height: 8),
+            TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: "Email Address", filled: true)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () {
+              if (nameCtrl.text.isEmpty || emailCtrl.text.isEmpty) return;
+              Navigator.pop(context);
+              _createUser(nameCtrl.text.trim(), emailCtrl.text.trim());
+            },
+            child: const Text("CREATE & ASSIGN", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _removeUser(String uid) async {
     try {
       await _userService.removeUserFromVenue(uid);
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("User removed from personnel")),
       );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Error removing user: $e")),
       );
     }
@@ -116,6 +163,16 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                        ),
                      ),
                      onSubmitted: (_) => _searchUser(),
+                   ),
+                   const SizedBox(height: 12),
+                   Align(
+                     alignment: Alignment.centerRight,
+                     child: TextButton.icon(
+                       onPressed: _showCreateUserDialog,
+                       icon: const Icon(Icons.person_add, size: 16),
+                       label: const Text("OR CREATE NEW USER", style: TextStyle(fontWeight: FontWeight.bold)),
+                       style: TextButton.styleFrom(foregroundColor: AppColors.accentOrange),
+                     ),
                    ),
                 ],
               ),

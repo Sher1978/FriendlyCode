@@ -30,6 +30,7 @@ class UserRepository {
         );
         
         await userRef.set({
+          'email': user.email, // Save email from Auth
           'name': newUser.name,
           'messengers': newUser.messengers,
           'history': {},
