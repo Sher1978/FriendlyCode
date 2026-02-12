@@ -303,21 +303,21 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                             const Text("GUEST QR CODE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.body, letterSpacing: 1.2)),
                             const SizedBox(height: 16),
                             Center(
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: AppColors.title.withValues(alpha: 0.1)),
-                                ),
-                                child: Image.network(
-                                  "https://quickchart.io/qr?text=${Uri.encodeComponent('https://www.friendlycode.fun/qr?id=${widget.venue?.id ?? 'NEW'}')}&size=300&ecLevel=H",
-                                  width: 180,
-                                  height: 180,
-                                  loadingBuilder: (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return const SizedBox(width: 180, height: 180, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
-                                  },
+                                child: Builder(
+                                  builder: (context) {
+                                    // Ensure we use the actual ID if editing, or a placeholder if creating
+                                    final idToUse = isEditing ? widget.venue!.id : 'NEW_VENUE_ID';
+                                    final qrUrl = "https://quickchart.io/qr?text=${Uri.encodeComponent('https://www.friendlycode.fun/qr?id=$idToUse')}&size=300&ecLevel=H";
+                                    return Image.network(
+                                      qrUrl,
+                                      width: 180,
+                                      height: 180,
+                                      loadingBuilder: (context, child, loadingProgress) {
+                                        if (loadingProgress == null) return child;
+                                        return const SizedBox(width: 180, height: 180, child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
+                                      },
+                                    );
+                                  }
                                 ),
                               ),
                             ),

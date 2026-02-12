@@ -139,22 +139,41 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   }
 
   Widget _buildVenueSwitcher(List<String> venueIds) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.title.withValues(alpha: 0.1)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedVenueId,
-          icon: const Icon(Icons.keyboard_arrow_down, size: 20),
-          items: venueIds.map((id) => DropdownMenuItem(value: id, child: Text("ID: ...${id.substring(id.length - 4)}", style: const TextStyle(fontWeight: FontWeight.bold)))).toList(),
-          onChanged: (val) => setState(() => _selectedVenueId = val),
+      if (venueIds.isEmpty) return const SizedBox.shrink();
+
+      return PopupMenuButton<String>(
+        onSelected: (val) {
+          if (val == '__manage__') {
+            // Navigate to a full list view if needed, or just keep as is
+          } else {
+             setState(() => _selectedVenueId = val);
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+             color: AppColors.accentOrange.withOpacity(0.1),
+             borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.store, size: 16, color: AppColors.accentOrange),
+              const SizedBox(width: 8),
+              Text(
+                "MY VENUES (${venueIds.length})", 
+                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.accentOrange, fontSize: 12)
+              ),
+              const Icon(Icons.arrow_drop_down, color: AppColors.accentOrange),
+            ],
+          ),
         ),
-      ),
-    );
+        itemBuilder: (context) => [
+          ...venueIds.map((id) => PopupMenuItem(
+            value: id,
+            child: Text("Venue ID: ...${id.substring(max(0, id.length - 4))}"),
+          )),
+        ],
+      );
   }
 
   Widget _buildModernDashboard(BuildContext context, VenueModel venue, AppLocalizations l10n) {

@@ -75,140 +75,96 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.backgroundCream,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Scrollable Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // 1. Header (Logo)
-                    const _Header(),
-                    const SizedBox(height: 24),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+          child: Column(
+            children: [
+              // 1. Header (Venue Name)
+              _Header(venueName: _guestName != null ? 'Your Venue' : 'Friendly Code'), // Ideally fetched from venue config
+              
+              const Spacer(),
 
-                    // 2. Headline
-                    Text(
-                      headline,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: AppColors.brandBrown,
-                            fontWeight: FontWeight.w900,
-                            height: 1.1,
-                          ),
+              // 2. Headline
+              Text(
+                headline,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: AppColors.brandBrown,
+                      fontWeight: FontWeight.w900,
+                      height: 1.1,
+                      fontSize: 28, // Slightly smaller to fit
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      subhead,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: AppColors.brandBrown.withOpacity(0.8),
-                            fontWeight: FontWeight.w500,
-                          ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subhead,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: AppColors.brandBrown.withOpacity(0.8),
+                      fontWeight: FontWeight.w500,
                     ),
+              ),
 
-                    const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
-                    // 3. Visual Gauge
-                    SizedBox(
-                      height: 160,
-                      width: 280,
-                      child: CustomPaint(
-                        painter: GaugePainter(discount: _currentDiscount),
-                        child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 40),
-                            child: Text(
-                              gaugeText,
-                              style: const TextStyle(
-                                fontSize: 40,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.brandBrown,
-                              ),
-                            ),
-                          ),
+              // 3. Visual Gauge
+              SizedBox(
+                height: 140, // Reduced height
+                width: 260,
+                child: CustomPaint(
+                  painter: GaugePainter(discount: _currentDiscount),
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 30),
+                      child: Text(
+                        gaugeText,
+                        style: const TextStyle(
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.brandBrown,
                         ),
                       ),
                     ),
+                  ),
+                ),
+              ),
 
-                    const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
-                    // 4. Logic Steps
+              // 4. Logic Steps (Compact)
+              Flexible(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                     _DiscountStep(
                       label: 'Today: $_currentDiscount%',
                       icon: FontAwesomeIcons.check,
                       isActive: true,
                       isHighlighted: _currentDiscount == 5,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     _DiscountStep(
                       label: 'Tomorrow: 20%',
                       icon: show20Percent ? FontAwesomeIcons.check : FontAwesomeIcons.clock,
                       isActive: true,
                       isHighlighted: show20Percent,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
+                    // Only show immediate future step to save space
                     const _DiscountStep(
                       label: 'In 3 Days: 15%',
                       icon: FontAwesomeIcons.lock,
-                      isActive: false, // Future
+                      isActive: false, 
                       isHighlighted: false,
                     ),
-                    const SizedBox(height: 12),
-                    const _DiscountStep(
-                      label: 'In 7 Days: 10%',
-                      icon: FontAwesomeIcons.lock,
-                      isActive: false, // Future
-                      isHighlighted: false,
-                    ),
-
-                    const SizedBox(height: 24),
-                    Text(
-                      'The sooner you return, the bigger the reward.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: AppColors.brandBrown.withOpacity(0.7),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    OutlinedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const B2BLandingScreen()),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.brandBrown,
-                        side: const BorderSide(color: AppColors.brandBrown, width: 1.5),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      ),
-                      child: const Text('Become a Partner', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
-                    const SizedBox(height: 100), // Spacing for sticky bottom
                   ],
                 ),
               ),
-            ),
 
-            // 5. Sticky Bottom CTA
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.backgroundCream,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.brandBrown.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: SizedBox(
+              const Spacer(),
+
+              // 5. Sticky Bottom CTA
+              SizedBox(
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
@@ -221,7 +177,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.brandOrange,
                     foregroundColor: Colors.white,
-                    elevation: 0,
+                    elevation: 4,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -242,8 +198,21 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
                   ),
                 ),
               ),
-            ),
-          ],
+              
+              const SizedBox(height: 16),
+              
+              // Powered By
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Powered by ", style: TextStyle(color: Colors.grey, fontSize: 10)),
+                  const Icon(FontAwesomeIcons.bolt, size: 10, color: AppColors.brandOrange),
+                  Text(" Friendly Code", style: TextStyle(color: AppColors.brandBrown.withOpacity(0.8), fontSize: 10, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -251,25 +220,36 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
 }
 
 class _Header extends StatelessWidget {
-  const _Header();
+  final String venueName;
+  const _Header({required this.venueName});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Icon(FontAwesomeIcons.leaf, color: AppColors.brandGreen, size: 24),
-        const SizedBox(width: 8),
-        const Text(
-          'Friendly\nCode',
-          style: TextStyle(
-            color: AppColors.brandBrown,
-            fontWeight: FontWeight.bold,
-            height: 0.9,
-            fontSize: 18,
-          ),
-        )
-      ],
+    // Attempt to get venue name from shared prefs if available, else fallback
+    // In a real app, this enters via constructor from parent/state
+    return FutureBuilder<SharedPreferences>(
+      future: SharedPreferences.getInstance(),
+      builder: (context, snapshot) {
+        String display = venueName;
+        if (snapshot.hasData) {
+           display = snapshot.data!.getString('venueName') ?? venueName;
+        }
+        
+        return Column(
+          children: [
+            Text(
+              display.toUpperCase(),
+              style: const TextStyle(
+                color: AppColors.brandBrown,
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+                letterSpacing: 1.2,
+              ),
+            ),
+            Container(width: 40, height: 2, color: AppColors.brandOrange, margin: const EdgeInsets.only(top: 4)),
+          ],
+        );
+      }
     );
   }
 }
