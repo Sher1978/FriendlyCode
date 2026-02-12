@@ -19,7 +19,7 @@ const UnifiedActivation = () => {
     // Timer Logic
     const [isClaimed, setIsClaimed] = useState(false);
     const [isExpired, setIsExpired] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(60); // 60 seconds (Anti-Fraud requirement)
+    const [timeLeft, setTimeLeft] = useState(300); // 300 seconds (5 minutes)
 
     useEffect(() => {
         let interval = null;
@@ -37,7 +37,7 @@ const UnifiedActivation = () => {
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
-        return `${secs}s`; // Just show seconds for short timer
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
     };
 
     const handleClaim = async () => {

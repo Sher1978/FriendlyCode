@@ -13,8 +13,7 @@ const LandingPage = () => {
     const navigate = useNavigate();
     const [status, setStatus] = useState('loading');
     const [discount, setDiscount] = useState(5);
-    const [guestName, setGuestName] = useState('');
-    const [userRole, setUserRole] = useState('guest');
+    const [venueName, setVenueName] = useState('');
 
     const location = useLocation();
 
@@ -46,6 +45,7 @@ const LandingPage = () => {
                     }
 
                     const venueData = venueSnap.data();
+                    setVenueName(venueData.name || '');
                     const now = new Date();
                     const expiry = venueData.subscription?.expiryDate?.toDate();
 
@@ -144,38 +144,39 @@ const LandingPage = () => {
     }
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#FFF8E1] font-sans text-[#4E342E] antialiased overflow-x-hidden relative">
+        <div className="flex flex-col h-[100dvh] bg-[#FFF8E1] font-sans text-[#4E342E] antialiased overflow-hidden relative">
 
             {/* Header */}
-            <div className="pt-8 px-6 flex items-center gap-2 mb-4">
-                <div className="flex flex-col leading-none">
-                    <span className="font-black text-xl tracking-tighter">Friendly</span>
-                    <span className="font-black text-xl tracking-tighter">Code</span>
+            <div className="pt-6 px-6 text-center z-10">
+                <p className="text-sm font-bold opacity-60 uppercase tracking-widest">Welcome to</p>
+                <h2 className="text-2xl font-black leading-tight text-[#E68A00] mb-1">{venueName}</h2>
+                <div className="flex items-center justify-center gap-1 opacity-40">
+                    <span className="text-[10px] font-bold uppercase tracking-wider">powered by FriendlyCode</span>
+                    <FontAwesomeIcon icon={faLeaf} className="text-[10px]" />
                 </div>
-                <FontAwesomeIcon icon={faLeaf} className="text-[#81C784] text-xl" />
             </div>
 
-            {/* Main Content Scrollable Area */}
-            <div className="flex-grow flex flex-col px-6 pb-32">
+            {/* Main Content - Flex Grow to fill space without scrolling if possible */}
+            <div className="flex-grow flex flex-col items-center justify-evenly px-6 pb-24 w-full max-w-md mx-auto">
 
                 {/* Hero */}
-                <div className="text-center mb-8">
-                    <h1 className="text-[28px] font-black leading-tight mb-2">
+                <div className="text-center mt-2">
+                    <h1 className="text-[24px] font-black leading-tight mb-1">
                         {guestName
-                            ? `${guestName}, мы рады Вашему визиту 💗 Ваша скидка сегодня ${discount}%🥳`
+                            ? `${guestName}, рады Вам! 💗 Скидка: ${discount}%`
                             : `${t('your_discount_today').split(':')[0]}: ${discount}%`
                         }
                     </h1>
                     {!guestName && (
-                        <p className="text-[#4E342E] opacity-60 font-medium text-sm">
+                        <p className="text-[#4E342E] opacity-60 font-medium text-xs">
                             {t('want_max_discount')}
                         </p>
                     )}
                 </div>
 
-                {/* Gauge Visual */}
-                <div className="relative w-full h-48 flex items-center justify-center mb-8 scale-110 origin-bottom">
-                    <svg viewBox="0 0 200 120" className="w-64 h-40 overflow-visible">
+                {/* Gauge Visual - Scaled down slightly */}
+                <div className="relative w-full h-32 flex items-center justify-center scale-90 origin-center">
+                    <svg viewBox="0 0 200 120" className="w-48 h-32 overflow-visible">
                         <defs>
                             <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                                 <stop offset="0%" stopColor="#FFA726" />
@@ -240,14 +241,15 @@ const LandingPage = () => {
                     </svg>
                 </div>
 
-                {/* Timeline List */}
-                <div className="space-y-4">
+                {/* Timeline List - Compact */}
+                <div className="space-y-2 w-full">
                     <TimelineItem
                         isCompleted={true}
                         text={t('today_val')}
                         color="bg-white border-[#81C784]"
                         iconColor="text-[#81C784]"
                         icon={faCheckCircle}
+                        compact={true}
                     />
                     <TimelineItem
                         isCompleted={false}
@@ -256,6 +258,7 @@ const LandingPage = () => {
                         color="bg-white border-[#E68A00]/40"
                         iconColor="text-[#E68A00]"
                         icon={faGift}
+                        compact={true}
                     />
                     <TimelineItem
                         isCompleted={false}
@@ -263,6 +266,7 @@ const LandingPage = () => {
                         color="bg-white/40 border-[#4E342E]/10"
                         iconColor="text-[#4E342E]/30"
                         icon={faGift}
+                        compact={true}
                     />
                     <TimelineItem
                         isCompleted={false}
@@ -270,10 +274,11 @@ const LandingPage = () => {
                         color="bg-white/40 border-[#4E342E]/10"
                         iconColor="text-[#4E342E]/30"
                         icon={faGift}
+                        compact={true}
                     />
                 </div>
 
-                <p className="text-center text-xs font-bold opacity-40 mt-8 max-w-[240px] mx-auto leading-relaxed uppercase tracking-wider">
+                <p className="text-center text-[10px] font-bold opacity-40 mt-4 max-w-[240px] mx-auto leading-relaxed uppercase tracking-wider">
                     {t('footer_motivation')}
                 </p>
             </div>
@@ -281,29 +286,45 @@ const LandingPage = () => {
             {/* Sticky CTA */}
             <div className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-[#FFF8E1] via-[#FFF8E1] to-transparent pb-8">
                 <button
-                    onClick={() => navigate('/activate', { state: { discount, guestName, userRole } })}
+                    onClick={() => {
+                        if (guestName) {
+                            // If guest is recognized, skip input screen and go straight to reward
+                            navigate('/thank-you', {
+                                state: {
+                                    guestName,
+                                    guestEmail: localStorage.getItem('guestEmail'),
+                                    discountValue: discount,
+                                    venueId: localStorage.getItem('currentVenueId'),
+                                    userRole
+                                }
+                            });
+                        } else {
+                            // New guest -> Capture details
+                            navigate('/activate', { state: { discount, guestName, userRole } });
+                        }
+                    }}
                     className="w-full h-[64px] bg-[#E68A00] text-white rounded-[20px] font-black text-[18px] active:scale-[0.98] transition-all shadow-xl shadow-[#E68A00]/30 uppercase flex items-center justify-center gap-3"
                 >
                     <FontAwesomeIcon icon={faRocket} />
-                    {t('get_my_discount')}
+                    {guestName ? t('get_my_reward', 'Get My Reward') : t('get_my_discount')}
                 </button>
             </div>
         </div >
     );
 };
 
-const TimelineItem = ({ isCompleted, text, isNext, color, iconColor, icon }) => {
+const TimelineItem = ({ isCompleted, text, isNext, color, iconColor, icon, compact }) => {
     return (
         <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all ${color} ${isNext ? 'shadow-xl shadow-[#E68A00]/10 scale-[1.02]' : ''}`}
+            className={`flex items-center gap-3 ${compact ? 'p-3' : 'p-4'} rounded-xl border-2 transition-all ${color} ${isNext ? 'shadow-xl shadow-[#E68A00]/10 scale-[1.01]' : ''}`}
         >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isCompleted ? 'bg-[#81C784]' : 'bg-[#4E342E]/5'}`}>
-                <FontAwesomeIcon icon={icon || (isCompleted ? faCheckCircle : faGift)} className={`${isCompleted ? 'text-white' : iconColor} text-sm`} />
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center ${isCompleted ? 'bg-[#81C784]' : 'bg-[#4E342E]/5'}`}>
+                <FontAwesomeIcon icon={icon || (isCompleted ? faCheckCircle : faGift)} className={`${isCompleted ? 'text-white' : iconColor} text-xs`} />
             </div>
-            <span className={`font-bold text-lg ${isNext ? 'text-[#4E342E]' : 'text-[#4E342E]/70'}`}>
+            <span className={`font-bold ${compact ? 'text-sm' : 'text-lg'} ${isNext ? 'text-[#4E342E]' : 'text-[#4E342E]/70'}`}>
                 {text}
             </span>
         </motion.div>
