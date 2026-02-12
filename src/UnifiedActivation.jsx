@@ -67,9 +67,6 @@ const UnifiedActivation = () => {
 
             {/* Header / Nav */}
             <div className="pt-8 px-6 flex justify-between items-center z-10">
-                <button onClick={() => navigate('/qr')} className="opacity-60 hover:opacity-100 transition-opacity">
-                    <span className="font-bold text-sm tracking-widest uppercase">Close</span>
-                </button>
                 <div className="flex items-center gap-2 bg-white/60 px-3 py-1.5 rounded-full backdrop-blur-sm">
                     <FontAwesomeIcon icon={faUser} className="text-xs" />
                     <span className="text-xs font-bold uppercase tracking-wide">{guestName}</span>
