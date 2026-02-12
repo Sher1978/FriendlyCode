@@ -320,7 +320,6 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                                   }
                                 ),
                               ),
-                            ),
                             const SizedBox(height: 16),
                             const Text("This QR code leads to your guest portal. Print it and place it on tables.", textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.body)),
                             const SizedBox(height: 24),

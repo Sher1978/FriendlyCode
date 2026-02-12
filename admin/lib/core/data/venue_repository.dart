@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/models/venue_model.dart';
+import '../../core/models/venue_request_model.dart';
 import 'package:flutter/foundation.dart';
 
 class VenueRepository {
@@ -56,6 +57,9 @@ class VenueRepository {
     } catch (e) {
       debugPrint("Error updating venue: $e");
       rethrow;
+    }
+  }
+
   /// Delete a venue
   Future<void> deleteVenue(String venueId) async {
     try {

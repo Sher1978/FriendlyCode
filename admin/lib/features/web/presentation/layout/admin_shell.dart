@@ -255,7 +255,7 @@ class _AdminShellState extends State<AdminShell> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    widget.role == UserRole.superAdmin ? "Super Admin" : userEmail,
+                    userEmail,
                     style: const TextStyle(
                       color: AppColors.title,
                       fontWeight: FontWeight.w700,
