@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../features/auth/presentation/screens/join_venue_screen.dart';
 import '../../features/owner/presentation/screens/owner_dashboard_screen.dart';
 import '../../features/guest/presentation/screens/landing_screen.dart';
 import '../../features/web/presentation/pages/b2c_home_screen.dart';
@@ -63,10 +62,7 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
   }
 
   void _navigateToJoin() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const JoinVenueScreen()),
-    );
+    Navigator.pushReplacementNamed(context, '/login');
   }
 
   void _navigateToDashboard() {

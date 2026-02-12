@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/models/venue_model.dart';
-import '../../core/models/venue_request_model.dart';
 import 'package:flutter/foundation.dart';
 
 class VenueRepository {
@@ -68,23 +67,5 @@ class VenueRepository {
       debugPrint("Error deleting venue: $e");
       rethrow;
     }
-  }
-
-  // Search venues by name (case-insensitive simulation)
-  Future<List<VenueModel>> searchVenues(String query) async {
-    final snapshot = await _firestore
-        .collection('venues')
-        .where('name', isGreaterThanOrEqualTo: query)
-        .where('name', isLessThan: query + 'z')
-        .where('isActive', isEqualTo: true)
-        .limit(10)
-        .get();
-
-    return snapshot.docs.map((doc) => VenueModel.fromMap(doc.id, doc.data())).toList();
-  }
-
-  // Create a join request
-  Future<void> createJoinRequest(VenueRequestModel request) async {
-    await _firestore.collection('venue_requests').add(request.toMap());
   }
 }
