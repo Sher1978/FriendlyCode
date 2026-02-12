@@ -106,6 +106,8 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
         ],
       ),
     );
+  }
+
   Future<void> _connectTelegram() async {
     try {
       setState(() => _isLoading = true);

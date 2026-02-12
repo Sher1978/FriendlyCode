@@ -59,17 +59,18 @@ class AuthService {
         );
 
         final UserCredential userCredential = await _auth.signInWithCredential(credential);
-      if (userCredential.user != null) {
-        // Save FCM Token
-        final token = await FCMService().getToken();
-        if (token != null) {
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userCredential.user!.uid)
-              .set({'fcmToken': token}, SetOptions(merge: true));
+        if (userCredential.user != null) {
+          // Save FCM Token
+          final token = await FCMService().getToken();
+          if (token != null) {
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(userCredential.user!.uid)
+                .set({'fcmToken': token}, SetOptions(merge: true));
+          }
         }
+        return userCredential.user;
       }
-      return userCredential.user;
     } catch (e) {
       print("Error signing in with Google: $e");
       rethrow;
