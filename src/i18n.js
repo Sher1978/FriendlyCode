@@ -58,7 +58,48 @@ const resources = {
             "path_grow_title": "Grow",
             "path_grow_desc": "Every scan is a step towards Super VIP status. The system remembers everything.",
             "path_enjoy_title": "Enjoy",
-            "path_enjoy_desc": "Show your screen to the waiter and get perks. Your loyalty is your main bonus."
+            "path_enjoy_desc": "Show your screen to the waiter and get perks. Your loyalty is your main bonus.",
+
+            // --- B2B CONTENT ---
+            "b2b_nav_join": "JOIN AS PARTNER",
+            "b2b_hero_h1": "Attract a guest — expensive. Retain — priceless.",
+            "b2b_hero_sub_new": "The only \"smart\" loyalty system that increases venue profit by 25%. We turn passers-by into Super VIP clients in 24 hours. No app development. No plastic. No effort.",
+            "b2b_hero_cta_new": "🚀 Submit a request (Demo)",
+            "b2b_leaky_bucket_h2": "The \"Leaky Bucket\" Block (Economy of Loss)",
+            "b2b_leaky_bucket_intro": "Why do you lose up to 83% of first-time guests? Classic loyalty programs are hopelessly outdated. They don't work because people don't want to wait. You're losing money.",
+            "b2b_leaky_bucket_fact": "Crucial Fact: Acquiring a new customer costs 7x more than retaining an existing one. Your budget goes into a \"leaky bucket\" if the guest doesn't return.",
+            "b2b_problem_aggregators_title": "📉 Discount Aggregators",
+            "b2b_problem_aggregators_desc": "Bring \"one-time\" clients. You give away margin and work at a loss.",
+            "b2b_problem_app_title": "📱 Own App ($20,000+)",
+            "b2b_problem_app_desc": "Expensive, complex, nobody downloads. Budget wasted.",
+            "b2b_problem_plastic_title": "🃏 Plastic & Questionnaires",
+            "b2b_problem_plastic_desc": "Cards get lost, forms aren't filled. You don't know your guest.",
+            "b2b_simplicity_h2": "Logic any guest will understand",
+            "b2b_simplicity_intro": "The concept is simple: the maximum reward goes to those who visit most often.",
+            "b2b_simplicity_daily": "Visit daily — your reward is always maximized.",
+            "b2b_simplicity_rare": "Visit less — the reward gradually decreases.",
+            "b2b_simplicity_footer": "It's fair, transparent, and motivates guests to choose you over competitors.",
+            "b2b_formula_h2": "Profit Growth Formula +25% (Our Solution)",
+            "b2b_formula_intro": "We rewrote the rules. We use the psychology of instant gratification to ensure your guest returns.",
+            "b2b_formula_pillar1_title": "Smart \"Come Tomorrow\" Algorithm",
+            "b2b_formula_pillar1_desc": "Motivates the guest to return tomorrow to keep their Super VIP status. Reduces the visit cycle.",
+            "b2b_formula_pillar2_title": "Zero Friction. 100% Capture",
+            "b2b_formula_pillar2_desc": "10 out of 10 visitors enter your database. Larger base = more returns.",
+            "b2b_formula_pillar3_title": "LTV + ROI",
+            "b2b_formula_pillar3_desc": "Reduced cycle + full base = higher LTV. Net profit increases by 25% without extra marketing spend.",
+            "b2b_benefits_h2": "Your business on autopilot",
+            "b2b_benefit_install_title": "1-Day Installation",
+            "b2b_benefit_install_desc": "No need to change your POS. We integrate in 24 hours.",
+            "b2b_benefit_analytics_title": "Transparent Analytics",
+            "b2b_benefit_analytics_desc": "See every guest and their journey from first visit to Super VIP.",
+            "b2b_benefit_autopilot_title": "Loyalty Autopilot",
+            "b2b_benefit_autopilot_desc": "The system knows when and how to remind the guest about you.",
+            "b2b_final_h2": "Stop working for traffic. Start working for profit.",
+            "b2b_final_sub": "Try Friendly Code today. Guaranteed profit growth.",
+            "b2b_final_cta": "🚀 Launch Pilot & Grow +25% (Free 14 Days)",
+            "b2b_form_city": "City",
+            "b2b_form_phone": "Phone",
+            "b2b_form_email": "Email"
         }
     },
     ru: {
@@ -116,10 +157,54 @@ const resources = {
             "path_grow_title": "Расти",
             "path_grow_desc": "Каждое сканирование — это шаг к статусу Super VIP. Система всё помнит.",
             "path_enjoy_title": "Наслаждайся",
-            "path_enjoy_desc": "Показывай экран официанту и получай привилегии. Твоя лояльность — твой главный бонус."
+            "path_enjoy_desc": "Показывай экран официанту и получай привилегии. Твоя лояльность — твой главный бонус.",
 
+            // --- B2B NEW CONTENT ---
+            "b2b_hero_h1": "Привлечь гостя — дорого. Удержать — бесценно.",
+            "b2b_hero_sub_new": "Единственная «умная» система лояльности, которая увеличивает реальную прибыль заведения на 25%. Мы превращаем прохожих в Super VIP клиентов за 24 часа. Без разработки приложений. Без пластика. Без усилий.",
+            "b2b_hero_cta_new": "🚀 Оставить заявку на подключение (Демо)",
 
+            "b2b_leaky_bucket_h2": "Блок «Дырявое ведро» (Экономика потерь)",
+            "b2b_leaky_bucket_intro": "Почему вы теряете до 83% гостей, которые пришли к вам впервые? Классические программы лояльности безнадежно устарели. Они не работают, потому что люди не хотят ждать и усложнять. А вы теряете деньги.",
+            "b2b_leaky_bucket_fact": "Важный факт: Помните, что приводя новых клиентов, вы зарабатываете в 7 раз меньше, чем удерживая старых. Весь ваш рекламный бюджет уходит в «дырявое ведро», если гость не возвращается к вам снова.",
 
+            "b2b_problem_aggregators_title": "📉 Скидочные Агрегаторы",
+            "b2b_problem_aggregators_desc": "Приводят «одноразовых» клиентов. Вы отдаете маржу и работаете в минус.",
+            "b2b_problem_app_title": "📱 Свое Приложение ($20,000+)",
+            "b2b_problem_app_desc": "Дорого, сложно, никто не скачивает. Бюджет слит впустую.",
+            "b2b_problem_plastic_title": "🃏 Пластик и Анкеты",
+            "b2b_problem_plastic_desc": "Карты теряются, анкеты не заполняются. Вы не знаете своего гостя.",
+
+            "b2b_simplicity_h2": "Логика, которую поймет каждый гость",
+            "b2b_simplicity_intro": "Концепция приложения максимально проста: максимальную скидку получают те клиенты, которые ходят чаще всех.",
+            "b2b_simplicity_daily": "Ходишь каждый день — твоя скидка всегда максимальная.",
+            "b2b_simplicity_rare": "Ходишь реже — скидка постепенно уменьшается.",
+            "b2b_simplicity_footer": "Это честно, прозрачно и мотивирует гостей выбирать именно вас среди сотен конкурентов. Вы платите скидкой только за реальную преданность.",
+
+            "b2b_formula_h2": "Формула роста прибыли на 25% (Наше решение)",
+            "b2b_formula_intro": "Мы переписали правила игры. Мы используем психологию быстрого вознаграждения, чтобы ваш гость обязательно вернулся.",
+            "b2b_formula_pillar1_title": "Умный алгоритм «Приди завтра»",
+            "b2b_formula_pillar1_desc": "Система мотивирует гостя зайти завтра, чтобы не потерять статус Super VIP, который он получил сегодня. Это резко сокращает цикл между визитами.",
+            "b2b_formula_pillar2_title": "Zero Friction. 100% охват базы",
+            "b2b_formula_pillar2_desc": "В вашу базу попадают 10 из 10 посетителей. Больше база = больше возвратов.",
+            "b2b_formula_pillar3_title": "LTV + ROI",
+            "b2b_formula_pillar3_desc": "Сокращение цикла визитов и полный охват базы приводит к росту LTV каждого гостя. Ваша чистая прибыль увеличивается до 25% без дополнительных затрат на маркетинг.",
+
+            "b2b_benefits_h2": "Ваш бизнес на автопилоте",
+            "b2b_benefit_install_title": "Установка за 1 день",
+            "b2b_benefit_install_desc": "Не нужно менять кассовое ПО. Мы интегрируемся за 24 часа.",
+            "b2b_benefit_analytics_title": "Прозрачная аналитика",
+            "b2b_benefit_analytics_desc": "Вы видите каждого гостя и его путь от первого визита до статуса Super VIP.",
+            "b2b_benefit_autopilot_title": "Автопилот для лояльности",
+            "b2b_benefit_autopilot_desc": "Система сама знает, когда и как напомнить гостю о вас.",
+
+            "b2b_final_h2": "Хватит работать на трафик. Начните работать на прибыль.",
+            "b2b_final_sub": "Попробуйте технологию Friendly Code сегодня. Подключение за 1 день. Рост прибыли гарантирован.",
+            "b2b_final_cta": "🚀 Запустить Пилот и вырасти на 25% (Бесплатно 14 дней)",
+            "b2b_nav_join": "СТАТЬ ПАРТНЕРОМ",
+            "b2b_form_city": "Город",
+            "b2b_form_phone": "Телефон",
+            "b2b_form_email": "Email"
         }
     }
 };
