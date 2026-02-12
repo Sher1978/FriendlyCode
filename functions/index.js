@@ -98,14 +98,14 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
     if (!snapshot) return;
 
     const visitData = snapshot.data();
-    const { venueId, guestId, discount } = visitData;
+    const { venueId, uid, discountValue, guestName: visitGuestName, guestEmail: visitGuestEmail } = visitData;
 
     try {
         // 1. Get Venue Info (Owner Email, Name)
         const venueDoc = await db.collection("venues").doc(venueId).get();
         if (!venueDoc.exists) return;
         const venueData = venueDoc.data();
-        const ownerEmail = venueData.ownerEmail; // Assuming field exists
+        const ownerEmail = venueData.ownerEmail;
         const venueName = venueData.name || "Default Venue";
 
         if (!ownerEmail) {
@@ -113,11 +113,21 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
             return;
         }
 
-        // 2. Get Guest Info
-        const guestDoc = await db.collection("users").doc(guestId).get();
-        const guestData = guestDoc.exists ? guestDoc.data() : {};
-        const guestName = guestData.name || "A guest";
-        const guestStatus = guestData.status || "Level 1";
+        // 2. Get Guest Info (Fallback to visit data if user doc missing)
+        let guestName = visitGuestName || "A guest";
+        let guestStatus = "Level 1";
+
+        if (uid && uid !== 'anonymous') {
+            const guestDoc = await db.collection("users").doc(uid).get();
+            if (guestDoc.exists) {
+                const guestData = guestDoc.data();
+                guestName = guestData.displayName || guestData.name || guestName;
+                // Simple status logic for now
+                const totalVisits = guestData.totalVisits || 0;
+                if (totalVisits > 10) guestStatus = "Super VIP";
+                else if (totalVisits > 3) guestStatus = "Regular";
+            }
+        }
 
         // 3. Send Email via Resend
         const { data, error } = await resend.emails.send({
@@ -134,21 +144,27 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
                     <h1 style="font-size: 28px; font-weight: 900; margin-bottom: 20px; color: #4E342E; text-align: center;">У вас новый гость!</h1>
                     
                     <p style="font-size: 16px; line-height: 1.6; text-align: center; margin-bottom: 30px;">
-                        Только что в <strong>${venueName}</strong> было зафиксировано новое сканирование QR-кода.
+                        Только что в <strong>${venueName}</strong> было зафиксировано новое сканирование.
                     </p>
                     
                     <div style="background: #ffffff; padding: 24px; border-radius: 20px; border: 1px solid rgba(78, 52, 46, 0.1); margin-bottom: 30px;">
                         <table width="100%" cellpadding="0" cellspacing="0">
                             <tr>
                                 <td style="padding-bottom: 15px;">
-                                    <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Статус гостя</span><br/>
-                                    <span style="font-size: 18px; font-weight: 900; color: #4E342E;">${guestStatus}</span>
+                                    <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Имя гостя</span><br/>
+                                    <span style="font-size: 18px; font-weight: 900; color: #4E342E;">${guestName}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="padding-bottom: 15px;">
+                                    <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Статус</span><br/>
+                                    <span style="font-size: 18px; font-weight: 900; color: #4CAF50;">${guestStatus}</span>
                                 </td>
                             </tr>
                             <tr>
                                 <td>
                                     <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Примененная скидка</span><br/>
-                                    <span style="font-size: 24px; font-weight: 900; color: #E68A00;">${discount}%</span>
+                                    <span style="font-size: 24px; font-weight: 900; color: #E68A00;">${discountValue}%</span>
                                 </td>
                             </tr>
                         </table>
@@ -165,10 +181,7 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
             `
         });
 
-        if (error) {
-            throw error;
-        }
-
+        if (error) throw error;
         logger.info(`Email sent to ${ownerEmail} for visit ${event.params.visitId}`);
     } catch (err) {
         logger.error("Failed to send instant notification", err);

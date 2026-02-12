@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLeaf, faCheckCircle, faRocket, faGift } from '@fortawesome/free-solid-svg-icons';
 import { motion } from 'framer-motion';
-import { db } from './firebase';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { db, auth } from './firebase';
+import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
+import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
 const LandingPage = () => {
     const { t } = useTranslation();
@@ -13,71 +14,105 @@ const LandingPage = () => {
     const [status, setStatus] = useState('loading');
     const [discount, setDiscount] = useState(5);
     const [guestName, setGuestName] = useState('');
+    const [userRole, setUserRole] = useState('guest');
 
     const location = useLocation();
 
     useEffect(() => {
-        const checkVisit = async () => {
-            const searchParams = new URLSearchParams(location.search);
-            // Support both 'id' (new) and 'v' (legacy) parameters
-            const venueId = searchParams.get('id') || searchParams.get('v') || 'default_venue';
-            localStorage.setItem('currentVenueId', venueId);
-
-            try {
-                // 1. Check Venue Status (Access Control)
-                const qVenue = query(collection(db, 'venues'), where('__name__', '==', venueId));
-                const venueSnap = await getDocs(qVenue);
-
-                if (venueSnap.empty) {
-                    setStatus('error');
-                    return;
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                try {
+                    await signInAnonymously(auth);
+                } catch (e) {
+                    console.error("Auth failed:", e);
                 }
+                return;
+            }
 
-                const venueData = venueSnap.docs[0].data();
-                const now = new Date();
-                const expiry = venueData.subscription?.expiryDate?.toDate();
+            // User is authenticated (anonymous or otherwise)
+            const checkUserAndVenue = async () => {
+                const searchParams = new URLSearchParams(location.search);
+                const venueId = searchParams.get('id') || searchParams.get('v') || 'default_venue';
+                localStorage.setItem('currentVenueId', venueId);
 
-                if (!venueData.isActive || (expiry && expiry < now)) {
-                    setStatus('blocked');
-                    return;
-                }
+                try {
+                    // 1. Check Venue Status
+                    const venueRef = doc(db, 'venues', venueId);
+                    const venueSnap = await getDoc(venueRef);
 
-                // 2. Check Visit History
-                const savedGuestEmail = localStorage.getItem('guestEmail');
-                const savedGuestName = localStorage.getItem('guestName');
+                    if (!venueSnap.exists()) {
+                        setStatus('error');
+                        return;
+                    }
 
-                if (savedGuestName) setGuestName(savedGuestName);
+                    const venueData = venueSnap.data();
+                    const now = new Date();
+                    const expiry = venueData.subscription?.expiryDate?.toDate();
 
-                let calculatedDiscount = 5; // Base
-                if (savedGuestEmail && savedGuestName) {
-                    const qVisits = query(
-                        collection(db, 'visits'),
-                        where('guestEmail', '==', savedGuestEmail),
-                        where('venueId', '==', venueId),
-                        orderBy('timestamp', 'desc'),
-                        limit(1)
-                    );
-                    const querySnapshot = await getDocs(qVisits);
+                    if (!venueData.isActive || (expiry && expiry < now)) {
+                        setStatus('blocked');
+                        return;
+                    }
 
-                    if (!querySnapshot.empty) {
-                        const lastVisit = querySnapshot.docs[0].data().timestamp.toDate();
-                        const hoursPassed = (now - lastVisit) / (1000 * 60 * 60);
+                    // 2. Check User Data in Firestore for Persistence
+                    const userRef = doc(db, 'users', user.uid);
+                    const userSnap = await getDoc(userRef);
+                    let userData = userSnap.exists() ? userSnap.data() : null;
 
-                        if (hoursPassed <= 24) calculatedDiscount = 20;
-                        else if (hoursPassed <= 36) calculatedDiscount = 15;
-                        else if (hoursPassed <= 240) calculatedDiscount = 10;
+                    if (userData) {
+                        setUserRole(userData.role || 'guest');
+                        if (userData.displayName) {
+                            setGuestName(userData.displayName);
+                            localStorage.setItem('guestName', userData.displayName);
+                            localStorage.setItem('guestEmail', userData.email || '');
+                        }
+                    } else {
+                        // Fallback to localStorage if Firestore doc doesn't exist yet
+                        const savedName = localStorage.getItem('guestName');
+                        if (savedName) setGuestName(savedName);
+                    }
+
+                    // 3. Staff/Admin Recognition Bypass
+                    const role = userData?.role || 'guest';
+                    if (['staff', 'owner', 'superadmin'].includes(role)) {
+                        console.log("Staff detected, bypass enabled");
+                        // We continue to show the page but visit will be marked as test later
+                    }
+
+                    // 4. Calculate Discount
+                    const email = userData?.email || localStorage.getItem('guestEmail');
+                    let calculatedDiscount = 5;
+                    if (email) {
+                        const qVisits = query(
+                            collection(db, 'visits'),
+                            where('guestEmail', '==', email),
+                            where('venueId', '==', venueId),
+                            orderBy('timestamp', 'desc'),
+                            limit(1)
+                        );
+                        const querySnapshot = await getDocs(qVisits);
+
+                        if (!querySnapshot.empty) {
+                            const lastVisit = querySnapshot.docs[0].data().timestamp.toDate();
+                            const hoursPassed = (now - lastVisit) / (1000 * 60 * 60);
+
+                            if (hoursPassed <= 24) calculatedDiscount = 20;
+                            else if (hoursPassed <= 36) calculatedDiscount = 15;
+                            else if (hoursPassed <= 240) calculatedDiscount = 10;
+                        }
                     }
                     setDiscount(calculatedDiscount);
+                    setStatus('first');
 
-                    // If they are already recognized, we stay on this page to show the greeting 
-                    // unless you want to auto-redirect. The user specifically asked for "Имя, мы рады..." on QR screen.
+                } catch (e) {
+                    console.error("Error in checkUserAndVenue:", e);
+                    setStatus('first');
                 }
-            } catch (e) {
-                console.error("Error checking venue status or visit history:", e);
-            }
-            setStatus('first');
-        };
-        checkVisit();
+            };
+            checkUserAndVenue();
+        });
+
+        return () => unsubscribe();
     }, [location]);
 
     if (status === 'loading') return null;
@@ -246,7 +281,7 @@ const LandingPage = () => {
             {/* Sticky CTA */}
             <div className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-[#FFF8E1] via-[#FFF8E1] to-transparent pb-8">
                 <button
-                    onClick={() => navigate('/activate')}
+                    onClick={() => navigate('/activate', { state: { discount, guestName, userRole } })}
                     className="w-full h-[64px] bg-[#E68A00] text-white rounded-[20px] font-black text-[18px] active:scale-[0.98] transition-all shadow-xl shadow-[#E68A00]/30 uppercase flex items-center justify-center gap-3"
                 >
                     <FontAwesomeIcon icon={faRocket} />

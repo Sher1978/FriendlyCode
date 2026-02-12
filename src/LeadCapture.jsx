@@ -4,7 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faEnvelope, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const LeadCapture = () => {
@@ -21,16 +21,29 @@ const LeadCapture = () => {
 
         try {
             const venueId = localStorage.getItem('currentVenueId') || 'unknown';
+            const user = auth.currentUser;
 
-            // Save to Firestore 'leads'
-            await addDoc(collection(db, 'leads'), {
-                name: name.trim(),
-                email: email.trim(),
-                venueId: venueId,
-                timestamp: serverTimestamp(),
-            });
+            if (user) {
+                // 1. Save to users collection for persistence (Zero Friction Logic)
+                const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+                await setDoc(doc(db, 'users', user.uid), {
+                    displayName: name.trim(),
+                    email: email.trim(),
+                    role: 'guest',
+                    updatedAt: serverTimestamp(),
+                }, { merge: true });
 
-            // Save guest data locally for recognition
+                // 2. Also keep the lead entry for marketing tracking
+                await addDoc(collection(db, 'leads'), {
+                    uid: user.uid,
+                    name: name.trim(),
+                    email: email.trim(),
+                    venueId: venueId,
+                    timestamp: serverTimestamp(),
+                });
+            }
+
+            // Save guest data locally for instant recognition
             localStorage.setItem('guestName', name.trim());
             localStorage.setItem('guestEmail', email.trim());
 
@@ -40,12 +53,12 @@ const LeadCapture = () => {
                     guestName: name,
                     guestEmail: email,
                     discountValue: discount,
-                    venueId: venueId
+                    venueId: venueId,
+                    userRole: 'guest'
                 }
             });
         } catch (e) {
-            console.error("Error saving lead:", e);
-            // Fallback to offline/local only for MVP stability if needed
+            console.error("Error saving lead/user:", e);
             localStorage.setItem('guestName', name.trim());
             localStorage.setItem('guestEmail', email.trim());
             navigate('/thank-you', { state: { guestName: name, discountValue: discount } });

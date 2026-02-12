@@ -297,15 +297,14 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                           ),
                           const SizedBox(height: 24),
                         ],
-                        _buildSectionCard(
-                          title: "SYSTEM ACCESS",
-                          children: [
-                            const Text("GUEST QR CODE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.body, letterSpacing: 1.2)),
-                            const SizedBox(height: 16),
-                            Center(
+                          _buildSectionCard(
+                            title: "SYSTEM ACCESS",
+                            children: [
+                              const Text("GUEST QR CODE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.body, letterSpacing: 1.2)),
+                              const SizedBox(height: 16),
+                              Center(
                                 child: Builder(
                                   builder: (context) {
-                                    // Ensure we use the actual ID if editing, or a placeholder if creating
                                     final idToUse = isEditing ? widget.venue!.id : 'NEW_VENUE_ID';
                                     final qrUrl = "https://quickchart.io/qr?text=${Uri.encodeComponent('https://www.friendlycode.fun/qr?id=$idToUse')}&size=300&ecLevel=H";
                                     return Image.network(
@@ -320,24 +319,42 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                                   }
                                 ),
                               ),
-                            const SizedBox(height: 16),
-                            const Text("This QR code leads to your guest portal. Print it and place it on tables.", textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.body)),
-                            const SizedBox(height: 24),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  final url = "https://quickchart.io/qr?text=${Uri.encodeComponent('https://www.friendlycode.fun/qr?id=${widget.venue?.id ?? ''}')}&size=1000&format=png&ecLevel=H";
-                                  url_launcher.launchUrl(Uri.parse(url));
-                                },
-                                icon: const Icon(Icons.download_rounded),
-                                label: const Text("DOWNLOAD (1000px PNG)"),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(color: AppColors.accentOrange),
-                                  foregroundColor: AppColors.accentOrange,
-                                ),
+                              const SizedBox(height: 16),
+                              const Text("This QR code leads to your guest portal. Print it and place it on tables.", textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.body)),
+                              const SizedBox(height: 24),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: () {
+                                        final url = "https://quickchart.io/qr?text=${Uri.encodeComponent('https://www.friendlycode.fun/qr?id=${widget.venue?.id ?? ''}')}&size=1000&format=png&ecLevel=H";
+                                        url_launcher.launchUrl(Uri.parse(url));
+                                      },
+                                      icon: const Icon(Icons.image_outlined, size: 18),
+                                      label: const Text("PNG (1000px)", style: TextStyle(fontSize: 11)),
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(color: AppColors.accentOrange),
+                                        foregroundColor: AppColors.accentOrange,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: () {
+                                        final url = "https://quickchart.io/qr?text=${Uri.encodeComponent('https://www.friendlycode.fun/qr?id=${widget.venue?.id ?? ''}')}&format=svg&ecLevel=H";
+                                        url_launcher.launchUrl(Uri.parse(url));
+                                      },
+                                      icon: const Icon(Icons.vector_square_outlined, size: 18),
+                                      label: const Text("SVG (Vector)", style: TextStyle(fontSize: 11)),
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(color: AppColors.accentOrange),
+                                        foregroundColor: AppColors.accentOrange,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
                             const SizedBox(height: 24),
                             const Divider(),
                             const SizedBox(height: 16),

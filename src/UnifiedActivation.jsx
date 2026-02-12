@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faClock, faUser, faStar, faGift } from '@fortawesome/free-solid-svg-icons';
+import { faClock, faUser, faStar, faGift, faHeart } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { db } from './firebase';
+import { db, auth } from './firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const UnifiedActivation = () => {
@@ -18,7 +18,8 @@ const UnifiedActivation = () => {
 
     // Timer Logic
     const [isClaimed, setIsClaimed] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(300); // 5 minutes in seconds
+    const [isExpired, setIsExpired] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(60); // 60 seconds (Anti-Fraud requirement)
 
     useEffect(() => {
         let interval = null;
@@ -26,25 +27,39 @@ const UnifiedActivation = () => {
             interval = setInterval(() => {
                 setTimeLeft((prevTime) => prevTime - 1);
             }, 1000);
-        } else if (timeLeft === 0) {
+        } else if (timeLeft === 0 && isClaimed) {
             clearInterval(interval);
-            // Handle timer expiration? (Optional: navigate away or show expired message)
+            setIsExpired(true);
         }
         return () => clearInterval(interval);
     }, [isClaimed, timeLeft]);
 
     const formatTime = (seconds) => {
-        const minutes = Math.floor(seconds / 60);
+        const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
-        return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+        return `${secs}s`; // Just show seconds for short timer
     };
 
     const handleClaim = async () => {
         try {
             const venueId = location.state?.venueId || localStorage.getItem('currentVenueId') || 'unknown';
             const guestEmail = location.state?.guestEmail || localStorage.getItem('guestEmail') || 'unknown';
+            const user = auth.currentUser;
+            const role = location.state?.userRole || 'guest';
 
-            // Create notification for owner
+            // 1. Create visit record (Core Logic)
+            await addDoc(collection(db, 'visits'), {
+                uid: user?.uid || 'anonymous',
+                venueId: venueId,
+                guestEmail: guestEmail,
+                guestName: guestName,
+                discountValue: discountValue,
+                timestamp: serverTimestamp(),
+                status: 'pending_validation',
+                is_test: ['staff', 'owner', 'superadmin'].includes(role)
+            });
+
+            // 2. Also keep legacy request for compatibility
             await addDoc(collection(db, 'discount_requests'), {
                 venueId: venueId,
                 guestEmail: guestEmail,
@@ -56,14 +71,43 @@ const UnifiedActivation = () => {
 
             setIsClaimed(true);
         } catch (e) {
-            console.error("Error creating claim request:", e);
-            // Fallback for demo
+            console.error("Error creating visit/claim:", e);
             setIsClaimed(true);
         }
     };
 
+    if (isExpired) {
+        return (
+            <div className="flex flex-col min-h-screen bg-red-50 items-center justify-center p-6 text-center">
+                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6 text-red-500">
+                    <FontAwesomeIcon icon={faClock} size="2x" />
+                </div>
+                <h1 className="text-2xl font-black text-red-900 mb-2 uppercase">{t('reward_expired', 'Expired')}</h1>
+                <p className="text-red-800/60 font-medium">
+                    {t('expired_instruction', 'This reward session has timed out. Please scan the QR code again if you missed it.')}
+                </p>
+                <button
+                    onClick={() => navigate('/qr')}
+                    className="mt-8 px-8 py-3 bg-red-600 text-white font-black rounded-xl uppercase tracking-wider"
+                >
+                    Back to Start
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col min-h-screen bg-[#E8F5E9] font-sans text-[#1B5E20] antialiased overflow-hidden relative">
+            {/* Pulsing Heartbeat (Anti-Fraud) */}
+            {isClaimed && (
+                <motion.div
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.3, 0.1] }}
+                    transition={{ repeat: Infinity, duration: 1 }}
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                >
+                    <FontAwesomeIcon icon={faHeart} className="text-red-500 text-[300px]" />
+                </motion.div>
+            )}
 
             {/* Header / Nav */}
             <div className="pt-8 px-6 flex justify-between items-center z-10">
@@ -137,8 +181,8 @@ const UnifiedActivation = () => {
                                     animate={{ opacity: 1, scale: 1 }}
                                     className="w-full h-full bg-[#E8F5E9] border-2 border-[#2E7D32] text-[#2E7D32] rounded-[20px] flex items-center justify-center gap-4 font-black text-[24px] shadow-inner"
                                 >
-                                    <FontAwesomeIcon icon={faClock} className="animate-pulse" />
-                                    <span className="tabular-nums tracking-widest">{formatTime(timeLeft)}</span>
+                                    <FontAwesomeIcon icon={faHeart} className="text-red-500 animate-ping text-sm" />
+                                    <span className="tabular-nums tracking-widest font-mono">{formatTime(timeLeft)}</span>
                                 </motion.div>
                             )}
                         </AnimatePresence>
