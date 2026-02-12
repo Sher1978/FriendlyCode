@@ -8,7 +8,10 @@ import 'package:friendly_code/features/admin/presentation/screens/venue_editor_s
 import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/marketing_campaign_screen.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
+import 'package:friendly_code/core/models/venue_request_model.dart';
+import 'package:friendly_code/core/data/venue_repository.dart';
 import 'package:friendly_code/core/services/venue_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SuperAdminDashboard extends StatefulWidget {
   const SuperAdminDashboard({super.key});
@@ -35,102 +38,225 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Padding(
-        padding: const EdgeInsets.all(40.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("SYSTEM CONTROL", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)),
-                    const SizedBox(height: 4),
-                    Text("Venue Management", style: Theme.of(context).textTheme.displayLarge),
-                  ],
-                ),
-                Row(
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MarketingCampaignScreen())),
-                      icon: const Icon(Icons.campaign_outlined, size: 20, color: AppColors.accentOrange),
-                      label: const Text("MARKETING CAMPAIGN", style: TextStyle(color: AppColors.accentOrange)),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.accentOrange),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Padding(
+          padding: const EdgeInsets.all(40.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("SYSTEM CONTROL", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)),
+                      const SizedBox(height: 4),
+                      Text("System Management", style: Theme.of(context).textTheme.displayLarge),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MarketingCampaignScreen())),
+                        icon: const Icon(Icons.campaign_outlined, size: 20, color: AppColors.accentOrange),
+                        label: const Text("MARKETING CAMPAIGN", style: TextStyle(color: AppColors.accentOrange)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.accentOrange),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    ElevatedButton.icon(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())),
-                      icon: const Icon(Icons.add, size: 20),
-                      label: const Text("CREATE NEW VENUE"),
-                    ),
+                      const SizedBox(width: 16),
+                      ElevatedButton.icon(
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())),
+                        icon: const Icon(Icons.add, size: 20),
+                        label: const Text("CREATE NEW VENUE"),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // Tabs
+              const TabBar(
+                isScrollable: true,
+                labelColor: AppColors.deepSeaBlue,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: AppColors.accentOrange,
+                tabs: [
+                  Tab(text: "Approved Venues"),
+                  Tab(text: "Pending Requests"),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildVenueList(),
+                    _buildRequestsList(),
                   ],
                 ),
-              ],
-            ),
-            const SizedBox(height: 40),
-
-            // Search Bar
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: AppColors.softShadow,
               ),
-              child: TextField(
-                controller: _searchCtrl,
-                decoration: InputDecoration(
-                  hintText: "Search by name, ID or owner...",
-                  prefixIcon: const Icon(Icons.search, color: AppColors.accentOrange),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                ),
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Metrics Summary (Optional but looks good)
-            Text("Overview", style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 16),
-
-            // Venue List
-            Expanded(
-              child: StreamBuilder<List<VenueModel>>(
-                stream: _venuesService.getAllVenues(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-
-                  final query = _searchCtrl.text.toLowerCase();
-                  final venues = snapshot.data!.where((v) {
-                    return v.name.toLowerCase().contains(query) ||
-                           v.id.toLowerCase().contains(query) ||
-                           (v.ownerEmail ?? '').toLowerCase().contains(query);
-                  }).toList();
-
-                  if (venues.isEmpty) return const Center(child: Text("No venues found."));
-
-                  return ListView.builder(
-                    itemCount: venues.length,
-                    itemBuilder: (context, index) => _buildVenueCard(venues[index]),
-                  );
-                },
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
+
+  Widget _buildVenueList() {
+    return Column(
+      children: [
+        // Search Bar (Only for venues for now)
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: AppColors.softShadow,
+          ),
+          child: TextField(
+            controller: _searchCtrl,
+            decoration: InputDecoration(
+              hintText: "Search by name, ID or owner...",
+              prefixIcon: const Icon(Icons.search, color: AppColors.accentOrange),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            ),
+          ),
+        ),
+        const SizedBox(height: 32),
+        
+        Expanded(
+          child: StreamBuilder<List<VenueModel>>(
+            stream: _venuesService.getAllVenues(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
+              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+              final query = _searchCtrl.text.toLowerCase();
+              final venues = snapshot.data!.where((v) {
+                return v.name.toLowerCase().contains(query) ||
+                       v.id.toLowerCase().contains(query) ||
+                       (v.ownerEmail ?? '').toLowerCase().contains(query);
+              }).toList();
+
+              if (venues.isEmpty) return const Center(child: Text("No venues found."));
+
+              return ListView.builder(
+                itemCount: venues.length,
+                itemBuilder: (context, index) => _buildVenueCard(venues[index]),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- Requests Logic ---
+
+  Widget _buildRequestsList() {
+    return StreamBuilder<List<VenueRequestModel>>(
+      stream: VenueRepository().getAllPendingRequestsStream(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+
+        final requests = snapshot.data!;
+        if (requests.isEmpty) return const Center(child: Text("No pending requests."));
+
+        return ListView.builder(
+          itemCount: requests.length,
+          itemBuilder: (context, index) {
+             final req = requests[index];
+             return Card(
+               margin: const EdgeInsets.only(bottom: 16),
+               child: ListTile(
+                 title: Text(req.type == 'join' ? "Join Request: ${req.targetVenueName}" : "Create Request: ${req.newVenueDetails?['name']}"),
+                 subtitle: Text("User: ${req.userName} (${req.userEmail})\nDate: ${req.createdAt}"),
+                 trailing: Row(
+                   mainAxisSize: MainAxisSize.min,
+                   children: [
+                     IconButton(
+                       icon: const Icon(Icons.check, color: Colors.green),
+                       onPressed: () => _approveRequest(req),
+                     ),
+                     IconButton(
+                       icon: const Icon(Icons.close, color: Colors.red),
+                       onPressed: () => _rejectRequest(req),
+                     ),
+                   ],
+                 ),
+               ),
+             );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _approveRequest(VenueRequestModel req) async {
+    try {
+      if (req.type == 'join') {
+        // Update User
+        await FirebaseFirestore.instance.collection('users').doc(req.userId).update({
+          'venueId': req.targetVenueId,
+          'role': 'staff', // Default to staff for join requests? Or 'owner'? Usually staff.
+        });
+      } else if (req.type == 'create') {
+        // Create Venue
+        final venueRef = FirebaseFirestore.instance.collection('venues').doc();
+        final venue = VenueModel(
+          id: venueRef.id,
+          name: req.newVenueDetails?['name'] ?? 'New Venue',
+          address: req.newVenueDetails?['address'] ?? 'Unknown Address',
+          ownerId: req.userId,
+          ownerEmail: req.userEmail,
+          subscription: SubscriptionModel(
+             plan: 'free', 
+             status: 'active', 
+             startDate: DateTime.now(), 
+             isPaid: false
+          ),
+          isActive: true,
+          createdAt: DateTime.now(), isManuallyBlocked: false,
+        );
+        
+        await venueRef.set(venue.toMap());
+
+        // Update User
+        await FirebaseFirestore.instance.collection('users').doc(req.userId).update({
+           'venueId': venueRef.id,
+           'role': 'owner',
+        });
+      }
+
+      // Update Request Status
+      await VenueRepository().updateRequestStatus(req.id, 'approved');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Request Approved")));
+
+    } catch (e) {
+       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
+  }
+
+  Future<void> _rejectRequest(VenueRequestModel req) async {
+    try {
+      await VenueRepository().updateRequestStatus(req.id, 'rejected');
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Request Rejected")));
+    } catch (e) {
+       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
+  }
+
 
   Widget _buildVenueCard(VenueModel venue) {
     return Container(

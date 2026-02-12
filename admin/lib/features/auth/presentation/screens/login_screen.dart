@@ -68,26 +68,25 @@ class LoginScreen extends StatelessWidget {
                       final user = await authService.signInWithGoogle();
                       
                       if (user != null && context.mounted) {
-                        // Check if user is authorized in Firestore
-                        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+                        // User authenticated successfully
+                        // Logic for new users vs existing users is handled in DispatcherScreen/WelcomeScreen
+                        
+                        // Check if user exists in Firestore, if not create a placeholder
+                        final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+                        final doc = await userRef.get();
                         
                         if (!doc.exists) {
-                          // Unrecognized user
-                          await authService.signOut();
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text("Access denied. Please contact friendlycode@gmail.com for authorization."),
-                                backgroundColor: Colors.redAccent,
-                                duration: Duration(seconds: 10),
-                              ),
-                            );
-                          }
-                          return;
+                          await userRef.set({
+                            'uid': user.uid,
+                            'email': user.email,
+                            'name': user.displayName,
+                            'role': 'user', // Default role
+                            'createdAt': FieldValue.serverTimestamp(),
+                          });
                         }
 
-                        // Navigate to Owner Dashboard on success
-                        Navigator.pushReplacementNamed(context, '/owner');
+                        // Navigate to Dispatcher (which handles routing based on venueId)
+                        Navigator.pushReplacementNamed(context, '/');
                       }
                     } catch (e) {
                       if (context.mounted) {

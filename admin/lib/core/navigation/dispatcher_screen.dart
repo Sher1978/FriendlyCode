@@ -8,6 +8,7 @@ import '../../features/guest/presentation/screens/landing_screen.dart';
 import '../../features/web/presentation/pages/b2c_home_screen.dart';
 import '../../features/web/presentation/pages/platform_landing_screen.dart';
 import '../../features/guest/presentation/screens/success_screen.dart';
+import '../../features/onboarding/presentation/screens/welcome_screen.dart';
 
 class DispatcherScreen extends StatefulWidget {
   const DispatcherScreen({super.key});
@@ -42,15 +43,13 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
               // Assigned to a venue -> Dashboard
               _navigateToDashboard();
            } else {
-             // Not assigned -> Join Screen
-             _navigateToJoin();
+             // Not assigned -> Welcome Screen (Join/Create)
+             _navigateToWelcome();
            }
         } else {
-           // User authenticated but no DB record? Create stub or send to Join?
-           // If they logged in via Admin panel (Google), they might not have a doc yet if we didn't create it.
-           // But our new flow says "creates new user in base". 
-           // Let's send to Join Screen, which is safe.
-           _navigateToJoin();
+           // User authenticated but no DB record (should be rare due to LoginScreen logic)
+           // Send to Welcome Screen to handle init
+           _navigateToWelcome();
         }
       } else {
          // Not logged in
@@ -61,8 +60,11 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
     }
   }
 
-  void _navigateToJoin() {
-    Navigator.pushReplacementNamed(context, '/login');
+  void _navigateToWelcome() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+    );
   }
 
   void _navigateToDashboard() {
