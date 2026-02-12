@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/models/venue_model.dart';
+import '../../../../core/data/venue_repository.dart';
 import '../../../../core/theme/colors.dart';
 
 class VenueDetailView extends StatefulWidget {
