@@ -12,14 +12,58 @@ class VenueDetailView extends StatefulWidget {
 }
 
 class _VenueDetailViewState extends State<VenueDetailView> {
+  final VenueRepository _venueRepo = VenueRepository();
   late bool _isActive;
-  late bool _isPaid;
+  late VenueSubscription _subscription;
 
   @override
   void initState() {
     super.initState();
     _isActive = widget.venue.isActive;
-    _isPaid = widget.venue.subscription.isPaid || (widget.venue.subscription.expiryDate != null && widget.venue.subscription.expiryDate!.isAfter(DateTime.now()));
+    _subscription = widget.venue.subscription;
+  }
+
+  Future<void> _updateStatus(bool val) async {
+    setState(() => _isActive = val);
+    await _venueRepo.updateVenue(widget.venue.id, {'isActive': val});
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Venue ${val ? 'Activated' : 'Frozen'}")));
+  }
+
+  Future<void> _updateSubscription({bool? isPaid, DateTime? expiry}) async {
+    final newSub = VenueSubscription(
+      plan: _subscription.plan,
+      isPaid: isPaid ?? _subscription.isPaid,
+      expiryDate: expiry ?? _subscription.expiryDate,
+    );
+    
+    setState(() => _subscription = newSub);
+    await _venueRepo.updateVenue(widget.venue.id, {'subscription': newSub.toMap()});
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Subscription Updated")));
+  }
+
+  Future<void> _deleteVenue() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Delete Venue?"),
+        content: const Text("This action cannot be undone. All data will be lost."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("CANCEL")),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true), 
+            child: const Text("DELETE", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _venueRepo.deleteVenue(widget.venue.id);
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Venue Deleted")));
+      }
+    }
   }
 
   @override
@@ -69,38 +113,43 @@ class _VenueDetailViewState extends State<VenueDetailView> {
               Text("ADMIN CONTROLS", style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.lime)),
               const SizedBox(height: 16),
 
-              SwitchListTile(
-                title: const Text("Venue Status (Active/Frozen)", style: TextStyle(color: Colors.white)),
-                subtitle: const Text("Deactivate venue if payment fails.", style: TextStyle(color: Colors.white54)),
-                value: _isActive,
-                activeColor: AppColors.lime,
-                onChanged: (val) {
-                  setState(() => _isActive = val);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Venue ${val ? 'Activated' : 'Frozen'}")));
-                },
-              ),
-              const Divider(color: Colors.white10),
-              SwitchListTile(
-                title: const Text("Subscription Payment (Paid/Unpaid)", style: TextStyle(color: Colors.white)),
-                subtitle: const Text("Manual override for payment status.", style: TextStyle(color: Colors.white54)),
-                value: _isPaid,
-                activeColor: Colors.blue,
-                onChanged: (val) {
-                  setState(() => _isPaid = val);
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Payment Status: ${val ? 'PAID' : 'UNPAID'}")));
-                },
-              ),
-              const Divider(color: Colors.white10),
-              ListTile(
-                title: const Text("Subscription Expiry", style: TextStyle(color: Colors.white)),
-                subtitle: Text(
-                  widget.venue.subscription.expiryDate != null 
-                    ? "${widget.venue.subscription.expiryDate!.toLocal()}".split(' ')[0] 
-                    : "No Expiry Set",
-                  style: const TextStyle(color: Colors.white54),
+                SwitchListTile(
+                  title: const Text("Venue Status (Active/Frozen)", style: TextStyle(color: Colors.white)),
+                  subtitle: const Text("Deactivate venue if payment fails.", style: TextStyle(color: Colors.white54)),
+                  value: _isActive,
+                  activeColor: AppColors.lime,
+                  onChanged: _updateStatus,
                 ),
-                trailing: const Icon(Icons.calendar_today, color: Colors.white54),
-              ),
+                const Divider(color: Colors.white10),
+                SwitchListTile(
+                  title: const Text("Subscription Payment (Paid/Unpaid)", style: TextStyle(color: Colors.white)),
+                  subtitle: const Text("Manual override for payment status.", style: TextStyle(color: Colors.white54)),
+                  value: _subscription.isPaid,
+                  activeColor: Colors.blue,
+                  onChanged: (val) => _updateSubscription(isPaid: val),
+                ),
+                const Divider(color: Colors.white10),
+                ListTile(
+                  title: const Text("Subscription Expiry", style: TextStyle(color: Colors.white)),
+                  subtitle: Text(
+                    _subscription.expiryDate != null 
+                      ? "${_subscription.expiryDate!.toLocal()}".split(' ')[0] 
+                      : "No Expiry Set",
+                    style: const TextStyle(color: Colors.white54),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.calendar_today, color: Colors.white54),
+                    onPressed: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: _subscription.expiryDate ?? DateTime.now(),
+                        firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                        lastDate: DateTime.now().add(const Duration(days: 3650)),
+                      );
+                      if (date != null) _updateSubscription(expiry: date);
+                    },
+                  ),
+                ),
 
               const Spacer(),
               
@@ -118,7 +167,7 @@ class _VenueDetailViewState extends State<VenueDetailView> {
                     const Text("Danger Zone", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
                     const Spacer(),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: _deleteVenue,
                       child: const Text("DELETE VENUE", style: TextStyle(color: Colors.red)),
                     ),
                   ],

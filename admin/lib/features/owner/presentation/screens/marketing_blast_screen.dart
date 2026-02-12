@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../../../core/data/venue_repository.dart';
+import 'package:friendly_code/core/widgets/image_upload_widget.dart';
 
 class MarketingBlastScreen extends StatefulWidget {
   final String venueId;
@@ -111,11 +112,9 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
                     maxLines: 4,
                   ),
                   const SizedBox(height: 16),
-                  _buildClassicTextField(
-                    controller: _imageUrlController,
-                    label: "Image URL (Optional)",
-                    hint: "https://example.com/banner.jpg",
-                    icon: Icons.image_outlined,
+                  ImageUploadWidget(
+                    label: "CAMPAIGN IMAGE (OPTIONAL)",
+                    onUploadComplete: (url) => setState(() => _imageUrlController.text = url),
                   ),
                   const SizedBox(height: 16),
                   _buildClassicTextField(

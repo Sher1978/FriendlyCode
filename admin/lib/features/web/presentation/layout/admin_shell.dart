@@ -7,6 +7,7 @@ import 'package:friendly_code/features/owner/presentation/screens/settings_scree
 import 'package:friendly_code/features/owner/presentation/screens/analytics_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/billing_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
+import 'package:friendly_code/core/auth/auth_service.dart';
 
 class AdminShell extends StatefulWidget {
   final Widget child; // Default/Initial screen
@@ -176,6 +177,9 @@ class _AdminShellState extends State<AdminShell> {
   }
 
   Widget _buildHeader() {
+    final currentUser = AuthService().currentUser;
+    final userEmail = currentUser?.email ?? 'Venue Owner';
+
     return Container(
       height: 80,
       padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -210,7 +214,38 @@ class _AdminShellState extends State<AdminShell> {
               ),
             ),
           ),
-          const SizedBox(width: 32),
+          const SizedBox(width: 24),
+
+          // Language Switcher
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.title.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.language, size: 16, color: AppColors.body),
+                const SizedBox(width: 8),
+                DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: 'EN',
+                    items: ['EN', 'RU'].map((lang) => DropdownMenuItem(
+                      value: lang,
+                      child: Text(lang, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    )).toList(),
+                    onChanged: (val) {
+                      // TODO: Implement actual locale switching via Provider
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Switched to $val (UI pending)")));
+                    },
+                    isDense: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 24),
           
           // User Info
           Row(
@@ -220,7 +255,7 @@ class _AdminShellState extends State<AdminShell> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    widget.role == UserRole.superAdmin ? "Super Admin" : "Venue Owner",
+                    widget.role == UserRole.superAdmin ? "Super Admin" : userEmail,
                     style: const TextStyle(
                       color: AppColors.title,
                       fontWeight: FontWeight.w700,
@@ -228,7 +263,7 @@ class _AdminShellState extends State<AdminShell> {
                     ),
                   ),
                   Text(
-                    widget.role == UserRole.superAdmin ? "System Access" : "The Safari Lounge",
+                    widget.role == UserRole.superAdmin ? "System Access" : "Venue Owner",
                     style: const TextStyle(
                       color: AppColors.body,
                       fontSize: 12,

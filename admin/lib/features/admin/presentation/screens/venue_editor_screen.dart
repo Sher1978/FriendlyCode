@@ -8,6 +8,7 @@ import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:provider/provider.dart';
+import 'package:friendly_code/core/widgets/image_upload_widget.dart';
 
 class VenueEditorScreen extends StatefulWidget {
   final VenueModel? venue;
@@ -240,7 +241,11 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                         _buildSectionCard(
                           title: "BRANDING",
                           children: [
-                            _buildTextField(controller: _logoUrlCtrl, label: "Logo URL", icon: Icons.image),
+                            ImageUploadWidget(
+                              label: "VENUE LOGO", 
+                              initialUrl: _logoUrlCtrl.text.isNotEmpty ? _logoUrlCtrl.text : null,
+                              onUploadComplete: (url) => setState(() => _logoUrlCtrl.text = url),
+                            ),
                             const SizedBox(height: 16),
                             _buildTextField(controller: _descCtrl, label: "Description", icon: Icons.description, maxLines: 4),
                           ],

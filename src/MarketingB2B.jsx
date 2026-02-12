@@ -39,7 +39,7 @@ const MarketingB2B = () => {
                     <div className="w-10 h-10 bg-brand-orange rounded-xl flex items-center justify-center text-white rotate-0 group-hover:rotate-12 transition-transform shadow-lg shadow-brand-orange/20">
                         <FontAwesomeIcon icon={faLeaf} />
                     </div>
-                    <span className="font-black text-xl leading-tight uppercase tracking-tighter">FRIENDLY CODE</span>
+                    <span className="font-black text-xl leading-tight uppercase tracking-tighter text-brand-brown">FRIENDLY CODE</span>
                 </div>
 
                 <div className="flex items-center gap-4">
@@ -51,7 +51,7 @@ const MarketingB2B = () => {
                     </button>
                     <button
                         onClick={() => window.location.href = '#footer-form'}
-                        className="hidden md:block px-8 py-3 bg-brand-brown text-white rounded-full font-black text-sm hover:bg-black hover:shadow-xl transition-all active:scale-95"
+                        className="hidden md:block px-8 py-3 bg-brand-brown text-white rounded-full font-black text-sm tracking-wide hover:bg-black hover:shadow-xl transition-all active:scale-95"
                     >
                         {t('b2b_nav_join')}
                     </button>
@@ -59,7 +59,7 @@ const MarketingB2B = () => {
             </nav>
 
             {/* 2. Hero Section */}
-            <section className="relative px-6 py-24 md:py-40 overflow-hidden">
+            <section className="relative px-6 py-24 md:py-32 overflow-hidden">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
                     <motion.div
                         initial={{ opacity: 0, x: -50 }}
@@ -71,16 +71,16 @@ const MarketingB2B = () => {
                             <span className="w-2 h-2 rounded-full bg-brand-orange animate-pulse"></span>
                             Retention-as-a-Service
                         </div>
-                        <h1 className="text-5xl md:text-[5.5rem] font-black leading-[0.95] tracking-tight mb-8">
+                        <h1 className="text-5xl md:text-[5.5rem] font-black leading-[0.95] tracking-tighter mb-8 text-brand-brown">
                             {t('b2b_hero_h1')}
                         </h1>
-                        <p className="text-xl md:text-2xl font-medium opacity-60 leading-relaxed max-w-xl mb-12">
+                        <p className="text-xl md:text-2xl font-medium opacity-70 leading-relaxed max-w-xl mb-12 text-brand-brown">
                             {t('b2b_hero_sub_new')}
                         </p>
                         <div className="flex flex-col sm:flex-row gap-6">
                             <button
                                 onClick={() => window.location.href = '#footer-form'}
-                                className="px-10 py-6 bg-brand-orange text-white rounded-[2rem] font-black text-xl shadow-[0_20px_60px_-15px_rgba(230,138,0,0.4)] hover:shadow-[0_25px_70px_-12px_rgba(230,138,0,0.6)] hover:-translate-y-2 transition-all active:scale-95 flex items-center justify-center gap-3"
+                                className="px-10 py-6 bg-brand-orange text-white rounded-[2rem] font-black text-xl tracking-tight shadow-[0_20px_60px_-15px_rgba(230,138,0,0.4)] hover:shadow-[0_25px_70px_-12px_rgba(230,138,0,0.6)] hover:-translate-y-2 transition-all active:scale-95 flex items-center justify-center gap-3"
                             >
                                 {t('b2b_hero_cta_new')}
                                 <FontAwesomeIcon icon={faArrowRight} className="text-sm opacity-50" />
@@ -89,22 +89,26 @@ const MarketingB2B = () => {
                     </motion.div>
 
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.8, rotate: -5 }}
+                        initial={{ opacity: 0, scale: 0.8, rotate: -3 }}
                         animate={{ opacity: 1, scale: 1, rotate: 0 }}
                         transition={{ duration: 1.2, ease: "easeOut" }}
                         className="relative hidden lg:block"
                     >
-                        <div className="aspect-square bg-gradient-to-br from-brand-brown to-black rounded-[4rem] shadow-2xl relative overflow-hidden group">
-                            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=800')] bg-cover bg-center mix-blend-overlay opacity-60 group-hover:scale-110 transition-transform duration-[2000ms]"></div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
+                        <div className="aspect-[4/5] bg-gradient-to-br from-brand-brown to-black rounded-[4rem] shadow-2xl relative overflow-hidden group border-8 border-white">
+                            <img
+                                src="/hero_pov_v4_no_glare.png"
+                                alt="Happy guest POV"
+                                className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-[2000ms]"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
                             <div className="absolute bottom-12 left-12 right-12 p-8 bg-white/10 backdrop-blur-2xl rounded-[2.5rem] border border-white/20">
                                 <div className="flex items-center gap-4 mb-4">
-                                    <div className="w-12 h-12 bg-brand-orange rounded-full flex items-center justify-center text-white text-xl">
+                                    <div className="w-12 h-12 bg-brand-orange rounded-full flex items-center justify-center text-white text-xl shadow-lg shadow-brand-orange/30">
                                         <FontAwesomeIcon icon={faChartLine} />
                                     </div>
                                     <div>
-                                        <div className="text-white/40 text-[10px] font-black uppercase tracking-widest">Revenue Growth</div>
-                                        <div className="text-white text-3xl font-black">+25%</div>
+                                        <div className="text-white/60 text-[10px] font-black uppercase tracking-widest">Revenue Growth</div>
+                                        <div className="text-white text-3xl font-black tracking-tighter">+25%</div>
                                     </div>
                                 </div>
                             </div>
@@ -116,36 +120,54 @@ const MarketingB2B = () => {
             {/* 3. Leaky Bucket Block */}
             <section className="px-6 py-32 bg-white relative overflow-hidden">
                 <div className="max-w-7xl mx-auto relative z-10">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
-                        <motion.div {...fadeInUp} className="lg:col-span-12 text-center max-w-4xl mx-auto mb-20">
-                            <h2 className="text-4xl md:text-7xl font-black mb-8 leading-tight">{t('b2b_leaky_bucket_h2')}</h2>
-                            <p className="text-xl md:text-2xl opacity-60 leading-relaxed mb-12">{t('b2b_leaky_bucket_intro')}</p>
-                            <div className="inline-flex items-center gap-6 p-8 bg-red-50 rounded-[2.5rem] border border-red-100 text-left">
-                                <div className="w-20 h-20 shrink-0 bg-red-500 rounded-full flex items-center justify-center text-white text-3xl font-black">!</div>
-                                <p className="text-red-900 font-black text-xl leading-tight max-w-xl">{t('b2b_leaky_bucket_fact')}</p>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+                        <motion.div {...fadeInUp} className="lg:col-span-6 text-left">
+                            <h2 className="text-4xl md:text-7xl font-black mb-8 leading-[0.95] tracking-tighter text-brand-brown">{t('b2b_leaky_bucket_h2')}</h2>
+                            <p className="text-xl md:text-2xl opacity-70 leading-relaxed mb-12 font-medium">{t('b2b_leaky_bucket_intro')}</p>
+
+                            <div className="grid grid-cols-1 gap-6 mb-12">
+                                <ProblemCard
+                                    icon={faGlobe}
+                                    title={t('b2b_problem_aggregators_title')}
+                                    desc={t('b2b_problem_aggregators_desc')}
+                                    tag="Margin Killer"
+                                />
+                                <ProblemCard
+                                    icon={faMobileButton}
+                                    title={t('b2b_problem_app_title')}
+                                    desc={t('b2b_problem_app_desc')}
+                                    tag="$20k+ Loss"
+                                />
+                                <ProblemCard
+                                    icon={faIdCard}
+                                    title={t('b2b_problem_plastic_title')}
+                                    desc={t('b2b_problem_plastic_desc')}
+                                    tag="Analog Era"
+                                />
+                            </div>
+
+                            <div className="inline-flex items-center gap-6 p-8 bg-red-50 rounded-[2.5rem] border border-red-100 text-left w-full">
+                                <div className="w-16 h-16 shrink-0 bg-red-500 rounded-full flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-red-500/30">!</div>
+                                <p className="text-red-900 font-black text-lg leading-tight">{t('b2b_leaky_bucket_fact')}</p>
                             </div>
                         </motion.div>
 
-                        <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <ProblemCard
-                                icon={faGlobe}
-                                title={t('b2b_problem_aggregators_title')}
-                                desc={t('b2b_problem_aggregators_desc')}
-                                tag="Margin Killer"
-                            />
-                            <ProblemCard
-                                icon={faMobileButton}
-                                title={t('b2b_problem_app_title')}
-                                desc={t('b2b_problem_app_desc')}
-                                tag="$20k+ Loss"
-                            />
-                            <ProblemCard
-                                icon={faIdCard}
-                                title={t('b2b_problem_plastic_title')}
-                                desc={t('b2b_problem_plastic_desc')}
-                                tag="Analog Era"
-                            />
-                        </div>
+                        <motion.div
+                            initial={{ opacity: 0, x: 50 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 1 }}
+                            className="lg:col-span-6 relative"
+                        >
+                            <div className="aspect-[4/5] rounded-[4rem] overflow-hidden border-8 border-background-cream shadow-2xl relative">
+                                <img
+                                    src="/anti_boring_solution.png"
+                                    alt="Leaky bucket metaphor"
+                                    className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-brand-brown/10 mix-blend-multiply"></div>
+                            </div>
+                        </motion.div>
                     </div>
                 </div>
             </section>
@@ -154,20 +176,20 @@ const MarketingB2B = () => {
             <section className="px-6 py-32 bg-background-cream">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-32 items-center">
                     <motion.div {...fadeInUp}>
-                        <h2 className="text-4xl md:text-6xl font-black mb-12 leading-[1.1]">
+                        <h2 className="text-4xl md:text-6xl font-black mb-12 leading-[1.05] tracking-tighter text-brand-brown">
                             {t('b2b_simplicity_h2')}
                         </h2>
                         <div className="space-y-10">
                             <div className="p-10 bg-white rounded-[3rem] shadow-xl shadow-brand-brown/5 border border-brand-brown/5">
-                                <p className="text-2xl font-bold opacity-80 leading-relaxed italic mb-10">"{t('b2b_simplicity_intro')}"</p>
+                                <p className="text-2xl font-bold opacity-80 leading-relaxed italic mb-10 text-brand-brown">"{t('b2b_simplicity_intro')}"</p>
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-6 group">
                                         <div className="w-16 h-16 rounded-[1.5rem] bg-orange-400/10 flex items-center justify-center text-orange-400 text-2xl group-hover:bg-orange-400 group-hover:text-white transition-all">
                                             <FontAwesomeIcon icon={faBolt} />
                                         </div>
                                         <div>
-                                            <p className="font-black text-xl">{t('b2b_simplicity_daily')}</p>
-                                            <p className="text-sm opacity-40 font-bold uppercase tracking-widest">Super VIP Enabled</p>
+                                            <p className="font-black text-xl tracking-tight">{t('b2b_simplicity_daily')}</p>
+                                            <p className="text-xs opacity-50 font-bold uppercase tracking-widest text-brand-brown">Super VIP Enabled</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-6 grayscale opacity-40 group hover:grayscale-0 hover:opacity-100 transition-all">
@@ -175,25 +197,30 @@ const MarketingB2B = () => {
                                             <FontAwesomeIcon icon={faQrcode} />
                                         </div>
                                         <div>
-                                            <p className="font-bold text-xl">{t('b2b_simplicity_rare')}</p>
-                                            <p className="text-sm font-bold uppercase tracking-widest">Automatic Decay</p>
+                                            <p className="font-bold text-xl tracking-tight">{t('b2b_simplicity_rare')}</p>
+                                            <p className="text-xs font-bold uppercase tracking-widest text-brand-brown">Automatic Decay</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <p className="text-xl opacity-60 leading-relaxed font-black uppercase tracking-tight text-center px-10">
+                            <p className="text-xl opacity-60 leading-relaxed font-black uppercase tracking-tight text-center px-10 text-brand-brown">
                                 {t('b2b_simplicity_footer')}
                             </p>
                         </div>
                     </motion.div>
 
                     <div className="relative">
-                        <div className="bg-brand-brown p-16 rounded-[5rem] shadow-[0_50px_100px_-20px_rgba(78,52,46,0.5)] relative overflow-hidden h-[600px] flex flex-col justify-between">
+                        <div className="bg-brand-brown p-16 rounded-[5rem] shadow-[0_50px_100px_-20px_rgba(78,52,46,0.5)] relative overflow-hidden h-[600px] flex flex-col justify-between border-4 border-white/10">
                             <div className="flex items-end justify-between h-80 gap-6">
                                 <DetailedBar height="40%" label="Day 1" val="5%" color="#E68A0033" />
                                 <DetailedBar height="100%" label="Day 2" val="20%" active color="#E68A00" />
                                 <DetailedBar height="75%" label="Day 5" val="15%" color="#E68A0066" />
                                 <DetailedBar height="55%" label="Day 10" val="10%" color="#E68A0044" />
+                            </div>
+                            <div className="text-center mt-12">
+                                <div className="inline-block px-6 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/60 text-xs font-black uppercase tracking-widest">
+                                    Dynamic Discount Algorithm
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -204,8 +231,8 @@ const MarketingB2B = () => {
             <section className="px-6 py-32 bg-white">
                 <div className="max-w-7xl mx-auto">
                     <motion.div {...fadeInUp} className="text-center mb-24">
-                        <h2 className="text-4xl md:text-7xl font-black mb-8">{t('b2b_formula_h2')}</h2>
-                        <p className="text-xl md:text-2xl opacity-60 max-w-3xl mx-auto leading-relaxed">{t('b2b_formula_intro')}</p>
+                        <h2 className="text-4xl md:text-7xl font-black mb-8 tracking-tighter text-brand-brown">{t('b2b_formula_h2')}</h2>
+                        <p className="text-xl md:text-2xl opacity-60 max-w-3xl mx-auto leading-relaxed font-medium">{t('b2b_formula_intro')}</p>
                     </motion.div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -234,10 +261,16 @@ const MarketingB2B = () => {
                 </div>
             </section>
 
-            {/* 6. Functional Benefits Block */}
-            <section className="px-6 py-40 bg-brand-brown text-white rounded-[4rem] mx-6 my-12 overflow-hidden relative shadow-2xl">
+            {/* 6. Benefits & Social Proof */}
+            <section className="px-6 py-40 bg-brand-brown text-white mx-0 sm:mx-6 sm:rounded-[4rem] my-12 overflow-hidden relative shadow-2xl">
+                {/* Background Image Overlay */}
+                <div className="absolute inset-0 z-0 opacity-20">
+                    <img src="/vip_pov_celebration_final.jpg" alt="Celebration" className="w-full h-full object-cover grayscale" />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-brand-brown via-brand-brown/90 to-brand-brown/80 z-0"></div>
+
                 <div className="max-w-7xl mx-auto relative z-10">
-                    <motion.h2 {...fadeInUp} className="text-4xl md:text-7xl font-black mb-32 text-center leading-tight">
+                    <motion.h2 {...fadeInUp} className="text-4xl md:text-7xl font-black mb-32 text-center leading-tight tracking-tighter">
                         {t('b2b_benefits_h2')}
                     </motion.h2>
 
@@ -266,10 +299,10 @@ const MarketingB2B = () => {
                 <div className="max-w-5xl mx-auto">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
                         <motion.div {...fadeInUp}>
-                            <h2 className="text-4xl md:text-7xl font-black mb-8 leading-[1] tracking-tighter">
+                            <h2 className="text-4xl md:text-7xl font-black mb-8 leading-[1] tracking-tighter text-brand-brown">
                                 {t('b2b_final_h2')}
                             </h2>
-                            <p className="text-xl opacity-60 mb-12 leading-relaxed">
+                            <p className="text-xl opacity-60 mb-12 leading-relaxed font-medium">
                                 {t('b2b_final_sub')}
                             </p>
                         </motion.div>
@@ -286,7 +319,7 @@ const MarketingB2B = () => {
                                         type="text"
                                         required
                                         placeholder={t('b2b_form_city')}
-                                        className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none"
+                                        className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
                                         value={formData.city}
                                         onChange={e => setFormData({ ...formData, city: e.target.value })}
                                     />
@@ -294,7 +327,7 @@ const MarketingB2B = () => {
                                         type="tel"
                                         required
                                         placeholder={t('b2b_form_phone')}
-                                        className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none"
+                                        className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
                                         value={formData.phone}
                                         onChange={e => setFormData({ ...formData, phone: e.target.value })}
                                     />
@@ -302,12 +335,12 @@ const MarketingB2B = () => {
                                         type="email"
                                         required
                                         placeholder={t('b2b_form_email')}
-                                        className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none"
+                                        className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
                                         value={formData.email}
                                         onChange={e => setFormData({ ...formData, email: e.target.value })}
                                     />
                                 </div>
-                                <button className="w-full py-6 bg-brand-orange text-white rounded-[2rem] font-black text-xl hover:scale-[1.02] active:scale-95 transition-all">
+                                <button className="w-full py-6 bg-brand-orange text-white rounded-[2rem] font-black text-xl tracking-wide hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-brand-orange/20">
                                     {t('b2b_final_cta')}
                                 </button>
                             </form>
@@ -320,37 +353,40 @@ const MarketingB2B = () => {
 };
 
 const ProblemCard = ({ icon, title, desc, tag }) => (
-    <div className="p-10 bg-slate-50 rounded-[3rem] border border-brand-brown/5 flex flex-col gap-6 relative">
-        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-3xl shadow-sm">
+    <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-brand-brown/5 flex items-center gap-6 relative group hover:bg-white hover:shadow-lg transition-all">
+        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm text-brand-orange shrink-0 group-hover:scale-110 transition-transform">
             <FontAwesomeIcon icon={icon} />
         </div>
-        <h3 className="text-3xl font-black leading-tight tracking-tighter">{title}</h3>
-        <p className="opacity-60 text-lg leading-relaxed">{desc}</p>
+        <div>
+            <h3 className="text-xl font-black leading-tight tracking-tight text-brand-brown mb-1">{title}</h3>
+            <p className="opacity-60 text-sm leading-relaxed font-medium">{desc}</p>
+        </div>
     </div>
 );
 
 const LargePillarCard = ({ icon, number, title, desc, color }) => (
-    <div className="p-12 bg-white rounded-[4rem] border border-brand-brown/5 flex flex-col gap-10 hover:shadow-2xl transition-all group">
-        <div className="flex justify-between items-start">
+    <div className="p-12 bg-white rounded-[4rem] border border-brand-brown/5 flex flex-col gap-10 hover:shadow-2xl transition-all group relative overflow-hidden">
+        <div className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-5 rounded-bl-[4rem] -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-700`}></div>
+        <div className="flex justify-between items-start z-10">
             <div className={`w-24 h-24 ${color} rounded-[2rem] flex items-center justify-center text-white text-4xl shadow-xl transition-transform group-hover:rotate-6`}>
                 <FontAwesomeIcon icon={icon} />
             </div>
             <span className="text-6xl font-black text-slate-100">{number}</span>
         </div>
-        <div>
-            <h3 className="text-3xl font-black mb-6 leading-tight">{title}</h3>
-            <p className="text-lg opacity-60 leading-relaxed">{desc}</p>
+        <div className="z-10">
+            <h3 className="text-3xl font-black mb-6 leading-tight tracking-tight text-brand-brown">{title}</h3>
+            <p className="text-lg opacity-60 leading-relaxed font-medium">{desc}</p>
         </div>
     </div>
 );
 
 const BigBenefitItem = ({ icon, title, desc }) => (
     <div className="flex flex-col items-center text-center group">
-        <div className="w-24 h-24 rounded-[2rem] bg-white/5 border border-white/10 flex items-center justify-center text-4xl mb-12 text-brand-orange group-hover:bg-brand-orange group-hover:text-white transition-all">
+        <div className="w-24 h-24 rounded-[2rem] bg-white/10 border border-white/10 flex items-center justify-center text-4xl mb-12 text-brand-orange group-hover:bg-brand-orange group-hover:text-white transition-all shadow-2xl">
             <FontAwesomeIcon icon={icon} />
         </div>
-        <h3 className="text-3xl font-black mb-6">{title}</h3>
-        <p className="opacity-40 text-lg leading-relaxed max-w-xs">{desc}</p>
+        <h3 className="text-3xl font-black mb-6 tracking-tight">{title}</h3>
+        <p className="opacity-50 text-lg leading-relaxed max-w-xs font-medium">{desc}</p>
     </div>
 );
 

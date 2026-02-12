@@ -12,6 +12,7 @@ import 'package:friendly_code/features/owner/presentation/screens/marketing_blas
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
+import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/services/notification_service.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
@@ -87,6 +88,16 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           ],
         ),
         actions: [
+          // Language Switcher
+          IconButton(
+            icon: const Icon(Icons.language, color: AppColors.accentOrange),
+            tooltip: "Switch Language",
+            onPressed: () {
+               final provider = Provider.of<LocaleProvider>(context, listen: false);
+               final newLocale = provider.locale.languageCode == 'en' ? const Locale('ru') : const Locale('en');
+               provider.setLocale(newLocale);
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.add_business_outlined, color: AppColors.accentOrange),
             tooltip: "Add Venue",
@@ -147,6 +158,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   }
 
   Widget _buildModernDashboard(BuildContext context, VenueModel venue, AppLocalizations l10n) {
+    final userEmail = AuthService().currentUser?.email ?? 'User';
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -159,7 +172,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Hello, ${(venue.ownerEmail ?? '').split('@').first}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.accentOrange)),
+                  Text("Hello, ${userEmail.split('@').first}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.accentOrange)),
                   const SizedBox(height: 4),
                   Text(venue.name, style: Theme.of(context).textTheme.displayLarge),
                 ],
