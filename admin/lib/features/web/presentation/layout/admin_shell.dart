@@ -6,7 +6,7 @@ import 'package:friendly_code/features/admin/presentation/screens/global_venues_
 import 'package:friendly_code/features/owner/presentation/screens/settings_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/analytics_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/billing_screen.dart';
-import 'package:friendly_code/features/admin/presentation/screens/global_venues_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
 
 class AdminShell extends StatefulWidget {
   final Widget child; // Default/Initial screen
