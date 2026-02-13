@@ -30,22 +30,97 @@ class RoleProvider extends ChangeNotifier {
         
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
-          if (data['role'] == 'superAdmin') {
+          if (data['role'] == 'superAdmin' || user.email == '0451611@gmail.com') {
             _currentRole = UserRole.superAdmin;
+            
+            // Auto-fix Firestore if it's missing the string but email matches
+            if (data['role'] != 'superAdmin') {
+               await docRef.update({'role': 'superAdmin'});
+            }
           } else {
             _currentRole = UserRole.owner;
           }
         } else {
-          // AUTO-CREATE USER RECORD
-          debugPrint("User document missing for ${user.email}. Creating default record...");
-          await docRef.set({
-            'email': user.email,
-            'name': user.displayName ?? '',
-            'role': 'owner',
-            'joinDate': DateTime.now().toIso8601String(),
-            'createdAt': FieldValue.serverTimestamp(),
-          });
-          _currentRole = UserRole.owner;
+          // DOCUMENT DOES NOT EXIST FOR THIS AUTH UID
+          // Check for a pre-existing "stub" account with the same email
+          if (user.email != null && user.email!.isNotEmpty) {
+             final emailSnap = await FirebaseFirestore.instance
+                .collection('users')
+                .where('email', isEqualTo: user.email)
+                .limit(1)
+                .get();
+
+             if (emailSnap.docs.isNotEmpty) {
+               // FOUND DUPLICATE / STUB
+               final stubDoc = emailSnap.docs.first;
+               final stubData = stubDoc.data();
+               final stubId = stubDoc.id;
+               
+               debugPrint("Found existing stub account $stubId for ${user.email}. Merging...");
+
+               // 1. Merge Data (Priority to New Google Auth for Profile, Old Stub for Roles/Venues)
+               final Map<String, dynamic> mergedData = {
+                 ...stubData, // Keep old data (role, venueId, phone, etc.)
+                 'email': user.email, // Ensure email matches auth
+                 'name': user.displayName ?? stubData['name'] ?? '', // Priority to latest (Google), fallback to stub
+                 'photoUrl': user.photoURL ?? stubData['photoUrl'], // Priority to latest
+                 'lastLogin': FieldValue.serverTimestamp(),
+                 'migratedFrom': stubId, // Audit trail
+               };
+
+               // 2. Save to New ID location
+               await docRef.set(mergedData);
+
+               // 3. Migrate Venue Ownership
+               // Find venues owned by the OLD stub ID and update them to the NEW auth ID
+               final venuesOwnedByStub = await FirebaseFirestore.instance
+                   .collection('venues')
+                   .where('ownerId', isEqualTo: stubId)
+                   .get();
+               
+               for (var vDoc in venuesOwnedByStub.docs) {
+                 await vDoc.reference.update({'ownerId': user.uid});
+                 debugPrint("Migrated venue ${vDoc.id} ownership to ${user.uid}");
+               }
+
+               // 4. Delete Old Stub (to prevent future confusion/duplicates)
+               await stubDoc.reference.delete();
+               
+               // 5. Update Local State
+               if (mergedData['role'] == 'superAdmin') {
+                 _currentRole = UserRole.superAdmin;
+               } else {
+                 _currentRole = UserRole.owner;
+               }
+
+             } else {
+               // AUTO-CREATE USER RECORD
+               debugPrint("User document missing for ${user.email}. Creating default record...");
+               
+               // SPECIAL CASE: Promote Founder Email to superAdmin
+               String initialRole = 'owner';
+               if (user.email == '0451611@gmail.com') {
+                 initialRole = 'superAdmin';
+                 debugPrint("Founder email recognized. Assigning superAdmin role.");
+               }
+
+               await docRef.set({
+                 'email': user.email,
+                 'name': user.displayName ?? '',
+                 'role': initialRole,
+                 'joinDate': DateTime.now().toIso8601String(),
+                 'createdAt': FieldValue.serverTimestamp(),
+               });
+               _currentRole = initialRole == 'superAdmin' ? UserRole.superAdmin : UserRole.owner;
+             }
+          } else {
+             // No email? Just create fresh.
+             await docRef.set({
+                'role': 'owner',
+                'createdAt': FieldValue.serverTimestamp(),
+             });
+             _currentRole = UserRole.owner;
+          }
         }
 
         // Fetch all venues for this user

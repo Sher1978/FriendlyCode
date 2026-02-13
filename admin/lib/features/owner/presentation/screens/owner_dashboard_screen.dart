@@ -18,6 +18,9 @@ import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/services/notification_service.dart';
 import 'package:friendly_code/features/owner/presentation/screens/pos_sticker_screen.dart'; // New Import
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
+import 'package:friendly_code/core/services/visit_service.dart';
+import 'package:friendly_code/core/models/visit_model.dart';
+import 'dart:async';
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -31,10 +34,104 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   String? _selectedVenueId;
   bool _isLoadingRole = false;
 
+  }
+
+  // Visit Listener Logic
+  StreamSubscription? _visitSubscription;
+  final VisitsService _visitsService = VisitsService();
+  final Set<String> _processedVisitIds = {}; // Track IDs we've already seen/handled locally to avoid duplicate popups (though status check handles mostly)
+
+  void _subscribeToVisits(String venueId) {
+    _visitSubscription?.cancel();
+    _visitSubscription = _visitsService.getVisitsForVenue(venueId).listen((visits) {
+      // Filter for PENDING VALIDATION
+      // We only want to show popup for 'pending_validation'
+      // We also want to avoid showing it if we just showed it (though if it's still pending, maybe we should?)
+      // Let's assume one at a time for simplicity or show latest.
+      
+      final pendingVisits = visits.where((v) => v.status == 'pending_validation').toList();
+      
+      if (pendingVisits.isNotEmpty) {
+        // Show popup for the MOST RECENT one
+        final latest = pendingVisits.first; // Timestamp descending from service query
+        
+        // If we haven't processed this ID yet, OR it's still pending and we are not showing a dialog (complex to track dialog state, but let's try)
+        // Simple approach: stick to ID tracking.
+        if (!_processedVisitIds.contains(latest.id)) {
+           _processedVisitIds.add(latest.id);
+           if (mounted) {
+             _showRedemptionDialog(latest);
+           }
+        }
+      }
+    });
+  }
+
+  void _showRedemptionDialog(VisitModel visit) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: Colors.white,
+          title: Row(
+            children: [
+              const Icon(Icons.celebration, color: AppColors.premiumBurntOrange),
+              const SizedBox(width: 12),
+              Expanded(child: Text("New Redemption!", style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "${visit.guestName} wants to redeem",
+                style: const TextStyle(fontSize: 16, color: AppColors.body),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "${visit.discountValue}% OFF",
+                style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: AppColors.title),
+              ),
+              const SizedBox(height: 12),
+              const Text("Ensure the bill reflects this discount before approving.", style: TextStyle(fontSize: 12, color: Colors.grey), textAlign: TextAlign.center),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await _visitsService.updateVisitStatus(visit.id, 'rejected');
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: const Text("REJECT", style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                // Update stats logic could be here or cloud function, but let's assume direct update for now
+                await _visitsService.updateVisitStatus(visit.id, 'approved');
+                if (context.mounted) Navigator.pop(context);
+                
+                // Show success snackbar
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                     const SnackBar(content: Text("Discount Approved!"), backgroundColor: Colors.green),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.premiumBurntOrange, foregroundColor: Colors.white),
+              child: const Text("APPROVE"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
-  void initState() {
-    super.initState();
-    _refreshRole();
+  void dispose() {
+    _visitSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _refreshRole() async {
@@ -52,6 +149,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     // Default to first venue if none selected or selection invalid
     if ((_selectedVenueId == null || !venueIds.contains(_selectedVenueId)) && venueIds.isNotEmpty) {
       _selectedVenueId = venueIds.first;
+      // Start listening to the default venue
+      _subscribeToVisits(_selectedVenueId!);
     }
 
     if (_isLoadingRole) {
@@ -177,7 +276,10 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
 
     return PopupMenuButton<String>(
       onSelected: (val) {
-          setState(() => _selectedVenueId = val);
+          setState(() {
+             _selectedVenueId = val;
+             _subscribeToVisits(val); // Update subscription
+          });
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
