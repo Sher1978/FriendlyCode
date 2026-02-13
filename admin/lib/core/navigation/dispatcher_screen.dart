@@ -27,6 +27,16 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
     _checkToken();
     // Initialize FCM without blocking UI
     FCMService().initialize();
+    
+    // Fail-safe: Force loading to false after 8 seconds if nothing else happens
+    Future.delayed(const Duration(seconds: 8), () {
+      if (mounted && _isLoading) {
+        debugPrint("Dispatcher timed out - forcing limits");
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    });
   }
 
   Future<void> _checkToken() async {
