@@ -1,19 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/l10n/app_localizations.dart';
 
 class OwnerAnalyticsScreen extends StatelessWidget {
   const OwnerAnalyticsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("VENUE ANALYTICS", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title)),
-          const Text("Detailed performance of your loyalty program.", style: TextStyle(color: AppColors.body)),
+          Text(l10n.venueAnalytics, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title)),
+          Text(l10n.venueAnalyticsSub, style: const TextStyle(color: AppColors.body)),
           const SizedBox(height: 40),
           
           // KPI Grid
@@ -25,9 +27,9 @@ class OwnerAnalyticsScreen extends StatelessWidget {
             mainAxisSpacing: 24,
             childAspectRatio: 2.5,
             children: [
-              _buildKPICard("TOTAL ACTIVATIONS", "1,248", Icons.bolt, AppColors.accentOrange),
-              _buildKPICard("UNIQUE GUESTS", "856", Icons.people_outline, Colors.blue),
-              _buildKPICard("RETENTION RATE", "18.5%", Icons.loop, Colors.green),
+              _buildKPICard(l10n.totalActivations, "1,248", Icons.bolt, AppColors.accentOrange),
+              _buildKPICard(l10n.uniqueGuests, "856", Icons.people_outline, Colors.blue),
+              _buildKPICard(l10n.retentionRate, "18.5%", Icons.loop, Colors.green),
             ],
           ),
           const SizedBox(height: 32),
@@ -38,16 +40,16 @@ class OwnerAnalyticsScreen extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: _buildChartCard(
-                  "RETENTION TREND", 
-                  "Average return time in hours.",
+                  l10n.retentionTrend, 
+                  l10n.retentionTrendSub,
                   SizedBox(height: 250, child: LineChart(_retentionTrendData)),
                 ),
               ),
               const SizedBox(width: 32),
               Expanded(
                 child: _buildChartCard(
-                  "REWARD USAGE", 
-                  "Which tiers are most popular?",
+                  l10n.rewardUsage, 
+                  l10n.rewardUsageSub,
                   SizedBox(height: 250, child: PieChart(_rewardDistributionData)),
                 ),
               ),

@@ -197,7 +197,7 @@ abstract class AppLocalizations {
   /// No description provided for @expired.
   ///
   /// In en, this message translates to:
-  /// **'Expired (5%)'**
+  /// **'EXPIRED'**
   String get expired;
 
   /// No description provided for @management.
@@ -455,13 +455,13 @@ abstract class AppLocalizations {
   /// No description provided for @guestDatabase.
   ///
   /// In en, this message translates to:
-  /// **'Guest Database'**
+  /// **'GUEST DATABASE'**
   String get guestDatabase;
 
   /// No description provided for @guestDatabaseSub.
   ///
   /// In en, this message translates to:
-  /// **'View your loyal customers'**
+  /// **'List of guests who have interacted with your venue.'**
   String get guestDatabaseSub;
 
   /// No description provided for @staffManagement.
@@ -529,6 +529,582 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'SWITCH VENUE ({count})'**
   String switchVenue(int count);
+
+  /// No description provided for @welcomeBackHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome Back! 🌟\nYour Reward TODAY: {percent}%'**
+  String welcomeBackHeadline(int percent);
+
+  /// No description provided for @welcomeBackSubhead.
+  ///
+  /// In en, this message translates to:
+  /// **'The sooner you return, the bigger the reward.'**
+  String get welcomeBackSubhead;
+
+  /// No description provided for @rewardTodayHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Reward\nTODAY: {percent}%'**
+  String rewardTodayHeadline(int percent);
+
+  /// No description provided for @rewardTodaySubhead.
+  ///
+  /// In en, this message translates to:
+  /// **'Want 20%? Come back tomorrow!'**
+  String get rewardTodaySubhead;
+
+  /// No description provided for @getReward.
+  ///
+  /// In en, this message translates to:
+  /// **'GET REWARD'**
+  String get getReward;
+
+  /// No description provided for @venueNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue Not Found'**
+  String get venueNotFound;
+
+  /// No description provided for @venueNotFoundSub.
+  ///
+  /// In en, this message translates to:
+  /// **'The link you followed seems to be broken or the venue is no longer active.'**
+  String get venueNotFoundSub;
+
+  /// No description provided for @goToHome.
+  ///
+  /// In en, this message translates to:
+  /// **'GO TO HOME'**
+  String get goToHome;
+
+  /// No description provided for @b2bHeadline.
+  ///
+  /// In en, this message translates to:
+  /// **'Loyalty Engine for Modern Hospitality'**
+  String get b2bHeadline;
+
+  /// No description provided for @getTheApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Get the Friendly Code App'**
+  String get getTheApp;
+
+  /// No description provided for @downloadOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Download on'**
+  String get downloadOn;
+
+  /// No description provided for @accessDeniedAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Access Denied: You are not authorized as an Admin.'**
+  String get accessDeniedAdmin;
+
+  /// No description provided for @loginFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Login Failed: {error}'**
+  String loginFailed(String error);
+
+  /// No description provided for @timelineItem.
+  ///
+  /// In en, this message translates to:
+  /// **'{time}: {percent}%'**
+  String timelineItem(String time, int percent);
+
+  /// No description provided for @timelineToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get timelineToday;
+
+  /// No description provided for @timelineTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow'**
+  String get timelineTomorrow;
+
+  /// No description provided for @timelineInDays.
+  ///
+  /// In en, this message translates to:
+  /// **'In {count} Days'**
+  String timelineInDays(int count);
+
+  /// No description provided for @almostThere.
+  ///
+  /// In en, this message translates to:
+  /// **'Almost there!'**
+  String get almostThere;
+
+  /// No description provided for @introduceYourself.
+  ///
+  /// In en, this message translates to:
+  /// **'Please introduce yourself to claim your reward.'**
+  String get introduceYourself;
+
+  /// No description provided for @yourName.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR NAME'**
+  String get yourName;
+
+  /// No description provided for @nameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g., Alex'**
+  String get nameHint;
+
+  /// No description provided for @yourEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR EMAIL'**
+  String get yourEmail;
+
+  /// No description provided for @emailHint.
+  ///
+  /// In en, this message translates to:
+  /// **'name@example.com'**
+  String get emailHint;
+
+  /// No description provided for @thanksForVisiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks for visiting,\n{name}!'**
+  String thanksForVisiting(String name);
+
+  /// No description provided for @specialTreat.
+  ///
+  /// In en, this message translates to:
+  /// **'Here is your special treat.'**
+  String get specialTreat;
+
+  /// No description provided for @currentDiscount.
+  ///
+  /// In en, this message translates to:
+  /// **'CURRENT DISCOUNT'**
+  String get currentDiscount;
+
+  /// No description provided for @offTotalBill.
+  ///
+  /// In en, this message translates to:
+  /// **'OFF TOTAL BILL'**
+  String get offTotalBill;
+
+  /// No description provided for @getMyGift.
+  ///
+  /// In en, this message translates to:
+  /// **'GET MY GIFT'**
+  String get getMyGift;
+
+  /// No description provided for @showStaff.
+  ///
+  /// In en, this message translates to:
+  /// **'Show this screen to the staff\nwhen paying to apply your discount.'**
+  String get showStaff;
+
+  /// No description provided for @tapWhenReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap the button above when\nyou are ready to pay.'**
+  String get tapWhenReady;
+
+  /// No description provided for @marketingAudience.
+  ///
+  /// In en, this message translates to:
+  /// **'Audience Selection'**
+  String get marketingAudience;
+
+  /// No description provided for @marketingAudienceSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose who will receive your message.'**
+  String get marketingAudienceSub;
+
+  /// No description provided for @marketingMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Message Content'**
+  String get marketingMessage;
+
+  /// No description provided for @marketingMessageSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a compelling reason for them to return.'**
+  String get marketingMessageSub;
+
+  /// No description provided for @campaignTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Campaign Title'**
+  String get campaignTitle;
+
+  /// No description provided for @campaignTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekend Brunch 20% Off!'**
+  String get campaignTitleHint;
+
+  /// No description provided for @messageBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Message Body'**
+  String get messageBody;
+
+  /// No description provided for @messageBodyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Hey! We miss you. Show this message for a free coffee with your next meal! ☕'**
+  String get messageBodyHint;
+
+  /// No description provided for @campaignImage.
+  ///
+  /// In en, this message translates to:
+  /// **'CAMPAIGN IMAGE (OPTIONAL)'**
+  String get campaignImage;
+
+  /// No description provided for @actionLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Action Link (Optional)'**
+  String get actionLink;
+
+  /// No description provided for @actionLinkHint.
+  ///
+  /// In en, this message translates to:
+  /// **'https://menu.link/specials'**
+  String get actionLinkHint;
+
+  /// No description provided for @frequencyWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Campaigns are limited to 1 per week to ensure high deliverability.'**
+  String get frequencyWarning;
+
+  /// No description provided for @preparing.
+  ///
+  /// In en, this message translates to:
+  /// **'PREPARING...'**
+  String get preparing;
+
+  /// No description provided for @sendCampaignNow.
+  ///
+  /// In en, this message translates to:
+  /// **'SEND CAMPAIGN NOW'**
+  String get sendCampaignNow;
+
+  /// No description provided for @campaignPerformance.
+  ///
+  /// In en, this message translates to:
+  /// **'CAMPAIGN PERFORMANCE'**
+  String get campaignPerformance;
+
+  /// No description provided for @reachableGuests.
+  ///
+  /// In en, this message translates to:
+  /// **'REACHABLE GUESTS'**
+  String get reachableGuests;
+
+  /// No description provided for @avgOpenRate.
+  ///
+  /// In en, this message translates to:
+  /// **'AVG. OPEN RATE'**
+  String get avgOpenRate;
+
+  /// No description provided for @conversion.
+  ///
+  /// In en, this message translates to:
+  /// **'CONVERSION'**
+  String get conversion;
+
+  /// No description provided for @recentHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'RECENT HISTORY'**
+  String get recentHistory;
+
+  /// No description provided for @yourLoyalGuests.
+  ///
+  /// In en, this message translates to:
+  /// **'YOUR LOYAL GUESTS'**
+  String get yourLoyalGuests;
+
+  /// No description provided for @noGuestsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No guests found yet'**
+  String get noGuestsFound;
+
+  /// No description provided for @noGuestsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Guests will appear here once they scan your QR code.'**
+  String get noGuestsSub;
+
+  /// No description provided for @guestNameCol.
+  ///
+  /// In en, this message translates to:
+  /// **'GUEST NAME'**
+  String get guestNameCol;
+
+  /// No description provided for @contactInfoCol.
+  ///
+  /// In en, this message translates to:
+  /// **'CONTACT info'**
+  String get contactInfoCol;
+
+  /// No description provided for @statusCol.
+  ///
+  /// In en, this message translates to:
+  /// **'STATUS'**
+  String get statusCol;
+
+  /// No description provided for @joinedDateCol.
+  ///
+  /// In en, this message translates to:
+  /// **'JOINED DATE'**
+  String get joinedDateCol;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'SETTINGS'**
+  String get settingsTitle;
+
+  /// No description provided for @settingsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage your account and platform preferences.'**
+  String get settingsSub;
+
+  /// No description provided for @accountProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'ACCOUNT PROFILE'**
+  String get accountProfile;
+
+  /// No description provided for @publicProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'Public Profile'**
+  String get publicProfile;
+
+  /// No description provided for @emailAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Email Address'**
+  String get emailAddress;
+
+  /// No description provided for @connectedVenue.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected Venue'**
+  String get connectedVenue;
+
+  /// No description provided for @notifications.
+  ///
+  /// In en, this message translates to:
+  /// **'NOTIFICATIONS'**
+  String get notifications;
+
+  /// No description provided for @pushNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Push Notifications'**
+  String get pushNotifications;
+
+  /// No description provided for @pushNotificationsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive real-time visit alerts.'**
+  String get pushNotificationsSub;
+
+  /// No description provided for @emailReports.
+  ///
+  /// In en, this message translates to:
+  /// **'Email Reports'**
+  String get emailReports;
+
+  /// No description provided for @emailReportsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly performance summaries.'**
+  String get emailReportsSub;
+
+  /// No description provided for @connectTelegram.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect Telegram'**
+  String get connectTelegram;
+
+  /// No description provided for @connectTelegramSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive instant alerts in Telegram bot.'**
+  String get connectTelegramSub;
+
+  /// No description provided for @localizationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'LOCALIZATION'**
+  String get localizationLabel;
+
+  /// No description provided for @languageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get languageLabel;
+
+  /// No description provided for @timezoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Timezone'**
+  String get timezoneLabel;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'DELETE ACCOUNT'**
+  String get deleteAccount;
+
+  /// No description provided for @venueAnalytics.
+  ///
+  /// In en, this message translates to:
+  /// **'VENUE ANALYTICS'**
+  String get venueAnalytics;
+
+  /// No description provided for @venueAnalyticsSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Detailed performance of your loyalty program.'**
+  String get venueAnalyticsSub;
+
+  /// No description provided for @totalActivations.
+  ///
+  /// In en, this message translates to:
+  /// **'TOTAL ACTIVATIONS'**
+  String get totalActivations;
+
+  /// No description provided for @uniqueGuests.
+  ///
+  /// In en, this message translates to:
+  /// **'UNIQUE GUESTS'**
+  String get uniqueGuests;
+
+  /// No description provided for @retentionRate.
+  ///
+  /// In en, this message translates to:
+  /// **'RETENTION RATE'**
+  String get retentionRate;
+
+  /// No description provided for @retentionTrend.
+  ///
+  /// In en, this message translates to:
+  /// **'RETENTION TREND'**
+  String get retentionTrend;
+
+  /// No description provided for @retentionTrendSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Average return time in hours.'**
+  String get retentionTrendSub;
+
+  /// No description provided for @rewardUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'REWARD USAGE'**
+  String get rewardUsage;
+
+  /// No description provided for @rewardUsageSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Which tiers are most popular?'**
+  String get rewardUsageSub;
+
+  /// No description provided for @billingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'BILLING & SUBSCRIPTION'**
+  String get billingTitle;
+
+  /// No description provided for @billingSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage your payments and plan details.'**
+  String get billingSub;
+
+  /// No description provided for @currentPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'CURRENT PLAN'**
+  String get currentPlan;
+
+  /// No description provided for @proPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'PRO PLAN'**
+  String get proPlan;
+
+  /// No description provided for @nextBillingDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Next billing date: {date}'**
+  String nextBillingDate(String date);
+
+  /// No description provided for @unlimitedVenues.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited Venues'**
+  String get unlimitedVenues;
+
+  /// No description provided for @prioritySupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority SMS/Email Support'**
+  String get prioritySupport;
+
+  /// No description provided for @advancedCrm.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced CRM Tools'**
+  String get advancedCrm;
+
+  /// No description provided for @rawDataExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Raw Data Export'**
+  String get rawDataExport;
+
+  /// No description provided for @paymentMethod.
+  ///
+  /// In en, this message translates to:
+  /// **'PAYMENT METHOD'**
+  String get paymentMethod;
+
+  /// No description provided for @visaEnding.
+  ///
+  /// In en, this message translates to:
+  /// **'Visa ending in {last4}'**
+  String visaEnding(String last4);
+
+  /// No description provided for @expires.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires {date}'**
+  String expires(String date);
+
+  /// No description provided for @editBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'EDIT'**
+  String get editBtn;
+
+  /// No description provided for @billingHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'BILLING HISTORY'**
+  String get billingHistory;
 }
 
 class _AppLocalizationsDelegate

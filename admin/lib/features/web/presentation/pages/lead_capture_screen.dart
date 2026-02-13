@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:friendly_code/l10n/app_localizations.dart';
 import 'thank_you_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -103,7 +104,7 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
 
               // Headlines
               Text(
-                "Almost there!",
+                AppLocalizations.of(context)!.almostThere,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: AppColors.title,
                   fontWeight: FontWeight.w900,
@@ -113,7 +114,7 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                "Please introduce yourself to claim your reward.",
+                AppLocalizations.of(context)!.introduceYourself,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: AppColors.title.withValues(alpha: 0.7),
                   fontSize: 18,
@@ -123,23 +124,23 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
               const SizedBox(height: 48),
 
               // Name Input
-              _buildLabel("YOUR NAME"),
+              _buildLabel(AppLocalizations.of(context)!.yourName),
               const SizedBox(height: 8),
               _buildInput(
                 controller: _nameController,
                 icon: FontAwesomeIcons.user,
-                hint: "e.g., Alex",
+                hint: AppLocalizations.of(context)!.nameHint,
               ),
 
               const SizedBox(height: 24),
 
               // Email Input
-              _buildLabel("YOUR EMAIL"),
+              _buildLabel(AppLocalizations.of(context)!.yourEmail),
               const SizedBox(height: 8),
               _buildInput(
                 controller: _emailController,
                 icon: FontAwesomeIcons.envelope,
-                hint: "name@example.com",
+                hint: AppLocalizations.of(context)!.emailHint,
                 keyboardType: TextInputType.emailAddress,
               ),
 
@@ -166,9 +167,9 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
                           borderRadius: BorderRadius.circular(24),
                         ),
                       ),
-                      child: const Text(
-                        'GET REWARD', 
-                        style: TextStyle(
+                      child: Text(
+                        AppLocalizations.of(context)!.getReward, 
+                        style: const TextStyle(
                           fontSize: 20, 
                           fontWeight: FontWeight.w900,
                           letterSpacing: 1.0,

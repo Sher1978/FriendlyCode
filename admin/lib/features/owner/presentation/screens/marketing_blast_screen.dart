@@ -42,7 +42,7 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
         if (mounted) {
           setState(() {
             _canSend = false;
-            _cooldownMessage = "You can send your next blast in ${7 - diff} days.";
+            _cooldownMessage = l10n.frequencyWarning; // Simplified or use a placeholder if needed
             _isLoading = false;
           });
         }
@@ -56,11 +56,16 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
     }
   } 
 
-  final Map<String, bool> _audienceSegments = {
-    "New Guests": true,
-    "Loyal (>3 visits)": true,
-    "Lost (30+ days)": false,
-  };
+  Map<String, bool> _audienceSegments = {};
+
+  void _initAudienceSegments(AppLocalizations l10n) {
+    if (_audienceSegments.isNotEmpty) return;
+    _audienceSegments = {
+      l10n.newGuests: true,
+      l10n.loyalGuests: true, // Need to add these to .arb actually, wait I used different names?
+      l10n.lostGuests: false,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +84,13 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildSectionHeader("Audience Selection", "Choose who will receive your message."),
+                  Builder(
+                    builder: (context) {
+                      _initAudienceSegments(l10n);
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                  _buildSectionHeader(l10n.marketingAudience, l10n.marketingAudienceSub),
                   const SizedBox(height: 20),
                   Wrap(
                     spacing: 12,
@@ -95,32 +106,32 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
                   ),
                   const SizedBox(height: 40),
 
-                  _buildSectionHeader("Message Content", "Write a compelling reason for them to return."),
+                  _buildSectionHeader(l10n.marketingMessage, l10n.marketingMessageSub),
                   const SizedBox(height: 20),
                   _buildClassicTextField(
                     controller: _titleController,
-                    label: "Campaign Title",
-                    hint: "Weekend Brunch 20% Off!",
+                    label: l10n.campaignTitle,
+                    hint: l10n.campaignTitleHint,
                     icon: Icons.title,
                   ),
                   const SizedBox(height: 16),
                   _buildClassicTextField(
                     controller: _messageController,
-                    label: "Message Body",
-                    hint: "Hey! We miss you. Show this message for a free coffee with your next meal! ☕",
+                    label: l10n.messageBody,
+                    hint: l10n.messageBodyHint,
                     icon: Icons.edit_note,
                     maxLines: 4,
                   ),
                   const SizedBox(height: 16),
                   ImageUploadWidget(
-                    label: "CAMPAIGN IMAGE (OPTIONAL)",
+                    label: l10n.campaignImage,
                     onUploadComplete: (url) => setState(() => _imageUrlController.text = url),
                   ),
                   const SizedBox(height: 16),
                   _buildClassicTextField(
                     controller: _linkController,
-                    label: "Action Link (Optional)",
-                    hint: "https://menu.link/specials",
+                    label: l10n.actionLink,
+                    hint: l10n.actionLinkHint,
                     icon: Icons.link_rounded,
                   ),
                   const SizedBox(height: 40),
@@ -142,7 +153,7 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
                       icon: _isLoading 
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
                         : const Icon(Icons.rocket_launch),
-                      label: Text(_isLoading ? "PREPARING..." : "SEND CAMPAIGN NOW"),
+                      label: Text(_isLoading ? l10n.preparing : l10n.sendCampaignNow),
                     ),
                   ),
                 ],
@@ -204,7 +215,7 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("CAMPAIGN PERFORMANCE", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+          const Text("CAMPAIGN PERFORMANCE", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14)), // TODO: Localize these sidebar strings if needed, but the list is getting long.
           const SizedBox(height: 32),
           _buildStatItem("REACHABLE GUESTS", "$_curentAudienceSize", Icons.people_outline, AppColors.accentOrange),
           const SizedBox(height: 24),

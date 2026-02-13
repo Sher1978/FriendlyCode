@@ -98,5 +98,170 @@
         "type": "int"
       }
     }
-  }
+  },
+  "welcomeBackHeadline": "Welcome Back! 🌟\nYour Reward TODAY: {percent}%",
+  "@welcomeBackHeadline": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "welcomeBackSubhead": "The sooner you return, the bigger the reward.",
+  "rewardTodayHeadline": "Your Reward\nTODAY: {percent}%",
+  "@rewardTodayHeadline": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "rewardTodaySubhead": "Want 20%? Come back tomorrow!",
+  "getReward": "GET REWARD",
+  "venueNotFound": "Venue Not Found",
+  "venueNotFoundSub": "The link you followed seems to be broken or the venue is no longer active.",
+  "goToHome": "GO TO HOME",
+  "b2bHeadline": "Loyalty Engine for Modern Hospitality",
+  "getTheApp": "Get the Friendly Code App",
+  "downloadOn": "Download on",
+  "accessDeniedAdmin": "Access Denied: You are not authorized as an Admin.",
+  "loginFailed": "Login Failed: {error}",
+  "@loginFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "timelineItem": "{time}: {percent}%",
+  "@timelineItem": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "timelineToday": "Today",
+  "timelineTomorrow": "Tomorrow",
+  "timelineInDays": "In {count} Days",
+  "@timelineInDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "almostThere": "Almost there!",
+  "introduceYourself": "Please introduce yourself to claim your reward.",
+  "yourName": "YOUR NAME",
+  "nameHint": "e.g., Alex",
+  "yourEmail": "YOUR EMAIL",
+  "emailHint": "name@example.com",
+  "expired": "EXPIRED",
+  "thanksForVisiting": "Thanks for visiting,\n{name}!",
+  "@thanksForVisiting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "specialTreat": "Here is your special treat.",
+  "currentDiscount": "CURRENT DISCOUNT",
+  "offTotalBill": "OFF TOTAL BILL",
+  "getMyGift": "GET MY GIFT",
+  "showStaff": "Show this screen to the staff\nwhen paying to apply your discount.",
+  "tapWhenReady": "Tap the button above when\nyou are ready to pay.",
+  "marketingAudience": "Audience Selection",
+  "marketingAudienceSub": "Choose who will receive your message.",
+  "marketingMessage": "Message Content",
+  "marketingMessageSub": "Write a compelling reason for them to return.",
+  "campaignTitle": "Campaign Title",
+  "campaignTitleHint": "Weekend Brunch 20% Off!",
+  "messageBody": "Message Body",
+  "messageBodyHint": "Hey! We miss you. Show this message for a free coffee with your next meal! ☕",
+  "campaignImage": "CAMPAIGN IMAGE (OPTIONAL)",
+  "actionLink": "Action Link (Optional)",
+  "actionLinkHint": "https://menu.link/specials",
+  "frequencyWarning": "Campaigns are limited to 1 per week to ensure high deliverability.",
+  "preparing": "PREPARING...",
+  "sendCampaignNow": "SEND CAMPAIGN NOW",
+  "campaignPerformance": "CAMPAIGN PERFORMANCE",
+  "reachableGuests": "REACHABLE GUESTS",
+  "avgOpenRate": "AVG. OPEN RATE",
+  "conversion": "CONVERSION",
+  "recentHistory": "RECENT HISTORY",
+  "guestDatabase": "GUEST DATABASE",
+  "yourLoyalGuests": "YOUR LOYAL GUESTS",
+  "guestDatabaseSub": "List of guests who have interacted with your venue.",
+  "noGuestsFound": "No guests found yet",
+  "noGuestsSub": "Guests will appear here once they scan your QR code.",
+  "guestNameCol": "GUEST NAME",
+  "contactInfoCol": "CONTACT info",
+  "statusCol": "STATUS",
+  "joinedDateCol": "JOINED DATE",
+  "settingsTitle": "SETTINGS",
+  "settingsSub": "Manage your account and platform preferences.",
+  "accountProfile": "ACCOUNT PROFILE",
+  "publicProfile": "Public Profile",
+  "emailAddress": "Email Address",
+  "connectedVenue": "Connected Venue",
+  "notifications": "NOTIFICATIONS",
+  "pushNotifications": "Push Notifications",
+  "pushNotificationsSub": "Receive real-time visit alerts.",
+  "emailReports": "Email Reports",
+  "emailReportsSub": "Weekly performance summaries.",
+  "connectTelegram": "Connect Telegram",
+  "connectTelegramSub": "Receive instant alerts in Telegram bot.",
+  "localizationLabel": "LOCALIZATION",
+  "languageLabel": "Language",
+  "timezoneLabel": "Timezone",
+  "deleteAccount": "DELETE ACCOUNT",
+  "venueAnalytics": "VENUE ANALYTICS",
+  "venueAnalyticsSub": "Detailed performance of your loyalty program.",
+  "totalActivations": "TOTAL ACTIVATIONS",
+  "uniqueGuests": "UNIQUE GUESTS",
+  "retentionRate": "RETENTION RATE",
+  "retentionTrend": "RETENTION TREND",
+  "retentionTrendSub": "Average return time in hours.",
+  "rewardUsage": "REWARD USAGE",
+  "rewardUsageSub": "Which tiers are most popular?",
+  "billingTitle": "BILLING & SUBSCRIPTION",
+  "billingSub": "Manage your payments and plan details.",
+  "currentPlan": "CURRENT PLAN",
+  "proPlan": "PRO PLAN",
+  "nextBillingDate": "Next billing date: {date}",
+  "@nextBillingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "unlimitedVenues": "Unlimited Venues",
+  "prioritySupport": "Priority SMS/Email Support",
+  "advancedCrm": "Advanced CRM Tools",
+  "rawDataExport": "Raw Data Export",
+  "paymentMethod": "PAYMENT METHOD",
+  "visaEnding": "Visa ending in {last4}",
+  "@visaEnding": {
+    "placeholders": {
+      "last4": {
+        "type": "String"
+      }
+    }
+  },
+  "expires": "Expires {date}",
+  "@expires": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "editBtn": "EDIT",
+  "billingHistory": "BILLING HISTORY"
 }

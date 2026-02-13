@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:friendly_code/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -106,7 +107,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
   }
 
   String get _timerString {
-    if (_isExpired) return "EXPIRED";
+    if (_isExpired) return AppLocalizations.of(context)!.expired;
     final mins = (_timeLeft / 60).floor();
     final secs = _timeLeft % 60;
     return '$mins:${secs.toString().padLeft(2, '0')}';
@@ -192,7 +193,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          "Thanks for visiting,\n${widget.guestName}!",
+                          AppLocalizations.of(context)!.thanksForVisiting(widget.guestName),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 28,
@@ -203,7 +204,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          "Here is your special treat.",
+                          AppLocalizations.of(context)!.specialTreat,
                           style: TextStyle(
                             fontSize: 18,
                             color: ThankYouColors.text.withValues(alpha: 0.6),
@@ -226,9 +227,9 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                         ),
                         child: Column(
                           children: [
-                            const Text(
-                              "CURRENT DISCOUNT",
-                              style: TextStyle(
+                            Text(
+                              AppLocalizations.of(context)!.currentDiscount,
+                              style: const TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 2.0,
@@ -246,7 +247,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                               ),
                             ),
                             Text(
-                                "OFF TOTAL BILL",
+                                AppLocalizations.of(context)!.offTotalBill,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -274,9 +275,9 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                                     : const Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Icon(FontAwesomeIcons.gift, size: 24),
-                                          SizedBox(width: 12),
-                                          Text("GET MY GIFT", style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+                                          const Icon(FontAwesomeIcons.gift, size: 24),
+                                          const SizedBox(width: 12),
+                                          Text(AppLocalizations.of(context)!.getMyGift, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
                                         ],
                                       ),
                                 ),
@@ -357,8 +358,8 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                   padding: const EdgeInsets.only(bottom: 32.0),
                   child: Text(
                     _isClaimed 
-                      ? "Show this screen to the staff\nwhen paying to apply your discount."
-                      : "Tap the button above when\nyou are ready to pay.",
+                      ? AppLocalizations.of(context)!.showStaff
+                      : AppLocalizations.of(context)!.tapWhenReady,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,

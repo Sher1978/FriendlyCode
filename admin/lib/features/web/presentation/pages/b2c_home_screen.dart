@@ -10,6 +10,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
+import 'package:friendly_code/l10n/app_localizations.dart';
+import 'package:friendly_code/core/localization/locale_provider.dart';
+import 'package:provider/provider.dart';
 
 class B2CHomeScreen extends StatefulWidget {
   final String? venueId;
@@ -234,12 +237,14 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
     final String headline;
     final String subhead;
 
+    final l10n = AppLocalizations.of(context)!;
+
     if (_status == VisitStatus.recognized || _status == VisitStatus.cooldown) {
-      headline = 'Welcome Back! 🌟\nYour Reward TODAY: $_currentDiscount%';
-      subhead = 'The sooner you return, the bigger the reward.';
+      headline = l10n.welcomeBackHeadline(_currentDiscount);
+      subhead = l10n.welcomeBackSubhead;
     } else {
-      headline = 'Your Reward\nTODAY: $_currentDiscount%';
-      subhead = 'Want 20%? Come back tomorrow!';
+      headline = l10n.rewardTodayHeadline(_currentDiscount);
+      subhead = l10n.rewardTodaySubhead;
     }
 
     return Scaffold(
@@ -329,25 +334,25 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                 child: Column(
                   children: [
                     _TimelineItem(
-                      label: "Today: 5%",
+                      label: l10n.timelineItem(l10n.timelineToday, 5),
                       isActive: _currentDiscount == 5,
                       isFuture: false,
                     ),
                     const SizedBox(height: 12),
                     _TimelineItem(
-                      label: "Tomorrow: 20%",
+                      label: l10n.timelineItem(l10n.timelineTomorrow, 20),
                       isActive: _currentDiscount == 20,
                       isFuture: _currentDiscount < 20 && _status == VisitStatus.first,
                     ),
                     const SizedBox(height: 12),
                     _TimelineItem(
-                      label: "In 3 Days: 15%",
+                      label: l10n.timelineItem(l10n.timelineInDays(3), 15),
                       isActive: _currentDiscount == 15,
                       isFuture: true,
                     ),
                     const SizedBox(height: 12),
                     _TimelineItem(
-                      label: "In 7 Days: 10%",
+                      label: l10n.timelineItem(l10n.timelineInDays(7), 10),
                       isActive: _currentDiscount == 10,
                       isFuture: true,
                     ),
@@ -379,8 +384,8 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                       Icon(FontAwesomeIcons.gift, size: 20),
                       SizedBox(width: 12),
                       Text(
-                        'GET REWARD',
-                        style: TextStyle(
+                        l10n.getReward,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 0.5,
@@ -449,7 +454,8 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Stack(
+      alignment: Alignment.center,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -468,6 +474,26 @@ class _Header extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        Positioned(
+          right: 0,
+          child: Consumer<LocaleProvider>(
+            builder: (context, provider, child) {
+              final isEn = provider.locale.languageCode == 'en';
+              return TextButton(
+                onPressed: () => provider.toggleLocale(),
+                style: TextButton.styleFrom(
+                  minimumSize: Size.zero,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  foregroundColor: AppColors.title,
+                ),
+                child: Text(
+                  isEn ? "RU" : "EN",
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+              );
+            },
+          ),
         ),
       ],
     );
@@ -650,17 +676,17 @@ extension on _B2CHomeScreenState {
               const Icon(FontAwesomeIcons.circleExclamation, size: 80, color: AppColors.premiumBurntOrange),
               const SizedBox(height: 32),
               Text(
-                "Venue Not Found",
+                l10n.venueNotFound,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: AppColors.premiumBurntOrange,
                   fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                "The link you followed seems to be broken or the venue is no longer active.",
+              Text(
+                l10n.venueNotFoundSub,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.body, fontSize: 16),
+                style: const TextStyle(color: AppColors.body, fontSize: 16),
               ),
               const SizedBox(height: 48),
               SizedBox(
@@ -672,7 +698,7 @@ extension on _B2CHomeScreenState {
                     backgroundColor: AppColors.title,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: const Text("GO TO HOME", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: Text(l10n.goToHome, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],

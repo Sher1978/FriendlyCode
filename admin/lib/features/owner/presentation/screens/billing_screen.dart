@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/l10n/app_localizations.dart';
 
 class OwnerBillingScreen extends StatelessWidget {
   const OwnerBillingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("BILLING & SUBSCRIPTION", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title)),
-          const Text("Manage your payments and plan details.", style: TextStyle(color: AppColors.body)),
+          Text(l10n.billingTitle, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title)),
+          Text(l10n.billingSub, style: const TextStyle(color: AppColors.body)),
           const SizedBox(height: 48),
 
           Row(
@@ -21,25 +22,25 @@ class OwnerBillingScreen extends StatelessWidget {
               // Current Plan Card
               Expanded(
                 child: _buildBillingCard(
-                  title: "CURRENT PLAN",
+                  title: l10n.currentPlan,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(color: AppColors.accentOrange, borderRadius: BorderRadius.circular(20)),
-                        child: const Text("PRO PLAN", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
+                        child: Text(l10n.proPlan, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
                       ),
                       const SizedBox(height: 24),
                       const Text("\$49.00 / month", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.title)),
-                      const Text("Next billing date: March 12, 2026", style: TextStyle(color: AppColors.body)),
+                      Text(l10n.nextBillingDate("March 12, 2026"), style: const TextStyle(color: AppColors.body)),
                       const SizedBox(height: 32),
                       const Divider(),
                       const SizedBox(height: 24),
-                      _buildFeatureRow("Unlimited Venues"),
-                      _buildFeatureRow("Priority SMS/Email Support"),
-                      _buildFeatureRow("Advanced CRM Tools"),
-                      _buildFeatureRow("Raw Data Export"),
+                      _buildFeatureRow(l10n.unlimitedVenues),
+                      _buildFeatureRow(l10n.prioritySupport),
+                      _buildFeatureRow(l10n.advancedCrm),
+                      _buildFeatureRow(l10n.rawDataExport),
                     ],
                   ),
                 ),
@@ -50,7 +51,7 @@ class OwnerBillingScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     _buildBillingCard(
-                      title: "PAYMENT METHOD",
+                      title: l10n.paymentMethod,
                       child: Column(
                         children: [
                           Row(
@@ -59,13 +60,13 @@ class OwnerBillingScreen extends StatelessWidget {
                               const SizedBox(width: 16),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
-                                children: const [
-                                  Text("Visa ending in 4242", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.title)),
-                                  Text("Expires 12/28", style: TextStyle(color: AppColors.body, fontSize: 12)),
+                                children: [
+                                  Text(l10n.visaEnding("4242"), style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.title)),
+                                  Text(l10n.expires("12/28"), style: const TextStyle(color: AppColors.body, fontSize: 12)),
                                 ],
                               ),
                               const Spacer(),
-                              TextButton(onPressed: () {}, child: const Text("EDIT")),
+                              TextButton(onPressed: () {}, child: Text(l10n.editBtn)),
                             ],
                           ),
                         ],
@@ -73,7 +74,7 @@ class OwnerBillingScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
                     _buildBillingCard(
-                      title: "BILLING HISTORY",
+                      title: l10n.billingHistory,
                       child: Column(
                         children: [
                           _buildHistoryRow("FEB 12, 2026", "\$49.00", "ST-4921-23"),

@@ -20,7 +20,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text("GUEST DATABASE", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+        title: Text(AppLocalizations.of(context)!.guestDatabase, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColors.title),
@@ -30,13 +30,13 @@ class _GuestListScreenState extends State<GuestListScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              "YOUR LOYAL GUESTS",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title),
+            Text(
+              AppLocalizations.of(context)!.yourLoyalGuests,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title),
             ),
             const SizedBox(height: 8),
             Text(
-              "List of guests who have interacted with your venue.",
+              AppLocalizations.of(context)!.guestDatabaseSub,
               style: TextStyle(color: AppColors.body.withOpacity(0.7)),
             ),
             const SizedBox(height: 32),
@@ -74,11 +74,11 @@ class _GuestListScreenState extends State<GuestListScreen> {
           Icon(Icons.people_outline, size: 64, color: AppColors.body.withOpacity(0.3)),
           const SizedBox(height: 16),
           Text(
-            "No guests found yet",
+            AppLocalizations.of(context)!.noGuestsFound,
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.body.withOpacity(0.5)),
           ),
           const SizedBox(height: 8),
-          const Text("Guests will appear here once they scan your QR code."),
+          Text(AppLocalizations.of(context)!.noGuestsSub),
         ],
       ),
     );
@@ -97,11 +97,11 @@ class _GuestListScreenState extends State<GuestListScreen> {
           child: DataTable(
             headingRowColor: MaterialStateProperty.all(AppColors.background.withOpacity(0.5)),
             dataRowHeight: 72,
-            columns: const [
-              DataColumn(label: Text("GUEST NAME", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12))),
-              DataColumn(label: Text("CONTACT info", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12))),
-              DataColumn(label: Text("STATUS", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12))),
-              DataColumn(label: Text("JOINED DATE", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12))),
+            columns: [
+              DataColumn(label: Text(AppLocalizations.of(context)!.guestNameCol, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12))),
+              DataColumn(label: Text(AppLocalizations.of(context)!.contactInfoCol, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12))),
+              DataColumn(label: Text(AppLocalizations.of(context)!.statusCol, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12))),
+              DataColumn(label: Text(AppLocalizations.of(context)!.joinedDateCol, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12))),
             ],
             rows: guests.map((guest) {
               return DataRow(cells: [

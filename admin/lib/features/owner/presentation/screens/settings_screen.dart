@@ -7,7 +7,9 @@ import 'package:friendly_code/core/data/venue_repository.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:friendly_code/l10n/app_localizations.dart';
+import 'package:friendly_code/core/localization/locale_provider.dart';
+import 'package:provider/provider.dart';
 
 class GeneralSettingsScreen extends StatefulWidget {
   const GeneralSettingsScreen({super.key});
@@ -135,23 +137,24 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) return const Center(child: CircularProgressIndicator());
 
+    final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("SETTINGS", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title)),
-          const Text("Manage your account and platform preferences.", style: TextStyle(color: AppColors.body)),
+          Text(l10n.settingsTitle, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title)),
+          Text(l10n.settingsSub, style: const TextStyle(color: AppColors.body)),
           const SizedBox(height: 48),
 
           _buildSettingsSection(
-            "ACCOUNT PROFILE",
+            l10n.accountProfile,
             [
-              _buildSettingTile(Icons.person_outline, "Public Profile", _currentUser?.displayName ?? "Not Set", onTap: _updateName),
-              _buildSettingTile(Icons.email_outlined, "Email Address", _currentUser?.email ?? "Not Set", onTap: _updateEmail),
+              _buildSettingTile(Icons.person_outline, l10n.publicProfile, _currentUser?.displayName ?? "Not Set", onTap: _updateName),
+              _buildSettingTile(Icons.email_outlined, l10n.emailAddress, _currentUser?.email ?? "Not Set", onTap: _updateEmail),
               _buildSettingTile(
                 Icons.store, 
-                "Connected Venue", 
+                l10n.connectedVenue, 
                 _venue?.name ?? "None Assigned",
                 onTap: _venue != null ? () {
                   // Navigate to Venue Editor
@@ -162,14 +165,14 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
           ),
           const SizedBox(height: 40),
           _buildSettingsSection(
-            "NOTIFICATIONS",
+            l10n.notifications,
             [
-              _buildSwitchTile(Icons.notifications_active_outlined, "Push Notifications", "Receive real-time visit alerts.", true),
-              _buildSwitchTile(Icons.alternate_email, "Email Reports", "Weekly performance summaries.", false),
+              _buildSwitchTile(Icons.notifications_active_outlined, l10n.pushNotifications, l10n.pushNotificationsSub, true),
+              _buildSwitchTile(Icons.alternate_email, l10n.emailReports, l10n.emailReportsSub, false),
               ListTile(
                 leading: const Icon(Icons.telegram, color: Colors.blue),
-                title: const Text("Connect Telegram", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.title)),
-                subtitle: const Text("Receive instant alerts in Telegram bot.", style: TextStyle(fontSize: 12)),
+                title: Text(l10n.connectTelegram, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.title)),
+                subtitle: Text(l10n.connectTelegramSub, style: const TextStyle(fontSize: 12)),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.accentOrange),
                 onTap: _connectTelegram,
               ),
@@ -177,10 +180,20 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
           ),
           const SizedBox(height: 40),
           _buildSettingsSection(
-            "LOCALIZATION",
+            l10n.localizationLabel,
             [
-              _buildSettingTile(Icons.translate, "Language", "English (US)"),
-              _buildSettingTile(Icons.schedule, "Timezone", "Dubai (GMT+4)"),
+              Consumer<LocaleProvider>(
+                builder: (context, provider, child) {
+                  final isEn = provider.locale.languageCode == 'en';
+                  return _buildSettingTile(
+                    Icons.translate, 
+                    l10n.languageLabel, 
+                    isEn ? "English" : "Русский",
+                    onTap: () => provider.toggleLocale(),
+                  );
+                },
+              ),
+              _buildSettingTile(Icons.schedule, l10n.timezoneLabel, "Dubai (GMT+4)"),
             ],
           ),
           const SizedBox(height: 40),
@@ -193,7 +206,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                 foregroundColor: Colors.redAccent,
                 side: const BorderSide(color: Colors.redAccent),
               ),
-              child: const Text("DELETE ACCOUNT"),
+              child: Text(l10n.deleteAccount),
             ),
           ),
         ],

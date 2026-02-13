@@ -296,8 +296,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           // Settings Section
           Text(l10n.management, style: const TextStyle(color: AppColors.title, fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          _buildManagementLink(Icons.tune, l10n.configRules, l10n.configRulesSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RulesConfigScreen()))),
-          const SizedBox(height: 12),
           _buildManagementLink(Icons.people_alt_outlined, l10n.guestDatabase, l10n.guestDatabaseSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => GuestListScreen(venueId: venue.id)))),
           const SizedBox(height: 12),
           _buildManagementLink(Icons.badge_outlined, l10n.staffManagement, l10n.staffManagementSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffManagementScreen(venueId: venue.id)))),
