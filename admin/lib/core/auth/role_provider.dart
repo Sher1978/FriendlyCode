@@ -25,7 +25,12 @@ class RoleProvider extends ChangeNotifier {
     if (user != null) {
       _uid = user.uid;
       try {
-        final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get()
+            .timeout(const Duration(seconds: 5));
+        
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
           if (data['role'] == 'superAdmin') {
@@ -41,7 +46,8 @@ class RoleProvider extends ChangeNotifier {
         final venuesSnap = await FirebaseFirestore.instance
             .collection('venues')
             .where('ownerId', isEqualTo: user.uid)
-            .get();
+            .get()
+            .timeout(const Duration(seconds: 5));
         
         if (venuesSnap.docs.isNotEmpty) {
            _venueIds = venuesSnap.docs.map((doc) => doc.id).toList();
@@ -50,7 +56,8 @@ class RoleProvider extends ChangeNotifier {
            final venuesByEmailSnap = await FirebaseFirestore.instance
               .collection('venues')
               .where('ownerEmail', isEqualTo: user.email)
-              .get();
+              .get()
+              .timeout(const Duration(seconds: 5));
            
            _venueIds = venuesByEmailSnap.docs.map((doc) => doc.id).toList();
         } else {

@@ -34,22 +34,33 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
 
     if (mounted) {
       if (user != null) {
-        // User is logged in, check if they have a venue
-        final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
-        
-        if (userDoc.exists) {
-           final venueId = userDoc.data()?['venueId'];
-           if (venueId != null && (venueId as String).isNotEmpty) {
-              // Assigned to a venue -> Dashboard
-              _navigateToDashboard();
-           } else {
-             // Not assigned -> Welcome Screen (Join/Create)
+        try {
+          // User is logged in, check if they have a venue
+          final userDoc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get()
+              .timeout(const Duration(seconds: 7));
+          
+          if (userDoc.exists) {
+             final venueId = userDoc.data()?['venueId'];
+             if (venueId != null && (venueId as String).isNotEmpty) {
+                // Assigned to a venue -> Dashboard
+                _navigateToDashboard();
+             } else {
+               // Not assigned -> Welcome Screen (Join/Create)
+               _navigateToWelcome();
+             }
+          } else {
+             // User authenticated but no DB record
              _navigateToWelcome();
-           }
-        } else {
-           // User authenticated but no DB record (should be rare due to LoginScreen logic)
-           // Send to Welcome Screen to handle init
-           _navigateToWelcome();
+          }
+        } catch (e) {
+          debugPrint("Dispatcher error: $e");
+          // On error, fall back to landing page to allow re-login if needed
+          setState(() {
+            _isLoading = false;
+          });
         }
       } else {
          // Not logged in
