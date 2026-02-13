@@ -24,21 +24,22 @@
         ],
         "redirects": [
             {
+                "source": "/qr",
+                "destination": "/admin/qr",
+                "type": 301
+            },
+            {
                 "source": "/owner",
-                "destination": "/admin/#/owner",
+                "destination": "/admin/owner",
                 "type": 301
             },
             {
                 "source": "/Superadmin",
-                "destination": "/admin/#/Superadmin",
+                "destination": "/admin/admin",
                 "type": 301
             }
         ],
         "rewrites": [
-            {
-                "source": "/qr",
-                "destination": "/index.html"
-            },
             {
                 "source": "/admin/**",
                 "destination": "/admin/index.html"

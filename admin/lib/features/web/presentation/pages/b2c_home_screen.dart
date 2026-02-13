@@ -6,9 +6,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'lead_capture_screen.dart';
 import 'b2b_landing_screen.dart';
 import 'package:friendly_code/core/logic/reward_calculator.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class B2CHomeScreen extends StatefulWidget {
-  const B2CHomeScreen({super.key});
+  final String? venueId;
+  const B2CHomeScreen({super.key, this.venueId});
 
   @override
   State<B2CHomeScreen> createState() => _B2CHomeScreenState();
@@ -32,6 +34,29 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
     final prefs = await SharedPreferences.getInstance();
     final firstVisitIso = prefs.getString('firstVisitIso');
     _guestName = prefs.getString('guestName');
+    
+    // FETCH VENUE DETAILS
+    String? venueNameFromDb;
+    if (widget.venueId != null) {
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('venues')
+            .doc(widget.venueId)
+            .get()
+            .timeout(const Duration(seconds: 5));
+        
+        if (doc.exists) {
+          venueNameFromDb = doc.data()?['name'];
+          // Store for LeadCapture
+          await prefs.setString('currentVenueId', widget.venueId!);
+          if (venueNameFromDb != null) {
+            await prefs.setString('venueName', venueNameFromDb);
+          }
+        }
+      } catch (e) {
+        debugPrint("Error fetching venue: $e");
+      }
+    }
     
     if (firstVisitIso == null) {
       await prefs.setString('firstVisitIso', DateTime.now().toIso8601String());

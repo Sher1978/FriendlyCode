@@ -14,10 +14,13 @@ import 'core/localization/locale_provider.dart';
 import 'core/auth/role_provider.dart';
 import 'features/web/presentation/layout/admin_shell.dart';
 import 'firebase_options.dart';
+import 'features/web/presentation/pages/b2c_home_screen.dart';
+import 'package:flutter_web_plugins/url_strategy.dart';
 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  usePathUrlStrategy();
   
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -84,6 +87,11 @@ class FriendlyCodeApp extends StatelessWidget {
           ),
         ),
         '/partner': (context) => const B2BLandingScreen(),
+        '/qr': (context) {
+           final uri = Uri.base;
+           final venueId = uri.queryParameters['id'];
+           return B2CHomeScreen(venueId: venueId);
+        },
       },
     );
   }
