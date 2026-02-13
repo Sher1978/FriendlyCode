@@ -38,12 +38,23 @@ class RoleProvider extends ChangeNotifier {
         }
 
         // Fetch all venues for this user
-        final venuesSnap = await FirebaseFirestore.instance
             .collection('venues')
             .where('ownerId', isEqualTo: user.uid)
             .get();
         
-        _venueIds = venuesSnap.docs.map((doc) => doc.id).toList();
+        if (venuesSnap.docs.isNotEmpty) {
+           _venueIds = venuesSnap.docs.map((doc) => doc.id).toList();
+        } else if (user.email != null && user.email!.isNotEmpty) {
+           // Fallback: Check by email
+           final venuesByEmailSnap = await FirebaseFirestore.instance
+              .collection('venues')
+              .where('ownerEmail', isEqualTo: user.email)
+              .get();
+           
+           _venueIds = venuesByEmailSnap.docs.map((doc) => doc.id).toList();
+        } else {
+           _venueIds = [];
+        }
 
       } catch (e) {
         debugPrint("Error fetching role/venues: $e");

@@ -16,6 +16,7 @@ import 'package:friendly_code/features/owner/presentation/screens/guest_list_scr
 import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/services/notification_service.dart';
+import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -212,8 +213,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             mainAxisSpacing: 24,
             childAspectRatio: 1.5,
             children: [
-              _buildStatCard(l10n.totalCheckins, "${venue.stats.totalCheckins}", Icons.people_outline, AppColors.accentOrange),
-              _buildStatCard(l10n.avgReturn, "${venue.stats.avgReturnHours.toStringAsFixed(1)}h", Icons.loop, Colors.blueAccent),
+              _buildStatCard("Total Scans", "${venue.stats.totalCheckins}", Icons.qr_code_scanner, AppColors.accentOrange),
+              _buildStatCard("Avg Return Time", "${venue.stats.avgReturnHours.toStringAsFixed(1)}h", Icons.av_timer, Colors.blueAccent),
             ],
           ),
           const SizedBox(height: 32),
@@ -287,7 +288,10 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                 Text(venue.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 12),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    final url = "https://quickchart.io/qr?text=${Uri.encodeComponent('https://www.friendlycode.fun/qr?id=${venue.id}')}&size=1000&format=png&ecLevel=H";
+                    url_launcher.launchUrl(Uri.parse(url));
+                  },
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.surface, foregroundColor: AppColors.title),
                   child: const Text("DOWNLOAD QR"),
                 ),

@@ -296,6 +296,31 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                             ],
                           ),
                           const SizedBox(height: 24),
+                        ] else ...[
+                          _buildSectionCard(
+                            title: "SUBSCRIPTION STATUS",
+                            children: [
+                               ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.stars, color: AppColors.accentOrange),
+                                title: const Text("Current Plan", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                subtitle: Text(_subscription.plan.toUpperCase(), style: const TextStyle(fontSize: 16, color: AppColors.title)),
+                              ),
+                              const Divider(),
+                               ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: const Icon(Icons.calendar_today, color: AppColors.accentOrange),
+                                title: const Text("Valid Until", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                subtitle: Text(
+                                  _subscription.expiryDate != null 
+                                    ? "${_subscription.expiryDate!.day}/${_subscription.expiryDate!.month}/${_subscription.expiryDate!.year}"
+                                    : "Lifetime",
+                                  style: const TextStyle(fontSize: 16, color: AppColors.title),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
                         ],
                           _buildSectionCard(
                             title: "SYSTEM ACCESS",
