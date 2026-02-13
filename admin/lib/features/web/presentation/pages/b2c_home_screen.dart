@@ -4,6 +4,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'lead_capture_screen.dart';
+import 'thank_you_screen.dart'; // Import ThankYouScreen
 import 'package:friendly_code/core/logic/reward_calculator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -27,17 +28,20 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
   // Animation for Gauge
   late AnimationController _gaugeController;
   late Animation<double> _gaugeAnimation;
+  late AnimationController _trembleController; // New Tremble Controller
 
   @override
   void initState() {
     super.initState();
     _gaugeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
+    _trembleController = AnimationController(vsync: this, duration: const Duration(milliseconds: 150)); // Fast tremble
     _checkVisit();
   }
   
   @override
   void dispose() {
     _gaugeController.dispose();
+    _trembleController.dispose();
     super.dispose();
   }
 
@@ -95,7 +99,37 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
       // Start Animation
       final double targetValue = (_currentDiscount - 5) / 15.0; // 0.0 to 1.0 (5% to 20%)
       _gaugeAnimation = Tween<double>(begin: 0.0, end: targetValue.clamp(0.0, 1.0)).animate(CurvedAnimation(parent: _gaugeController, curve: Curves.easeOutBack));
-      _gaugeController.forward();
+      _gaugeController.forward().then((_) {
+        // Start trembling after main animation
+        _trembleController.repeat(reverse: true);
+      });
+    }
+  }
+
+  void _onGetRewardPressed() {
+    if (_guestName != null && _guestName!.isNotEmpty) {
+      // Guest already known -> Skip to Thank You
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ThankYouScreen(
+            venueId: widget.venueId,
+            currentDiscount: _currentDiscount,
+            guestName: _guestName!,
+          )
+        ),
+      );
+    } else {
+      // Guest unknown -> Go to Lead Capture
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LeadCaptureScreen(
+             venueId: widget.venueId,
+             currentDiscount: _currentDiscount,
+          )
+        ),
+      );
     }
   }
 
@@ -112,10 +146,10 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
     final String subhead;
 
     if (_status == VisitStatus.recognized) {
-      headline = 'Welcome Back! 🌟\nYour Discount TODAY: $_currentDiscount%';
+      headline = 'Welcome Back! 🌟\nYour Reward TODAY: $_currentDiscount%';
       subhead = 'The sooner you return, the bigger the reward.';
     } else {
-      headline = 'Your Discount\nTODAY: $_currentDiscount%';
+      headline = 'Your Reward\nTODAY: $_currentDiscount%';
       subhead = 'Want 20%? Come back tomorrow!';
     }
 
@@ -157,13 +191,17 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
 
               // 3. Animated Gauge
               AnimatedBuilder(
-                animation: _gaugeController,
+                animation: Listenable.merge([_gaugeController, _trembleController]),
                 builder: (context, child) {
                   return SizedBox(
-                    height: 160,
-                    width: 280,
+                    height: 180, // Increased height for larger labels
+                    width: 300,
                     child: CustomPaint(
-                      painter: GaugePainter(value: _gaugeAnimation.value, currentDiscount: _currentDiscount),
+                      painter: GaugePainter(
+                        value: _gaugeAnimation.value, 
+                        currentDiscount: _currentDiscount,
+                        trembleValue: _gaugeController.isCompleted ? _trembleController.value : 0.0,
+                      ),
                       child: Center(
                         child: Padding(
                           padding: const EdgeInsets.only(top: 40),
@@ -173,14 +211,13 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                               Text(
                                 '$_currentDiscount%',
                                 style: const TextStyle(
-                                  fontSize: 48,
+                                  fontSize: 56, // Larger font
                                   fontWeight: FontWeight.w900,
-                                  color: AppColors.title,
+                                  color: AppColors.premiumBurntOrange, // Orange color for value
                                   height: 1.0,
                                 ),
                               ),
-                              // Optional: Small label under percentage
-                              // Text("Current", style: TextStyle(fontSize: 12, color: AppColors.body))
+                             // Text("REWARD", style: TextStyle(fontSize: 12, color: AppColors.body, fontWeight: FontWeight.bold, letterSpacing: 1.5))
                             ],
                           ),
                         ),
@@ -195,9 +232,9 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
               // 4. Timeline
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.surface.withOpacity(0.5),
+                  color: AppColors.surface.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: AppColors.premiumGold.withOpacity(0.2)),
+                  border: Border.all(color: AppColors.premiumGold.withValues(alpha: 0.2)),
                 ),
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -248,17 +285,12 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const LeadCaptureScreen()),
-                    );
-                  },
+                  onPressed: _onGetRewardPressed,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.premiumBurntOrange,
+                    backgroundColor: AppColors.premiumBurntOrange, // Ensure Orange
                     foregroundColor: Colors.white,
                     elevation: 8,
-                    shadowColor: AppColors.premiumBurntOrange.withOpacity(0.4),
+                    shadowColor: AppColors.premiumBurntOrange.withValues(alpha: 0.4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -266,10 +298,10 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(FontAwesomeIcons.rocket, size: 20),
+                      Icon(FontAwesomeIcons.gift, size: 20),
                       SizedBox(width: 12),
                       Text(
-                        'GET MY DISCOUNT',
+                        'GET REWARD',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -388,7 +420,7 @@ class _TimelineItem extends StatelessWidget {
         color: bgColor,
         borderRadius: BorderRadius.circular(12),
         border: isActive 
-          ? Border.all(color: AppColors.accentGreen.withOpacity(0.3))
+          ? Border.all(color: AppColors.accentGreen.withValues(alpha: 0.3))
           : Border.all(color: Colors.transparent),
       ),
       child: Row(
@@ -413,18 +445,19 @@ class _TimelineItem extends StatelessWidget {
 class GaugePainter extends CustomPainter {
   final double value; // 0.0 to 1.0
   final int currentDiscount;
+  final double trembleValue; // 0.0 to 1.0
 
-  const GaugePainter({required this.value, required this.currentDiscount});
+  const GaugePainter({required this.value, required this.currentDiscount, required this.trembleValue});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height - 20);
-    final radius = min(size.width / 2, size.height) - 10;
-    const strokeWidth = 24.0;
+    final center = Offset(size.width / 2, size.height - 30); // Adjusted center
+    final radius = min(size.width / 2, size.height) - 20;
+    const strokeWidth = 28.0;
 
     // 1. Track (Background)
     final bgPaint = Paint()
-      ..color = Colors.grey.withOpacity(0.15)
+      ..color = Colors.grey.withValues(alpha: 0.15)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
@@ -438,7 +471,6 @@ class GaugePainter extends CustomPainter {
     );
 
     // 2. Gradient Arc (Progress)
-    // Create a sweep gradient from Orange (Left) to Green (Right)
     final gradient = const LinearGradient(
       colors: [AppColors.premiumBurntOrange, AppColors.premiumGold, AppColors.accentGreen],
       stops: [0.0, 0.5, 1.0],
@@ -450,10 +482,6 @@ class GaugePainter extends CustomPainter {
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
-    // We draw the FULL arc to show the "Potential" range, 
-    // but maybe we want to mask it? 
-    // The reference shows a full colored arc, with the needle pointing to value.
-    // So we draw the FULL gradient arc.
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       pi,
@@ -462,60 +490,72 @@ class GaugePainter extends CustomPainter {
       progressPaint,
     );
 
-    // 3. Needles/Markers
-    // 5% (Start)
-    _drawMarker(canvas, center, radius, pi, "5%");
-    // 20% (End)
-    _drawMarker(canvas, center, radius, 2 * pi, "20%");
+    // 3. Labels (Larger 5% and 20%)
+    _drawLabel(canvas, center, radius, pi, "5%", isLeft: true);
+    _drawLabel(canvas, center, radius, 2 * pi, "20%", isLeft: false);
 
-    // 4. The Needle
+    // 4. The Needle (with tremble)
     // Angle mapping: 0.0 -> pi (Left), 1.0 -> 2*pi (Right)
-    // Wait, let's map it: 5% is Left, 20% is Right.
-    // Value is 0.0 to 1.0.
-    final angle = pi + (value * pi);
+    // Tremble logic: Adds a small noise to the angle
+    // We want ~ 25 degrees from horizontal. 
+    // Actually the value determines the angle.
+    // Let's rely on 'value' which is computed from discount.
     
-    final needleLen = radius - 15;
+    double baseAngle = pi + (value * pi);
+    
+    // Add tremble noise (small oscillation)
+    // trembleValue goes from 0 to 1 repeatedly. map to -0.05 to +0.05 rad
+    final trembleAngle = (trembleValue - 0.5) * 0.1; // Small shake
+    
+    final finalAngle = baseAngle + trembleAngle;
+    
+    final needleLen = radius - 20;
     final needlePaint = Paint()
       ..color = AppColors.title
-      ..strokeWidth = 6
+      ..strokeWidth = 8
       ..strokeCap = StrokeCap.round;
 
     final endPoint = Offset(
-      center.dx + needleLen * cos(angle),
-      center.dy + needleLen * sin(angle),
+      center.dx + needleLen * cos(finalAngle),
+      center.dy + needleLen * sin(finalAngle),
     );
 
     canvas.drawLine(center, endPoint, needlePaint);
     
     // Pivot
-    canvas.drawCircle(center, 10, Paint()..color = AppColors.title);
-    canvas.drawCircle(center, 4, Paint()..color = Colors.white);
+    canvas.drawCircle(center, 12, Paint()..color = AppColors.title);
+    canvas.drawCircle(center, 5, Paint()..color = Colors.white);
   }
 
-  void _drawMarker(Canvas canvas, Offset center, double radius, double angle, String label) {
+  void _drawLabel(Canvas canvas, Offset center, double radius, double angle, String label, {required bool isLeft}) {
     final textPainter = TextPainter(
       text: TextSpan(
         text: label,
-        style: const TextStyle(color: AppColors.body, fontWeight: FontWeight.bold, fontSize: 12),
+        style: const TextStyle(
+          color: AppColors.title, 
+          fontWeight: FontWeight.w900, 
+          fontSize: 20 // Larger Font
+        ),
       ),
       textDirection: TextDirection.ltr,
     );
     textPainter.layout();
     
-    // Position slightly outside
+    // Position 
+    // If Left (PI): x = center.dx - radius - padding. y = center.dy
+    // If Right (2PI): x = center.dx + radius + padding.
+    
     final offset = Offset(
-      center.dx + (radius + 25) * cos(angle) - textPainter.width/2,
-      center.dy + (radius + 25) * sin(angle) - textPainter.height,
+      center.dx + (radius + 35) * cos(angle) - textPainter.width / 2,
+      center.dy + (radius + 35) * sin(angle) - textPainter.height / 2, // Vertically centered on the arc end
     );
     
-    // Correction for exact start/end
-    // if angle is PI (left), move slightly right? No need if centered.
     textPainter.paint(canvas, offset);
   }
 
   @override
   bool shouldRepaint(covariant GaugePainter oldDelegate) => 
-      oldDelegate.value != value;
+      oldDelegate.value != value || oldDelegate.trembleValue != trembleValue;
 }
 
 

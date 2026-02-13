@@ -1,312 +1,219 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:friendly_code/core/theme/colors.dart';
-import '../../../../core/auth/auth_service.dart';
-import 'package:friendly_code/core/services/lead_service.dart';
-import 'package:friendly_code/core/models/lead_model.dart';
-import 'package:friendly_code/core/data/user_repository.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'thank_you_screen.dart';
 
 class LeadCaptureScreen extends StatefulWidget {
-  const LeadCaptureScreen({super.key});
+  final String? venueId;
+  final int currentDiscount;
+
+  const LeadCaptureScreen({
+    super.key,
+    required this.venueId,
+    required this.currentDiscount,
+  });
 
   @override
   State<LeadCaptureScreen> createState() => _LeadCaptureScreenState();
 }
 
 class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
-  final _contactController = TextEditingController();
-  bool _agreedToTerms = true;
-  bool _isReviewing = false;
+  final _emailController = TextEditingController();
+  
+  bool get _isValid => _nameController.text.trim().isNotEmpty && _emailController.text.trim().isNotEmpty;
+
+  Future<void> _submit() async {
+    if (!_isValid) return;
+
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+
+    // Save locally
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('guestName', name);
+    await prefs.setString('guestEmail', email);
+    
+    // In a real app, we might also write to 'users' or 'leads' collection here
+    // But for the guest flow, the critical part is the Visit which happens on the next screen.
+
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ThankYouScreen(
+            venueId: widget.venueId,
+            currentDiscount: widget.currentDiscount,
+            guestName: name,
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.backgroundCream,
+      backgroundColor: AppColors.background, // Cream
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 48),
-              
-              // Header
-              Text(
-                _isReviewing ? 'Just checking...' : 'Nice to meet you!',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppColors.brandBrown,
-                  fontWeight: FontWeight.bold,
+              // Back Button
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.title.withValues(alpha: 0.05)),
+                    boxShadow: AppColors.softShadow,
+                  ),
+                  child: const Center(child: Icon(FontAwesomeIcons.arrowLeft, size: 16, color: AppColors.title)),
                 ),
-                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 48),
+
+              // Headlines
+              Text(
+                "Almost there!",
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: AppColors.title,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 32,
+                  height: 1.1,
+                ),
               ),
               const SizedBox(height: 8),
-               Text(
-                _isReviewing 
-                    ? 'Does this look correct?' 
-                    : 'We just need your name to activate the reward.',
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 16,
+              Text(
+                "Please introduce yourself to claim your reward.",
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppColors.title.withValues(alpha: 0.7),
+                  fontSize: 18,
                 ),
-                textAlign: TextAlign.center,
               ),
 
               const SizedBox(height: 48),
 
-              if (!_isReviewing) ...[
-                // Input Form
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      _FriendlyInput(
-                        controller: _nameController,
-                        label: 'Your Name',
-                        hint: 'e.g., Alex',
-                        icon: FontAwesomeIcons.user,
-                      ),
-                      const SizedBox(height: 16),
-                      _FriendlyInput(
-                        controller: _contactController,
-                        label: 'WhatsApp or Email',
-                        hint: 'For your receipt',
-                        icon: FontAwesomeIcons.envelope,
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const Spacer(),
+              // Name Input
+              _buildLabel("YOUR NAME"),
+              const SizedBox(height: 8),
+              _buildInput(
+                controller: _nameController,
+                icon: FontAwesomeIcons.user,
+                hint: "e.g., Alex",
+              ),
 
-                // Trust Checkbox
-                Row(
-                  children: [
-                    Checkbox(
-                      value: _agreedToTerms, 
-                      onChanged: (v) => setState(() => _agreedToTerms = v ?? false),
-                      activeColor: AppColors.brandOrange,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                    ),
-                    const Expanded(
-                      child: Text(
-                        'I agree to receive secret offers from this venue (Max 1x/week). No spam, we promise.',
-                        style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              const SizedBox(height: 24),
+
+              // Email Input
+              _buildLabel("YOUR EMAIL"),
+              const SizedBox(height: 8),
+              _buildInput(
+                controller: _emailController,
+                icon: FontAwesomeIcons.envelope,
+                hint: "name@example.com",
+                keyboardType: TextInputType.emailAddress,
+              ),
+
+              const Spacer(),
+
+              // Submit Button
+              SizedBox(
+                width: double.infinity,
+                height: 64,
+                child: ListenableBuilder(
+                  listenable: Listenable.merge([_nameController, _emailController]),
+                  builder: (context, _) {
+                    final valid = _isValid;
+                    return ElevatedButton(
+                      onPressed: valid ? _submit : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accentOrange,
+                        disabledBackgroundColor: AppColors.title.withValues(alpha: 0.1),
+                        foregroundColor: Colors.white,
+                        disabledForegroundColor: AppColors.title.withValues(alpha: 0.4),
+                        elevation: valid ? 8 : 0,
+                        shadowColor: AppColors.accentOrange.withValues(alpha: 0.3),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                
-                const SizedBox(height: 24),
-                
-                // Continue Button
-                ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      setState(() => _isReviewing = true);
-                    }
+                      child: const Text(
+                        'GET REWARD', 
+                        style: TextStyle(
+                          fontSize: 20, 
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    );
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.brandOrange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: const Text(
-                    'CONTINUE',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
                 ),
-              ] else ...[
-                // Review / Confirmation State
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceCream,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.brandBrown.withOpacity(0.05),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      ListTile(
-                        leading: const Icon(FontAwesomeIcons.user, color: AppColors.brandOrange),
-                        title: Text(_nameController.text, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.brandBrown)),
-                        subtitle: const Text('Name'),
-                      ),
-                      const Divider(),
-                      ListTile(
-                        leading: const Icon(FontAwesomeIcons.envelope, color: AppColors.brandOrange),
-                        title: Text(_contactController.text, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.brandBrown)),
-                        subtitle: const Text('Contact'),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                const Spacer(),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => setState(() => _isReviewing = false),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.brandBrown,
-                          side: const BorderSide(color: AppColors.brandBrown),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
-                        ),
-                        child: const Text('Edit'),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          try {
-                            // Show loading if needed, or just await
-                            final auth = AuthService();
-                            final userRepo = UserRepository();
-                            
-                            final user = await auth.signInAnonymously();
-                            if (user != null) {
-                              final prefs = await SharedPreferences.getInstance();
-                              await prefs.setString('guestName', _nameController.text);
-                              
-                              await userRepo.syncUser(
-                                user,
-                                displayName: _nameController.text,
-                                contactInfo: _contactController.text,
-                                marketingConsent: _agreedToTerms,
-                              );
-
-                              // Capture Lead
-                              final leadService = LeadsService();
-                              final venueId = prefs.getString('currentVenueId') ?? 'unknown';
-                              
-                              final newLead = LeadModel(
-                                id: '', // Generated by Firestore
-                                venueId: venueId,
-                                guestId: user.uid,
-                                guestName: _nameController.text,
-                                guestContact: _contactController.text,
-                                source: 'scan_qr',
-                                status: 'new',
-                                notes: 'Agreed to terms: $_agreedToTerms',
-                                createdAt: DateTime.now(),
-                              );
-                              
-                              await leadService.submitLead(newLead);
-                              if (context.mounted) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (context) => const ThankYouScreen()),
-                                );
-                              }
-                            }
-                          } catch (e) {
-                             if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-                             }
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.brandGreen,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(FontAwesomeIcons.check, size: 18),
-                            SizedBox(width: 8),
-                            Text(
-                              'ACTIVATE', // Confirm & Activate
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-               const SizedBox(height: 24),
+              ),
             ],
           ),
         ),
       ),
     );
   }
-}
 
-class _FriendlyInput extends StatelessWidget {
-  final TextEditingController controller;
-  final String label;
-  final String hint;
-  final IconData icon;
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 1.5,
+        color: AppColors.title.withValues(alpha: 0.4),
+      ),
+    );
+  }
 
-  const _FriendlyInput({
-    required this.controller,
-    required this.label,
-    required this.hint,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: AppColors.brandBrown,
-            fontWeight: FontWeight.bold,
-            fontSize: 14,
-          ),
+  Widget _buildInput({
+    required TextEditingController controller,
+    required IconData icon,
+    required String hint,
+    TextInputType? keyboardType,
+  }) {
+    return Container(
+      decoration: const BoxDecoration(
+        boxShadow: [
+           BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))
+        ]
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+          color: AppColors.title,
         ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          decoration: InputDecoration(
-            hintText: hint,
-            prefixIcon: Icon(icon, color: AppColors.brandOrange.withOpacity(0.7), size: 18),
-            filled: true,
-            fillColor: AppColors.surfaceCream,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.brandOrange, width: 2),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.white,
+          hintText: hint,
+          hintStyle: TextStyle(color: AppColors.title.withValues(alpha: 0.3)),
+          prefixIcon: Icon(icon, color: AppColors.accentOrange, size: 20),
+          prefixIconConstraints: const BoxConstraints(minWidth: 60),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+            borderSide: BorderSide.none,
           ),
-          validator: (value) => value?.isEmpty == true ? 'Required' : null,
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+            borderSide: const BorderSide(color: AppColors.accentOrange, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
         ),
-      ],
+      ),
     );
   }
 }
