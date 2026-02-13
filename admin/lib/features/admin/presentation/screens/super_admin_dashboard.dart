@@ -220,14 +220,12 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           address: req.newVenueDetails?['address'] ?? 'Unknown Address',
           ownerId: req.userId,
           ownerEmail: req.userEmail,
-          subscription: SubscriptionModel(
+          subscription: VenueSubscription(
              plan: 'free', 
-             status: 'active', 
-             startDate: DateTime.now(), 
              isPaid: false
           ),
           isActive: true,
-          createdAt: DateTime.now(), isManuallyBlocked: false,
+          isManuallyBlocked: false,
         );
         
         await venueRef.set(venue.toMap());

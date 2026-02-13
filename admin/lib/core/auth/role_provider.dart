@@ -38,6 +38,7 @@ class RoleProvider extends ChangeNotifier {
         }
 
         // Fetch all venues for this user
+        final venuesSnap = await FirebaseFirestore.instance
             .collection('venues')
             .where('ownerId', isEqualTo: user.uid)
             .get();
