@@ -63,9 +63,19 @@ class FriendlyCodeApp extends StatelessWidget {
         Locale('en'),
         Locale('ru'),
       ],
-      initialRoute: '/',
+      // initialRoute: '/', // Removing to let Web URL drive navigation directly
       routes: {
         '/': (context) => const DispatcherScreen(),
+        '/qr': (context) {
+           final uri = Uri.base;
+           final venueId = uri.queryParameters['id'];
+           return B2CHomeScreen(venueId: venueId);
+        },
+        '/admin/qr': (context) {
+           final uri = Uri.base;
+           final venueId = uri.queryParameters['id'];
+           return B2CHomeScreen(venueId: venueId);
+        },
         '/login': (context) => const LoginScreen(),
         '/onboarding': (context) => const OnboardingWizardScreen(),
         '/owner': (context) => Consumer<RoleProvider>(
@@ -87,11 +97,6 @@ class FriendlyCodeApp extends StatelessWidget {
           ),
         ),
         '/partner': (context) => const B2BLandingScreen(),
-        '/qr': (context) {
-           final uri = Uri.base;
-           final venueId = uri.queryParameters['id'];
-           return B2CHomeScreen(venueId: venueId);
-        },
       },
     );
   }
