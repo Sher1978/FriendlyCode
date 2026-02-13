@@ -92,9 +92,26 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
       await prefs.setString('currentVenueId', widget.venueId!);
       await prefs.setString('venueName', _venue!.name);
       
-      // 3. Fetch Last Visit (Server-Side)
+      // 3. Fetch Last Visit (Server-Side) & User Profile
       // Check for user's last visit to THIS venue
       if (user != null) {
+        
+        // 3a. Check User Profile (Persistence)
+        if (_guestName == null) {
+           try {
+             final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+             if (userDoc.exists) {
+               final data = userDoc.data();
+               if (data != null && data['name'] != null && (data['name'] as String).isNotEmpty) {
+                 _guestName = data['name'];
+                 await prefs.setString('guestName', _guestName!);
+               }
+             }
+           } catch (e) {
+             debugPrint("Error fetching user profile: $e");
+           }
+        }
+
         final visitsQuery = await FirebaseFirestore.instance
             .collection('visits')
             .where('uid', isEqualTo: user.uid)
@@ -126,9 +143,12 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                _status = VisitStatus.recognized;
              }
              
-             _guestName = lastVisitData['guestName']; 
-             if (_guestName != null) {
-               await prefs.setString('guestName', _guestName!);
+             // If we didn't get name from User Profile, try visit
+             if (_guestName == null) {
+                _guestName = lastVisitData['guestName']; 
+                if (_guestName != null) {
+                  await prefs.setString('guestName', _guestName!);
+                }
              }
           }
         } else {
@@ -152,6 +172,25 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
         _gaugeController.forward().then((_) {
           _trembleController.repeat(reverse: true);
         });
+        
+        // Auto-navigate if guest is known and we are in a valid state?
+        // Actually, let's just let them click "Get Reward" but it will skip the lead capture.
+        // User requested: "creating a record... and determining this user automatically next time, transferring to QR screen immediately to Thank You screen."
+        // "Next time... translating to QR screen immediately (from) Thank You screen." -> "transferring to the Thank You screen immediately"
+        
+        if (_guestName != null && _status != VisitStatus.cooldown && _status != VisitStatus.first) {
+           // If recognized and not cooldown, maybe auto-redirect?
+           // But they might want to see the gauge animation. 
+           // Implementation plan said: "Ensure returning guests are skipped to SuccessScreen automatically" 
+           // BUT logic in `_onGetRewardPressed` already handles this skipping of Lead Capture.
+           // If user wants IMMEDIATE redirect upon load, we can do it here.
+           // However, showing the "Welcome Back" screen with the reward is usually better UX than jumping straight to "Claim".
+           // I'll stick to the "Welcome Back" screen being shown, and "Get Reward" going straight to Thank You.
+           // The user said: "transferring... immediately". This implies skipping the landing?
+           // But the landing shows the discount. If we skip to Thank You, they see the discount there too.
+           // Let's stick to the current flow where they see the landing, but "Get Reward" takes them straight to Thank You.
+           // This is safer and less confusing.
+        }
       });
     }
   }

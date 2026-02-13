@@ -257,7 +257,6 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                             ),
                             const SizedBox(height: 32),
 
-                            // Action Button or Timer
                             if (!_isClaimed)
                               SizedBox(
                                 width: double.infinity,
@@ -283,38 +282,64 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                                 ),
                               )
                             else
-                              Container(
-                                width: double.infinity,
-                                height: 64,
-                                decoration: BoxDecoration(
-                                  color: _isExpired ? Colors.grey[200] : ThankYouColors.background,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: _isExpired ? Colors.grey : ThankYouColors.button, width: 2),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                              SizedBox(
+                                height: 80, // Request space for the popped out heart
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  alignment: Alignment.center,
                                   children: [
-                                    // Animated Heart Icon
-                                    if (!_isExpired)
-                                    AnimatedBuilder(
-                                      animation: _pulseAnimation,
-                                      builder: (context, child) => Transform.scale(scale: _pulseAnimation.value, child: child),
-                                      child: const Icon(FontAwesomeIcons.heart, color: Colors.red, size: 20),
-                                    ),
-                                    if (_isExpired)
-                                      const Icon(FontAwesomeIcons.ban, color: Colors.grey, size: 20),
-                                    
-                                    const SizedBox(width: 16),
-                                    Text(
-                                      _timerString,
-                                      style: TextStyle(
-                                        fontSize: 24,
-                                        fontWeight: FontWeight.w900,
-                                        color: _isExpired ? Colors.grey : ThankYouColors.button,
-                                        fontFamily: 'monospace',
-                                        letterSpacing: 2.0,
+                                    Container(
+                                      width: double.infinity,
+                                      height: 64,
+                                      decoration: BoxDecoration(
+                                        color: _isExpired ? Colors.grey[200] : ThankYouColors.background,
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(color: _isExpired ? Colors.grey : ThankYouColors.button, width: 2),
+                                      ),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const SizedBox(width: 40), // Spacer for the heart
+                                          Text(
+                                            _timerString,
+                                            style: TextStyle(
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.w900,
+                                              color: _isExpired ? Colors.grey : ThankYouColors.button,
+                                              fontFamily: 'monospace',
+                                              letterSpacing: 2.0,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
+                                    
+                                    // Floating Heart
+                                    if (!_isExpired)
+                                      Positioned(
+                                        left: 20,
+                                        child: AnimatedBuilder(
+                                          animation: _pulseAnimation,
+                                          builder: (context, child) => Transform.scale(scale: _pulseAnimation.value, child: child),
+                                          child: Container(
+                                            decoration: const BoxDecoration(
+                                              boxShadow: [
+                                                BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 2)
+                                              ],
+                                              shape: BoxShape.circle,
+                                              color: Colors.white 
+                                            ),
+                                            padding: const EdgeInsets.all(8),
+                                            child: const Icon(FontAwesomeIcons.solidHeart, color: Colors.red, size: 40)
+                                          ),
+                                        ),
+                                      ),
+                                    
+                                    if (_isExpired)
+                                      const Positioned(
+                                        left: 30,
+                                        child: Icon(FontAwesomeIcons.ban, color: Colors.grey, size: 30),
+                                      ),
                                   ],
                                 ),
                               ),

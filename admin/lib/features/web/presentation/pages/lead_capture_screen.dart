@@ -3,6 +3,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'thank_you_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LeadCaptureScreen extends StatefulWidget {
   final String? venueId;
@@ -35,8 +37,33 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
     await prefs.setString('guestName', name);
     await prefs.setString('guestEmail', email);
     
-    // In a real app, we might also write to 'users' or 'leads' collection here
-    // But for the guest flow, the critical part is the Visit which happens on the next screen.
+    // SAVE TO FIRESTORE & AUTH
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        // 1. Update Auth Profile
+        await user.updateDisplayName(name);
+        try {
+           if (email.isNotEmpty) await user.updateEmail(email);
+        } catch (e) {
+           // Ignore email update errors (e.g. requires re-auth)
+           debugPrint("Email update error: $e");
+        }
+
+        // 2. Save to 'users' collection
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'email': email,
+          'name': name,
+          'role': 'guest', // Explicitly mark as guest
+          'isAnonymous': true, // Helps distinguish from registered owners
+          'lastSeen': FieldValue.serverTimestamp(),
+          'createdAt': FieldValue.serverTimestamp(), // This might overwrite if exists, but for anon it's fine
+        }, SetOptions(merge: true));
+      }
+    } catch (e) {
+      debugPrint("Error saving guest data: $e");
+      // Continue anyway, local prefs are fallback
+    }
 
     if (mounted) {
       Navigator.pushReplacement(
