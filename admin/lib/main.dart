@@ -17,6 +17,7 @@ import 'firebase_options.dart';
 import 'features/web/presentation/pages/b2c_home_screen.dart';
 import 'features/web/presentation/pages/not_found_screen.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
+import 'guest_app.dart';
 
 
 void main() async {
@@ -31,15 +32,27 @@ void main() async {
   // Initialize Push Notifications (Non-blocking moved to Dispatcher/App)
   // await FCMService().initialize();
 
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (context) => LocaleProvider()),
-        ChangeNotifierProvider(create: (context) => RoleProvider()),
-      ],
-      child: const FriendlyCodeApp(),
-    ),
-  );
+  // SPLIT ENTRY POINT
+  // Inspect the URL path before mounting the app
+  final uri = Uri.base;
+  final path = uri.path; // e.g. "/qr" or "/admin"
+  
+  // If the user is trying to access the QR page, we launch the GUEST APP
+  // This app is physically isolated from the Admin/Owner app.
+  if (path.startsWith('/qr') || path.startsWith('/admin/qr')) {
+    runApp(const GuestApp());
+  } else {
+    // Otherwise, launch the full Partner App
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (context) => LocaleProvider()),
+          ChangeNotifierProvider(create: (context) => RoleProvider()),
+        ],
+        child: const FriendlyCodeApp(),
+      ),
+    );
+  }
 }
 
 class FriendlyCodeApp extends StatelessWidget {
