@@ -24,7 +24,11 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
   @override
   void initState() {
     super.initState();
-    _checkToken();
+    // WEB: Skip auto-login to prevent stalls. Show Login Screen immediately.
+    if (!kIsWeb) {
+      _checkToken();
+    }
+    
     // Initialize FCM without blocking UI
     FCMService().initialize();
     
@@ -113,16 +117,17 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // WEB: Always show landing screen immediately (No loading spinner)
+    if (kIsWeb) {
+      return const PlatformLandingScreen();
+    }
+
     if (_isLoading) {
       return const Scaffold(
         body: Center(
           child: CircularProgressIndicator(),
         ),
       );
-    }
-
-    if (kIsWeb) {
-      return const PlatformLandingScreen();
     }
 
     return const LandingScreen();
