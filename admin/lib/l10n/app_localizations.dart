@@ -1105,6 +1105,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'BILLING HISTORY'**
   String get billingHistory;
+
+  /// No description provided for @newGuests.
+  ///
+  /// In en, this message translates to:
+  /// **'New Guests'**
+  String get newGuests;
+
+  /// No description provided for @loyalGuests.
+  ///
+  /// In en, this message translates to:
+  /// **'Loyal Guests'**
+  String get loyalGuests;
+
+  /// No description provided for @lostGuests.
+  ///
+  /// In en, this message translates to:
+  /// **'Lost Guests'**
+  String get lostGuests;
 }
 
 class _AppLocalizationsDelegate

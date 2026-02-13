@@ -552,4 +552,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get billingHistory => 'ИСТОРИЯ ПЛАТЕЖЕЙ';
+
+  @override
+  String get newGuests => 'Новые гости';
+
+  @override
+  String get loyalGuests => 'Лояльные гости';
+
+  @override
+  String get lostGuests => 'Потерянные гости';
 }

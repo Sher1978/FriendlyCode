@@ -6,6 +6,7 @@ class OwnerBillingScreen extends StatelessWidget {
   const OwnerBillingScreen({super.key});
 
   @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),

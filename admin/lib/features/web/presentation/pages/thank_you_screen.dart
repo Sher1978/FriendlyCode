@@ -272,7 +272,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                                   ),
                                   child: _isLoading 
                                     ? const CircularProgressIndicator(color: Colors.white)
-                                    : const Row(
+                                    : Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
                                           const Icon(FontAwesomeIcons.gift, size: 24),

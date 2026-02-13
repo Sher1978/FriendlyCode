@@ -550,4 +550,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get billingHistory => 'BILLING HISTORY';
+
+  @override
+  String get newGuests => 'New Guests';
+
+  @override
+  String get loyalGuests => 'Loyal Guests';
+
+  @override
+  String get lostGuests => 'Lost Guests';
 }

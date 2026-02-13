@@ -263,5 +263,8 @@
     }
   },
   "editBtn": "EDIT",
-  "billingHistory": "BILLING HISTORY"
+  "billingHistory": "BILLING HISTORY",
+  "newGuests": "New Guests",
+  "loyalGuests": "Loyal Guests",
+  "lostGuests": "Lost Guests"
 }

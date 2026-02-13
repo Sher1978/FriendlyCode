@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
 
@@ -8,6 +7,7 @@ class OwnerAnalyticsScreen extends StatelessWidget {
   const OwnerAnalyticsScreen({super.key});
 
   @override
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),

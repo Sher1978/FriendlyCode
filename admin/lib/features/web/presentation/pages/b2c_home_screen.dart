@@ -227,17 +227,20 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return const Scaffold(backgroundColor: AppColors.premiumSand, body: Center(child: CircularProgressIndicator(color: AppColors.premiumBurntOrange)));
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    
+    final l10n = AppLocalizations.of(context)!;
 
     if (_venueNotFound) {
-      return _buildNotFoundView();
+      return _buildNotFoundView(context);
     }
 
     // Dynamic UI data
     final String headline;
     final String subhead;
 
-    final l10n = AppLocalizations.of(context)!;
 
     if (_status == VisitStatus.recognized || _status == VisitStatus.cooldown) {
       headline = l10n.welcomeBackHeadline(_currentDiscount);
@@ -378,11 +381,11 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  child: const Row(
+                  child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(FontAwesomeIcons.gift, size: 20),
-                      SizedBox(width: 12),
+                      const Icon(FontAwesomeIcons.gift, size: 20),
+                      const SizedBox(width: 12),
                       Text(
                         l10n.getReward,
                         style: const TextStyle(
@@ -664,7 +667,8 @@ class GaugePainter extends CustomPainter {
 
 
 extension on _B2CHomeScreenState {
-  Widget _buildNotFoundView() {
+  Widget _buildNotFoundView(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.premiumSand,
       body: Center(

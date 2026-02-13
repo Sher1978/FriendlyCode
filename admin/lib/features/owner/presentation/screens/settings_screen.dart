@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:friendly_code/core/services/auth_service.dart';

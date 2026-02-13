@@ -263,5 +263,8 @@
     }
   },
   "editBtn": "ИЗМЕНИТЬ",
-  "billingHistory": "ИСТОРИЯ ПЛАТЕЖЕЙ"
+  "billingHistory": "ИСТОРИЯ ПЛАТЕЖЕЙ",
+  "newGuests": "Новые гости",
+  "loyalGuests": "Лояльные гости",
+  "lostGuests": "Потерянные гости"
 }

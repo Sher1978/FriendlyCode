@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:friendly_code/core/models/lead_model.dart';
+import 'package:friendly_code/l10n/app_localizations.dart';
 import 'package:friendly_code/core/services/lead_service.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:intl/intl.dart';

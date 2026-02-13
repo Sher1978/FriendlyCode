@@ -42,7 +42,8 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
         if (mounted) {
           setState(() {
             _canSend = false;
-            _cooldownMessage = l10n.frequencyWarning; // Simplified or use a placeholder if needed
+            final l10n = AppLocalizations.of(context)!;
+            _cooldownMessage = l10n.frequencyWarning;
             _isLoading = false;
           });
         }
