@@ -126,6 +126,7 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
                   const SizedBox(height: 16),
                   ImageUploadWidget(
                     label: l10n.campaignImage,
+                    path: "campaigns/${widget.venueId}",
                     onUploadComplete: (url) => setState(() => _imageUrlController.text = url),
                   ),
                   const SizedBox(height: 16),

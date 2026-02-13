@@ -244,6 +244,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                             ImageUploadWidget(
                               label: "VENUE LOGO", 
                               initialUrl: _logoUrlCtrl.text.isNotEmpty ? _logoUrlCtrl.text : null,
+                              path: "venues/${widget.venue?.id ?? 'new'}/logo",
                               onUploadComplete: (url) => setState(() => _logoUrlCtrl.text = url),
                             ),
                             const SizedBox(height: 16),

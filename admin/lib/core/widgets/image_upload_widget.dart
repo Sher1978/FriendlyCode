@@ -8,12 +8,14 @@ class ImageUploadWidget extends StatefulWidget {
   final String? initialUrl;
   final Function(String) onUploadComplete;
   final String label;
+  final String? path;
 
   const ImageUploadWidget({
     super.key, 
     this.initialUrl, 
     required this.onUploadComplete, 
-    this.label = "Upload Image"
+    this.label = "Upload Image",
+    this.path,
   });
 
   @override
@@ -35,12 +37,25 @@ class _ImageUploadWidgetState extends State<ImageUploadWidget> {
       // Read bytes for web/mobile compatibility
       Uint8List data = await image.readAsBytes();
 
-      // Create a reference
+      // Determine path
       final String fileName = "${DateTime.now().millisecondsSinceEpoch}_${image.name}";
-      final Reference ref = FirebaseStorage.instance.ref().child('uploads/$fileName');
+      final String uploadPath = widget.path != null 
+          ? "${widget.path}/$fileName"
+          : "uploads/$fileName";
+      
+      final Reference ref = FirebaseStorage.instance.ref().child(uploadPath);
+
+      // Metadata with fallback
+      final metadata = SettableMetadata(
+        contentType: image.mimeType ?? 'image/jpeg', // Default to jpeg if unknown
+        customMetadata: {'picked-file-path': image.path},
+      );
 
       // Upload
-      final UploadTask uploadTask = ref.putData(data, SettableMetadata(contentType: image.mimeType));
+      final UploadTask uploadTask = ref.putData(data, metadata);
+      
+      // Monitor Progress (Optional, could add stream listener here)
+      
       final TaskSnapshot snapshot = await uploadTask;
       final String downloadUrl = await snapshot.ref.getDownloadURL();
 
@@ -51,9 +66,20 @@ class _ImageUploadWidgetState extends State<ImageUploadWidget> {
 
       widget.onUploadComplete(downloadUrl);
     } catch (e) {
+      debugPrint("Image Upload Error: $e");
       setState(() => _isUploading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Upload failed: $e")));
+        String errorMsg = "Upload failed: $e";
+        if (e.toString().contains("xmlhttprequest")) {
+           errorMsg = "CORS Error: Please configure CORS on your Firebase Storage bucket via Google Cloud Console.";
+        } else if (e.toString().contains("unauthorized")) {
+           errorMsg = "Permission Denied: Check Firebase Storage Rules.";
+        }
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(errorMsg), 
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ));
       }
     }
   }
