@@ -55,20 +55,35 @@ class RoleProvider extends ChangeNotifier {
             .get()
             .timeout(const Duration(seconds: 5));
         
+        Set<String> venueIdsSet = {};
+
+        // 1. Venues where user is ownerId
         if (venuesSnap.docs.isNotEmpty) {
-           _venueIds = venuesSnap.docs.map((doc) => doc.id).toList();
-        } else if (user.email != null && user.email!.isNotEmpty) {
-           // Fallback: Check by email
+           venueIdsSet.addAll(venuesSnap.docs.map((doc) => doc.id));
+        } 
+        
+        // 2. Venues where user is ownerEmail (Legacy/Fallback)
+        if (user.email != null && user.email!.isNotEmpty) {
            final venuesByEmailSnap = await FirebaseFirestore.instance
               .collection('venues')
               .where('ownerEmail', isEqualTo: user.email)
               .get()
               .timeout(const Duration(seconds: 5));
            
-           _venueIds = venuesByEmailSnap.docs.map((doc) => doc.id).toList();
-        } else {
-           _venueIds = [];
+           if (venuesByEmailSnap.docs.isNotEmpty) {
+             venueIdsSet.addAll(venuesByEmailSnap.docs.map((doc) => doc.id));
+           }
         }
+
+        // 3. Venues assigned via User Document (Staff/Co-Owner)
+        if (doc.exists && doc.data() != null) {
+          final data = doc.data()!;
+          if (data['venueId'] != null && (data['venueId'] as String).isNotEmpty) {
+            venueIdsSet.add(data['venueId']);
+          }
+        }
+
+        _venueIds = venueIdsSet.toList();
 
       } catch (e) {
         debugPrint("Error fetching role/venues: $e");
