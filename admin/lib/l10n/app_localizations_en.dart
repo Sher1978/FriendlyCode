@@ -182,4 +182,55 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get uploadPhoto => 'Upload Photo Placeholder';
+
+  @override
+  String get posStickerGenerator => 'POS Sticker Generator';
+
+  @override
+  String get posStickerSub => 'Print table stickers';
+
+  @override
+  String get guestDatabase => 'Guest Database';
+
+  @override
+  String get guestDatabaseSub => 'View your loyal customers';
+
+  @override
+  String get staffManagement => 'Staff Management';
+
+  @override
+  String get staffManagementSub => 'Manage your personnel';
+
+  @override
+  String get downloadHighRes => 'DOWNLOAD HIGH-RES IMAGE';
+
+  @override
+  String get stickerInstantDiscount => 'Instant discount.';
+
+  @override
+  String get stickerNoApps => 'No apps, no forms.';
+
+  @override
+  String stickerToday(int percent) {
+    return 'Today: $percent%';
+  }
+
+  @override
+  String stickerTomorrow(int percent) {
+    return 'Tomorrow: $percent%';
+  }
+
+  @override
+  String get shareToClients => 'SHARE TO CLIENTS';
+
+  @override
+  String get downloadQr => 'DOWNLOAD QR';
+
+  @override
+  String get myDashboard => 'MY DASHBOARD';
+
+  @override
+  String switchVenue(int count) {
+    return 'SWITCH VENUE ($count)';
+  }
 }

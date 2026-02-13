@@ -16,6 +16,7 @@ import 'package:friendly_code/features/owner/presentation/screens/guest_list_scr
 import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/services/notification_service.dart';
+import 'package:friendly_code/features/owner/presentation/screens/pos_sticker_screen.dart'; // New Import
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
 class OwnerDashboardScreen extends StatefulWidget {
@@ -166,10 +167,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   }
 
   Widget _buildVenueSelector(List<String> venueIds) {
+    final l10n = AppLocalizations.of(context)!;
     if (venueIds.length <= 1) {
-      return const Text(
-         "MY DASHBOARD",
-         style: TextStyle(color: AppColors.title, fontWeight: FontWeight.bold, fontSize: 18),
+      return Text(
+         l10n.myDashboard,
+         style: const TextStyle(color: AppColors.title, fontWeight: FontWeight.bold, fontSize: 18),
       );
     }
 
@@ -193,7 +195,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             const Icon(Icons.store, size: 18, color: AppColors.premiumBurntOrange),
             const SizedBox(width: 8),
             Text(
-              "SWITCH VENUE (${venueIds.length})", 
+              l10n.switchVenue(venueIds.length), 
               style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.title, fontSize: 12, letterSpacing: 0.5)
             ),
             const SizedBox(width: 4),
@@ -296,11 +298,13 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           const SizedBox(height: 16),
           _buildManagementLink(Icons.tune, l10n.configRules, l10n.configRulesSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RulesConfigScreen()))),
           const SizedBox(height: 12),
-          _buildManagementLink(Icons.people_alt_outlined, "Guest Database", "View your loyal customers", () => Navigator.push(context, MaterialPageRoute(builder: (_) => GuestListScreen(venueId: venue.id)))),
+          _buildManagementLink(Icons.people_alt_outlined, l10n.guestDatabase, l10n.guestDatabaseSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => GuestListScreen(venueId: venue.id)))),
           const SizedBox(height: 12),
-          _buildManagementLink(Icons.badge_outlined, "Staff Management", "Manage your personnel", () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffManagementScreen(venueId: venue.id)))),
+          _buildManagementLink(Icons.badge_outlined, l10n.staffManagement, l10n.staffManagementSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffManagementScreen(venueId: venue.id)))),
           const SizedBox(height: 12),
           _buildManagementLink(Icons.storefront_outlined, l10n.venueProfile, l10n.venueProfileSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue)))),
+          const SizedBox(height: 12),
+          _buildManagementLink(Icons.print_rounded, l10n.posStickerGenerator, l10n.posStickerSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => PosStickerScreen(venue: venue)))),
         ],
       ),
     );
@@ -332,6 +336,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   }
 
   Widget _buildPremiumQRCard(VenueModel venue) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: AppColors.title, // Deep Brown
@@ -351,7 +356,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("SHARE TO CLIENTS", style: TextStyle(color: AppColors.premiumGold, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.5)),
+                Text(l10n.shareToClients, style: const TextStyle(color: AppColors.premiumGold, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.5)),
                 const SizedBox(height: 4),
                 Text(venue.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 12),
@@ -363,7 +368,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                       url_launcher.launchUrl(Uri.parse(url));
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: AppColors.premiumSand, foregroundColor: AppColors.title, elevation: 0),
-                    child: const Text("DOWNLOAD QR", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    child: Text(l10n.downloadQr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],

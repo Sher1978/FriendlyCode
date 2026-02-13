@@ -182,4 +182,55 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get uploadPhoto => 'Загрузка фото';
+
+  @override
+  String get posStickerGenerator => 'Генератор POS-наклеек';
+
+  @override
+  String get posStickerSub => 'Печать наклеек на столы';
+
+  @override
+  String get guestDatabase => 'База гостей';
+
+  @override
+  String get guestDatabaseSub => 'Ваши лояльные клиенты';
+
+  @override
+  String get staffManagement => 'Управление персоналом';
+
+  @override
+  String get staffManagementSub => 'Ваши сотрудники';
+
+  @override
+  String get downloadHighRes => 'СКАЧАТЬ МАКЕТ';
+
+  @override
+  String get stickerInstantDiscount => 'Мгновенная скидка.';
+
+  @override
+  String get stickerNoApps => 'Без приложений и анкет.';
+
+  @override
+  String stickerToday(int percent) {
+    return 'Сегодня: $percent%';
+  }
+
+  @override
+  String stickerTomorrow(int percent) {
+    return 'Завтра: $percent%';
+  }
+
+  @override
+  String get shareToClients => 'ПОДЕЛИТЬСЯ С КЛИЕНТАМИ';
+
+  @override
+  String get downloadQr => 'СКАЧАТЬ QR';
+
+  @override
+  String get myDashboard => 'МОЙ ДАШБОРД';
+
+  @override
+  String switchVenue(int count) {
+    return 'СМЕНИТЬ ЗАВЕДЕНИЕ ($count)';
+  }
 }

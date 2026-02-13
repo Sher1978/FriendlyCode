@@ -62,5 +62,41 @@
   "saveChanges": "SAVE CHANGES",
   "profileUpdated": "Profile Updated Successfully",
   "tapToChangeCover": "Tap to change Cover Photo",
-  "uploadPhoto": "Upload Photo Placeholder"
+  "uploadPhoto": "Upload Photo Placeholder",
+  "posStickerGenerator": "POS Sticker Generator",
+  "posStickerSub": "Print table stickers",
+  "guestDatabase": "Guest Database",
+  "guestDatabaseSub": "View your loyal customers",
+  "staffManagement": "Staff Management",
+  "staffManagementSub": "Manage your personnel",
+  "downloadHighRes": "DOWNLOAD HIGH-RES IMAGE",
+  "stickerInstantDiscount": "Instant discount.",
+  "stickerNoApps": "No apps, no forms.",
+  "stickerToday": "Today: {percent}%",
+  "@stickerToday": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "stickerTomorrow": "Tomorrow: {percent}%",
+  "@stickerTomorrow": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "shareToClients": "SHARE TO CLIENTS",
+  "downloadQr": "DOWNLOAD QR",
+  "myDashboard": "MY DASHBOARD",
+  "switchVenue": "SWITCH VENUE ({count})",
+  "@switchVenue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

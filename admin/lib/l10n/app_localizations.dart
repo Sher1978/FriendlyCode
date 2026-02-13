@@ -439,6 +439,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Upload Photo Placeholder'**
   String get uploadPhoto;
+
+  /// No description provided for @posStickerGenerator.
+  ///
+  /// In en, this message translates to:
+  /// **'POS Sticker Generator'**
+  String get posStickerGenerator;
+
+  /// No description provided for @posStickerSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Print table stickers'**
+  String get posStickerSub;
+
+  /// No description provided for @guestDatabase.
+  ///
+  /// In en, this message translates to:
+  /// **'Guest Database'**
+  String get guestDatabase;
+
+  /// No description provided for @guestDatabaseSub.
+  ///
+  /// In en, this message translates to:
+  /// **'View your loyal customers'**
+  String get guestDatabaseSub;
+
+  /// No description provided for @staffManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff Management'**
+  String get staffManagement;
+
+  /// No description provided for @staffManagementSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage your personnel'**
+  String get staffManagementSub;
+
+  /// No description provided for @downloadHighRes.
+  ///
+  /// In en, this message translates to:
+  /// **'DOWNLOAD HIGH-RES IMAGE'**
+  String get downloadHighRes;
+
+  /// No description provided for @stickerInstantDiscount.
+  ///
+  /// In en, this message translates to:
+  /// **'Instant discount.'**
+  String get stickerInstantDiscount;
+
+  /// No description provided for @stickerNoApps.
+  ///
+  /// In en, this message translates to:
+  /// **'No apps, no forms.'**
+  String get stickerNoApps;
+
+  /// No description provided for @stickerToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today: {percent}%'**
+  String stickerToday(int percent);
+
+  /// No description provided for @stickerTomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow: {percent}%'**
+  String stickerTomorrow(int percent);
+
+  /// No description provided for @shareToClients.
+  ///
+  /// In en, this message translates to:
+  /// **'SHARE TO CLIENTS'**
+  String get shareToClients;
+
+  /// No description provided for @downloadQr.
+  ///
+  /// In en, this message translates to:
+  /// **'DOWNLOAD QR'**
+  String get downloadQr;
+
+  /// No description provided for @myDashboard.
+  ///
+  /// In en, this message translates to:
+  /// **'MY DASHBOARD'**
+  String get myDashboard;
+
+  /// No description provided for @switchVenue.
+  ///
+  /// In en, this message translates to:
+  /// **'SWITCH VENUE ({count})'**
+  String switchVenue(int count);
 }
 
 class _AppLocalizationsDelegate

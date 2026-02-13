@@ -62,5 +62,41 @@
   "saveChanges": "СОХРАНИТЬ ИЗМЕНЕНИЯ",
   "profileUpdated": "Профиль обновлен",
   "tapToChangeCover": "Нажмите, чтобы изменить фото",
-  "uploadPhoto": "Загрузка фото"
+  "uploadPhoto": "Загрузка фото",
+  "posStickerGenerator": "Генератор POS-наклеек",
+  "posStickerSub": "Печать наклеек на столы",
+  "guestDatabase": "База гостей",
+  "guestDatabaseSub": "Ваши лояльные клиенты",
+  "staffManagement": "Управление персоналом",
+  "staffManagementSub": "Ваши сотрудники",
+  "downloadHighRes": "СКАЧАТЬ МАКЕТ",
+  "stickerInstantDiscount": "Мгновенная скидка.",
+  "stickerNoApps": "Без приложений и анкет.",
+  "stickerToday": "Сегодня: {percent}%",
+  "@stickerToday": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "stickerTomorrow": "Завтра: {percent}%",
+  "@stickerTomorrow": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "shareToClients": "ПОДЕЛИТЬСЯ С КЛИЕНТАМИ",
+  "downloadQr": "СКАЧАТЬ QR",
+  "myDashboard": "МОЙ ДАШБОРД",
+  "switchVenue": "СМЕНИТЬ ЗАВЕДЕНИЕ ({count})",
+  "@switchVenue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }
