@@ -15,6 +15,7 @@ import 'core/auth/role_provider.dart';
 import 'features/web/presentation/layout/admin_shell.dart';
 import 'firebase_options.dart';
 import 'features/web/presentation/pages/b2c_home_screen.dart';
+import 'features/web/presentation/pages/not_found_screen.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 
 
@@ -98,6 +99,9 @@ class FriendlyCodeApp extends StatelessWidget {
         ),
         '/partner': (context) => const B2BLandingScreen(),
       },
+      onUnknownRoute: (settings) => MaterialPageRoute(
+        builder: (context) => const NotFoundScreen(),
+      ),
     );
   }
 }

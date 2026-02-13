@@ -21,6 +21,7 @@ enum VisitStatus { first, recognized }
 class _B2CHomeScreenState extends State<B2CHomeScreen> {
   VisitStatus _status = VisitStatus.first;
   bool _isLoading = true;
+  bool _venueNotFound = false;
   String? _guestName;
   int _currentDiscount = 5;
 
@@ -71,6 +72,14 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
     if (mounted) {
       setState(() {
         _isLoading = false;
+        // If we have a venueId but no name was found, it's a 404
+        if (widget.venueId != null && venueNameFromDb == null) {
+          _venueNotFound = true;
+        }
+        // If no venueId was even provided, we also treat it as not found for this screen
+        if (widget.venueId == null) {
+          _venueNotFound = true;
+        }
       });
     }
   }
@@ -80,6 +89,10 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) return const Scaffold(backgroundColor: AppColors.backgroundCream, body: Center(child: CircularProgressIndicator()));
+
+    if (_venueNotFound) {
+      return _buildNotFoundView();
+    }
 
     // Dynamic UI data
     final String headline;
@@ -439,4 +452,50 @@ class GaugePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant GaugePainter oldDelegate) => oldDelegate.discount != discount;
+}
+
+extension on _B2CHomeScreenState {
+  Widget _buildNotFoundView() {
+    return Scaffold(
+      backgroundColor: AppColors.backgroundCream,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(FontAwesomeIcons.circleExclamation, size: 80, color: AppColors.brandOrange),
+              const SizedBox(height: 32),
+              Text(
+                "Venue Not Found",
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: AppColors.brandBrown,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                "The link you followed seems to be broken or the venue is no longer active.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.brandBrown, fontSize: 16),
+              ),
+              const SizedBox(height: 48),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pushReplacementNamed('/'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.brandBrown,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  child: const Text("GO TO HOME", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
