@@ -30,6 +30,7 @@ class ThankYouScreen extends StatefulWidget {
 
 class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProviderStateMixin {
   bool _isClaimed = false;
+  bool _isExpired = false;
   int _timeLeft = 300; // 5 minutes
   Timer? _timer;
   bool _isLoading = false;
@@ -62,6 +63,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
       } else {
         _timer?.cancel();
         _pulseController.stop();
+        setState(() => _isExpired = true);
       }
     });
   }
@@ -104,6 +106,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
   }
 
   String get _timerString {
+    if (_isExpired) return "EXPIRED";
     final mins = (_timeLeft / 60).floor();
     final secs = _timeLeft % 60;
     return '$mins:${secs.toString().padLeft(2, '0')}';
@@ -115,8 +118,8 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
       backgroundColor: ThankYouColors.background,
       body: Stack(
         children: [
-          // Pulse Background (Heartbeat) - specific to React design
-          if (_isClaimed)
+          // Pulse Background (Heartbeat)
+          if (_isClaimed && !_isExpired)
             Center(
               child: AnimatedBuilder(
                 animation: _pulseAnimation,
@@ -243,12 +246,13 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                               ),
                             ),
                             Text(
-                              "OFF TOTAL BILL",
+                                "OFF TOTAL BILL",
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
-                                color: ThankYouColors.text.withValues(alpha: 0.4),
+                                color: _isExpired ? Colors.grey : ThankYouColors.text.withValues(alpha: 0.4),
                                 letterSpacing: 1.5,
+                                decoration: _isExpired ? TextDecoration.lineThrough : null,
                               ),
                             ),
                             const SizedBox(height: 32),
@@ -283,26 +287,30 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                                 width: double.infinity,
                                 height: 64,
                                 decoration: BoxDecoration(
-                                  color: ThankYouColors.background,
+                                  color: _isExpired ? Colors.grey[200] : ThankYouColors.background,
                                   borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: ThankYouColors.button, width: 2),
+                                  border: Border.all(color: _isExpired ? Colors.grey : ThankYouColors.button, width: 2),
                                 ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     // Animated Heart Icon
+                                    if (!_isExpired)
                                     AnimatedBuilder(
                                       animation: _pulseAnimation,
                                       builder: (context, child) => Transform.scale(scale: _pulseAnimation.value, child: child),
                                       child: const Icon(FontAwesomeIcons.heart, color: Colors.red, size: 20),
                                     ),
+                                    if (_isExpired)
+                                      const Icon(FontAwesomeIcons.ban, color: Colors.grey, size: 20),
+                                    
                                     const SizedBox(width: 16),
                                     Text(
                                       _timerString,
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 24,
                                         fontWeight: FontWeight.w900,
-                                        color: ThankYouColors.button,
+                                        color: _isExpired ? Colors.grey : ThankYouColors.button,
                                         fontFamily: 'monospace',
                                         letterSpacing: 2.0,
                                       ),

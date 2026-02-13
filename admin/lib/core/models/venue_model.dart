@@ -41,6 +41,51 @@ class VenueSubscription {
   );
 }
 
+class LoyaltyConfig {
+  final int safetyCooldownHours;
+  final int vipWindowHours;
+  final int tier1DecayHours;
+  final int tier2DecayHours;
+  
+  final int percBase;
+  final int percVip;
+  final int percDecay1;
+  final int percDecay2;
+
+  const LoyaltyConfig({
+    this.safetyCooldownHours = 12,
+    this.vipWindowHours = 48,
+    this.tier1DecayHours = 72,
+    this.tier2DecayHours = 168,
+    this.percBase = 5,
+    this.percVip = 20,
+    this.percDecay1 = 15,
+    this.percDecay2 = 10,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'safetyCooldownHours': safetyCooldownHours,
+    'vipWindowHours': vipWindowHours,
+    'tier1DecayHours': tier1DecayHours,
+    'tier2DecayHours': tier2DecayHours,
+    'percBase': percBase,
+    'percVip': percVip,
+    'percDecay1': percDecay1,
+    'percDecay2': percDecay2,
+  };
+
+  factory LoyaltyConfig.fromMap(Map<String, dynamic> map) => LoyaltyConfig(
+    safetyCooldownHours: map['safetyCooldownHours'] ?? 12,
+    vipWindowHours: map['vipWindowHours'] ?? 48,
+    tier1DecayHours: map['tier1DecayHours'] ?? 72,
+    tier2DecayHours: map['tier2DecayHours'] ?? 168,
+    percBase: map['percBase'] ?? 5,
+    percVip: map['percVip'] ?? 20,
+    percDecay1: map['percDecay1'] ?? 15,
+    percDecay2: map['percDecay2'] ?? 10,
+  );
+}
+
 class VenueModel {
   final String id;
   final String? ownerEmail; // Optional for unclaimed venues
@@ -56,6 +101,7 @@ class VenueModel {
   
   final List<VenueTier> tiers;
   final VenueSubscription subscription;
+  final LoyaltyConfig loyaltyConfig;
   final VenueStats stats;
   
   final DateTime? lastBlastDate;
@@ -76,6 +122,7 @@ class VenueModel {
     this.isManuallyBlocked = false,
     List<VenueTier>? tiers,
     VenueSubscription? subscription,
+    LoyaltyConfig? loyaltyConfig,
     VenueStats? stats,
     this.lastBlastDate,
     this.latitude,
@@ -83,6 +130,7 @@ class VenueModel {
   }) : 
     tiers = tiers ?? [],
     subscription = subscription ?? VenueSubscription(),
+    loyaltyConfig = loyaltyConfig ?? const LoyaltyConfig(),
     stats = stats ?? VenueStats(avgReturnHours: 0, totalCheckins: 0);
 
   Map<String, dynamic> toMap() {
@@ -99,6 +147,7 @@ class VenueModel {
       'isManuallyBlocked': isManuallyBlocked,
       'tiers': tiers.map((t) => t.toMap()).toList(),
       'subscription': subscription.toMap(),
+      'loyaltyConfig': loyaltyConfig.toMap(),
       'stats': stats.toMap(),
       'lastBlastDate': lastBlastDate != null ? Timestamp.fromDate(lastBlastDate!) : null,
       'latitude': latitude,
@@ -121,6 +170,7 @@ class VenueModel {
       isManuallyBlocked: map['isManuallyBlocked'] ?? false,
       tiers: (map['tiers'] as List?)?.map((t) => VenueTier.fromMap(t)).toList(),
       subscription: map['subscription'] != null ? VenueSubscription.fromMap(map['subscription']) : null,
+      loyaltyConfig: map['loyaltyConfig'] != null ? LoyaltyConfig.fromMap(map['loyaltyConfig']) : null,
       stats: map['stats'] != null ? VenueStats.fromMap(map['stats']) : null,
       lastBlastDate: map['lastBlastDate'] != null ? (map['lastBlastDate'] as Timestamp).toDate() : null,
       latitude: map['latitude']?.toDouble(),

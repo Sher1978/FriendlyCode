@@ -7,6 +7,9 @@ import 'lead_capture_screen.dart';
 import 'thank_you_screen.dart'; // Import ThankYouScreen
 import 'package:friendly_code/core/logic/reward_calculator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:friendly_code/core/auth/auth_service.dart';
+import 'package:friendly_code/core/models/venue_model.dart';
 
 class B2CHomeScreen extends StatefulWidget {
   final String? venueId;
@@ -24,6 +27,8 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
   bool _venueNotFound = false;
   String? _guestName;
   int _currentDiscount = 5;
+  VenueModel? _venue;
+  bool _isTestMode = false;
   
   // Animation for Gauge
   late AnimationController _gaugeController;
@@ -46,62 +51,98 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
   }
 
   Future<void> _checkVisit() async {
-    final prefs = await SharedPreferences.getInstance();
-    final firstVisitIso = prefs.getString('firstVisitIso');
-    _guestName = prefs.getString('guestName');
+    // 1. Check Auth & Sign In Anonymously if needed
+    final authService = AuthService();
+    User? user = authService.currentUser;
     
-    // FETCH VENUE DETAILS
-    String? venueNameFromDb;
-    if (widget.venueId != null) {
+    if (user == null) {
       try {
-        final doc = await FirebaseFirestore.instance
-            .collection('venues')
-            .doc(widget.venueId)
-            .get()
-            .timeout(const Duration(seconds: 5));
-        
-        if (doc.exists) {
-          venueNameFromDb = doc.data()?['name'];
-          // Store for LeadCapture
-          await prefs.setString('currentVenueId', widget.venueId!);
-          if (venueNameFromDb != null) {
-            await prefs.setString('venueName', venueNameFromDb);
-          }
-        }
+        user = await authService.signInAnonymously();
       } catch (e) {
-        debugPrint("Error fetching venue: $e");
+        debugPrint("Auth Error: $e");
+        // Fallback or show error? For now, proceed as best effort
+      }
+    } else {
+      // Check if staff/owner (simple check based on email or claims if available)
+      // For now, if they have an email, we assume they might be staff/owner or a registered user
+      // Refined requirement: "If staff/owner... mark as is_test". 
+      // We can check local role or just assume auth'd users (non-anonymous) are "returning"
+      if (!user.isAnonymous) {
+        // Potentially test mode or just a returning user
       }
     }
-    
-    if (firstVisitIso == null) {
-      await prefs.setString('firstVisitIso', DateTime.now().toIso8601String());
-      _currentDiscount = 5;
-      _status = VisitStatus.first;
-    } else {
-      final firstVisit = DateTime.parse(firstVisitIso);
-      _currentDiscount = RewardCalculator.calculate(firstVisit, DateTime.now());
-      _status = VisitStatus.recognized;
+
+    if (widget.venueId == null) {
+      if (mounted) setState(() { _isLoading = false; _venueNotFound = true; });
+      return;
     }
-    
+
+    try {
+      // 2. Fetch Venue & Loyalty Config
+      final venueDoc = await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).get();
+      if (!venueDoc.exists) {
+        if (mounted) setState(() { _isLoading = false; _venueNotFound = true; });
+        return;
+      }
+
+      _venue = VenueModel.fromMap(venueDoc.id, venueDoc.data()!);
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Store Venue Details
+      await prefs.setString('currentVenueId', widget.venueId!);
+      await prefs.setString('venueName', _venue!.name);
+      
+      // 3. Fetch Last Visit (Server-Side)
+      // Check for user's last visit to THIS venue
+      if (user != null) {
+        final visitsQuery = await FirebaseFirestore.instance
+            .collection('visits')
+            .where('uid', isEqualTo: user.uid)
+            .where('venueId', isEqualTo: widget.venueId)
+            .orderBy('timestamp', descending: true)
+            .limit(1)
+            .get();
+
+        if (visitsQuery.docs.isNotEmpty) {
+          final lastVisitData = visitsQuery.docs.first.data();
+          final Timestamp? ts = lastVisitData['timestamp'];
+          
+          if (ts != null) {
+             final lastVisitDate = ts.toDate();
+             // 4. Calculate Dynamic Reward
+             _currentDiscount = RewardCalculator.calculate(
+               lastVisitDate, 
+               DateTime.now(), 
+               _venue!.loyaltyConfig
+             );
+             _status = VisitStatus.recognized;
+             _guestName = lastVisitData['guestName']; // Try to recover name from last visit
+             if (_guestName != null) {
+               await prefs.setString('guestName', _guestName!);
+             }
+          }
+        } else {
+           // No server-side visits found -> First Visit
+           _currentDiscount = _venue!.loyaltyConfig.percBase;
+           _status = VisitStatus.first;
+        }
+      }
+      
+    } catch (e) {
+      debugPrint("Error loading B2C data: $e");
+      // Fallback to base
+      _currentDiscount = 5;
+    }
+
     if (mounted) {
       setState(() {
         _isLoading = false;
-        // If we have a venueId but no name was found, it's a 404
-        if (widget.venueId != null && venueNameFromDb == null) {
-          _venueNotFound = true;
-        }
-        // If no venueId was even provided, we also treat it as not found for this screen
-        if (widget.venueId == null) {
-          _venueNotFound = true;
-        }
-      });
-      
-      // Start Animation
-      final double targetValue = (_currentDiscount - 5) / 15.0; // 0.0 to 1.0 (5% to 20%)
-      _gaugeAnimation = Tween<double>(begin: 0.0, end: targetValue.clamp(0.0, 1.0)).animate(CurvedAnimation(parent: _gaugeController, curve: Curves.easeOutBack));
-      _gaugeController.forward().then((_) {
-        // Start trembling after main animation
-        _trembleController.repeat(reverse: true);
+        // Start Animations
+        final double targetValue = (_currentDiscount - 5) / 15.0; // 0.0 to 1.0 (5% to 20%)
+        _gaugeAnimation = Tween<double>(begin: 0.0, end: targetValue.clamp(0.0, 1.0)).animate(CurvedAnimation(parent: _gaugeController, curve: Curves.easeOutBack));
+        _gaugeController.forward().then((_) {
+          _trembleController.repeat(reverse: true);
+        });
       });
     }
   }
