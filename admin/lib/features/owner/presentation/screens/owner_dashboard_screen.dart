@@ -35,8 +35,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   String? _selectedVenueId;
   bool _isLoadingRole = false;
 
-  }
-
   // Visit Listener Logic
   StreamSubscription? _visitSubscription;
   final VisitsService _visitsService = VisitsService();

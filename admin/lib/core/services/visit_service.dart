@@ -35,4 +35,9 @@ class VisitsService {
 
     return snapshot.docs.map((doc) => VisitModel.fromMap(doc.id, doc.data())).toList();
   }
+
+  // Update visit status (Approve/Reject)
+  Future<void> updateVisitStatus(String visitId, String status) async {
+    await _firestore.collection(_collection).doc(visitId).update({'status': status});
+  }
 }

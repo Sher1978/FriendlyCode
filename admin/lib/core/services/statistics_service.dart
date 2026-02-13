@@ -43,7 +43,7 @@ class StatisticsService {
     // 5. Avg Return Time (Logic from before or simplified)
     // Group by guest
     Map<String, List<VisitModel>> guestVisits = {};
-    for (var v in visits) {
+    for (var v in allVisits) {
       guestVisits.putIfAbsent(v.guestId, () => []).add(v);
     }
 
