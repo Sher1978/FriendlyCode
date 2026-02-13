@@ -4,7 +4,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'lead_capture_screen.dart';
-import 'b2b_landing_screen.dart';
 import 'package:friendly_code/core/logic/reward_calculator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -18,17 +17,28 @@ class B2CHomeScreen extends StatefulWidget {
 
 enum VisitStatus { first, recognized }
 
-class _B2CHomeScreenState extends State<B2CHomeScreen> {
+class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProviderStateMixin {
   VisitStatus _status = VisitStatus.first;
   bool _isLoading = true;
   bool _venueNotFound = false;
   String? _guestName;
   int _currentDiscount = 5;
+  
+  // Animation for Gauge
+  late AnimationController _gaugeController;
+  late Animation<double> _gaugeAnimation;
 
   @override
   void initState() {
     super.initState();
+    _gaugeController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
     _checkVisit();
+  }
+  
+  @override
+  void dispose() {
+    _gaugeController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkVisit() async {
@@ -81,14 +91,17 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
           _venueNotFound = true;
         }
       });
+      
+      // Start Animation
+      final double targetValue = (_currentDiscount - 5) / 15.0; // 0.0 to 1.0 (5% to 20%)
+      _gaugeAnimation = Tween<double>(begin: 0.0, end: targetValue.clamp(0.0, 1.0)).animate(CurvedAnimation(parent: _gaugeController, curve: Curves.easeOutBack));
+      _gaugeController.forward();
     }
   }
 
-  bool get show20Percent => _currentDiscount == 20;
-
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) return const Scaffold(backgroundColor: AppColors.backgroundCream, body: Center(child: CircularProgressIndicator()));
+    if (_isLoading) return const Scaffold(backgroundColor: AppColors.premiumSand, body: Center(child: CircularProgressIndicator(color: AppColors.premiumBurntOrange)));
 
     if (_venueNotFound) {
       return _buildNotFoundView();
@@ -97,40 +110,37 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
     // Dynamic UI data
     final String headline;
     final String subhead;
-    final String gaugeText = '$_currentDiscount%';
-    final bool isHighTier = _currentDiscount >= 15;
 
-    if (_guestName != null && _guestName!.isNotEmpty) {
-      headline = '$_guestName, мы рады Вашему визиту 💗\nВаша скидка сегодня $_currentDiscount%🥳';
+    if (_status == VisitStatus.recognized) {
+      headline = 'Welcome Back! 🌟\nYour Discount TODAY: $_currentDiscount%';
       subhead = 'The sooner you return, the bigger the reward.';
     } else {
-      headline = 'Your Reward\nTODAY: $_currentDiscount%';
-      subhead = _currentDiscount > 5 
-          ? 'You returned! You earned it.' 
-          : 'Want 20%? Come back tomorrow!';
+      headline = 'Your Discount\nTODAY: $_currentDiscount%';
+      subhead = 'Want 20%? Come back tomorrow!';
     }
 
     return Scaffold(
-      backgroundColor: AppColors.backgroundCream,
+      backgroundColor: AppColors.premiumSand,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // 1. Header (Venue Name)
-              _Header(venueName: _guestName != null ? 'Your Venue' : 'Friendly Code'), // Ideally fetched from venue config
+              // 1. Header (Brand/Venue)
+              _Header(venueName: 'Friendly Code'), 
               
-              const Spacer(),
+              const SizedBox(height: 32),
 
               // 2. Headline
               Text(
                 headline,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: AppColors.brandBrown,
+                      color: AppColors.title,
                       fontWeight: FontWeight.w900,
                       height: 1.1,
-                      fontSize: 28, // Slightly smaller to fit
+                      fontSize: 28,
                     ),
               ),
               const SizedBox(height: 8),
@@ -138,70 +148,102 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
                 subhead,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.brandBrown.withOpacity(0.8),
+                      color: AppColors.body,
                       fontWeight: FontWeight.w500,
                     ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 40),
 
-              // 3. Visual Gauge
-              SizedBox(
-                height: 140, // Reduced height
-                width: 260,
-                child: CustomPaint(
-                  painter: GaugePainter(discount: _currentDiscount),
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 30),
-                      child: Text(
-                        gaugeText,
-                        style: const TextStyle(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.brandBrown,
+              // 3. Animated Gauge
+              AnimatedBuilder(
+                animation: _gaugeController,
+                builder: (context, child) {
+                  return SizedBox(
+                    height: 160,
+                    width: 280,
+                    child: CustomPaint(
+                      painter: GaugePainter(value: _gaugeAnimation.value, currentDiscount: _currentDiscount),
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 40),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '$_currentDiscount%',
+                                style: const TextStyle(
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.title,
+                                  height: 1.0,
+                                ),
+                              ),
+                              // Optional: Small label under percentage
+                              // Text("Current", style: TextStyle(fontSize: 12, color: AppColors.body))
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
+                  );
+                }
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 40),
 
-              // 4. Logic Steps (Compact)
-              Flexible(
+              // 4. Timeline
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: AppColors.premiumGold.withOpacity(0.2)),
+                ),
+                padding: const EdgeInsets.all(20),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    _DiscountStep(
-                      label: 'Today: $_currentDiscount%',
-                      icon: FontAwesomeIcons.check,
-                      isActive: true,
-                      isHighlighted: _currentDiscount == 5,
+                    _TimelineItem(
+                      label: "Today: 5%",
+                      isActive: _currentDiscount == 5,
+                      isFuture: false,
                     ),
-                    const SizedBox(height: 8),
-                    _DiscountStep(
-                      label: 'Tomorrow: 20%',
-                      icon: show20Percent ? FontAwesomeIcons.check : FontAwesomeIcons.clock,
-                      isActive: true,
-                      isHighlighted: show20Percent,
+                    const SizedBox(height: 12),
+                    _TimelineItem(
+                      label: "Tomorrow: 20%",
+                      isActive: _currentDiscount == 20,
+                      isFuture: _currentDiscount < 20 && _status == VisitStatus.first,
                     ),
-                    const SizedBox(height: 8),
-                    // Only show immediate future step to save space
-                    const _DiscountStep(
-                      label: 'In 3 Days: 15%',
-                      icon: FontAwesomeIcons.lock,
-                      isActive: false, 
-                      isHighlighted: false,
+                    const SizedBox(height: 12),
+                    _TimelineItem(
+                      label: "In 3 Days: 15%",
+                      isActive: _currentDiscount == 15,
+                      isFuture: true,
+                    ),
+                    const SizedBox(height: 12),
+                    _TimelineItem(
+                      label: "In 7 Days: 10%",
+                      isActive: _currentDiscount == 10,
+                      isFuture: true,
                     ),
                   ],
                 ),
               ),
 
-              const Spacer(),
+              const SizedBox(height: 32),
 
-              // 5. Sticky Bottom CTA
+              Text(
+                "The sooner you return, the bigger the discount.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.body, 
+                  fontWeight: FontWeight.w600,
+                  fontStyle: FontStyle.italic
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+
+              // 5. CTA Button
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -213,9 +255,10 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.brandOrange,
+                    backgroundColor: AppColors.premiumBurntOrange,
                     foregroundColor: Colors.white,
-                    elevation: 4,
+                    elevation: 8,
+                    shadowColor: AppColors.premiumBurntOrange.withOpacity(0.4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -226,10 +269,11 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
                       Icon(FontAwesomeIcons.rocket, size: 20),
                       SizedBox(width: 12),
                       Text(
-                        'GET MY REWARD',
+                        'GET MY DISCOUNT',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
                         ),
                       ),
                     ],
@@ -237,18 +281,50 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> {
                 ),
               ),
               
-              const SizedBox(height: 16),
+              const SizedBox(height: 32),
               
-              // Powered By
+              // 6. Footer (Verified + Powered By)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.verified, size: 14, color: AppColors.accentGreen),
+                  const SizedBox(width: 4),
+                  FutureBuilder<SharedPreferences>(
+                    future: SharedPreferences.getInstance(),
+                    builder: (context, snapshot) {
+                      String venue = 'Verified Venue';
+                      if (snapshot.hasData) {
+                         venue = snapshot.data!.getString('venueName')?.toUpperCase() ?? 'VERIFIED VENUE';
+                      }
+                      return Text(
+                        venue, 
+                        style: const TextStyle(
+                          fontSize: 10, 
+                          fontWeight: FontWeight.bold, 
+                          color: AppColors.body,
+                          letterSpacing: 1.0,
+                        )
+                      );
+                    }
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text("Powered by ", style: TextStyle(color: Colors.grey, fontSize: 10)),
-                  const Icon(FontAwesomeIcons.bolt, size: 10, color: AppColors.brandOrange),
-                  Text(" Friendly Code", style: TextStyle(color: AppColors.brandBrown.withOpacity(0.8), fontSize: 10, fontWeight: FontWeight.bold)),
+                  const Icon(FontAwesomeIcons.bolt, size: 10, color: AppColors.premiumBurntOrange),
+                  Text(
+                    " Friendly Code", 
+                    style: TextStyle(
+                      color: AppColors.title, 
+                      fontSize: 10, 
+                      fontWeight: FontWeight.w900
+                    )
+                  ),
                 ],
               ),
-              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -263,213 +339,202 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Attempt to get venue name from shared prefs if available, else fallback
-    // In a real app, this enters via constructor from parent/state
-    return FutureBuilder<SharedPreferences>(
-      future: SharedPreferences.getInstance(),
-      builder: (context, snapshot) {
-        String display = venueName;
-        if (snapshot.hasData) {
-           display = snapshot.data!.getString('venueName') ?? venueName;
-        }
-        
-        return Column(
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            const Icon(FontAwesomeIcons.leaf, size: 18, color: AppColors.accentGreen),
+            const SizedBox(width: 8),
             Text(
-              display.toUpperCase(),
-              style: const TextStyle(
-                color: AppColors.brandBrown,
+              "Friendly\nCode",
+              textAlign: TextAlign.left,
+              style: TextStyle(
+                color: AppColors.title,
                 fontWeight: FontWeight.w900,
                 fontSize: 16,
-                letterSpacing: 1.2,
+                height: 1.0,
+                letterSpacing: -0.5,
               ),
             ),
-            Container(width: 40, height: 2, color: AppColors.brandOrange, margin: const EdgeInsets.only(top: 4)),
           ],
-        );
-      }
+        ),
+      ],
     );
   }
 }
 
-class _DiscountStep extends StatelessWidget {
+class _TimelineItem extends StatelessWidget {
   final String label;
-  final IconData icon;
   final bool isActive;
-  final bool isHighlighted;
+  final bool isFuture;
 
-  const _DiscountStep({
+  const _TimelineItem({
     required this.label,
-    required this.icon,
     required this.isActive,
-    required this.isHighlighted,
+    required this.isFuture,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      opacity: isActive ? 1.0 : 0.5,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          color: isHighlighted ? AppColors.surfaceCream : AppColors.surfaceCream.withOpacity(0.6),
-          borderRadius: BorderRadius.circular(12),
-          border: isHighlighted
-              ? Border.all(color: AppColors.brandOrange.withOpacity(0.3), width: 2)
-              : Border.all(color: Colors.transparent),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.brandBrown.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+    final Color bgColor = isActive ? AppColors.statusActiveBg : Colors.white;
+    final Color textColor = isActive ? AppColors.statusActiveText : (isFuture ? AppColors.body : Colors.grey);
+    final IconData icon = isActive ? Icons.check_circle : (isFuture ? Icons.schedule : Icons.circle_outlined);
+    final Color iconColor = isActive ? AppColors.accentGreen : (isFuture ? AppColors.premiumGold : Colors.grey[300]!);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: isActive 
+          ? Border.all(color: AppColors.accentGreen.withOpacity(0.3))
+          : Border.all(color: Colors.transparent),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: iconColor),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: TextStyle(
+              color: textColor,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
+              fontSize: 15,
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: isHighlighted ? AppColors.brandGreen : Colors.grey, 
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 12, color: Colors.white),
-            ),
-            const SizedBox(width: 16),
-            Text(
-              label,
-              style: TextStyle(
-                color: AppColors.brandBrown,
-                fontWeight: isHighlighted ? FontWeight.bold : FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
+
 class GaugePainter extends CustomPainter {
-  final int discount;
-  const GaugePainter({required this.discount});
+  final double value; // 0.0 to 1.0
+  final int currentDiscount;
+
+  const GaugePainter({required this.value, required this.currentDiscount});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height);
-    final radius = min(size.width / 2, size.height) - 20;
+    final center = Offset(size.width / 2, size.height - 20);
+    final radius = min(size.width / 2, size.height) - 10;
+    const strokeWidth = 24.0;
 
-    // 1. Draw Background Arc (Track)
+    // 1. Track (Background)
     final bgPaint = Paint()
-      ..color = Colors.grey.withOpacity(0.2)
+      ..color = Colors.grey.withOpacity(0.15)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 20
+      ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      pi, // Start at 180 degrees (left)
-      pi, // Sweep 180 degrees (to right)
+      pi, // Start 180 deg
+      pi, // Sweep 180 deg
       false,
       bgPaint,
     );
 
-    // 2. Draw Gradient Arc (Value)
-    final gradientPaint = Paint()
-      ..shader = const LinearGradient(
-        colors: [AppColors.brandOrange, AppColors.brandGreen],
-      ).createShader(Rect.fromCircle(center: center, radius: radius))
+    // 2. Gradient Arc (Progress)
+    // Create a sweep gradient from Orange (Left) to Green (Right)
+    final gradient = const LinearGradient(
+      colors: [AppColors.premiumBurntOrange, AppColors.premiumGold, AppColors.accentGreen],
+      stops: [0.0, 0.5, 1.0],
+    ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
+
+    final progressPaint = Paint()
+      ..shader = gradient
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 20
+      ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
-    // Draw full gradient arc for visual style (since it's a static "Hook" mostly)
-    // Or we can animate it. For now, let's draw the full arc as the implementation
-    // of "Potential".
+    // We draw the FULL arc to show the "Potential" range, 
+    // but maybe we want to mask it? 
+    // The reference shows a full colored arc, with the needle pointing to value.
+    // So we draw the FULL gradient arc.
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
       pi,
       pi,
       false,
-      gradientPaint,
+      progressPaint,
     );
 
-    // 3. Draw Labels (5%, 20%)
-    _drawText(canvas, center, radius, '5%', pi + 0.2, alignLeft: true);
-    _drawText(canvas, center, radius, '20%', 2 * pi - 0.2, alignLeft: false);
+    // 3. Needles/Markers
+    // 5% (Start)
+    _drawMarker(canvas, center, radius, pi, "5%");
+    // 20% (End)
+    _drawMarker(canvas, center, radius, 2 * pi, "20%");
 
-    // 4. Draw Needle 
-    // Map discount % to angle
-    // 5% -> pi + pi*0.1
-    // 20% -> 2*pi - 0.2
-    double progress = (discount - 5) / 15.0; // 0.0 to 1.0
-    if (progress < 0) progress = 0;
-    if (progress > 1) progress = 1;
+    // 4. The Needle
+    // Angle mapping: 0.0 -> pi (Left), 1.0 -> 2*pi (Right)
+    // Wait, let's map it: 5% is Left, 20% is Right.
+    // Value is 0.0 to 1.0.
+    final angle = pi + (value * pi);
     
-    final needleAngle = pi + (pi * 0.1) + (progress * (pi * 0.7)); 
-    final needleLen = radius - 30;
+    final needleLen = radius - 15;
     final needlePaint = Paint()
-      ..color = AppColors.brandBrown
-      ..strokeWidth = 4
+      ..color = AppColors.title
+      ..strokeWidth = 6
       ..strokeCap = StrokeCap.round;
 
-    final needleEnd = Offset(
-      center.dx + needleLen * cos(needleAngle),
-      center.dy + needleLen * sin(needleAngle),
+    final endPoint = Offset(
+      center.dx + needleLen * cos(angle),
+      center.dy + needleLen * sin(angle),
     );
 
-    canvas.drawLine(center, needleEnd, needlePaint);
+    canvas.drawLine(center, endPoint, needlePaint);
     
-    // Needle pivot
-    canvas.drawCircle(center, 8, Paint()..color = AppColors.brandBrown);
+    // Pivot
+    canvas.drawCircle(center, 10, Paint()..color = AppColors.title);
+    canvas.drawCircle(center, 4, Paint()..color = Colors.white);
   }
 
-  void _drawText(Canvas canvas, Offset center, double radius, String text, double angle, {required bool alignLeft}) {
-    final textSpan = TextSpan(
-      text: text,
-      style: const TextStyle(
-        color: AppColors.brandBrown,
-        fontSize: 14,
-        fontWeight: FontWeight.bold,
-      ),
-    );
-
+  void _drawMarker(Canvas canvas, Offset center, double radius, double angle, String label) {
     final textPainter = TextPainter(
-      text: textSpan,
+      text: TextSpan(
+        text: label,
+        style: const TextStyle(color: AppColors.body, fontWeight: FontWeight.bold, fontSize: 12),
+      ),
       textDirection: TextDirection.ltr,
     );
-
     textPainter.layout();
-
+    
+    // Position slightly outside
     final offset = Offset(
-      center.dx + (radius + 25) * cos(angle) - (alignLeft ? 0 : textPainter.width), // Adjust slightly for better padding
-      center.dy + (radius + 25) * sin(angle) - textPainter.height / 2,
+      center.dx + (radius + 25) * cos(angle) - textPainter.width/2,
+      center.dy + (radius + 25) * sin(angle) - textPainter.height,
     );
-
+    
+    // Correction for exact start/end
+    // if angle is PI (left), move slightly right? No need if centered.
     textPainter.paint(canvas, offset);
   }
 
   @override
-  bool shouldRepaint(covariant GaugePainter oldDelegate) => oldDelegate.discount != discount;
+  bool shouldRepaint(covariant GaugePainter oldDelegate) => 
+      oldDelegate.value != value;
 }
+
 
 extension on _B2CHomeScreenState {
   Widget _buildNotFoundView() {
     return Scaffold(
-      backgroundColor: AppColors.backgroundCream,
+      backgroundColor: AppColors.premiumSand,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(40.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(FontAwesomeIcons.circleExclamation, size: 80, color: AppColors.brandOrange),
+              const Icon(FontAwesomeIcons.circleExclamation, size: 80, color: AppColors.premiumBurntOrange),
               const SizedBox(height: 32),
               Text(
                 "Venue Not Found",
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppColors.brandBrown,
+                  color: AppColors.premiumBurntOrange,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -477,7 +542,7 @@ extension on _B2CHomeScreenState {
               const Text(
                 "The link you followed seems to be broken or the venue is no longer active.",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.brandBrown, fontSize: 16),
+                style: TextStyle(color: AppColors.body, fontSize: 16),
               ),
               const SizedBox(height: 48),
               SizedBox(
@@ -486,7 +551,7 @@ extension on _B2CHomeScreenState {
                 child: ElevatedButton(
                   onPressed: () => Navigator.of(context).pushReplacementNamed('/'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.brandBrown,
+                    backgroundColor: AppColors.title,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                   child: const Text("GO TO HOME", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),

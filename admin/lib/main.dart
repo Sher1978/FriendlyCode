@@ -35,11 +35,17 @@ void main() async {
   // SPLIT ENTRY POINT
   // Inspect the URL path before mounting the app
   final uri = Uri.base;
-  final path = uri.path; // e.g. "/qr" or "/admin"
+  final path = uri.path; // e.g. "/qr"
+  final fragment = uri.fragment; // e.g. "/qr?id=..." if using hash strategy by mistake
   
   // If the user is trying to access the QR page, we launch the GUEST APP
-  // This app is physically isolated from the Admin/Owner app.
-  if (path.startsWith('/qr') || path.startsWith('/admin/qr')) {
+  // We check both the real path AND the fragment (cover both Path/Hash strategies)
+  final bool isQrRoute = path.startsWith('/qr') || 
+                         path.startsWith('/admin/qr') || 
+                         fragment.startsWith('/qr') || 
+                         fragment.startsWith('qr');
+
+  if (isQrRoute) {
     runApp(const GuestApp());
   } else {
     // Otherwise, launch the full Partner App

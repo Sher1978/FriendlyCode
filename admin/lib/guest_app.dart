@@ -47,9 +47,10 @@ class _GuestAppContent extends StatelessWidget {
       // STRICT ROUTING: Only knows about QR and 404
       onGenerateRoute: (settings) {
         final uri = Uri.parse(settings.name ?? '/');
+        final cleanPath = uri.path.startsWith('/') ? uri.path : '/${uri.path}';
         
         // Handle /qr path
-        if (uri.path == '/qr' || uri.path == '/admin/qr') {
+        if (cleanPath == '/qr' || cleanPath == '/admin/qr') {
            final venueId = uri.queryParameters['id'];
            return MaterialPageRoute(
              builder: (context) => B2CHomeScreen(venueId: venueId),

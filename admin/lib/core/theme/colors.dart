@@ -12,6 +12,12 @@ class AppColors {
   static const Color accentTeal = Color(0xFF0D9488); // Maintain for UI
   static const Color accentIndigo = Color(0xFF4F46E5); // Maintain for UI
   
+  // Premium Redesign Palette
+  static const Color premiumSand = Color(0xFFFDF6E3); // Soft Sand Background
+  static const Color premiumBurntOrange = Color(0xFFD35400); // Deep Burnt Orange
+  static const Color premiumGold = Color(0xFFB7950B); // Muted Gold
+  static const Color premiumCream = Color(0xFFFFFBF0); // Lighter Cream
+  
   // Status Badges (Pastels)
   static const Color statusActiveBg = Color(0xFFDCFCE7);
   static const Color statusActiveText = Color(0xFF166534);
