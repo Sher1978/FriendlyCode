@@ -111,7 +111,10 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
   Future<void> _connectTelegram() async {
     try {
       setState(() => _isLoading = true);
-      final result = await FirebaseFunctions.instance.httpsCallable('generateTelegramLink').call();
+      // SPECIFY REGION: asia-south1
+      final result = await FirebaseFunctions.instanceFor(region: 'asia-south1')
+          .httpsCallable('generateTelegramLink')
+          .call();
       final url = result.data['url'];
       if (url != null) {
         final uri = Uri.parse(url);

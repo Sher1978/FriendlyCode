@@ -25,11 +25,8 @@ class RoleProvider extends ChangeNotifier {
     if (user != null) {
       _uid = user.uid;
       try {
-        final doc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get()
-            .timeout(const Duration(seconds: 5));
+        final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
+        final doc = await docRef.get().timeout(const Duration(seconds: 5));
         
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
@@ -39,6 +36,15 @@ class RoleProvider extends ChangeNotifier {
             _currentRole = UserRole.owner;
           }
         } else {
+          // AUTO-CREATE USER RECORD
+          debugPrint("User document missing for ${user.email}. Creating default record...");
+          await docRef.set({
+            'email': user.email,
+            'name': user.displayName ?? '',
+            'role': 'owner',
+            'joinDate': DateTime.now().toIso8601String(),
+            'createdAt': FieldValue.serverTimestamp(),
+          });
           _currentRole = UserRole.owner;
         }
 
