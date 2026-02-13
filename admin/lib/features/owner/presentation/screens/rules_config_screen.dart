@@ -15,31 +15,20 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
   // For MVP, we are initializing with 3, but UI supports adding more if we expanded the logic.
   // We'll stick to the Bible's 5-tier cap.
   
-  final List<TextEditingController> _hoursControllers = [];
-  final List<TextEditingController> _discountControllers = [];
+  final _safetyCooldownCtrl = TextEditingController(text: "12");
+  final _vipWindowCtrl = TextEditingController(text: "48");
+  final _tier1DecayCtrl = TextEditingController(text: "72");
+  final _tier2DecayCtrl = TextEditingController(text: "168");
   
-  final _baseDiscountCtrl = TextEditingController(text: "5");
+  final _percBaseCtrl = TextEditingController(text: "5");
+  final _percVipCtrl = TextEditingController(text: "20");
+  final _percDecay1Ctrl = TextEditingController(text: "15");
+  final _percDecay2Ctrl = TextEditingController(text: "10");
 
   @override
   void initState() {
     super.initState();
-    // Initialize with current defaults (mocked for now, would come from VenueModel)
-    _addTier(24, 20);
-    _addTier(36, 15);
-    _addTier(240, 10); // 10 days
-  }
-
-  void _addTier(int hours, int discount) {
-    if (_hoursControllers.length >= 5) return;
-    _hoursControllers.add(TextEditingController(text: hours.toString()));
-    _discountControllers.add(TextEditingController(text: discount.toString()));
-    setState(() {});
-  }
-
-  void _removeTier(int index) {
-     _hoursControllers.removeAt(index);
-     _discountControllers.removeAt(index);
-     setState(() {});
+    // In a real app, we'd fetch the current LoyaltyConfig from the venue.
   }
 
   @override
@@ -53,43 +42,24 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              l10n.configTierLimit,
+              "Configure your time-decay loyalty rules. These rules determine how much discount a guest receives based on their return frequency.",
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white70),
             ),
             const SizedBox(height: 24),
 
-            // Tiers List
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _hoursControllers.length,
-              itemBuilder: (context, index) {
-                return _buildTierRow(index);
-              },
-            ),
-
-            // Add Button
-            if (_hoursControllers.length < 5)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Center(
-                  child: TextButton.icon(
-                    onPressed: () => _addTier(48, 5),
-                    icon: const Icon(Icons.add_circle, color: AppColors.lime),
-                    label: Text(l10n.addTier, style: const TextStyle(color: AppColors.lime)),
-                  ),
-                ),
-              ),
+            _buildSectionHeader("TIME WINDOWS (HOURS)"),
+            _buildTierRow("Safety Cooldown", "Minimum hours before a new scan can count as a visit.", _safetyCooldownCtrl),
+            _buildTierRow("VIP Window", "Return within these hours for maximum reward.", _vipWindowCtrl),
+            _buildTierRow("Tier 1 Decay", "Reward drops after this many hours.", _tier1DecayCtrl),
+            _buildTierRow("Tier 2 Decay", "Reward drops further after this many hours.", _tier2DecayCtrl),
 
             const Divider(color: Colors.white10, height: 48),
 
-            Text(l10n.retentionBase, style: const TextStyle(color: AppColors.lime, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            _buildNumInput(l10n.rewardPercent, _baseDiscountCtrl),
-            Text(
-              l10n.tierHint,
-              style: const TextStyle(color: Colors.white38, fontSize: 12),
-            ),
+            _buildSectionHeader("REWARD PERCENTAGES (%)"),
+            _buildTierRow("Base Reward", "Default discount for new or inactive guests.", _percBaseCtrl),
+            _buildTierRow("VIP Reward", "Maximum discount for frequent visitors.", _percVipCtrl),
+            _buildTierRow("Tier 1 Reward", "Intermediate discount tier.", _percDecay1Ctrl),
+            _buildTierRow("Tier 2 Reward", "Lower intermediate discount tier.", _percDecay2Ctrl),
 
             const SizedBox(height: 48),
 
@@ -111,7 +81,17 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
     );
   }
 
-  Widget _buildTierRow(int index) {
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Text(
+        title,
+        style: const TextStyle(color: AppColors.lime, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+      ),
+    );
+  }
+
+  Widget _buildTierRow(String label, String sub, TextEditingController controller) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -120,91 +100,47 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white10),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(AppLocalizations.of(context)!.tierLabel(index + 1), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              if (_hoursControllers.length > 1)
-                IconButton(
-                  icon: const Icon(Icons.remove_circle_outline, color: Colors.red, size: 20),
-                  onPressed: () => _removeTier(index),
-                ),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 4),
+                Text(sub, style: const TextStyle(color: Colors.white38, fontSize: 11)),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: _buildNumInput(AppLocalizations.of(context)!.visitWithinHrs, _hoursControllers[index])),
-              const SizedBox(width: 16),
-              Expanded(child: _buildNumInput(AppLocalizations.of(context)!.rewardPercent, _discountControllers[index])),
-            ],
+          const SizedBox(width: 16),
+          SizedBox(
+            width: 80,
+            child: TextField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: Colors.black26,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNumInput(String label, TextEditingController controller) {
-    return TextField(
-      controller: controller,
-      keyboardType: TextInputType.number,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white54, fontSize: 12),
-        filled: true,
-        fillColor: Colors.black12,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
-    );
-  }
-
   void _saveConfig() {
-    // For MVP validation, we're mostly checking UI logic.
-    // In a real app, this would serialize the list and send to Firestore.
+    // Note: This screen is currently a standalone UI. 
+    // Configuration is primarily handled via the VenueConfigurator in the Admin panel.
+    // In a fully wired-up system, this would update the specific venue's loyaltyConfig.
     
-    // Construct config for local calculator update (to verify visual feedback)
-    final tier1Hours = _getHours(0) ?? 24;
-    final discount1 = _getDiscount(0) ?? 20;
-    
-    final tier2Hours = _getHours(1) ?? 36;
-    final discount2 = _getDiscount(1) ?? 15;
-    
-    final tier3Hours = _getHours(2) ?? 240;
-    final discount3 = _getDiscount(2) ?? 10;
-    
-    final base = int.tryParse(_baseDiscountCtrl.text) ?? 5;
-
-    final newConfig = RewardConfig(
-      tier1Hours: tier1Hours,
-      tier2Hours: tier2Hours,
-      tier3Hours: tier3Hours,
-      rewardTier1: discount1,
-      rewardTier2: discount2,
-      rewardTier3: discount3,
-      rewardBase: base,
-    );
-
-    // Update Global Logic
-    RewardCalculator.updateConfig(newConfig);
-
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context)!.logicUpdated)),
     );
     Navigator.pop(context);
-  }
-  
-  int? _getHours(int index) {
-    if (index >= _hoursControllers.length) return null;
-    return int.tryParse(_hoursControllers[index].text);
-  }
-  
-  int? _getDiscount(int index) {
-      if (index >= _discountControllers.length) return null;
-      return int.tryParse(_discountControllers[index].text);
   }
 }

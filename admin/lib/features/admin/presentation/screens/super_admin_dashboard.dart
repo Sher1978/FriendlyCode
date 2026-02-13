@@ -43,7 +43,8 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: AppColors.background,
+      child: Scaffold(
+        backgroundColor: AppColors.premiumSand,
         body: Padding(
           padding: const EdgeInsets.all(40.0),
           child: Column(
@@ -56,9 +57,9 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("SYSTEM CONTROL", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)),
+                      const Text("SYSTEM CONTROL", style: TextStyle(color: AppColors.premiumBurntOrange, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)),
                       const SizedBox(height: 4),
-                      Text("System Management", style: Theme.of(context).textTheme.displayLarge),
+                      Text("System Management", style: Theme.of(context).textTheme.displayLarge?.copyWith(color: AppColors.title, fontWeight: FontWeight.w900)),
                     ],
                   ),
                     Row(
@@ -273,7 +274,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: AppColors.softShadow,
         border: Border.all(color: AppColors.title.withValues(alpha: 0.05)),

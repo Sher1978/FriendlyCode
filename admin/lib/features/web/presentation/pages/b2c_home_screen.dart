@@ -19,7 +19,7 @@ class B2CHomeScreen extends StatefulWidget {
   State<B2CHomeScreen> createState() => _B2CHomeScreenState();
 }
 
-enum VisitStatus { first, recognized }
+enum VisitStatus { first, recognized, cooldown }
 
 class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProviderStateMixin {
   VisitStatus _status = VisitStatus.first;
@@ -110,13 +110,23 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
           if (ts != null) {
              final lastVisitDate = ts.toDate();
              // 4. Calculate Dynamic Reward
-             _currentDiscount = RewardCalculator.calculate(
-               lastVisitDate, 
-               DateTime.now(), 
-               _venue!.loyaltyConfig
-             );
-             _status = VisitStatus.recognized;
-             _guestName = lastVisitData['guestName']; // Try to recover name from last visit
+             final currentTime = DateTime.now();
+             final difference = currentTime.difference(lastVisitDate);
+             final hoursPassed = difference.inHours;
+
+             if (hoursPassed < _venue!.loyaltyConfig.safetyCooldownHours) {
+               _status = VisitStatus.cooldown;
+               _currentDiscount = lastVisitData['discountValue'] ?? 5; 
+             } else {
+               _currentDiscount = RewardCalculator.calculate(
+                 lastVisitDate, 
+                 currentTime, 
+                 _venue!.loyaltyConfig
+               );
+               _status = VisitStatus.recognized;
+             }
+             
+             _guestName = lastVisitData['guestName']; 
              if (_guestName != null) {
                await prefs.setString('guestName', _guestName!);
              }
@@ -130,7 +140,6 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
       
     } catch (e) {
       debugPrint("Error loading B2C data: $e");
-      // Fallback to base
       _currentDiscount = 5;
     }
 
@@ -138,7 +147,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
       setState(() {
         _isLoading = false;
         // Start Animations
-        final double targetValue = (_currentDiscount - 5) / 15.0; // 0.0 to 1.0 (5% to 20%)
+        final double targetValue = (_currentDiscount - 5) / 15.0; 
         _gaugeAnimation = Tween<double>(begin: 0.0, end: targetValue.clamp(0.0, 1.0)).animate(CurvedAnimation(parent: _gaugeController, curve: Curves.easeOutBack));
         _gaugeController.forward().then((_) {
           _trembleController.repeat(reverse: true);
@@ -186,7 +195,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
     final String headline;
     final String subhead;
 
-    if (_status == VisitStatus.recognized) {
+    if (_status == VisitStatus.recognized || _status == VisitStatus.cooldown) {
       headline = 'Welcome Back! 🌟\nYour Reward TODAY: $_currentDiscount%';
       subhead = 'The sooner you return, the bigger the reward.';
     } else {
@@ -307,17 +316,6 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                 ),
               ),
 
-              const SizedBox(height: 32),
-
-              Text(
-                "The sooner you return, the bigger the discount.",
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: AppColors.body, 
-                  fontWeight: FontWeight.w600,
-                  fontStyle: FontStyle.italic
-                ),
-              ),
               
               const SizedBox(height: 24),
 
@@ -328,7 +326,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                 child: ElevatedButton(
                   onPressed: _onGetRewardPressed,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.premiumBurntOrange, // Ensure Orange
+                    backgroundColor: AppColors.premiumBurntOrange, 
                     foregroundColor: Colors.white,
                     elevation: 8,
                     shadowColor: AppColors.premiumBurntOrange.withValues(alpha: 0.4),

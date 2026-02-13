@@ -28,6 +28,19 @@ class OwnerDashboardScreen extends StatefulWidget {
 class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   final VenueRepository _venueRepo = VenueRepository();
   String? _selectedVenueId;
+  bool _isLoadingRole = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refreshRole();
+  }
+
+  Future<void> _refreshRole() async {
+    setState(() => _isLoadingRole = true);
+    await Provider.of<RoleProvider>(context, listen: false).refreshRole();
+    if (mounted) setState(() => _isLoadingRole = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,40 +48,56 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     final roleProvider = Provider.of<RoleProvider>(context);
     final venueIds = roleProvider.venueIds;
 
-    // Default to first venue if none selected
-    if (_selectedVenueId == null && venueIds.isNotEmpty) {
+    // Default to first venue if none selected or selection invalid
+    if ((_selectedVenueId == null || !venueIds.contains(_selectedVenueId)) && venueIds.isNotEmpty) {
       _selectedVenueId = venueIds.first;
+    }
+
+    if (_isLoadingRole) {
+      return const Scaffold(
+        backgroundColor: AppColors.premiumSand,
+        body: Center(child: CircularProgressIndicator(color: AppColors.premiumBurntOrange)),
+      );
     }
 
     if (venueIds.isEmpty) {
       return Scaffold(
+        backgroundColor: AppColors.premiumSand,
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(32.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.storefront_outlined, size: 80, color: AppColors.accentOrange),
+                const Icon(Icons.storefront_outlined, size: 80, color: AppColors.premiumBurntOrange),
                 const SizedBox(height: 24),
                 Text(
                   "Welcome to Friendly Code",
-                  style: Theme.of(context).textTheme.displayLarge,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: AppColors.title,
+                    fontWeight: FontWeight.bold,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
                 const Text(
                   "You don't have any venues registered yet. Start your journey by creating your first venue.",
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, height: 1.5),
+                  style: TextStyle(fontSize: 16, height: 1.5, color: AppColors.body),
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton.icon(
                   onPressed: () async {
                     final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen()));
                     if (result == true && context.mounted) {
-                      Provider.of<RoleProvider>(context, listen: false).refreshRole();
+                      _refreshRole();
                     }
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.premiumBurntOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  ),
                   icon: const Icon(Icons.add_circle_outline),
                   label: const Text("CREATE MY FIRST VENUE"),
                 ),
@@ -80,20 +109,15 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     }
 
     return Scaffold(
+      backgroundColor: AppColors.premiumSand,
       appBar: AppBar(
-        title: Row(
-          children: [
-            const Text("DASHBOARD"),
-            if (venueIds.length > 1) ...[
-              const SizedBox(width: 24),
-              _buildVenueSwitcher(venueIds),
-            ],
-          ],
-        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: false,
+        title: _buildVenueSelector(venueIds),
         actions: [
-          // Language Switcher
           IconButton(
-            icon: const Icon(Icons.language, color: AppColors.accentOrange),
+            icon: const Icon(Icons.language, color: AppColors.premiumBurntOrange),
             tooltip: "Switch Language",
             onPressed: () {
                final provider = Provider.of<LocaleProvider>(context, listen: false);
@@ -102,19 +126,19 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.add_business_outlined, color: AppColors.accentOrange),
+            icon: const Icon(Icons.add_business_outlined, color: AppColors.premiumBurntOrange),
             tooltip: "Add Venue",
             onPressed: () async {
               final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen()));
               if (result == true && context.mounted) {
-                Provider.of<RoleProvider>(context, listen: false).refreshRole();
+                _refreshRole();
               }
             },
           ),
           const SizedBox(width: 8),
           IconButton(
-            icon: const Icon(Icons.person_outline),
-            onPressed: () {}, // Profile
+            icon: const Icon(Icons.person_outline, color: AppColors.title),
+            onPressed: () {}, 
           ),
           const SizedBox(width: 16),
         ],
@@ -122,8 +146,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
       body: StreamBuilder<VenueModel?>(
         stream: _venueRepo.getVenueStream(_selectedVenueId!),
         builder: (context, snapshot) {
-          if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
+          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: AppColors.premiumBurntOrange));
           
           final venue = snapshot.data!;
           final isBlocked = venue.isManuallyBlocked || 
@@ -141,80 +165,124 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     );
   }
 
-  Widget _buildVenueSwitcher(List<String> venueIds) {
-      if (venueIds.isEmpty) return const SizedBox.shrink();
-
-      return PopupMenuButton<String>(
-        onSelected: (val) {
-          if (val == '__manage__') {
-            // Navigate to a full list view if needed, or just keep as is
-          } else {
-             setState(() => _selectedVenueId = val);
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-             color: AppColors.accentOrange.withOpacity(0.1),
-             borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.store, size: 16, color: AppColors.accentOrange),
-              const SizedBox(width: 8),
-              Text(
-                "MY VENUES (${venueIds.length})", 
-                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.accentOrange, fontSize: 12)
-              ),
-              const Icon(Icons.arrow_drop_down, color: AppColors.accentOrange),
-            ],
-          ),
-        ),
-        itemBuilder: (context) => [
-          ...venueIds.map((id) => PopupMenuItem(
-            value: id,
-            child: Text("Venue ID: ...${id.substring(max(0, id.length - 4))}"),
-          )),
-        ],
+  Widget _buildVenueSelector(List<String> venueIds) {
+    if (venueIds.length <= 1) {
+      return const Text(
+         "MY DASHBOARD",
+         style: TextStyle(color: AppColors.title, fontWeight: FontWeight.bold, fontSize: 18),
       );
+    }
+
+    return PopupMenuButton<String>(
+      onSelected: (val) {
+          setState(() => _selectedVenueId = val);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+           color: Colors.white,
+           borderRadius: BorderRadius.circular(20),
+           border: Border.all(color: AppColors.premiumGold.withValues(alpha: 0.3)),
+           boxShadow: [
+             BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))
+           ]
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.store, size: 18, color: AppColors.premiumBurntOrange),
+            const SizedBox(width: 8),
+            Text(
+              "SWITCH VENUE (${venueIds.length})", 
+              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.title, fontSize: 12, letterSpacing: 0.5)
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down, color: AppColors.title),
+          ],
+        ),
+      ),
+      itemBuilder: (context) => [
+        ...venueIds.map((id) => PopupMenuItem(
+          value: id,
+          child: Text("Venue ID: ...${id.substring(max(0, id.length - 4))}"),
+        )),
+      ],
+    );
   }
 
   Widget _buildModernDashboard(BuildContext context, VenueModel venue, AppLocalizations l10n) {
     final userEmail = AuthService().currentUser?.email ?? 'User';
     
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Welcome Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Hello, ${userEmail.split('@').first}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.accentOrange)),
-                  const SizedBox(height: 4),
-                  Text(venue.name, style: Theme.of(context).textTheme.displayLarge),
-                ],
+              Text("Hello, ${userEmail.split('@').first}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.premiumBurntOrange)),
+              const SizedBox(height: 4),
+              Text(
+                venue.name, 
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: AppColors.title,
+                  fontWeight: FontWeight.w900,
+                )
               ),
-              _buildQuickAction(Icons.campaign_outlined, l10n.marketingBlast, () => Navigator.push(context, MaterialPageRoute(builder: (_) => MarketingBlastScreen(venueId: venue.id)))),
             ],
           ),
-          const SizedBox(height: 40),
+          
+          const SizedBox(height: 32),
+          
+          // Marketing Blast Button (Quick Action)
+          InkWell(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MarketingBlastScreen(venueId: venue.id))),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(colors: [AppColors.premiumBurntOrange, AppColors.premiumGold]),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: AppColors.premiumBurntOrange.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                    child: const Icon(Icons.campaign_outlined, color: Colors.white),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(l10n.marketingBlast.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.0, fontSize: 12)),
+                        const Text("Send offers to your guests", style: TextStyle(color: Colors.white, fontSize: 14)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.arrow_forward, color: Colors.white),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 32),
 
           // Stats Grid
           GridView.count(
             crossAxisCount: 2,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 24,
-            mainAxisSpacing: 24,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
             childAspectRatio: 1.5,
             children: [
-              _buildStatCard("Total Scans", "${venue.stats.totalCheckins}", Icons.qr_code_scanner, AppColors.accentOrange),
-              _buildStatCard("Avg Return Time", "${venue.stats.avgReturnHours.toStringAsFixed(1)}h", Icons.av_timer, Colors.blueAccent),
+              _buildStatCard("Total Scans", "${venue.stats.totalCheckins}", Icons.qr_code_scanner, AppColors.premiumBurntOrange),
+              _buildStatCard("Avg Return Time", "${venue.stats.avgReturnHours.toStringAsFixed(1)}h", Icons.av_timer, AppColors.premiumGold),
             ],
           ),
           const SizedBox(height: 32),
@@ -224,14 +292,14 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           const SizedBox(height: 32),
 
           // Settings Section
-          Text(l10n.management, style: Theme.of(context).textTheme.headlineMedium),
+          Text(l10n.management, style: const TextStyle(color: AppColors.title, fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
           _buildManagementLink(Icons.tune, l10n.configRules, l10n.configRulesSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RulesConfigScreen()))),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _buildManagementLink(Icons.people_alt_outlined, "Guest Database", "View your loyal customers", () => Navigator.push(context, MaterialPageRoute(builder: (_) => GuestListScreen(venueId: venue.id)))),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _buildManagementLink(Icons.badge_outlined, "Staff Management", "Manage your personnel", () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffManagementScreen(venueId: venue.id)))),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _buildManagementLink(Icons.storefront_outlined, l10n.venueProfile, l10n.venueProfileSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue)))),
         ],
       ),
@@ -240,24 +308,24 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: AppColors.softShadow,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(color: const Color(0xFF4E342E).withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(height: 16),
-          Text(value, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontSize: 28)),
-          Text(label, style: TextStyle(color: AppColors.body.withValues(alpha: 0.6), fontWeight: FontWeight.bold, fontSize: 12)),
+          Icon(icon, color: color, size: 24),
+          const Spacer(),
+          Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.title, height: 1.0)),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(color: AppColors.body, fontWeight: FontWeight.w600, fontSize: 11)),
         ],
       ),
     );
@@ -267,33 +335,36 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.title, // Deep Brown
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: AppColors.softShadow,
       ),
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(24),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-            child: const Icon(Icons.qr_code_2_outlined, size: 64, color: AppColors.title),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+            child: const Icon(Icons.qr_code_2_outlined, size: 56, color: AppColors.title),
           ),
-          const SizedBox(width: 24),
+          const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("SHARE TO CLIENTS", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1.5)),
+                const Text("SHARE TO CLIENTS", style: TextStyle(color: AppColors.premiumGold, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.5)),
                 const SizedBox(height: 4),
-                Text(venue.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                Text(venue.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 12),
-                ElevatedButton(
-                  onPressed: () {
-                    final url = "https://quickchart.io/qr?text=${Uri.encodeComponent('https://www.friendlycode.fun/qr?id=${venue.id}')}&size=1000&format=png&ecLevel=H";
-                    url_launcher.launchUrl(Uri.parse(url));
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.surface, foregroundColor: AppColors.title),
-                  child: const Text("DOWNLOAD QR"),
+                SizedBox(
+                  height: 36,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      final url = "https://quickchart.io/qr?text=${Uri.encodeComponent('https://www.friendlycode.fun/qr?id=${venue.id}')}&size=1000&format=png&ecLevel=H";
+                      url_launcher.launchUrl(Uri.parse(url));
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.premiumSand, foregroundColor: AppColors.title, elevation: 0),
+                    child: const Text("DOWNLOAD QR", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
                 ),
               ],
             ),
@@ -306,51 +377,35 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   Widget _buildManagementLink(IconData icon, String title, String sub, VoidCallback tap) {
     return InkWell(
       onTap: tap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.title.withValues(alpha: 0.05)),
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))],
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(12)),
-              child: Icon(icon, color: AppColors.accentOrange, size: 24),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: AppColors.premiumSand, borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: AppColors.premiumBurntOrange, size: 20),
             ),
-            const SizedBox(width: 20),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                  Text(sub, style: TextStyle(color: AppColors.body.withValues(alpha: 0.6), fontSize: 13)),
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.title)),
+                  Text(sub, style: TextStyle(color: AppColors.body.withValues(alpha: 0.7), fontSize: 12)),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.body),
+            const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.premiumGold),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildQuickAction(IconData icon, String label, VoidCallback tap) {
-    return InkWell(
-      onTap: tap,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: AppColors.accentOrange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(16)),
-            child: Icon(icon, color: AppColors.accentOrange),
-          ),
-          const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-        ],
       ),
     );
   }
@@ -372,9 +427,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                     children: [
                       const Icon(Icons.lock_clock_outlined, size: 64, color: AppColors.statusBlockedText),
                       const SizedBox(height: 24),
-                      const Text("Subscription Check", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                      const Text("Subscription Check", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title)),
                       const SizedBox(height: 12),
-                      const Text("Your venue activity is currently paused. Please review your subscription or contact support.", textAlign: TextAlign.center),
+                      const Text("Your venue activity is currently paused. Please review your subscription or contact support.", textAlign: TextAlign.center, style: TextStyle(color: AppColors.body)),
                       const SizedBox(height: 32),
                       ElevatedButton(onPressed: () {}, child: const Text("SUPPORT")),
                     ],
@@ -389,20 +444,3 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   }
 }
 
-class _LegendItem extends StatelessWidget {
-  final BuildContext context;
-  final Color color;
-  final String label;
-  const _LegendItem(this.context, {required this.color, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 8),
-        Text(label, style: Theme.of(context).textTheme.bodySmall),
-      ],
-    );
-  }
-}
