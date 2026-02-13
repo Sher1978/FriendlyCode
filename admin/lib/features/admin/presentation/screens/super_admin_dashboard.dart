@@ -12,6 +12,8 @@ import 'package:friendly_code/core/models/venue_request_model.dart';
 import 'package:friendly_code/core/data/venue_repository.dart';
 import 'package:friendly_code/core/services/venue_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
+import 'package:friendly_code/core/localization/locale_provider.dart';
 
 class SuperAdminDashboard extends StatefulWidget {
   const SuperAdminDashboard({super.key});
@@ -59,9 +61,20 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                       Text("System Management", style: Theme.of(context).textTheme.displayLarge),
                     ],
                   ),
-                  Row(
-                    children: [
-                      OutlinedButton.icon(
+                    Row(
+                      children: [
+                        // Language Switcher
+                        IconButton(
+                          icon: const Icon(Icons.language, color: AppColors.accentOrange),
+                          tooltip: "Switch Language",
+                          onPressed: () {
+                             final provider = Provider.of<LocaleProvider>(context, listen: false);
+                             final newLocale = provider.locale.languageCode == 'en' ? const Locale('ru') : const Locale('en');
+                             provider.setLocale(newLocale);
+                          },
+                        ),
+                        const SizedBox(width: 16),
+                        OutlinedButton.icon(
                         onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MarketingCampaignScreen())),
                         icon: const Icon(Icons.campaign_outlined, size: 20, color: AppColors.accentOrange),
                         label: const Text("MARKETING CAMPAIGN", style: TextStyle(color: AppColors.accentOrange)),
@@ -344,12 +357,15 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                       userRole: UserRole.superAdmin,
                     ),
                   );
+                } else if (value == 'manage') {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => VenueDetailView(venue: venue)));
                 }
               },
               itemBuilder: (context) => [
                 const PopupMenuItem(value: 'edit', child: Text("Edit Details")),
                 const PopupMenuItem(value: 'staff', child: Text("Manage Staff")),
                 const PopupMenuItem(value: 'config', child: Text("Config Rules")),
+                const PopupMenuItem(value: 'manage', child: Text("Advanced Management")),
               ],
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
