@@ -584,5 +584,42 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
       ),
     );
   }
+
+  Widget _buildSegmentationRow(VenueStats? stats) {
+    if (stats == null) return const Center(child: CircularProgressIndicator(color: AppColors.premiumBurntOrange));
+
+    return Row(
+      children: [
+        _buildSegmentCard("New", stats.newGuestsCount, Colors.green, "First visit this month"),
+        const SizedBox(width: 12),
+        _buildSegmentCard("VIP", stats.vipGuestsCount, AppColors.premiumGold, "> 5 visits/mo"),
+        const SizedBox(width: 12),
+        _buildSegmentCard("Lost", stats.lostGuestsCount, Colors.red, "0 visits this month"),
+      ],
+    );
+  }
+
+  Widget _buildSegmentCard(String title, int count, Color color, String subtitle) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+          boxShadow: [BoxShadow(color: color.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4))],
+        ),
+        child: Column(
+          children: [
+            Text(title.toUpperCase(), style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12)),
+            const SizedBox(height: 8),
+            Text("$count", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title)),
+             const SizedBox(height: 4),
+            Text(subtitle, textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: AppColors.body.withValues(alpha: 0.7))),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
