@@ -30,11 +30,14 @@ class RoleProvider extends ChangeNotifier {
         
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
-          if (data['role'] == 'superAdmin' || user.email == '0451611@gmail.com') {
+          final userEmail = user.email?.trim().toLowerCase();
+          
+          if (data['role'] == 'superAdmin' || userEmail == '0451611@gmail.com') {
             _currentRole = UserRole.superAdmin;
             
             // Auto-fix Firestore if it's missing the string but email matches
             if (data['role'] != 'superAdmin') {
+               debugPrint("Fixing role for founder in existing doc.");
                await docRef.update({'role': 'superAdmin'});
             }
           } else {
@@ -57,13 +60,21 @@ class RoleProvider extends ChangeNotifier {
                final stubId = stubDoc.id;
                
                debugPrint("Found existing stub account $stubId for ${user.email}. Merging...");
+               
+               // FOUNDER CHECK
+               String resolvedRole = (stubData['role'] as String?) ?? 'owner';
+               if (user.email != null && user.email!.trim().toLowerCase() == '0451611@gmail.com') {
+                  resolvedRole = 'superAdmin';
+                  debugPrint("Founder email recognized during merge. Forcing superAdmin.");
+               }
 
                // 1. Merge Data (Priority to New Google Auth for Profile, Old Stub for Roles/Venues)
                final Map<String, dynamic> mergedData = {
-                 ...stubData, // Keep old data (role, venueId, phone, etc.)
+                 ...stubData, // Keep old data (venueId, phone, etc.)
                  'email': user.email, // Ensure email matches auth
                  'name': user.displayName ?? stubData['name'] ?? '', // Priority to latest (Google), fallback to stub
                  'photoUrl': user.photoURL ?? stubData['photoUrl'], // Priority to latest
+                 'role': resolvedRole, // Use resolved role
                  'lastLogin': FieldValue.serverTimestamp(),
                  'migratedFrom': stubId, // Audit trail
                };
@@ -99,9 +110,9 @@ class RoleProvider extends ChangeNotifier {
                
                // SPECIAL CASE: Promote Founder Email to superAdmin
                String initialRole = 'owner';
-               if (user.email == '0451611@gmail.com') {
+               if (user.email != null && user.email!.trim().toLowerCase() == '0451611@gmail.com') {
                  initialRole = 'superAdmin';
-                 debugPrint("Founder email recognized. Assigning superAdmin role.");
+                 debugPrint("Founder email recognized (Fresh Create). Assigning superAdmin role.");
                }
 
                await docRef.set({

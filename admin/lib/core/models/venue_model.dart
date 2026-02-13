@@ -131,7 +131,13 @@ class VenueModel {
     tiers = tiers ?? [],
     subscription = subscription ?? VenueSubscription(),
     loyaltyConfig = loyaltyConfig ?? const LoyaltyConfig(),
-    stats = stats ?? VenueStats(avgReturnHours: 0, totalCheckins: 0);
+    stats = stats ?? VenueStats(
+      avgReturnHours: 0, 
+      totalCheckins: 0,
+      monthlyActiveUsers: 0,
+      avgDiscount: 0,
+      retentionRate: 0,
+    );
 
   Map<String, dynamic> toMap() {
     return {
@@ -182,11 +188,26 @@ class VenueModel {
 class VenueStats {
   final double avgReturnHours;
   final int totalCheckins;
+  final int monthlyActiveUsers;
+  final double avgDiscount;
+  final double retentionRate;
+  
+  // Segmentation Counts
+  final int newGuestsCount;
+  final int vipGuestsCount;
+  final int lostGuestsCount;
+
   final Map<String, dynamic> extraData; // For extensibility
 
   VenueStats({
     required this.avgReturnHours,
     required this.totalCheckins,
+    this.monthlyActiveUsers = 0,
+    this.avgDiscount = 0.0,
+    this.retentionRate = 0.0,
+    this.newGuestsCount = 0,
+    this.vipGuestsCount = 0,
+    this.lostGuestsCount = 0,
     this.extraData = const {},
   });
 
@@ -194,15 +215,34 @@ class VenueStats {
     return {
       'avgReturnHours': avgReturnHours,
       'totalCheckins': totalCheckins,
+      'monthlyActiveUsers': monthlyActiveUsers,
+      'avgDiscount': avgDiscount,
+      'retentionRate': retentionRate,
+      'newGuestsCount': newGuestsCount,
+      'vipGuestsCount': vipGuestsCount,
+      'lostGuestsCount': lostGuestsCount,
       ...?extraData,
     };
   }
 
   factory VenueStats.fromMap(Map<String, dynamic> map) {
+    // Helper to safely remove known keys
+    final extra = Map<String, dynamic>.from(map);
+    [
+      'avgReturnHours', 'totalCheckins', 'monthlyActiveUsers', 'avgDiscount', 
+      'retentionRate', 'newGuestsCount', 'vipGuestsCount', 'lostGuestsCount'
+    ].forEach(extra.remove);
+
     return VenueStats(
       avgReturnHours: (map['avgReturnHours'] ?? 0).toDouble(),
       totalCheckins: map['totalCheckins'] ?? 0,
-      extraData: Map<String, dynamic>.from(map)..remove('avgReturnHours')..remove('totalCheckins'),
+      monthlyActiveUsers: map['monthlyActiveUsers'] ?? 0,
+      avgDiscount: (map['avgDiscount'] ?? 0).toDouble(),
+      retentionRate: (map['retentionRate'] ?? 0).toDouble(),
+      newGuestsCount: map['newGuestsCount'] ?? 0,
+      vipGuestsCount: map['vipGuestsCount'] ?? 0,
+      lostGuestsCount: map['lostGuestsCount'] ?? 0,
+      extraData: extra,
     );
   }
 }

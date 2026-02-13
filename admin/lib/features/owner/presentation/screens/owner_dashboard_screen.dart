@@ -21,6 +21,7 @@ import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:friendly_code/core/services/visit_service.dart';
 import 'package:friendly_code/core/models/visit_model.dart';
 import 'dart:async';
+import 'package:friendly_code/core/services/statistics_service.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -140,6 +141,28 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     if (mounted) setState(() => _isLoadingRole = false);
   }
 
+  // State for real-time stats
+  VenueStats? _realTimeStats;
+  bool _isLoadingStats = false;
+  final StatisticsService _statsService = StatisticsService();
+
+  Future<void> _fetchRealStats(String venueId) async {
+    if (!mounted) return;
+    setState(() => _isLoadingStats = true);
+    try {
+      final stats = await _statsService.calculateVenueStats(venueId);
+      if (mounted) {
+        setState(() {
+          _realTimeStats = stats;
+          _isLoadingStats = false;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error fetching stats: $e");
+      if (mounted) setState(() => _isLoadingStats = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -151,6 +174,10 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
       _selectedVenueId = venueIds.first;
       // Start listening to the default venue
       _subscribeToVisits(_selectedVenueId!);
+      // Initial Fetch
+      if (_realTimeStats == null && !_isLoadingStats) {
+         _fetchRealStats(_selectedVenueId!);
+      }
     }
 
     if (_isLoadingRole) {
@@ -279,6 +306,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           setState(() {
              _selectedVenueId = val;
              _subscribeToVisits(val); // Update subscription
+             _fetchRealStats(val); // Fetch real stats
           });
       },
       child: Container(
@@ -385,10 +413,19 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             mainAxisSpacing: 16,
             childAspectRatio: 1.5,
             children: [
-              _buildStatCard("Total Scans", "${venue.stats.totalCheckins}", Icons.qr_code_scanner, AppColors.premiumBurntOrange),
-              _buildStatCard("Avg Return Time", "${venue.stats.avgReturnHours.toStringAsFixed(1)}h", Icons.av_timer, AppColors.premiumGold),
+              _buildStatCard("Total Scans", "${_realTimeStats?.totalCheckins ?? venue.stats.totalCheckins}", Icons.qr_code_scanner, AppColors.premiumBurntOrange),
+              _buildStatCard("Active Users (Mo)", "${_realTimeStats?.monthlyActiveUsers ?? 0}", Icons.group_outlined, AppColors.premiumGold),
+              _buildStatCard("Avg Discount", "${(_realTimeStats?.avgDiscount ?? 0).toStringAsFixed(1)}%", Icons.percent, Colors.green),
+              _buildStatCard("Retention Rate", "${(_realTimeStats?.retentionRate ?? 0).toStringAsFixed(1)}%", Icons.loop, Colors.blue),
             ],
           ),
+          const SizedBox(height: 32),
+
+          // Guest Segmentation
+          Text("Guest Segments", style: const TextStyle(color: AppColors.title, fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          _buildSegmentationRow(_realTimeStats),
+          const SizedBox(height: 32),
           const SizedBox(height: 32),
 
           // QR Card (Premium Look)
