@@ -221,8 +221,6 @@ class _VenueConfiguratorState extends State<VenueConfigurator> with SingleTicker
   }
 
   Widget _buildLoyaltyTab() {
-    return Padding(
-      padding: const EdgeInsets.all(32),
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(

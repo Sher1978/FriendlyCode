@@ -43,7 +43,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-      child: Scaffold(
         backgroundColor: AppColors.premiumSand,
         body: Padding(
           padding: const EdgeInsets.all(40.0),
