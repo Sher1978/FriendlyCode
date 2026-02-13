@@ -43,13 +43,7 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
       if (user != null) {
         // 1. Update Auth Profile
         await user.updateDisplayName(name);
-        try {
-           if (email.isNotEmpty) await user.updateEmail(email);
-        } catch (e) {
-           // Ignore email update errors (e.g. requires re-auth)
-           debugPrint("Email update error: $e");
-        }
-
+        
         // 2. Save to 'users' collection
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'email': email,

@@ -28,6 +28,11 @@ service cloud.firestore {
         get(/databases/$(database)/documents/venues/$(venueId)).data.ownerId == request.auth.uid;
     }
 
+    function isAssignedToVenue(venueId) {
+      return isAuthenticated() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('venueId', '') == venueId;
+    }
+
     // 1. Users Collection
     match /users/{userId} {
       allow read: if isAuthenticated();
@@ -44,8 +49,11 @@ service cloud.firestore {
     match /venues/{venueId} {
       allow read: if true;
       allow write: if isSuperAdmin() || (isAuthenticated() && (
-        // For existing docs: check ownership
-        (resource != null && resource.data.ownerId == request.auth.uid) ||
+        // For existing docs: check ownership OR assignment
+        (resource != null && (
+          resource.data.ownerId == request.auth.uid ||
+          isAssignedToVenue(venueId)
+        )) ||
         // For new docs: allow create if authenticated (onboarding flow)
         (resource == null)
       ));
