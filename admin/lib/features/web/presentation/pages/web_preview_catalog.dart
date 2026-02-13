@@ -17,8 +17,8 @@ class _WebPreviewCatalogState extends State<WebPreviewCatalog> {
 
   final List<Map<String, dynamic>> _screens = [
     {'name': '1. B2C Home (The Hook)', 'widget': const B2CHomeScreen()},
-    {'name': '2. Lead Capture', 'widget': const LeadCaptureScreen()},
-    {'name': '3. Thank You', 'widget': const ThankYouScreen()},
+    {'name': '2. Lead Capture', 'widget': const LeadCaptureScreen(venueId: 'test_venue_id', currentDiscount: 5)},
+    {'name': '3. Thank You', 'widget': const ThankYouScreen(venueId: 'test_venue_id', currentDiscount: 15, guestName: 'Preview Guest')},
     {'name': '4. B2B Landing (Desktop/Mobile)', 'widget': const B2BLandingScreen()},
   ];
 
