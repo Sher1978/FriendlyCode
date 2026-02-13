@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../core/services/fcm_service.dart';
 import '../../features/owner/presentation/screens/owner_dashboard_screen.dart';
 import '../../features/guest/presentation/screens/landing_screen.dart';
 import '../../features/web/presentation/pages/b2c_home_screen.dart';
@@ -24,6 +25,8 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
   void initState() {
     super.initState();
     _checkToken();
+    // Initialize FCM without blocking UI
+    FCMService().initialize();
   }
 
   Future<void> _checkToken() async {

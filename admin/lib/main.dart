@@ -14,7 +14,7 @@ import 'core/localization/locale_provider.dart';
 import 'core/auth/role_provider.dart';
 import 'features/web/presentation/layout/admin_shell.dart';
 import 'firebase_options.dart';
-import 'core/services/fcm_service.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +24,8 @@ void main() async {
   );
   
   // Initialize Push Notifications
-  await FCMService().initialize();
+  // Initialize Push Notifications (Non-blocking moved to Dispatcher/App)
+  // await FCMService().initialize();
 
   runApp(
     MultiProvider(
