@@ -83,6 +83,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
         'discountValue': widget.currentDiscount,
         'timestamp': FieldValue.serverTimestamp(),
         'status': 'pending_validation',
+        'type': 'redeem',
         'is_test': false, // Can be dynamic
       });
 

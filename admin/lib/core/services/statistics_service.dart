@@ -6,34 +6,39 @@ class StatisticsService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<VenueStats> calculateVenueStats(String venueId) async {
-    // 1. Fetch ALL visits for venue (Optimize later with aggregations if needed)
+    // 1. Fetch ALL visits for venue (Scans + Redeems)
     final visitsSnap = await _firestore
         .collection('visits')
         .where('venueId', isEqualTo: venueId)
-        .where('status', isEqualTo: 'approved') // Only count approved visits
         .get();
 
-    final visits = visitsSnap.docs.map((d) => VisitModel.fromMap(d.id, d.data())).toList();
+    final allVisits = visitsSnap.docs.map((d) => VisitModel.fromMap(d.id, d.data())).toList();
 
-    if (visits.isEmpty) {
+    // 2. Filter by status/type
+    // Scans are 'completed' and 'type: scan'
+    // Redemptions are 'approved' and 'type: redeem'
+    final scans = allVisits.where((v) => v.type == 'scan').toList();
+    final redemptions = allVisits.where((v) => v.type == 'redeem' && v.status == 'approved').toList();
+
+    if (allVisits.isEmpty) {
       return VenueStats(avgReturnHours: 0, totalCheckins: 0);
     }
 
-    // 2. Basic Counts
-    final totalCheckins = visits.length;
+    // 3. Basic Counts (Total Scans)
+    final totalCheckins = scans.length;
     
-    // 3. Monthly Active Users
+    // 4. Monthly Active Users (calculated from anyone who scanned/visited)
     final now = DateTime.now();
     final startOfMonth = DateTime(now.year, now.month, 1);
-    final visitsThisMonth = visits.where((v) => v.timestamp.isAfter(startOfMonth));
+    final visitsThisMonth = allVisits.where((v) => v.timestamp.isAfter(startOfMonth));
     final monthlyActiveUsers = visitsThisMonth.map((v) => v.guestId).toSet().length;
 
-    // 4. Avg Discount
+    // 5. Avg Discount (calculated from approved redemptions)
     double totalDiscount = 0;
-    for (var v in visits) {
+    for (var v in redemptions) {
       totalDiscount += v.discountValue;
     }
-    final avgDiscount = totalCheckins > 0 ? (totalDiscount / totalCheckins) : 0.0;
+    final avgDiscount = redemptions.isNotEmpty ? (totalDiscount / redemptions.length) : 0.0;
 
     // 5. Avg Return Time (Logic from before or simplified)
     // Group by guest

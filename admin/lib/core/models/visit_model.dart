@@ -8,6 +8,8 @@ class VisitModel {
   final String guestName;
   final int discountValue;
   final String status; // 'pending_validation', 'approved', 'rejected'
+  final String type; // 'scan', 'redeem'
+  final DateTime? lastVisitDate;
 
   VisitModel({
     required this.id,
