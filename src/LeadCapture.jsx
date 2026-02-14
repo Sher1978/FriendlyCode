@@ -23,29 +23,58 @@ const LeadCapture = () => {
             const venueId = localStorage.getItem('currentVenueId') || 'unknown';
             const user = auth.currentUser;
 
-            if (user) {
-                // 1. Save to users collection for persistence (Zero Friction Logic)
-                const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
-                await setDoc(doc(db, 'users', user.uid), {
-                    displayName: name.trim(),
-                    email: email.trim(),
-                    role: 'guest',
-                    updatedAt: serverTimestamp(),
-                }, { merge: true });
+            // Default to current auth UID (anonymous)
+            let effectiveUid = user?.uid;
 
-                // 2. Also keep the lead entry for marketing tracking
+            if (user) {
+                // 0. Check if this email already exists in 'users' collection
+                const { collection, query, where, getDocs, limit, doc, setDoc, serverTimestamp, addDoc } = await import('firebase/firestore');
+
+                const q = query(collection(db, 'users'), where('email', '==', email.trim()), limit(1));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    // FOUND EXISTING USER -> Link to this ID instead of the new anonymous one
+                    const existingUserDoc = querySnapshot.docs[0];
+                    effectiveUid = existingUserDoc.id;
+                    console.log(`Found existing user for ${email}: ${effectiveUid}. Linking session...`);
+
+                    // Update existing user with latest name/timestamp
+                    await setDoc(doc(db, 'users', effectiveUid), {
+                        displayName: name.trim(),
+                        // email is same, no need to update
+                        updatedAt: serverTimestamp(),
+                        // We do NOT overwrite role or other fields
+                    }, { merge: true });
+
+                } else {
+                    // NEW USER -> Create new doc with current auth UID
+                    await setDoc(doc(db, 'users', user.uid), {
+                        displayName: name.trim(),
+                        email: email.trim(),
+                        role: 'guest',
+                        updatedAt: serverTimestamp(),
+                        createdAt: serverTimestamp(), // Add creation time for new users
+                    }, { merge: true });
+                }
+
+                // 2. Also keep the lead entry for marketing tracking (using effectiveUid)
                 await addDoc(collection(db, 'leads'), {
-                    uid: user.uid,
+                    uid: effectiveUid,
                     name: name.trim(),
                     email: email.trim(),
                     venueId: venueId,
                     timestamp: serverTimestamp(),
+                    source: 'lead_capture'
                 });
             }
 
             // Save guest data locally for instant recognition
             localStorage.setItem('guestName', name.trim());
             localStorage.setItem('guestEmail', email.trim());
+            if (effectiveUid) {
+                localStorage.setItem('effectiveUid', effectiveUid);
+            }
 
             // Navigate to UnifiedActivation (Reward Screen)
             navigate('/thank-you', {
@@ -54,7 +83,8 @@ const LeadCapture = () => {
                     guestEmail: email,
                     discountValue: discount,
                     venueId: venueId,
-                    userRole: 'guest'
+                    userRole: 'guest',
+                    effectiveUid: effectiveUid // PASS THIS TO NEXT SCREEN
                 }
             });
         } catch (e) {

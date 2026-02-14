@@ -47,9 +47,12 @@ const UnifiedActivation = () => {
             const user = auth.currentUser;
             const role = location.state?.userRole || 'guest';
 
+            // Use duplicated-resolved ID if available, otherwise auth ID
+            const effectiveUid = location.state?.effectiveUid || localStorage.getItem('effectiveUid') || user?.uid || 'anonymous';
+
             // 1. Create visit record (Core Logic)
             await addDoc(collection(db, 'visits'), {
-                uid: user?.uid || 'anonymous',
+                uid: effectiveUid,
                 venueId: venueId,
                 guestEmail: guestEmail,
                 guestName: guestName,
