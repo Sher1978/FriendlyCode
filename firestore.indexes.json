@@ -31,6 +31,24 @@
                     "order": "DESCENDING"
                 }
             ]
+        },
+        {
+            "collectionGroup": "visits",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "venueId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "guestEmail",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "timestamp",
+                    "order": "DESCENDING"
+                }
+            ]
         }
     ],
     "fieldOverrides": []
