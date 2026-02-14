@@ -85,12 +85,12 @@ const MarketingB2B = () => {
 
             {/* 2. Hero Section */}
             <section className="relative px-6 py-24 md:py-32 overflow-hidden">
-                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
                     <motion.div
                         initial={{ opacity: 0, x: -50 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 1 }}
-                        className="z-10"
+                        className="z-10 order-2 lg:order-1"
                     >
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-orange/10 text-brand-orange text-[10px] font-black uppercase tracking-[0.2em] mb-8 border border-brand-orange/20">
                             <span className="w-2 h-2 rounded-full bg-brand-orange animate-pulse"></span>
@@ -121,7 +121,7 @@ const MarketingB2B = () => {
                         initial={{ opacity: 0, scale: 0.8, rotate: -3 }}
                         animate={{ opacity: 1, scale: 1, rotate: 0 }}
                         transition={{ duration: 1.2, ease: "easeOut" }}
-                        className="relative hidden lg:block"
+                        className="relative block order-1 lg:order-2"
                     >
                         <div className="aspect-[4/5] bg-gradient-to-br from-brand-brown to-black rounded-[4rem] shadow-2xl relative overflow-hidden group border-8 border-white">
                             <img
@@ -382,13 +382,16 @@ const MarketingB2B = () => {
 };
 
 const ProblemCard = ({ icon, title, desc, tag }) => (
-    <div className="p-8 bg-slate-50 rounded-[2.5rem] border border-brand-brown/5 flex items-center gap-6 relative group hover:bg-white hover:shadow-lg transition-all">
-        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm text-brand-orange shrink-0 group-hover:scale-110 transition-transform">
+    <div className="p-8 bg-red-50 rounded-[2.5rem] border border-red-100 flex items-center gap-6 relative group hover:bg-red-100 hover:border-red-200 hover:shadow-xl hover:shadow-red-900/10 transition-all">
+        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm text-red-500 shrink-0 group-hover:scale-110 group-hover:bg-red-500 group-hover:text-white transition-all border border-red-100">
             <FontAwesomeIcon icon={icon} />
         </div>
         <div>
-            <h3 className="text-xl font-black leading-tight tracking-tight text-brand-brown mb-1">{title}</h3>
-            <p className="opacity-60 text-sm leading-relaxed font-medium">{desc}</p>
+            <h3 className="text-xl font-black leading-tight tracking-tight text-brand-brown mb-1 group-hover:text-red-900 transition-colors">{title}</h3>
+            <p className="opacity-70 text-sm leading-relaxed font-bold text-red-900/60 group-hover:text-red-900/80 transition-colors">{desc}</p>
+        </div>
+        <div className="absolute top-6 right-6 px-3 py-1 bg-white/50 rounded-full text-[10px] font-black uppercase tracking-widest text-red-400 border border-red-100 group-hover:bg-red-500 group-hover:text-white group-hover:border-transparent transition-all">
+            {tag}
         </div>
     </div>
 );
