@@ -190,7 +190,7 @@ const MarketingB2B = () => {
                         >
                             <div className="aspect-[4/5] rounded-[4rem] overflow-hidden border-8 border-background-cream shadow-2xl relative">
                                 <img
-                                    src="/anti_boring_solution.png"
+                                    src="/leaky_bucket_money_v2.png"
                                     alt="Leaky bucket metaphor"
                                     className="w-full h-full object-cover"
                                 />
@@ -394,7 +394,7 @@ const ProblemCard = ({ icon, title, desc, tag }) => (
 );
 
 const LargePillarCard = ({ icon, number, title, desc, color }) => (
-    <div className="p-12 bg-white rounded-[4rem] border border-brand-brown/5 flex flex-col gap-10 hover:shadow-2xl transition-all group relative overflow-hidden">
+    <div className="p-12 bg-background-cream rounded-[4rem] border border-brand-brown/5 flex flex-col gap-10 hover:shadow-2xl transition-all group relative overflow-hidden">
         <div className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-5 rounded-bl-[4rem] -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-700`}></div>
         <div className="flex justify-between items-start z-10">
             <div className={`w-24 h-24 ${color} rounded-[2rem] flex items-center justify-center text-white text-4xl shadow-xl transition-transform group-hover:rotate-6`}>
