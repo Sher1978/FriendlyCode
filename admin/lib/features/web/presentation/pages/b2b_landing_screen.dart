@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/l10n/app_localizations.dart';
 
 class B2BLandingScreen extends StatelessWidget {
   const B2BLandingScreen({super.key});
@@ -142,22 +143,38 @@ class _HeroCopy extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final isRu = Localizations.localeOf(context).languageCode == 'ru';
+
     return Column(
       crossAxisAlignment: isDesktop ? CrossAxisAlignment.start : CrossAxisAlignment.center,
       children: [
-        Text(
-          'Stop "Buying" Customers.\nStart Befriending Them!',
+        RichText(
           textAlign: isDesktop ? TextAlign.start : TextAlign.center,
-          style: TextStyle(
-            fontSize: isDesktop ? 56 : 36,
-            fontWeight: FontWeight.w900,
-            color: AppColors.brandBrown,
-            height: 1.1,
+          text: TextSpan(
+            style: TextStyle(
+              fontSize: isDesktop ? 56 : 36,
+              fontWeight: FontWeight.w900,
+              color: AppColors.brandBrown,
+              height: 1.1,
+              fontFamily: 'Inter',
+            ),
+            children: [
+              TextSpan(text: isRu ? 'Привлечь гостя — дорого. Удержать — ' : 'Attract a guest — expensive. Retain — '),
+              TextSpan(
+                text: isRu ? 'бесценно' : 'priceless',
+                style: const TextStyle(
+                  color: AppColors.brandOrange,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+              const TextSpan(text: '.'),
+            ],
           ),
         ),
         const SizedBox(height: 24),
         Text(
-          'We offer you a loyalty-engine for your HoReCa.\nRaise your profit up to 25% implementing retention-driven economy.',
+          l10n.b2bHeroSub,
           textAlign: isDesktop ? TextAlign.start : TextAlign.center,
           style: TextStyle(
             fontSize: 20,
@@ -175,7 +192,7 @@ class _HeroCopy extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
           child: const Text(
-            '🤝 Join Friendly Code Free', // Fixed: Remove newlines in button
+            '🤝 Join Friendly Code Free',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
@@ -188,13 +205,24 @@ class _HeroVisual extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 400,
+      height: 500,
       decoration: BoxDecoration(
-        color: AppColors.brandOrange.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(24),
+        color: AppColors.brandOrange.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(40),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 30,
+            offset: const Offset(0, 15),
+          ),
+        ],
       ),
-      child: const Center(
-        child: Icon(FontAwesomeIcons.handshake, size: 100, color: AppColors.brandOrange),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(40),
+        child: Image.asset(
+          'assets/images/paying_with_iphone_v3.png',
+          fit: BoxFit.cover,
+        ),
       ),
     );
   }

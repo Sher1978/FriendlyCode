@@ -97,7 +97,11 @@ const MarketingB2B = () => {
                             Retention-as-a-Service
                         </div>
                         <h1 className="text-5xl md:text-[5.5rem] font-black leading-[0.95] tracking-tighter mb-8 text-brand-brown">
-                            {t('b2b_hero_h1')}
+                            {i18n.language === 'ru' ? (
+                                <>Привлечь гостя — дорого. Удержать — <span className="text-brand-orange italic">бесценно</span>.</>
+                            ) : (
+                                <>Attract a guest — expensive. Retain — <span className="text-brand-orange italic">priceless</span>.</>
+                            )}
                         </h1>
                         <p className="text-xl md:text-2xl font-medium opacity-70 leading-relaxed max-w-xl mb-12 text-brand-brown">
                             {t('b2b_hero_sub_new')}
@@ -121,7 +125,7 @@ const MarketingB2B = () => {
                     >
                         <div className="aspect-[4/5] bg-gradient-to-br from-brand-brown to-black rounded-[4rem] shadow-2xl relative overflow-hidden group border-8 border-white">
                             <img
-                                src="/hero_pov_v4_no_glare.png"
+                                src="/paying_with_iphone_v3.png"
                                 alt="Happy guest POV"
                                 className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-[2000ms]"
                             />
