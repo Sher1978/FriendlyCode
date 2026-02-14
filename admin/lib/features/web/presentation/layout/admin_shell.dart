@@ -8,6 +8,8 @@ import 'package:friendly_code/features/owner/presentation/screens/analytics_scre
 import 'package:friendly_code/features/owner/presentation/screens/billing_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
+import 'package:provider/provider.dart';
+import 'package:friendly_code/core/localization/locale_provider.dart';
 
 class AdminShell extends StatefulWidget {
   final Widget child; // Default/Initial screen
