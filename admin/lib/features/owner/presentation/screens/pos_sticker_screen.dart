@@ -392,20 +392,8 @@ class _GaugePainter extends CustomPainter {
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
-    final tickCount = 10;
-    for (int i = 0; i <= tickCount; i++) {
-        final angle = math.pi + (math.pi * (i / tickCount));
-        final tickStart = Offset(
-          center.dx + (radius - 5) * math.cos(angle),
-          center.dy + (radius - 5) * math.sin(angle),
-        );
-        final tickEnd = Offset(
-          center.dx + (radius + 5) * math.cos(angle),
-          center.dy + (radius + 5) * math.sin(angle),
-        );
-        // Only draw internal ticks if we want them inside the arc, 
-        // but design has white dividers on the color arc.
-    }
+    const tickCount = 10;
+    // 1. (Optional) Draw Ticks (Background) - Removed as they are handled by separators
 
     // 2. Gradient Arc (Orange -> Light Orange)
     final rect = Rect.fromCircle(center: center, radius: radius - strokeWidth / 2);
