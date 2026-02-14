@@ -168,7 +168,7 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
                 data: qrData,
                 version: QrVersions.auto,
                 size: 171.0, 
-                backgroundColor: Colors.transparent, // Make QR background transparent
+                backgroundColor: const Color(0xFFFBF4E6), // Restore beige background
                 foregroundColor: Colors.black,
                 padding: const EdgeInsets.all(8),
               ),
