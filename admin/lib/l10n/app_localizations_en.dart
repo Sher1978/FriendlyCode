@@ -266,7 +266,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get goToHome => 'GO TO HOME';
 
   @override
-  String get b2bHeadline => 'Loyalty Engine for Modern Hospitality';
+  String get b2bHeroH1 => 'Attract a guest — expensive. Retain — priceless.';
+
+  @override
+  String get b2bHeroSub =>
+      'The only \"smart\" loyalty system that increases venue profit by 25%. We turn passers-by into Super VIP clients in 24 hours. No app development. No plastic. No effort.';
+
+  @override
+  String get b2bHeadline => 'Zero Friction Loyalty';
 
   @override
   String get getTheApp => 'Get the Friendly Code App';

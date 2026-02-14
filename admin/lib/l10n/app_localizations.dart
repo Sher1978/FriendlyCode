@@ -578,10 +578,22 @@ abstract class AppLocalizations {
   /// **'GO TO HOME'**
   String get goToHome;
 
+  /// No description provided for @b2bHeroH1.
+  ///
+  /// In en, this message translates to:
+  /// **'Attract a guest — expensive. Retain — priceless.'**
+  String get b2bHeroH1;
+
+  /// No description provided for @b2bHeroSub.
+  ///
+  /// In en, this message translates to:
+  /// **'The only \"smart\" loyalty system that increases venue profit by 25%. We turn passers-by into Super VIP clients in 24 hours. No app development. No plastic. No effort.'**
+  String get b2bHeroSub;
+
   /// No description provided for @b2bHeadline.
   ///
   /// In en, this message translates to:
-  /// **'Loyalty Engine for Modern Hospitality'**
+  /// **'Zero Friction Loyalty'**
   String get b2bHeadline;
 
   /// No description provided for @getTheApp.

@@ -265,7 +265,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get goToHome => 'НА ГЛАВНУЮ';
 
   @override
-  String get b2bHeadline => 'Система лояльности для современного бизнеса';
+  String get b2bHeroH1 => 'Привлечь гостя — дорого. Удержать — бесценно.';
+
+  @override
+  String get b2bHeroSub =>
+      'Единственная «умная» система лояльности, которая увеличивает реальную прибыль заведения на 25%. Мы превращаем прохожих в Super VIP клиентов за 24 часа. Без разработки приложений. Без пластика. Без усилий.';
+
+  @override
+  String get b2bHeadline => 'Лояльность без трения';
 
   @override
   String get getTheApp => 'Скачать приложение Friendly Code';
