@@ -163,15 +163,15 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
 
             // 2. Dynamic QR Code Overlay
             Positioned(
-              top: 190, // Raised by 30px (from 220)
-              left: 85, // Adjusted to center (350 - 180)/2
+              top: 190, 
+              left: 89.5, // Adjusted to center (350 - 171)/2
               child: QrImageView(
                 data: qrData,
                 version: QrVersions.auto,
-                size: 180.0, // 10% smaller (from 200)
-                backgroundColor: Colors.transparent,
+                size: 171.0, // 5% smaller (from 180)
+                backgroundColor: const Color(0xFFFBF4E6), // Match PNG background
                 foregroundColor: Colors.black,
-                padding: EdgeInsets.zero,
+                padding: const EdgeInsets.all(8), // Add small padding for better contrast
               ),
             ),
           ],
