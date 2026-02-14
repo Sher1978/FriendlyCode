@@ -690,9 +690,10 @@ exports.onLeadCreated = onDocumentCreated("leads/{leadId}", async (event) => {
     const { email, phone, city, source } = leadData;
 
     try {
-        await resend.emails.send({
+        const { data, error } = await resend.emails.send({
             from: "Friendly Code <no-reply@friendlycode.fun>",
             to: ["friiendlycode@gmail.com"],
+            reply_to: email,
             subject: `🔥 Новый лид (B2B): ${email}`,
             html: `
                 <div style="font-family: sans-serif; padding: 20px;">
@@ -705,9 +706,14 @@ exports.onLeadCreated = onDocumentCreated("leads/{leadId}", async (event) => {
                 </div>
             `
         });
-        logger.info(`Lead notification sent for ${event.params.leadId}`);
+
+        if (error) {
+            logger.error(`Failed to send lead notification for ${event.params.leadId}:`, error);
+        } else {
+            logger.info(`Lead notification sent for ${event.params.leadId}, Resend ID: ${data.id}`);
+        }
     } catch (err) {
-        logger.error("Failed to send lead notification", err);
+        logger.error("Fatal error during lead notification:", err);
     }
 });
 
