@@ -382,16 +382,18 @@ const MarketingB2B = () => {
 };
 
 const ProblemCard = ({ icon, title, desc, tag }) => (
-    <div className="p-8 bg-red-50 rounded-[2.5rem] border border-red-100 flex items-center gap-6 relative group hover:bg-red-100 hover:border-red-200 hover:shadow-xl hover:shadow-red-900/10 transition-all">
+    <div className="p-8 bg-red-50 rounded-[2.5rem] border border-red-100 flex flex-col sm:flex-row items-start sm:items-center gap-6 relative group hover:bg-red-100 hover:border-red-200 hover:shadow-xl hover:shadow-red-900/10 transition-all">
         <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm text-red-500 shrink-0 group-hover:scale-110 group-hover:bg-red-500 group-hover:text-white transition-all border border-red-100">
             <FontAwesomeIcon icon={icon} />
         </div>
-        <div>
-            <h3 className="text-xl font-black leading-tight tracking-tight text-brand-brown mb-1 group-hover:text-red-900 transition-colors">{title}</h3>
+        <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-3 mb-2">
+                <h3 className="text-xl font-black leading-tight tracking-tight text-brand-brown group-hover:text-red-900 transition-colors">{title}</h3>
+                <div className="px-3 py-1 bg-white/50 rounded-full text-[10px] font-black uppercase tracking-widest text-red-400 border border-red-100 group-hover:bg-red-500 group-hover:text-white group-hover:border-transparent transition-all">
+                    {tag}
+                </div>
+            </div>
             <p className="opacity-70 text-sm leading-relaxed font-bold text-red-900/60 group-hover:text-red-900/80 transition-colors">{desc}</p>
-        </div>
-        <div className="absolute top-6 right-6 px-3 py-1 bg-white/50 rounded-full text-[10px] font-black uppercase tracking-widest text-red-400 border border-red-100 group-hover:bg-red-500 group-hover:text-white group-hover:border-transparent transition-all">
-            {tag}
         </div>
     </div>
 );
