@@ -84,7 +84,7 @@ const MarketingB2B = () => {
             </nav>
 
             {/* 2. Hero Section */}
-            <section className="relative px-6 py-24 md:py-32 overflow-hidden">
+            <section className="relative px-6 py-12 md:py-32 overflow-hidden">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
                     <motion.div
                         initial={{ opacity: 0, x: -50 }}
@@ -243,7 +243,7 @@ const MarketingB2B = () => {
                             <div className="flex items-end justify-between h-80 gap-6">
                                 <DetailedBar height="40%" label="Day 1" val="5%" color="#E68A0033" />
                                 <DetailedBar height="100%" label="Day 2" val="20%" active color="#E68A00" />
-                                <DetailedBar height="75%" label="Day 5" val="15%" color="#E68A0066" />
+                                <DetailedBar height="65%" label="Day 5" val="15%" color="#E68A0066" />
                                 <DetailedBar height="55%" label="Day 10" val="10%" color="#E68A0044" />
                             </div>
                             <div className="text-center mt-12">
