@@ -9,7 +9,7 @@ import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from '
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
 const LandingPage = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const [status, setStatus] = useState('loading');
     const [discount, setDiscount] = useState(5);
@@ -46,6 +46,14 @@ const LandingPage = () => {
 
                     const venueData = venueSnap.data();
                     setVenueName(venueData.name || '');
+
+                    // --- LANGUAGE LOGIC ---
+                    // Default to English, but switch to venue's preferred language if set
+                    const venueLang = venueData.defaultLanguage || 'en';
+                    if (i18n.language !== venueLang) {
+                        i18n.changeLanguage(venueLang);
+                    }
+
                     const now = new Date();
                     const expiry = venueData.subscription?.expiryDate?.toDate();
 

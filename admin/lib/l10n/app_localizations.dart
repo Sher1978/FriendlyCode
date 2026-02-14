@@ -392,6 +392,24 @@ abstract class AppLocalizations {
   /// **'Edit Venue Profile'**
   String get editVenueProfile;
 
+  /// No description provided for @venueEditor.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue Editor'**
+  String get venueEditor;
+
+  /// No description provided for @guestPortalLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Guest Portal Language'**
+  String get guestPortalLanguage;
+
+  /// No description provided for @guestPortalLanguageDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Select the default language that your guests will see when they scan your QR code.'**
+  String get guestPortalLanguageDescription;
+
   /// No description provided for @venueName.
   ///
   /// In en, this message translates to:

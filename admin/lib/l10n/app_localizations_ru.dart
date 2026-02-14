@@ -160,6 +160,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get editVenueProfile => 'Редактировать профиль';
 
   @override
+  String get venueEditor => 'Редактор заведения';
+
+  @override
+  String get guestPortalLanguage => 'Язык гостевого портала';
+
+  @override
+  String get guestPortalLanguageDescription =>
+      'Выберите язык, который гости увидят по умолчанию при сканировании вашего QR-кода.';
+
+  @override
   String get venueName => 'Название заведения';
 
   @override

@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:provider/provider.dart';
 import 'package:friendly_code/core/widgets/image_upload_widget.dart';
+import 'package:friendly_code/l10n/app_localizations.dart';
 
 class VenueEditorScreen extends StatefulWidget {
   final VenueModel? venue;
@@ -34,6 +35,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
 
   List<VenueTier> _tiers = [];
   late VenueSubscription _subscription;
+  String _defaultLanguage = 'en';
   bool _isSaving = false;
 
   @override
@@ -73,6 +75,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
       isPaid: true, 
       expiryDate: DateTime.now().add(const Duration(days: 365))
     );
+    _defaultLanguage = widget.venue?.defaultLanguage ?? 'en';
   }
 
   @override
@@ -129,6 +132,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         latitude: widget.venue?.latitude,
         longitude: widget.venue?.longitude,
         stats: widget.venue?.stats,
+        defaultLanguage: _defaultLanguage,
       );
 
       await _venuesService.saveVenue(updatedVenue);
@@ -249,6 +253,8 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                             ),
                             const SizedBox(height: 16),
                             _buildTextField(controller: _descCtrl, label: "Description", icon: Icons.description, maxLines: 4),
+                            const SizedBox(height: 24),
+                            _buildLanguageSelector(),
                           ],
                         ),
                         const SizedBox(height: 24),
@@ -524,6 +530,33 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         hintText: hintText,
         prefixIcon: Icon(icon),
       ),
+    );
+  }
+
+  Widget _buildLanguageSelector() {
+    final l10n = AppLocalizations.of(context)!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.guestPortalLanguage.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.body, letterSpacing: 1.2)),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: _defaultLanguage,
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.translate),
+            filled: true,
+            fillColor: AppColors.background,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          items: const [
+            DropdownMenuItem(value: 'en', child: Text("EN - English")),
+            DropdownMenuItem(value: 'ru', child: Text("RU - Русский")),
+          ],
+          onChanged: (val) => setState(() => _defaultLanguage = val!),
+        ),
+        const SizedBox(height: 4),
+        Text(l10n.guestPortalLanguageDescription, style: const TextStyle(fontSize: 11, color: AppColors.body)),
+      ],
     );
   }
 }

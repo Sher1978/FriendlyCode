@@ -160,6 +160,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editVenueProfile => 'Edit Venue Profile';
 
   @override
+  String get venueEditor => 'Venue Editor';
+
+  @override
+  String get guestPortalLanguage => 'Guest Portal Language';
+
+  @override
+  String get guestPortalLanguageDescription =>
+      'Select the default language that your guests will see when they scan your QR code.';
+
+  @override
   String get venueName => 'Venue Name';
 
   @override

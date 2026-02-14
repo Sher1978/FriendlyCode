@@ -99,6 +99,8 @@ class VenueModel {
   final bool isActive;
   final bool isManuallyBlocked;
   
+  final String defaultLanguage;
+  
   final List<VenueTier> tiers;
   final VenueSubscription subscription;
   final LoyaltyConfig loyaltyConfig;
@@ -120,6 +122,7 @@ class VenueModel {
     this.category = 'General',
     this.isActive = true,
     this.isManuallyBlocked = false,
+    this.defaultLanguage = 'en',
     List<VenueTier>? tiers,
     VenueSubscription? subscription,
     LoyaltyConfig? loyaltyConfig,
@@ -151,6 +154,7 @@ class VenueModel {
       'category': category,
       'isActive': isActive,
       'isManuallyBlocked': isManuallyBlocked,
+      'defaultLanguage': defaultLanguage,
       'tiers': tiers.map((t) => t.toMap()).toList(),
       'subscription': subscription.toMap(),
       'loyaltyConfig': loyaltyConfig.toMap(),
@@ -174,6 +178,7 @@ class VenueModel {
       category: map['category'] ?? 'General',
       isActive: map['isActive'] ?? true,
       isManuallyBlocked: map['isManuallyBlocked'] ?? false,
+      defaultLanguage: map['defaultLanguage'] ?? 'en',
       tiers: (map['tiers'] as List?)?.map((t) => VenueTier.fromMap(t)).toList(),
       subscription: map['subscription'] != null ? VenueSubscription.fromMap(map['subscription']) : null,
       loyaltyConfig: map['loyaltyConfig'] != null ? LoyaltyConfig.fromMap(map['loyaltyConfig']) : null,

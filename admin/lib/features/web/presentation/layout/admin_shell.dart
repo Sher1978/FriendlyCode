@@ -217,32 +217,35 @@ class _AdminShellState extends State<AdminShell> {
           const SizedBox(width: 24),
 
           // Language Switcher
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.title.withValues(alpha: 0.1)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.language, size: 16, color: AppColors.body),
-                const SizedBox(width: 8),
-                DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: 'EN',
-                    items: ['EN', 'RU'].map((lang) => DropdownMenuItem(
-                      value: lang,
-                      child: Text(lang, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                    )).toList(),
-                    onChanged: (val) {
-                      // TODO: Implement actual locale switching via Provider
-                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Switched to $val (UI pending)")));
-                    },
-                    isDense: true,
+          Consumer<LocaleProvider>(
+            builder: (context, localeProvider, _) => Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.title.withValues(alpha: 0.1)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.language, size: 16, color: AppColors.body),
+                  const SizedBox(width: 8),
+                  DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: localeProvider.locale.languageCode.toUpperCase(),
+                      items: ['EN', 'RU'].map((lang) => DropdownMenuItem(
+                        value: lang,
+                        child: Text(lang, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      )).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          localeProvider.setLocale(Locale(val.toLowerCase()));
+                        }
+                      },
+                      isDense: true,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 24),
