@@ -133,9 +133,8 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white, // Fallback color
+        color: Colors.transparent, // Allow transparency
         borderRadius: BorderRadius.circular(40),
-        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 20, offset: Offset(0, 10))],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(40),
@@ -164,14 +163,14 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
             // 2. Dynamic QR Code Overlay
             Positioned(
               top: 190, 
-              left: 89.5, // Adjusted to center (350 - 171)/2
+              left: 89.5, 
               child: QrImageView(
                 data: qrData,
                 version: QrVersions.auto,
-                size: 171.0, // 5% smaller (from 180)
-                backgroundColor: const Color(0xFFFBF4E6), // Match PNG background
+                size: 171.0, 
+                backgroundColor: Colors.transparent, // Make QR background transparent
                 foregroundColor: Colors.black,
-                padding: const EdgeInsets.all(8), // Add small padding for better contrast
+                padding: const EdgeInsets.all(8),
               ),
             ),
           ],
