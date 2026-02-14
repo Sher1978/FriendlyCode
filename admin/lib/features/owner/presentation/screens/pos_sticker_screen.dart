@@ -18,6 +18,7 @@ class PosStickerScreen extends StatefulWidget {
 class _PosStickerScreenState extends State<PosStickerScreen> {
   final GlobalKey _globalKey = GlobalKey();
   bool _isSaving = false;
+  bool _useVenueQr = false; // Toggle state
 
   Future<void> _captureAndSave() async {
     setState(() => _isSaving = true);
@@ -29,9 +30,10 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData != null) {
         final buffer = byteData.buffer.asUint8List();
-        // Determine filename suffix based on locale
+        // Determine filename suffix based on locale and QR type
         final locale = Localizations.localeOf(context).languageCode;
-        await FileDownloader.downloadFile(buffer, "friendly_code_pos_${widget.venue.id}_$locale.png");
+        final qrType = _useVenueQr ? "venue" : "landing";
+        await FileDownloader.downloadFile(buffer, "friendly_code_pos_${widget.venue.id}_${locale}_$qrType.png");
         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sticker downloaded!")));
       }
     } catch (e) {
@@ -66,6 +68,25 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
                 l10n.posStickerSub, 
                 style: const TextStyle(color: AppColors.body, fontSize: 16),
               ),
+              const SizedBox(height: 16),
+              
+              // QR Toggle Switch
+              Container(
+                width: 350,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 2))],
+                ),
+                child: SwitchListTile(
+                  title: const Text("Use Venue Specific QR", style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(_useVenueQr ? "Scans to this venue" : "Scans to Landing Page"),
+                  value: _useVenueQr,
+                  activeColor: AppColors.premiumBurntOrange,
+                  onChanged: (val) => setState(() => _useVenueQr = val),
+                ),
+              ),
+
               const SizedBox(height: 24),
               // The Sticker Widget to Capture
               RepaintBoundary(
@@ -102,6 +123,11 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
     final imageAsset = locale == 'ru' 
         ? 'assets/images/pos_sticker_ru.png' 
         : 'assets/images/pos_sticker_en.png';
+    
+    // Determine QR Data
+    final qrData = _useVenueQr 
+        ? 'https://www.friendlycode.fun/qr?id=${widget.venue.id}'
+        : 'https://www.friendlycode.fun';
 
     return Container(
       width: width,
@@ -135,22 +161,19 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
               ),
             ),
 
-            // 2. Static QR Code Overlay
-            // Pointing to friendlycode.fun for everyone
+            // 2. Dynamic QR Code Overlay
             Positioned(
-              top: 220, 
-              left: 75, 
+              top: 190, // Raised by 30px (from 220)
+              left: 85, // Adjusted to center (350 - 180)/2
               child: QrImageView(
-                data: 'https://www.friendlycode.fun',
+                data: qrData,
                 version: QrVersions.auto,
-                size: 200.0,
-                backgroundColor: Colors.transparent, // Assuming image has white bg in QR area
+                size: 180.0, // 10% smaller (from 200)
+                backgroundColor: Colors.transparent,
                 foregroundColor: Colors.black,
                 padding: EdgeInsets.zero,
               ),
             ),
-
-            // Previously dynamic text overlays are removed as they are now part of the image
           ],
         ),
       ),
