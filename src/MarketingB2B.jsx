@@ -31,18 +31,15 @@ const MarketingB2B = () => {
 
         try {
             // dynamic import to avoid breaking if firebase not set up
-            const { collection, addDoc, query, where, getDocs } = await import('firebase/firestore');
+            const { doc, setDoc } = await import('firebase/firestore');
             const { db } = await import('./firebase');
 
-            const q = query(collection(db, 'leads'), where('email', '==', formData.email));
-            const querySnapshot = await getDocs(q);
+            // Use email as document ID to prevent duplicates without needing read permissions
+            // The security rules allow create if it doesn't exist, but deny update (if it does exist)
+            // effective preventing duplicates.
+            const leadRef = doc(db, 'leads', formData.email);
 
-            if (!querySnapshot.empty) {
-                alert(i18n.language === 'ru' ? "Вы уже оставили заявку! Мы скоро свяжемся с вами." : "You have already submitted a request! We will contact you soon.");
-                return;
-            }
-
-            await addDoc(collection(db, 'leads'), {
+            await setDoc(leadRef, {
                 ...formData,
                 createdAt: new Date(),
                 source: 'b2b_landing'
@@ -52,7 +49,13 @@ const MarketingB2B = () => {
             setFormData({ city: '', phone: '', email: '' });
         } catch (error) {
             console.error("Error adding document: ", error);
-            alert("Error submitting form. Please try again.");
+            // If the error code indicates permission denied, it likely means the document already exists
+            // (since our rules allow create but deny update/read for public users)
+            if (error.code === 'permission-denied') {
+                alert(i18n.language === 'ru' ? "Вы уже оставили заявку! Мы скоро свяжемся с вами." : "You have already submitted a request! We will contact you soon.");
+            } else {
+                alert("Error submitting form. Please try again.");
+            }
         }
     };
 
