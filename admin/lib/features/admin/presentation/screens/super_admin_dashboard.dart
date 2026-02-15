@@ -14,6 +14,7 @@ import 'package:friendly_code/core/services/venue_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:friendly_code/core/localization/locale_provider.dart';
+import 'package:friendly_code/features/owner/presentation/screens/flyer_generator_screen.dart';
 
 class SuperAdminDashboard extends StatefulWidget {
   const SuperAdminDashboard({super.key});
@@ -80,6 +81,16 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                         label: const Text("MARKETING CAMPAIGN", style: TextStyle(color: AppColors.accentOrange)),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: AppColors.accentOrange),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FlyerGeneratorScreen())),
+                        icon: const Icon(Icons.description_outlined, size: 20, color: AppColors.brandBrown),
+                        label: const Text("FLYER GENERATOR", style: TextStyle(color: AppColors.brandBrown)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.brandBrown),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                         ),
                       ),

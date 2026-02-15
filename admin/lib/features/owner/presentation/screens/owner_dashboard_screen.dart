@@ -16,7 +16,7 @@ import 'package:friendly_code/features/owner/presentation/screens/guest_list_scr
 import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/services/notification_service.dart';
-import 'package:friendly_code/features/owner/presentation/screens/pos_sticker_screen.dart'; // New Import
+import 'package:friendly_code/features/owner/presentation/screens/pos_sticker_screen.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:friendly_code/core/services/visit_service.dart';
 import 'package:friendly_code/core/models/visit_model.dart';
