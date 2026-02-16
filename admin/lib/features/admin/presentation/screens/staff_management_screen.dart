@@ -317,7 +317,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> with Sing
                               child: Icon(isOwner ? Icons.admin_panel_settings_outlined : Icons.badge_outlined, color: isOwner ? AppColors.accentOrange : AppColors.accentGreen, size: 20),
                             ),
                             title: Text(user['email'] ?? 'No Email', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-                            subtitle: Text(user['role']?.toString().toUpperCase() ?? 'STAFF', style: TextStyle(color: AppColors.body.withValues(alpha: 0.5), fontSize: 11, fontWeight: FontWeight.bold)),
+                            subtitle: Text(user['role']?.toString().toUpperCase() ?? 'STAFF', style: TextStyle(color: AppColors.body.withOpacity(0.5), fontSize: 11, fontWeight: FontWeight.bold)),
                             trailing: IconButton(
                               icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 20),
                               onPressed: () => _removeUser(user['uid']),

@@ -53,7 +53,7 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
                     decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.title.withValues(alpha: 0.1)),
+                      border: Border.all(color: AppColors.title.withOpacity(0.1)),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: SingleChildScrollView(
@@ -65,7 +65,7 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                         dataRowMinHeight: 70,
                         dataRowMaxHeight: 80,
                         border: TableBorder(
-                          horizontalInside: BorderSide(color: AppColors.title.withValues(alpha: 0.05), width: 1),
+                          horizontalInside: BorderSide(color: AppColors.title.withOpacity(0.05), width: 1),
                         ),
                         columns: const [
                           DataColumn(label: Text("VENUE NAME")),
@@ -81,7 +81,7 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                                 children: [
                                   CircleAvatar(
                                     radius: 18, 
-                                    backgroundColor: AppColors.accentOrange.withValues(alpha: 0.1),
+                                    backgroundColor: AppColors.accentOrange.withOpacity(0.1),
                                     child: Text(v.name.isNotEmpty ? v.name[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.bold)),
                                   ),
                                   const SizedBox(width: 12),
@@ -94,7 +94,7 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: v.isActive ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+                                  color: v.isActive ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
@@ -119,7 +119,7 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                                   if (v.subscription.expiryDate != null)
                                     Text(
                                       "Expires: ${v.subscription.expiryDate!.day}/${v.subscription.expiryDate!.month}/${v.subscription.expiryDate!.year}",
-                                      style: TextStyle(color: AppColors.body.withValues(alpha: 0.5), fontSize: 10),
+                                      style: TextStyle(color: AppColors.body.withOpacity(0.5), fontSize: 10),
                                     ),
                                 ],
                               ),

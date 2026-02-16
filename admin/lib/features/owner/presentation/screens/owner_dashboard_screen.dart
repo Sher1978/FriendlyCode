@@ -312,9 +312,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         decoration: BoxDecoration(
            color: Colors.white,
            borderRadius: BorderRadius.circular(20),
-           border: Border.all(color: AppColors.premiumGold.withValues(alpha: 0.3)),
+           border: Border.all(color: AppColors.premiumGold.withOpacity(0.3)),
            boxShadow: [
-             BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 2))
+             BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))
            ]
         ),
         child: Row(
@@ -375,13 +375,13 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               decoration: BoxDecoration(
                 gradient: const LinearGradient(colors: [AppColors.premiumBurntOrange, AppColors.premiumGold]),
                 borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: AppColors.premiumBurntOrange.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                boxShadow: [BoxShadow(color: AppColors.premiumBurntOrange.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
                     child: const Icon(Icons.campaign_outlined, color: Colors.white),
                   ),
                   const SizedBox(width: 16),
@@ -451,9 +451,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.1)),
+        border: Border.all(color: color.withOpacity(0.1)),
         boxShadow: [
-          BoxShadow(color: const Color(0xFF4E342E).withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(color: const Color(0xFF4E342E).withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
       child: Column(
@@ -523,8 +523,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.title.withValues(alpha: 0.05)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))],
+          border: Border.all(color: AppColors.title.withOpacity(0.05)),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))],
         ),
         child: Row(
           children: [
@@ -539,7 +539,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.title)),
-                  Text(sub, style: TextStyle(color: AppColors.body.withValues(alpha: 0.7), fontSize: 12)),
+                  Text(sub, style: TextStyle(color: AppColors.body.withOpacity(0.7), fontSize: 12)),
                 ],
               ),
             ),
@@ -556,7 +556,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
           child: Container(
-            color: AppColors.title.withValues(alpha: 0.2),
+            color: AppColors.title.withOpacity(0.2),
             child: Center(
               child: Card(
                 margin: const EdgeInsets.symmetric(horizontal: 40),
@@ -604,8 +604,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
-          boxShadow: [BoxShadow(color: color.withValues(alpha: 0.1), blurRadius: 8, offset: const Offset(0, 4))],
+          border: Border.all(color: color.withOpacity(0.3)),
+          boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))],
         ),
         child: Column(
           children: [
@@ -613,7 +613,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             const SizedBox(height: 8),
             Text("$count", style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title)),
              const SizedBox(height: 4),
-            Text(subtitle, textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: AppColors.body.withValues(alpha: 0.7))),
+            Text(subtitle, textAlign: TextAlign.center, style: TextStyle(fontSize: 10, color: AppColors.body.withOpacity(0.7))),
           ],
         ),
       ),

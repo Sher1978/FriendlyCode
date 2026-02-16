@@ -135,9 +135,8 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
 
         final visitsQuery = await FirebaseFirestore.instance
             .collection('visits')
-            .where('uid', isEqualTo: _user!.uid) // Use UID for reliable lookup
+            .where('uid', isEqualTo: user!.uid) // Use UID for reliable lookup
             .where('venueId', isEqualTo: widget.venueId)
-            .orderBy('timestamp', descending: true)
             .orderBy('timestamp', descending: true)
             .limit(10) // Fetch more to find chain start
             .get();
@@ -414,9 +413,9 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
               // 4. Timeline
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.surface.withValues(alpha: 0.5),
+                  color: AppColors.surface.withOpacity(0.5),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: AppColors.premiumGold.withValues(alpha: 0.2)),
+                  border: Border.all(color: AppColors.premiumGold.withOpacity(0.2)),
                 ),
                 padding: const EdgeInsets.all(20),
                 child: Column(
@@ -461,7 +460,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                     backgroundColor: AppColors.premiumBurntOrange, 
                     foregroundColor: Colors.white,
                     elevation: 8,
-                    shadowColor: AppColors.premiumBurntOrange.withValues(alpha: 0.4),
+                    shadowColor: AppColors.premiumBurntOrange.withOpacity(0.4),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
@@ -542,7 +541,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.9),
+        color: Colors.black.withOpacity(0.9),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.greenAccent),
       ),
@@ -672,7 +671,7 @@ class _TimelineItem extends StatelessWidget {
         color: bgColor,
         borderRadius: BorderRadius.circular(12),
         border: isActive 
-          ? Border.all(color: AppColors.accentGreen.withValues(alpha: 0.3))
+          ? Border.all(color: AppColors.accentGreen.withOpacity(0.3))
           : Border.all(color: Colors.transparent),
       ),
       child: Row(
@@ -709,7 +708,7 @@ class GaugePainter extends CustomPainter {
 
     // 1. Track (Background)
     final bgPaint = Paint()
-      ..color = Colors.grey.withValues(alpha: 0.15)
+      ..color = Colors.grey.withOpacity(0.15)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;

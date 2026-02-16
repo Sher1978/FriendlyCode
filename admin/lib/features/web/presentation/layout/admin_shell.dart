@@ -152,7 +152,7 @@ class _AdminShellState extends State<AdminShell> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.accentOrange.withValues(alpha: 0.1) : Colors.transparent,
+            color: isSelected ? AppColors.accentOrange.withOpacity(0.1) : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Row(
@@ -194,7 +194,7 @@ class _AdminShellState extends State<AdminShell> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
+                border: Border.all(color: Colors.black.withOpacity(0.05)),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
@@ -225,7 +225,7 @@ class _AdminShellState extends State<AdminShell> {
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.title.withValues(alpha: 0.1)),
+                border: Border.all(color: AppColors.title.withOpacity(0.1)),
               ),
               child: Row(
                 children: [

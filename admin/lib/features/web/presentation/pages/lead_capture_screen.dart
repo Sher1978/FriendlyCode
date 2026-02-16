@@ -100,7 +100,7 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.title.withValues(alpha: 0.05)),
+                    border: Border.all(color: AppColors.title.withOpacity(0.05)),
                     boxShadow: AppColors.softShadow,
                   ),
                   child: const Center(child: Icon(FontAwesomeIcons.arrowLeft, size: 16, color: AppColors.title)),
@@ -123,7 +123,7 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
               Text(
                 AppLocalizations.of(context)!.introduceYourself,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppColors.title.withValues(alpha: 0.7),
+                  color: AppColors.title.withOpacity(0.7),
                   fontSize: 18,
                 ),
               ),
@@ -165,11 +165,11 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
                       onPressed: valid ? _submit : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.accentOrange,
-                        disabledBackgroundColor: AppColors.title.withValues(alpha: 0.1),
+                        disabledBackgroundColor: AppColors.title.withOpacity(0.1),
                         foregroundColor: Colors.white,
-                        disabledForegroundColor: AppColors.title.withValues(alpha: 0.4),
+                        disabledForegroundColor: AppColors.title.withOpacity(0.4),
                         elevation: valid ? 8 : 0,
-                        shadowColor: AppColors.accentOrange.withValues(alpha: 0.3),
+                        shadowColor: AppColors.accentOrange.withOpacity(0.3),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
@@ -200,7 +200,7 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
         fontSize: 12,
         fontWeight: FontWeight.w900,
         letterSpacing: 1.5,
-        color: AppColors.title.withValues(alpha: 0.4),
+        color: AppColors.title.withOpacity(0.4),
       ),
     );
   }
@@ -229,7 +229,7 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
           filled: true,
           fillColor: Colors.white,
           hintText: hint,
-          hintStyle: TextStyle(color: AppColors.title.withValues(alpha: 0.3)),
+          hintStyle: TextStyle(color: AppColors.title.withOpacity(0.3)),
           prefixIcon: Icon(icon, color: AppColors.accentOrange, size: 20),
           prefixIconConstraints: const BoxConstraints(minWidth: 60),
           border: OutlineInputBorder(

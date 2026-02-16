@@ -499,7 +499,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
         boxShadow: AppColors.softShadow,
-        border: Border.all(color: AppColors.title.withValues(alpha: 0.1)),
+        border: Border.all(color: AppColors.title.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

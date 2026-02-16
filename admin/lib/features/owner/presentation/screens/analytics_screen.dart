@@ -66,11 +66,11 @@ class OwnerAnalyticsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.title.withValues(alpha: 0.1)),
+        border: Border.all(color: AppColors.title.withOpacity(0.1)),
       ),
       child: Row(
         children: [
-          CircleAvatar(backgroundColor: color.withValues(alpha: 0.1), child: Icon(icon, color: color)),
+          CircleAvatar(backgroundColor: color.withOpacity(0.1), child: Icon(icon, color: color)),
           const SizedBox(width: 20),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,7 +91,7 @@ class OwnerAnalyticsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.title.withValues(alpha: 0.1)),
+        border: Border.all(color: AppColors.title.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -117,7 +117,7 @@ class OwnerAnalyticsScreen extends StatelessWidget {
         barWidth: 4,
         isStrokeCapRound: true,
         dotData: FlDotData(show: false),
-        belowBarData: BarAreaData(show: true, color: AppColors.accentOrange.withValues(alpha: 0.1)),
+        belowBarData: BarAreaData(show: true, color: AppColors.accentOrange.withOpacity(0.1)),
       ),
     ],
   );

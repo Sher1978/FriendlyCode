@@ -104,7 +104,7 @@ class AnalyticsModule extends StatelessWidget {
     sections: [
       PieChartSectionData(color: AppColors.statusActiveBg, value: 40, title: 'Welcome', radius: 60, titleStyle: const TextStyle(fontWeight: FontWeight.bold)),
       PieChartSectionData(color: AppColors.statusWarningBg, value: 35, title: 'Mid', radius: 50, titleStyle: const TextStyle(fontWeight: FontWeight.bold)),
-      PieChartSectionData(color: AppColors.accentTeal.withValues(alpha: 0.3), value: 25, title: 'Max', radius: 40, titleStyle: const TextStyle(fontWeight: FontWeight.bold)),
+      PieChartSectionData(color: AppColors.accentTeal.withOpacity(0.3), value: 25, title: 'Max', radius: 40, titleStyle: const TextStyle(fontWeight: FontWeight.bold)),
     ],
   );
 

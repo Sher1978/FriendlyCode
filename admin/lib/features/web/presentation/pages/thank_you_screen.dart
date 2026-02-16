@@ -433,7 +433,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: ThankYouColors.text.withValues(alpha: 0.5),
+                      color: ThankYouColors.text.withOpacity(0.5),
                     ),
                   ),
                 ),

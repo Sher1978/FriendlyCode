@@ -287,7 +287,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: AppColors.softShadow,
-        border: Border.all(color: AppColors.title.withValues(alpha: 0.05)),
+        border: Border.all(color: AppColors.title.withOpacity(0.05)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -322,7 +322,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                     children: [
                       const Icon(Icons.person_outline, size: 14, color: AppColors.body),
                       const SizedBox(width: 4),
-                      Text(venue.ownerEmail ?? 'UNCLAIMED', style: TextStyle(fontSize: 13, color: AppColors.body.withValues(alpha: 0.7), fontWeight: FontWeight.w500)),
+                      Text(venue.ownerEmail ?? 'UNCLAIMED', style: TextStyle(fontSize: 13, color: AppColors.body.withOpacity(0.7), fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ],
@@ -341,7 +341,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("EXPIRES", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.body.withValues(alpha: 0.4), letterSpacing: 1)),
+                  Text("EXPIRES", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.body.withOpacity(0.4), letterSpacing: 1)),
                   const SizedBox(height: 4),
                   Text(
                     venue.subscription.expiryDate != null 
@@ -381,7 +381,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.accentOrange.withValues(alpha: 0.3)),
+                  border: Border.all(color: AppColors.accentOrange.withOpacity(0.3)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Text("OPTIONS", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900, fontSize: 11)),

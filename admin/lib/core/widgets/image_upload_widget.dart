@@ -100,7 +100,7 @@ class _ImageUploadWidgetState extends State<ImageUploadWidget> {
             decoration: BoxDecoration(
               color: AppColors.background,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.title.withValues(alpha: 0.1)),
+              border: Border.all(color: AppColors.title.withOpacity(0.1)),
               image: _previewUrl != null 
                 ? DecorationImage(image: NetworkImage(_previewUrl!), fit: BoxFit.cover)
                 : null,

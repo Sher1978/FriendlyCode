@@ -31,7 +31,7 @@ class AppColors {
   // Shadow Opacity
   static List<BoxShadow> softShadow = [
     BoxShadow(
-      color: const Color(0xFF4E342E).withValues(alpha: 0.05),
+      color: const Color(0xFF4E342E).withOpacity(0.05),
       blurRadius: 15,
       offset: const Offset(0, 8),
     ),

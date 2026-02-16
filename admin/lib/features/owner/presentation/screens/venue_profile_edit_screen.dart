@@ -36,7 +36,7 @@ class _VenueProfileEditScreenState extends State<VenueProfileEditScreen> {
               child: Container(
                 height: 200,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: Colors.white.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.white24, style: BorderStyle.solid),
                 ),
@@ -93,7 +93,7 @@ class _VenueProfileEditScreenState extends State<VenueProfileEditScreen> {
         labelStyle: const TextStyle(color: Colors.white70),
         prefixIcon: Icon(icon, color: AppColors.lime),
         filled: true,
-        fillColor: Colors.white.withValues(alpha: 0.05),
+        fillColor: Colors.white.withOpacity(0.05),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

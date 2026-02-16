@@ -100,7 +100,7 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
                         label: Text(segment),
                         selected: _audienceSegments[segment]!,
                         onSelected: (val) => setState(() => _audienceSegments[segment] = val),
-                        selectedColor: AppColors.accentOrange.withValues(alpha: 0.2),
+                        selectedColor: AppColors.accentOrange.withOpacity(0.2),
                         checkmarkColor: AppColors.accentOrange,
                       );
                     }).toList(),
@@ -168,7 +168,7 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
             width: 350,
             decoration: BoxDecoration(
               color: AppColors.surface,
-              border: Border.all(color: AppColors.title.withValues(alpha: 0.05)),
+              border: Border.all(color: AppColors.title.withOpacity(0.05)),
             ),
             child: _buildStatsSidebar(),
           ),
@@ -183,7 +183,7 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
       children: [
         Text(title.toUpperCase(), style: const TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1.5)),
         const SizedBox(height: 4),
-        Text(sub, style: TextStyle(color: AppColors.body.withValues(alpha: 0.6), fontSize: 14)),
+        Text(sub, style: TextStyle(color: AppColors.body.withOpacity(0.6), fontSize: 14)),
       ],
     );
   }
@@ -192,9 +192,9 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _canSend ? AppColors.accentOrange.withValues(alpha: 0.05) : Colors.red.withOpacity(0.05),
+        color: _canSend ? AppColors.accentOrange.withOpacity(0.05) : Colors.red.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _canSend ? AppColors.accentOrange.withValues(alpha: 0.15) : Colors.red.withOpacity(0.15)),
+        border: Border.all(color: _canSend ? AppColors.accentOrange.withOpacity(0.15) : Colors.red.withOpacity(0.15)),
       ),
       child: Row(
         children: [
@@ -240,14 +240,14 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
       children: [
         Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
           child: Icon(icon, color: color, size: 20),
         ),
         const SizedBox(width: 16),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.body.withValues(alpha: 0.5))),
+            Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.body.withOpacity(0.5))),
             Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.title)),
           ],
         ),
@@ -265,7 +265,7 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(date, style: TextStyle(fontSize: 12, color: AppColors.body.withValues(alpha: 0.6))),
+              Text(date, style: TextStyle(fontSize: 12, color: AppColors.body.withOpacity(0.6))),
               Text(stats, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.accentOrange)),
             ],
           ),
@@ -297,11 +297,11 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
             fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.title.withValues(alpha: 0.1)),
+              borderSide: BorderSide(color: AppColors.title.withOpacity(0.1)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.title.withValues(alpha: 0.1)),
+              borderSide: BorderSide(color: AppColors.title.withOpacity(0.1)),
             ),
           ),
         ),
