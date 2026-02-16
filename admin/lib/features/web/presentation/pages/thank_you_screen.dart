@@ -20,12 +20,18 @@ class ThankYouScreen extends StatefulWidget {
   final String? venueId;
   final int currentDiscount;
   final String guestName;
+  final List<VenueTier> tiers;
+  final LoyaltyConfig config;
+  final DateTime? lastVisitDate; // The actual visit time if this is a return visit
 
   const ThankYouScreen({
     super.key,
     required this.venueId,
     required this.currentDiscount,
     required this.guestName,
+    required this.tiers,
+    required this.config,
+    this.lastVisitDate,
   });
 
   @override
@@ -33,25 +39,27 @@ class ThankYouScreen extends StatefulWidget {
 }
 
 class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProviderStateMixin {
-  bool _isClaimed = false;
-  bool _isExpired = false;
-  int _timeLeft = 300; // 5 minutes (for claim validation)
-  int _secondsPassed = 0;
-  Timer? _timer;
-  bool _isLoading = false;
-
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
-
+  Timer? _timer;
+  late DateTime _screenLoadTime;
+  
+  // Timer State
+  int _timeLeft = 86400; // 24 hours in seconds
+  bool _isClaimed = false; // Actually, if we arrive here, it's effectively claimed/viewed
+  bool _isExpired = false;
+  
   // Prediction Logic
   int _predPercent = 20;
   int _predSecondsLeft = 43200; // 12 hours initially
   String _predLabel = '20% unlocks in:';
-  bool _isLocked = true; // New state to track if we are waiting for unlock
+  bool _isLocked = true; 
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _screenLoadTime = DateTime.now();
     _pulseController = AnimationController(vsync: this, duration: const Duration(seconds: 1));
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
@@ -70,48 +78,27 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
-          // 1. Claim validity timer
-          if (_isClaimed && _timeLeft > 0) {
+          // 1. Claim validity timer (Optional visual for "Active Session")
+          if (_timeLeft > 0) {
             _timeLeft--;
-            if (_timeLeft == 0) {
-              _isExpired = true;
-              _pulseController.stop();
-            }
           }
 
           // 2. Prediction Window logic (Unified RewardCalculator)
-          // We need a baseline time. If we have a 'lastVisitDate' passed in, use it.
-          // If this is a NEW visit (just claimed), the 'lastVisitDate' is effectively NOW (minus seconds passed).
-          // However, for a just-claimed visit, we can simulate the "time since visit" as just `_secondsPassed`.
-          
-          // Construct a hypothetical last visit time based on how long we've been on this screen 
-          // (assuming flow started at Claim). 
-          // Ideally, we should pass the actual visit timestamp, but for a fresh claim, 
-          // treating "now - secondsPassed" as visit time is accurate enough for the immediate session.
+          // Use the actual last visit time if passed (Return Visit), 
+          // otherwise use the time this screen successfully loaded (Fresh Claim).
+          final baseTime = widget.lastVisitDate ?? _screenLoadTime;
           final now = DateTime.now();
-          final hypotheticalVisitTime = now.subtract(Duration(seconds: _secondsPassed));
-          
-          // We need the venue config. Since we don't have the full VenueModel passed here, 
-          // we might need to rely on default config OR pass it. 
-          // Reviewing code: 'widget.venueId' is available. 
-          // But we don't have 'VenueModel'. 
-          // Existing code assumed hardcoded defaults or simple logic.
-          // To be strictly correct, we should fetch/have the config.
-          // implementation_plan.md says "LoyaltyConfig defaults".
-          // So we will use default LoyaltyConfig() if we don't have one.
-          
-          final config = const LoyaltyConfig(); // Uses defaults: 12h cooldown, etc.
           
           final rewardState = RewardCalculator.calculate(
-            hypotheticalVisitTime, 
+            baseTime, 
             now, 
-            config
+            widget.config,
+            widget.tiers
           );
 
-          _predPercent = rewardState.nextDiscount; // Target discount
+          _predPercent = rewardState.nextDiscount; 
           _predSecondsLeft = rewardState.secondsUntilNextChange;
           
-          // Map label keys (simple mapping for now, or use what RewardState gives)
           if (rewardState.statusLabelKey == 'unlocks_in') {
              _predLabel = '20% unlocks in:';
           } else if (rewardState.statusLabelKey == 'valid_for') {

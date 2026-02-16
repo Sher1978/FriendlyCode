@@ -56,7 +56,7 @@ class LoyaltyConfig {
     this.safetyCooldownHours = 12,
     this.vipWindowHours = 48,
     this.tier1DecayHours = 72,
-    this.tier2DecayHours = 168,
+    this.tier2DecayHours = 240, // 10 days
     this.percBase = 5,
     this.percVip = 20,
     this.percDecay1 = 15,
@@ -78,7 +78,7 @@ class LoyaltyConfig {
     safetyCooldownHours: map['safetyCooldownHours'] ?? 12,
     vipWindowHours: map['vipWindowHours'] ?? 48,
     tier1DecayHours: map['tier1DecayHours'] ?? 72,
-    tier2DecayHours: map['tier2DecayHours'] ?? 168,
+    tier2DecayHours: map['tier2DecayHours'] ?? 240,
     percBase: map['percBase'] ?? 5,
     percVip: map['percVip'] ?? 20,
     percDecay1: map['percDecay1'] ?? 15,

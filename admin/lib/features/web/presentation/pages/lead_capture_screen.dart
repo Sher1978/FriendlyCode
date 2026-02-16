@@ -3,18 +3,23 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
-import 'thank_you_screen.dart';
+import 'package:friendly_code/core/models/venue_model.dart';
+import 'package:friendly_code/features/web/presentation/pages/thank_you_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class LeadCaptureScreen extends StatefulWidget {
   final String? venueId;
   final int currentDiscount;
+  final List<VenueTier> tiers;
+  final LoyaltyConfig config;
 
   const LeadCaptureScreen({
     super.key,
     required this.venueId,
     required this.currentDiscount,
+    required this.tiers,
+    required this.config,
   });
 
   @override
@@ -68,6 +73,8 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
             venueId: widget.venueId,
             currentDiscount: widget.currentDiscount,
             guestName: name,
+            tiers: widget.tiers,
+            config: widget.config,
           ),
         ),
       );

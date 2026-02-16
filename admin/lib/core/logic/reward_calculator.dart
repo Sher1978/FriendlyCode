@@ -25,19 +25,30 @@ class RewardState {
 
 class RewardCalculator {
   /// Calculates the complete reward state based on the time difference between now
-  /// and the last visit using the Venue's LoyaltyConfig.
-  static RewardState calculate(DateTime lastVisit, DateTime currentTime, LoyaltyConfig config) {
+  /// and the last visit using the Venue's LoyaltyConfig and dynamic Tiers.
+  static RewardState calculate(
+    DateTime lastVisit, 
+    DateTime currentTime, 
+    LoyaltyConfig config, 
+    List<VenueTier> tiers
+  ) {
     final difference = currentTime.difference(lastVisit);
     final totalSecondsPassed = difference.inSeconds;
     final double hoursPassed = totalSecondsPassed / 3600.0;
 
-    // 1. Safety Cooldown (e.g. 0-12h)
-    // User has Base (5%). Next is VIP (20%).
+    // 1. Safety Cooldown (e.g. 0-12h) - Global Rule
+    // User has Base (5%). Next is the best tier (usually the first one).
     if (hoursPassed < config.safetyCooldownHours) {
       final int endTimeSeconds = config.safetyCooldownHours * 3600;
+      
+      // Determine what they are waiting for (First tier or VIP)
+      // If tiers exist, the target is the first tier's percentage.
+      // If no tiers, target is VIP default.
+      final int nextTarget = tiers.isNotEmpty ? tiers.first.percentage : config.percVip;
+
       return RewardState(
         currentDiscount: config.percBase,
-        nextDiscount: config.percVip,
+        nextDiscount: nextTarget,
         secondsUntilNextChange: endTimeSeconds - totalSecondsPassed,
         phase: RewardPhase.cooldown,
         statusLabelKey: 'unlocks_in',
@@ -45,50 +56,37 @@ class RewardCalculator {
       );
     }
 
-    // 2. VIP Window (e.g., 12h <= delta < 48h)
-    // User has VIP (20%). Next is Decay1 (15%).
-    if (hoursPassed < config.vipWindowHours) {
-      final int endTimeSeconds = config.vipWindowHours * 3600;
-      return RewardState(
-        currentDiscount: config.percVip,
-        nextDiscount: config.percDecay1,
-        secondsUntilNextChange: endTimeSeconds - totalSecondsPassed,
-        phase: RewardPhase.vip,
-        statusLabelKey: 'valid_for',
-        isLocked: false,
-      );
-    }
-    
-    // 3. Decay Tier 1 (e.g., 48h <= delta < 72h)
-    // User has Decay1 (15%). Next is Decay2 (10%).
-    if (hoursPassed < config.tier1DecayHours) {
-      final int endTimeSeconds = config.tier1DecayHours * 3600;
-      return RewardState(
-        currentDiscount: config.percDecay1,
-        nextDiscount: config.percDecay2,
-        secondsUntilNextChange: endTimeSeconds - totalSecondsPassed,
-        phase: RewardPhase.decay1,
-        statusLabelKey: 'valid_for',
-        isLocked: false,
-      );
-    }
-    
-    // 4. Decay Tier 2 (e.g., 72h <= delta < 168h)
-    // User has Decay2 (10%). Next is Base (5%).
-    if (hoursPassed < config.tier2DecayHours) {
-      final int endTimeSeconds = config.tier2DecayHours * 3600;
-      return RewardState(
-        currentDiscount: config.percDecay2,
-        nextDiscount: config.percBase,
-        secondsUntilNextChange: endTimeSeconds - totalSecondsPassed,
-        phase: RewardPhase.decay2,
-        statusLabelKey: 'valid_for',
-        isLocked: false,
-      );
+    // 2. Dynamic Tiers Logic
+    // Sort tiers by hours just in case they aren't
+    final sortedTiers = List<VenueTier>.from(tiers)..sort((a, b) => a.maxHours.compareTo(b.maxHours));
+
+    for (int i = 0; i < sortedTiers.length; i++) {
+      final tier = sortedTiers[i];
+      
+      // If we are within this tier's window
+      if (hoursPassed <= tier.maxHours) {
+        final int endTimeSeconds = tier.maxHours * 3600;
+        
+        // Determine next discount
+        // If there is a next tier, that's the next discount.
+        // If this is the last tier, next is Base.
+        final int nextDisc = (i < sortedTiers.length - 1) 
+            ? sortedTiers[i + 1].percentage 
+            : config.percBase;
+
+        return RewardState(
+          currentDiscount: tier.percentage,
+          nextDiscount: nextDisc,
+          secondsUntilNextChange: endTimeSeconds - totalSecondsPassed,
+          // Map index to phase enum roughly for now, or add generic 'tier' phase
+          phase: i == 0 ? RewardPhase.vip : RewardPhase.decay1, 
+          statusLabelKey: 'valid_for',
+          isLocked: false,
+        );
+      }
     }
 
-    // 5. Reset / Base (e.g., delta >= 168h)
-    // User has Base (5%). No next change.
+    // 3. Reset / Base (e.g., hours > last tier)
     return RewardState(
       currentDiscount: config.percBase,
       nextDiscount: config.percBase,

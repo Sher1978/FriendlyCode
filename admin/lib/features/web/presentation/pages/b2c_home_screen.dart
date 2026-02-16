@@ -32,6 +32,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
   int _currentDiscount = 5;
   VenueModel? _venue;
   bool _isTestMode = false;
+  DateTime? _lastVisitDate; // Store for navigation
 
   // Debug Mode State
   int _debugTapCount = 0;
@@ -144,12 +145,14 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
           
           if (ts != null) {
              final lastVisitDate = ts.toDate();
+             _lastVisitDate = lastVisitDate; // Store for navigation
              // 4. Calculate Dynamic Reward
              final currentTime = DateTime.now();
              final rewardState = RewardCalculator.calculate(
                lastVisitDate, 
                currentTime, 
-               _venue!.loyaltyConfig
+               _venue!.loyaltyConfig,
+               _venue!.tiers
              );
 
              _debugInfo['found'] = true;
@@ -233,6 +236,9 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
             venueId: widget.venueId,
             currentDiscount: _currentDiscount,
             guestName: _guestName!,
+            tiers: _venue!.tiers,
+            config: _venue!.loyaltyConfig,
+            lastVisitDate: _lastVisitDate,
           )
         ),
       );
@@ -244,6 +250,8 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
           builder: (context) => LeadCaptureScreen(
              venueId: widget.venueId,
              currentDiscount: _currentDiscount,
+             tiers: _venue!.tiers,
+             config: _venue!.loyaltyConfig,
           )
         ),
       );
