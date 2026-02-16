@@ -146,22 +146,23 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
              final lastVisitDate = ts.toDate();
              // 4. Calculate Dynamic Reward
              final currentTime = DateTime.now();
-             final difference = currentTime.difference(lastVisitDate);
-             final hoursPassed = difference.inHours;
+             final rewardState = RewardCalculator.calculate(
+               lastVisitDate, 
+               currentTime, 
+               _venue!.loyaltyConfig
+             );
 
              _debugInfo['found'] = true;
-             _debugInfo['hours'] = hoursPassed.toDouble();
+             _debugInfo['hours'] = currentTime.difference(lastVisitDate).inHours.toDouble();
              _debugInfo['lastVisit'] = lastVisitDate.toIso8601String();
+             _debugInfo['phase'] = rewardState.phase.toString();
 
-             if (hoursPassed < _venue!.loyaltyConfig.safetyCooldownHours) {
+             // Update UI with calculated state
+             _currentDiscount = rewardState.currentDiscount;
+             
+             if (rewardState.phase == RewardPhase.cooldown) {
                _status = VisitStatus.cooldown;
-               _currentDiscount = lastVisitData['discountValue'] ?? 5; 
              } else {
-               _currentDiscount = RewardCalculator.calculate(
-                 lastVisitDate, 
-                 currentTime, 
-                 _venue!.loyaltyConfig
-               );
                _status = VisitStatus.recognized;
              }
              

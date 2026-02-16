@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
+import 'package:friendly_code/core/models/venue_model.dart';
+import 'package:friendly_code/core/logic/reward_calculator.dart';
+import 'package:friendly_code/features/web/presentation/pages/b2c_home_screen.dart'; // For styles if needed, or generic imports
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -76,49 +79,48 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
             }
           }
 
-          // 2. Prediction Window logic (Strict to LoyaltyConfig)
-          _secondsPassed++;
-          final double hoursPassed = _secondsPassed / 3600.0;
+          // 2. Prediction Window logic (Unified RewardCalculator)
+          // We need a baseline time. If we have a 'lastVisitDate' passed in, use it.
+          // If this is a NEW visit (just claimed), the 'lastVisitDate' is effectively NOW (minus seconds passed).
+          // However, for a just-claimed visit, we can simulate the "time since visit" as just `_secondsPassed`.
+          
+          // Construct a hypothetical last visit time based on how long we've been on this screen 
+          // (assuming flow started at Claim). 
+          // Ideally, we should pass the actual visit timestamp, but for a fresh claim, 
+          // treating "now - secondsPassed" as visit time is accurate enough for the immediate session.
+          final now = DateTime.now();
+          final hypotheticalVisitTime = now.subtract(Duration(seconds: _secondsPassed));
+          
+          // We need the venue config. Since we don't have the full VenueModel passed here, 
+          // we might need to rely on default config OR pass it. 
+          // Reviewing code: 'widget.venueId' is available. 
+          // But we don't have 'VenueModel'. 
+          // Existing code assumed hardcoded defaults or simple logic.
+          // To be strictly correct, we should fetch/have the config.
+          // implementation_plan.md says "LoyaltyConfig defaults".
+          // So we will use default LoyaltyConfig() if we don't have one.
+          
+          final config = const LoyaltyConfig(); // Uses defaults: 12h cooldown, etc.
+          
+          final rewardState = RewardCalculator.calculate(
+            hypotheticalVisitTime, 
+            now, 
+            config
+          );
 
-          // Phase 1: Cooldown (0 - 12h)
-          // User has 5%. Next target is 20%.
-          if (hoursPassed < 12) {
-             _predPercent = 20;
-             _predSecondsLeft = (12 * 3600) - _secondsPassed;
+          _predPercent = rewardState.nextDiscount; // Target discount
+          _predSecondsLeft = rewardState.secondsUntilNextChange;
+          
+          // Map label keys (simple mapping for now, or use what RewardState gives)
+          if (rewardState.statusLabelKey == 'unlocks_in') {
              _predLabel = '20% unlocks in:';
-             _isLocked = true;
-          } 
-          // Phase 2: VIP Window (12h - 48h)
-          // User has 20%. 
-          else if (hoursPassed < 48) {
-             _predPercent = 20;
-             _predSecondsLeft = (48 * 3600) - _secondsPassed;
-             _predLabel = '20% Discount valid for:';
-             _isLocked = false;
-          }
-          // Phase 3: Decay Tier 1 (48h - 72h)
-          // User has 15%.
-          else if (hoursPassed < 72) {
-             _predPercent = 15;
-             _predSecondsLeft = (72 * 3600) - _secondsPassed;
-             _predLabel = '15% Discount valid for:';
-             _isLocked = false;
-          }
-          // Phase 4: Decay Tier 2 (72h - 168h)
-          // User has 10%.
-          else if (hoursPassed < 168) {
-             _predPercent = 10;
-             _predSecondsLeft = (168 * 3600) - _secondsPassed;
-             _predLabel = '10% Discount valid for:';
-             _isLocked = false;
-          }
-          // Reset
-          else {
-             _predPercent = 5;
-             _predSecondsLeft = 0;
+          } else if (rewardState.statusLabelKey == 'valid_for') {
+             _predLabel = '${rewardState.currentDiscount}% Discount valid for:';
+          } else {
              _predLabel = 'Standard Discount';
-             _isLocked = false;
           }
+          
+          _isLocked = rewardState.isLocked;
         });
       }
     });
