@@ -32,6 +32,10 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
   int _currentDiscount = 5;
   VenueModel? _venue;
   bool _isTestMode = false;
+
+  // Debug Mode State
+  int _debugTapCount = 0;
+  Map<String, dynamic> _debugInfo = {};
   
   // Animation for Gauge
   late AnimationController _gaugeController;
@@ -98,6 +102,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
       // 3. Fetch Last Visit (Server-Side) & User Profile
       // Check for user's last visit to THIS venue
       if (user != null) {
+        final guestEmail = (prefs.getString('guestEmail') ?? '').toLowerCase();
         
         // 3a. Check User Profile (Persistence)
         if (_guestName == null) {
@@ -108,6 +113,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                if (data != null && data['name'] != null && (data['name'] as String).isNotEmpty) {
                  _guestName = data['name'];
                  await prefs.setString('guestName', _guestName!);
+                 // We don't overwrite email from prefs yet, but we use the normalized one for queries
                }
              }
            } catch (e) {
@@ -115,9 +121,18 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
            }
         }
 
+        // --- DEBUG INFO CAPTURE ---
+        _debugInfo = {
+          'email': guestEmail,
+          'venueId': widget.venueId,
+          'found': false,
+          'hours': 0.0,
+          'lastVisit': 'none'
+        };
+
         final visitsQuery = await FirebaseFirestore.instance
             .collection('visits')
-            .where('uid', isEqualTo: user.uid)
+            .where('guestEmail', isEqualTo: guestEmail) // Use normalized email
             .where('venueId', isEqualTo: widget.venueId)
             .orderBy('timestamp', descending: true)
             .limit(1)
@@ -133,6 +148,10 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
              final currentTime = DateTime.now();
              final difference = currentTime.difference(lastVisitDate);
              final hoursPassed = difference.inHours;
+
+             _debugInfo['found'] = true;
+             _debugInfo['hours'] = hoursPassed.toDouble();
+             _debugInfo['lastVisit'] = lastVisitDate.toIso8601String();
 
              if (hoursPassed < _venue!.loyaltyConfig.safetyCooldownHours) {
                _status = VisitStatus.cooldown;
@@ -264,7 +283,17 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // 1. Header (Brand/Venue)
-              _Header(venueName: 'Friendly Code'), 
+              _Header(
+                venueName: 'Friendly Code',
+                onLogoTap: () {
+                  setState(() {
+                    _debugTapCount++;
+                    if (_debugTapCount == 5) {
+                      debugPrint("Debug mode activated");
+                    }
+                  });
+                },
+              ), 
               
               const SizedBox(height: 32),
 
@@ -452,36 +481,96 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
           ),
         ),
       ),
+      floatingActionButton: _debugTapCount >= 5 ? _buildDebugOverlay() : null,
+    );
+  }
+
+  Widget _buildDebugOverlay() {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.greenAccent),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text("DEBUG INFO", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white, size: 20),
+                  onPressed: () => setState(() => _debugTapCount = 0),
+                ),
+              ],
+            ),
+            const Divider(color: Colors.white24),
+            _debugLine("Email", _debugInfo['email']),
+            _debugLine("Venue", _debugInfo['venueId']),
+            _debugLine("Found Visit", _debugInfo['found'] == true ? "YES" : "NO"),
+            _debugLine("Hours Passed", _debugInfo['hours']?.toString() ?? "0"),
+            _debugLine("Last Visit", _debugInfo['lastVisit']),
+            const SizedBox(height: 8),
+            const Text("(Tap 'X' to close)", style: TextStyle(color: Colors.white54, fontSize: 10)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _debugLine(String label, String? value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 90, child: Text("$label:", style: const TextStyle(color: Colors.white70, fontSize: 12))),
+          Expanded(child: Text(value ?? "none", style: const TextStyle(color: Colors.white, fontSize: 12, fontFamily: 'monospace'))),
+        ],
+      ),
     );
   }
 }
 
 class _Header extends StatelessWidget {
   final String venueName;
-  const _Header({required this.venueName});
+  final VoidCallback? onLogoTap;
+  const _Header({required this.venueName, this.onLogoTap});
 
   @override
   Widget build(BuildContext context) {
     return Stack(
       alignment: Alignment.center,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(FontAwesomeIcons.leaf, size: 18, color: AppColors.accentGreen),
-            const SizedBox(width: 8),
-            Text(
-              "Friendly\nCode",
-              textAlign: TextAlign.left,
-              style: TextStyle(
-                color: AppColors.title,
-                fontWeight: FontWeight.w900,
-                fontSize: 16,
-                height: 1.0,
-                letterSpacing: -0.5,
+        GestureDetector(
+          onTap: onLogoTap,
+          behavior: HitTestBehavior.opaque,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min, // Added to prevent full width tap
+            children: [
+              const Icon(FontAwesomeIcons.leaf, size: 18, color: AppColors.accentGreen),
+              const SizedBox(width: 8),
+              Text(
+                "Friendly\nCode",
+                textAlign: TextAlign.left,
+                style: TextStyle(
+                  color: AppColors.title,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 16,
+                  height: 1.0,
+                  letterSpacing: -0.5,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         Positioned(
           right: 0,

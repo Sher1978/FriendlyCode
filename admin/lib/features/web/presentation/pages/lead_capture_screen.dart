@@ -31,7 +31,7 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
     if (!_isValid) return;
 
     final name = _nameController.text.trim();
-    final email = _emailController.text.trim();
+    final email = _emailController.text.trim().toLowerCase();
 
     // Save locally
     final prefs = await SharedPreferences.getInstance();
