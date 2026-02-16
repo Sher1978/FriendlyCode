@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { db, auth } from './firebase';
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { RewardCalculator } from './logic/RewardCalculator';
 
 const LandingPage = () => {
     const { t, i18n } = useTranslation();
@@ -14,6 +15,7 @@ const LandingPage = () => {
     const [status, setStatus] = useState('loading');
     const [discount, setDiscount] = useState(5);
     const [venueName, setVenueName] = useState('');
+    const [cooldown, setCooldown] = useState(null); // { hoursPassed, required }
 
     // Debug Mode State
     const [debugClicks, setDebugClicks] = useState(0);
@@ -111,13 +113,29 @@ const LandingPage = () => {
 
                         if (!querySnapshot.empty) {
                             const lastVisit = querySnapshot.docs[0].data().timestamp.toDate();
-                            const hoursPassed = (now - lastVisit) / (1000 * 60 * 60);
 
-                            debugInfo = { email, found: true, hours: hoursPassed.toFixed(1), lastVisit: lastVisit.toISOString() };
+                            // Use the new shared logic
+                            const result = RewardCalculator.calculate(lastVisit, now, venueData.loyaltyConfig);
 
-                            if (hoursPassed <= 24) calculatedDiscount = 20;
-                            else if (hoursPassed <= 36) calculatedDiscount = 15;
-                            else if (hoursPassed <= 240) calculatedDiscount = 10;
+                            calculatedDiscount = result.discount;
+
+                            debugInfo = {
+                                email,
+                                found: true,
+                                hours: result.hoursPassed.toFixed(1),
+                                lastVisit: lastVisit.toISOString(),
+                                status: result.status
+                            };
+
+                            if (result.status === 'cooldown') {
+                                setCooldown({
+                                    hoursPassed: result.hoursPassed,
+                                    required: venueData.loyaltyConfig?.safetyCooldownHours || 12
+                                });
+                                // Optional: You could set a specific UI state here to tell them "Too soon!"
+                                // For now, we just log it and they get 5% (percBase)
+                                console.log(`Cooldown active. Hours passed: ${result.hoursPassed.toFixed(2)} < ${result.cooldownHours}`);
+                            }
                         }
                     }
                     setLastVisitDebug(debugInfo);
@@ -181,13 +199,25 @@ const LandingPage = () => {
 
                 {/* Hero */}
                 <div className="text-center mt-2">
-                    <h1 className="text-[24px] font-black leading-tight mb-1">
-                        {guestName
-                            ? `${guestName}, рады Вам! 💗 Скидка: ${discount}%`
-                            : `${t('your_discount_today').split(':')[0]}: ${discount}%`
-                        }
-                    </h1>
-                    {!guestName && (
+                    {cooldown ? (
+                        <>
+                            <h1 className="text-[20px] font-black leading-tight mb-1 text-[#E68A00]">
+                                {t('too_soon_headline', 'Too soon! ⏳')}
+                            </h1>
+                            <p className="text-[#4E342E] opacity-70 font-bold text-sm">
+                                {t('come_back_later', 'Come back in {{hours}} hours for a better reward.', { hours: (cooldown.required - cooldown.hoursPassed).toFixed(1) })}
+                            </p>
+                        </>
+                    ) : (
+                        <h1 className="text-[24px] font-black leading-tight mb-1">
+                            {guestName
+                                ? `${guestName}, рады Вам! 💗 Скидка: ${discount}%`
+                                : `${t('your_discount_today').split(':')[0]}: ${discount}%`
+                            }
+                        </h1>
+                    )}
+
+                    {!guestName && !cooldown && (
                         <p className="text-[#4E342E] opacity-60 font-medium text-xs">
                             {t('want_max_discount')}
                         </p>

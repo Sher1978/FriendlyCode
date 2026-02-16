@@ -9,6 +9,19 @@
 * **Backend:** Firebase (Auth, Firestore, Cloud Functions).
 * **Maps:** Google Maps Flutter plugin.
 
+## 1.1 HYBRID ARCHITECTURE RULES
+To ensure consistency and avoid duplication of work, the following boundaries are enforced:
+
+*   **REACT (Vite/React)**:
+    *   **Scope**: Marketing Landing Pages (B2C Home, B2B Business Page).
+    *   **Primary Files**: `src/MarketingB2C.jsx`, `src/MarketingB2B.jsx`.
+    *   **Restriction**: Do NOT modify guest flow versions in Flutter (e.g., `b2c_home_screen.dart` when used for marketing).
+*   **FLUTTER (Web/Mobile)**:
+    *   **Scope**: QR Flow & Guest Funnel (Scanner, Registration, Rewards, Admin/Owner Panels).
+    *   **Primary Files**: `admin/lib/features/web/presentation/pages/` (QR, LeadCapture, ThankYou).
+    *   **Restriction**: Do NOT modify guest flow versions in React (e.g., `LandingPage.jsx`, `LeadCapture.jsx`, `UnifiedActivation.jsx`).
+
+
 ## 2. INTERFACE A: CLIENT APP (GUEST)
 **Target:** Mass User. Needs to be simple, fast, visual.
 
