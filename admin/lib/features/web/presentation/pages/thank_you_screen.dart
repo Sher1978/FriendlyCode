@@ -45,7 +45,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
   late DateTime _screenLoadTime;
   
   // Timer State
-  int _timeLeft = 86400; // 24 hours in seconds
+  int _timeLeft = 300; // 5 minutes (for claim validation)
   bool _isClaimed = false; // Actually, if we arrive here, it's effectively claimed/viewed
   bool _isExpired = false;
   
