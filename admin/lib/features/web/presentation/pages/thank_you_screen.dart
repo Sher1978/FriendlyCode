@@ -4,7 +4,6 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/logic/reward_calculator.dart';
-import 'package:friendly_code/features/web/presentation/pages/b2c_home_screen.dart'; // For styles if needed, or generic imports
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -50,7 +49,6 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
   bool _isExpired = false;
   
   // Prediction Logic
-  int _predPercent = 20;
   int _predSecondsLeft = 43200; // 12 hours initially
   String _predLabel = '20% unlocks in:';
   bool _isLocked = true; 
@@ -96,7 +94,6 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
             widget.tiers
           );
 
-          _predPercent = rewardState.nextDiscount; 
           _predSecondsLeft = rewardState.secondsUntilNextChange;
           
           if (rewardState.statusLabelKey == 'unlocks_in') {

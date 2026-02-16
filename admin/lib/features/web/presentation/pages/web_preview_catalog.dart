@@ -4,6 +4,7 @@ import 'package:friendly_code/features/web/presentation/pages/lead_capture_scree
 import 'package:friendly_code/features/web/presentation/pages/thank_you_screen.dart';
 import 'package:friendly_code/features/web/presentation/pages/b2b_landing_screen.dart';
 import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/core/models/venue_model.dart';
 
 class WebPreviewCatalog extends StatefulWidget {
   const WebPreviewCatalog({super.key});
@@ -17,8 +18,25 @@ class _WebPreviewCatalogState extends State<WebPreviewCatalog> {
 
   final List<Map<String, dynamic>> _screens = [
     {'name': '1. B2C Home (The Hook)', 'widget': const B2CHomeScreen()},
-    {'name': '2. Lead Capture', 'widget': const LeadCaptureScreen(venueId: 'test_venue_id', currentDiscount: 5)},
-    {'name': '3. Thank You', 'widget': const ThankYouScreen(venueId: 'test_venue_id', currentDiscount: 15, guestName: 'Preview Guest')},
+    {
+      'name': '2. Lead Capture', 
+      'widget': const LeadCaptureScreen(
+        venueId: 'test_venue_id', 
+        currentDiscount: 5,
+        tiers: [],
+        config: LoyaltyConfig(),
+      )
+    },
+    {
+      'name': '3. Thank You', 
+      'widget': const ThankYouScreen(
+        venueId: 'test_venue_id', 
+        currentDiscount: 15, 
+        guestName: 'Preview Guest',
+        tiers: [],
+        config: LoyaltyConfig(),
+      )
+    },
     {'name': '4. B2B Landing (Desktop/Mobile)', 'widget': const B2BLandingScreen()},
   ];
 
