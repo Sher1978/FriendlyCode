@@ -19,6 +19,8 @@ const LeadCapture = () => {
     const handleContinue = async () => {
         if (!name.trim() || !email.trim()) return;
 
+        const lowerEmail = email.trim().toLowerCase();
+
         try {
             const venueId = localStorage.getItem('currentVenueId') || 'unknown';
             const user = auth.currentUser;
@@ -30,14 +32,14 @@ const LeadCapture = () => {
                 // 0. Check if this email already exists in 'users' collection
                 const { collection, query, where, getDocs, limit, doc, setDoc, serverTimestamp, addDoc } = await import('firebase/firestore');
 
-                const q = query(collection(db, 'users'), where('email', '==', email.trim()), limit(1));
+                const q = query(collection(db, 'users'), where('email', '==', lowerEmail), limit(1));
                 const querySnapshot = await getDocs(q);
 
                 if (!querySnapshot.empty) {
                     // FOUND EXISTING USER -> Link to this ID instead of the new anonymous one
                     const existingUserDoc = querySnapshot.docs[0];
                     effectiveUid = existingUserDoc.id;
-                    console.log(`Found existing user for ${email}: ${effectiveUid}. Linking session...`);
+                    console.log(`Found existing user for ${lowerEmail}: ${effectiveUid}. Linking session...`);
 
                     // Update existing user with latest name/timestamp
                     await setDoc(doc(db, 'users', effectiveUid), {
@@ -51,7 +53,7 @@ const LeadCapture = () => {
                     // NEW USER -> Create new doc with current auth UID
                     await setDoc(doc(db, 'users', user.uid), {
                         displayName: name.trim(),
-                        email: email.trim(),
+                        email: lowerEmail,
                         role: 'guest',
                         updatedAt: serverTimestamp(),
                         createdAt: serverTimestamp(), // Add creation time for new users
@@ -62,7 +64,7 @@ const LeadCapture = () => {
                 await addDoc(collection(db, 'leads'), {
                     uid: effectiveUid,
                     name: name.trim(),
-                    email: email.trim(),
+                    email: lowerEmail,
                     venueId: venueId,
                     timestamp: serverTimestamp(),
                     source: 'lead_capture'
@@ -71,7 +73,7 @@ const LeadCapture = () => {
 
             // Save guest data locally for instant recognition
             localStorage.setItem('guestName', name.trim());
-            localStorage.setItem('guestEmail', email.trim());
+            localStorage.setItem('guestEmail', lowerEmail);
             if (effectiveUid) {
                 localStorage.setItem('effectiveUid', effectiveUid);
             }
@@ -80,7 +82,7 @@ const LeadCapture = () => {
             navigate('/thank-you', {
                 state: {
                     guestName: name,
-                    guestEmail: email,
+                    guestEmail: lowerEmail,
                     discountValue: discount,
                     venueId: venueId,
                     userRole: 'guest',
@@ -90,7 +92,7 @@ const LeadCapture = () => {
         } catch (e) {
             console.error("Error saving lead/user:", e);
             localStorage.setItem('guestName', name.trim());
-            localStorage.setItem('guestEmail', email.trim());
+            localStorage.setItem('guestEmail', lowerEmail);
             navigate('/thank-you', { state: { guestName: name, discountValue: discount } });
         }
     };

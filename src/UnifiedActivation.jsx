@@ -43,7 +43,7 @@ const UnifiedActivation = () => {
     const handleClaim = async () => {
         try {
             const venueId = location.state?.venueId || localStorage.getItem('currentVenueId') || 'unknown';
-            const guestEmail = location.state?.guestEmail || localStorage.getItem('guestEmail') || 'unknown';
+            const guestEmail = (location.state?.guestEmail || localStorage.getItem('guestEmail') || 'unknown').toLowerCase();
             const user = auth.currentUser;
             const role = location.state?.userRole || 'guest';
 

@@ -15,6 +15,10 @@ const LandingPage = () => {
     const [discount, setDiscount] = useState(5);
     const [venueName, setVenueName] = useState('');
 
+    // Debug Mode State
+    const [debugClicks, setDebugClicks] = useState(0);
+    const [lastVisitDebug, setLastVisitDebug] = useState(null);
+
     const location = useLocation();
 
     useEffect(() => {
@@ -88,8 +92,13 @@ const LandingPage = () => {
                     }
 
                     // 4. Calculate Discount
-                    const email = userData?.email || localStorage.getItem('guestEmail');
+                    // FORCE LOWERCASE EMAIL
+                    const rawEmail = userData?.email || localStorage.getItem('guestEmail') || '';
+                    const email = rawEmail.toLowerCase();
+
                     let calculatedDiscount = 5;
+                    let debugInfo = { email, found: false, hours: 0, lastVisit: 'none' };
+
                     if (email) {
                         const qVisits = query(
                             collection(db, 'visits'),
@@ -104,11 +113,14 @@ const LandingPage = () => {
                             const lastVisit = querySnapshot.docs[0].data().timestamp.toDate();
                             const hoursPassed = (now - lastVisit) / (1000 * 60 * 60);
 
+                            debugInfo = { email, found: true, hours: hoursPassed.toFixed(1), lastVisit: lastVisit.toISOString() };
+
                             if (hoursPassed <= 24) calculatedDiscount = 20;
                             else if (hoursPassed <= 36) calculatedDiscount = 15;
                             else if (hoursPassed <= 240) calculatedDiscount = 10;
                         }
                     }
+                    setLastVisitDebug(debugInfo);
                     setDiscount(calculatedDiscount);
                     setStatus('first');
 
@@ -158,7 +170,7 @@ const LandingPage = () => {
             <div className="pt-6 px-6 text-center z-10">
                 <p className="text-sm font-bold opacity-60 uppercase tracking-widest">Welcome to</p>
                 <h2 className="text-2xl font-black leading-tight text-[#E68A00] mb-1">{venueName}</h2>
-                <div className="flex items-center justify-center gap-1 opacity-40">
+                <div className="flex items-center justify-center gap-1 opacity-40" onClick={() => setDebugClicks(c => c + 1)}>
                     <span className="text-[10px] font-bold uppercase tracking-wider">powered by FriendlyCode</span>
                     <FontAwesomeIcon icon={faLeaf} className="text-[10px]" />
                 </div>
@@ -317,6 +329,18 @@ const LandingPage = () => {
                     {guestName ? t('get_my_reward', 'Get My Reward') : t('get_my_discount')}
                 </button>
             </div>
+            {/* Debug Overlay */}
+            {debugClicks >= 5 && lastVisitDebug && (
+                <div className="fixed top-0 left-0 w-full bg-black/90 text-[#00FF00] p-4 z-50 font-mono text-xs overflow-auto" onClick={() => setDebugClicks(0)}>
+                    <h3 className="font-bold text-lg mb-2">Debug Info</h3>
+                    <p>Venue: {localStorage.getItem('currentVenueId')}</p>
+                    <p>Email: {lastVisitDebug.email}</p>
+                    <p>Found Visit: {lastVisitDebug.found ? 'YES' : 'NO'}</p>
+                    <p>Last Timestamp: {lastVisitDebug.lastVisit}</p>
+                    <p>Hours Passed: {lastVisitDebug.hours}</p>
+                    <p className="mt-2 text-white/50">(Tap to close)</p>
+                </div>
+            )}
         </div >
     );
 };
