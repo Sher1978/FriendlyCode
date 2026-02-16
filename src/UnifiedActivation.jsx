@@ -20,12 +20,13 @@ const UnifiedActivation = () => {
     const [isClaimed, setIsClaimed] = useState(false);
     const [isExpired, setIsExpired] = useState(false);
     const [timeLeft, setTimeLeft] = useState(300); // 300 seconds (5 minutes)
+    const [nextVisitLeft, setNextVisitLeft] = useState(86400); // 24 hours in seconds
 
     useEffect(() => {
         let interval = null;
         if (isClaimed && timeLeft > 0) {
             interval = setInterval(() => {
-                setTimeLeft((prevTime) => prevTime - 1);
+                setTimeLeft((prev) => prev - 1);
             }, 1000);
         } else if (timeLeft === 0 && isClaimed) {
             clearInterval(interval);
@@ -34,10 +35,25 @@ const UnifiedActivation = () => {
         return () => clearInterval(interval);
     }, [isClaimed, timeLeft]);
 
+    // Next Visit Countdown
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setNextVisitLeft((prev) => (prev > 0 ? prev - 1 : 86400));
+        }, 1000);
+        return () => clearInterval(interval);
+    }, []);
+
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    };
+
+    const formatHours = (seconds) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
     };
 
     const handleClaim = async () => {
@@ -101,17 +117,6 @@ const UnifiedActivation = () => {
 
     return (
         <div className="flex flex-col min-h-screen bg-[#E8F5E9] font-sans text-[#1B5E20] antialiased overflow-hidden relative">
-            {/* Pulsing Heartbeat (Anti-Fraud) */}
-            {isClaimed && (
-                <motion.div
-                    animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.3, 0.1] }}
-                    transition={{ repeat: Infinity, duration: 1 }}
-                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
-                >
-                    <FontAwesomeIcon icon={faHeart} className="text-red-500 text-[300px]" />
-                </motion.div>
-            )}
-
             {/* Header / Nav */}
             <div className="pt-8 px-6 flex justify-between items-center z-10">
                 <div className="flex items-center gap-2 bg-white/60 px-3 py-1.5 rounded-full backdrop-blur-sm">
@@ -163,32 +168,42 @@ const UnifiedActivation = () => {
                     </div>
 
                     {/* Dynamic Action Area */}
-                    <div className="mt-8 h-[64px] relative">
-                        <AnimatePresence mode="wait">
-                            {!isClaimed ? (
-                                <motion.button
-                                    key="claim-btn"
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -10 }}
-                                    onClick={handleClaim}
-                                    className="w-full h-full bg-[#2E7D32] text-white rounded-[20px] font-black text-[18px] uppercase tracking-wider flex items-center justify-center gap-3 shadow-lg shadow-[#2E7D32]/30 active:scale-95 transition-all hover:bg-[#1B5E20]"
-                                >
-                                    <FontAwesomeIcon icon={faGift} />
-                                    {t('claim_gift', "Get My Gift")}
-                                </motion.button>
-                            ) : (
-                                <motion.div
-                                    key="timer"
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    className="w-full h-full bg-[#E8F5E9] border-2 border-[#2E7D32] text-[#2E7D32] rounded-[20px] flex items-center justify-center gap-4 font-black text-[24px] shadow-inner"
-                                >
-                                    <FontAwesomeIcon icon={faHeart} className="text-red-500 animate-ping text-sm" />
-                                    <span className="tabular-nums tracking-widest font-mono">{formatTime(timeLeft)}</span>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                    <div className="mt-8 relative">
+                        {/* Next Visit Info */}
+                        <div className="mb-4 text-[#1B5E20]/70 text-xs font-bold uppercase tracking-wider flex flex-col items-center gap-1">
+                            <span>{t('next_max_discount_in', "Next MAX Discount in:")}</span>
+                            <div className="bg-[#E8F5E9] px-3 py-1 rounded-lg border border-[#A5D6A7] text-[#2E7D32] font-mono text-sm">
+                                {formatHours(nextVisitLeft)}
+                            </div>
+                        </div>
+
+                        <div className="h-[64px] relative">
+                            <AnimatePresence mode="wait">
+                                {!isClaimed ? (
+                                    <motion.button
+                                        key="claim-btn"
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -10 }}
+                                        onClick={handleClaim}
+                                        className="w-full h-full bg-[#2E7D32] text-white rounded-[20px] font-black text-[18px] uppercase tracking-wider flex items-center justify-center gap-3 shadow-lg shadow-[#2E7D32]/30 active:scale-95 transition-all hover:bg-[#1B5E20]"
+                                    >
+                                        <FontAwesomeIcon icon={faGift} />
+                                        {t('claim_gift', "Get My Gift")}
+                                    </motion.button>
+                                ) : (
+                                    <motion.div
+                                        key="timer"
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        className="w-full h-full bg-[#E8F5E9] border-2 border-[#2E7D32] text-[#2E7D32] rounded-[20px] flex items-center justify-center gap-4 font-black text-[24px] shadow-inner"
+                                    >
+                                        <FontAwesomeIcon icon={faHeart} className="text-red-500 animate-ping text-sm" />
+                                        <span className="tabular-nums tracking-widest font-mono">{formatTime(timeLeft)}</span>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
                     </div>
                 </motion.div>
 
