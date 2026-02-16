@@ -136,28 +136,66 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
             .where('guestEmail', isEqualTo: guestEmail) // Use normalized email
             .where('venueId', isEqualTo: widget.venueId)
             .orderBy('timestamp', descending: true)
-            .limit(1)
+            .orderBy('timestamp', descending: true)
+            .limit(10) // Fetch more to find chain start
             .get();
 
         if (visitsQuery.docs.isNotEmpty) {
-          final lastVisitData = visitsQuery.docs.first.data();
-          final Timestamp? ts = lastVisitData['timestamp'];
+          final latestVisitDoc = visitsQuery.docs.first;
+          final latestVisitData = latestVisitDoc.data();
+          final Timestamp? ts = latestVisitData['timestamp'];
           
           if (ts != null) {
-             final lastVisitDate = ts.toDate();
-             _lastVisitDate = lastVisitDate; // Store for navigation
+             DateTime latestVisitDate = ts.toDate();
+             DateTime anchorDate = latestVisitDate;
+             
+             // --- ANCHOR LOGIC ---
+             // Walk back to find the "Start" of this interaction chain.
+             // If visits are within 12h of each other, they belong to the same sequence.
+             // We want the TIMESTAMP of the FIRST visit in the sequence to be the "lastVisitDate" for calculation.
+             final docs = visitsQuery.docs;
+             for (int i = 0; i < docs.length - 1; i++) {
+                final curr = docs[i].data();
+                final prev = docs[i+1].data();
+                
+                final t1 = (curr['timestamp'] as Timestamp).toDate();
+                final t2 = (prev['timestamp'] as Timestamp).toDate();
+                
+                final diffHours = t1.difference(t2).inMinutes / 60.0;
+                
+                // If linked by cooldown (e.g. < 12h gap), the chain continues.
+                // We assume 'Start' is the oldest in this chain.
+                // Note: User said "Any scanning in 12h shows count from START".
+                if (diffHours < _venue!.loyaltyConfig.safetyCooldownHours) {
+                   anchorDate = t2; // Move anchor back
+                } else {
+                   break; // Chain broken
+                }
+             }
+             
+             _lastVisitDate = anchorDate; // Store for navigation (Use ANCHOR as the visit time)
+             
+             // --- MAINTENANCE LOGIC ---
+             // We need the discount of the LATEST visit to know if we are in Maintenance Mode.
+             // (e.g. if we got 20% at T=13, and now it's T=14, we need to know T=13 gave 20%).
+             final int? previousReward = latestVisitData['discountValue'] as int?;
+
              // 4. Calculate Dynamic Reward
              final currentTime = DateTime.now();
+             debugPrint("Anchor: $anchorDate, Latest: $latestVisitDate, PrevReward: $previousReward");
+             
              final rewardState = RewardCalculator.calculate(
-               lastVisitDate, 
+               anchorDate, 
                currentTime, 
                _venue!.loyaltyConfig,
-               _venue!.tiers
+               _venue!.tiers,
+               previousReward: previousReward
              );
 
              _debugInfo['found'] = true;
-             _debugInfo['hours'] = currentTime.difference(lastVisitDate).inHours.toDouble();
-             _debugInfo['lastVisit'] = lastVisitDate.toIso8601String();
+             _debugInfo['hours'] = currentTime.difference(anchorDate).inHours.toDouble();
+             _debugInfo['lastVisit'] = anchorDate.toIso8601String();
+             _debugInfo['latestReal'] = latestVisitDate.toIso8601String();
              _debugInfo['phase'] = rewardState.phase.toString();
 
              // Update UI with calculated state
@@ -171,7 +209,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
              
              // If we didn't get name from User Profile, try visit
              if (_guestName == null) {
-                _guestName = lastVisitData['guestName']; 
+                _guestName = latestVisitData['guestName']; 
                 if (_guestName != null) {
                   await prefs.setString('guestName', _guestName!);
                 }
@@ -218,6 +256,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
         'guestName': _guestName ?? 'Guest',
         'type': 'scan',
         'status': 'completed',
+        'discountValue': _currentDiscount,
         'timestamp': FieldValue.serverTimestamp(),
         'is_test': _isTestMode,
       });

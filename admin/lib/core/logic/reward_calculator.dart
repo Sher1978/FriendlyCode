@@ -26,24 +26,50 @@ class RewardState {
 class RewardCalculator {
   /// Calculates the complete reward state based on the time difference between now
   /// and the last visit using the Venue's LoyaltyConfig and dynamic Tiers.
+  /// 
+  /// [previousReward]: The discount obtained in the last visit. Used for Maintenance Mode.
   static RewardState calculate(
     DateTime lastVisit, 
     DateTime currentTime, 
     LoyaltyConfig config, 
-    List<VenueTier> tiers
+    List<VenueTier> tiers, 
+    {int? previousReward}
   ) {
     final difference = currentTime.difference(lastVisit);
     final totalSecondsPassed = difference.inSeconds;
     final double hoursPassed = totalSecondsPassed / 3600.0;
 
+    // 0. Maintenance Mode
+    // If user previously earned VIP (>=20%), they keep it for 24h from that visit,
+    // bypassing the safety cooldown of the next visit.
+    if (previousReward != null && previousReward >= config.percVip) { // >= 20%
+       // The user rule: "continues to act for 24h from updated start".
+       // So if we are within 24h of the anchor/last visit that gave 20%:
+       if (hoursPassed < 24) {
+         final int endTimeSeconds = 24 * 3600;
+         return RewardState(
+            currentDiscount: previousReward,
+            nextDiscount: config.percDecay1, // After 24h maintenance, usually drops to Decay1
+            secondsUntilNextChange: endTimeSeconds - totalSecondsPassed,
+            phase: RewardPhase.vip,
+            statusLabelKey: 'valid_for',
+            isLocked: false,
+         );
+       }
+       // If > 24h, we fall through. 
+       // Should we skip Cooldown? 
+       // User: "After 24h, decay logic triggers".
+       // If we fall through to Cooldown check (if < 12h), that would be weird if hoursPassed > 24h.
+       // But if hoursPassed > 24h, then it's definitely > 12h, so Cooldown check (if < 12) won't trigger. 
+       // So standard logic works fine for Decay.
+    }
+
     // 1. Safety Cooldown (e.g. 0-12h) - Global Rule
-    // User has Base (5%). Next is the best tier (usually the first one).
+    // ... (rest is same)
     if (hoursPassed < config.safetyCooldownHours) {
       final int endTimeSeconds = config.safetyCooldownHours * 3600;
       
       // Determine what they are waiting for (First tier or VIP)
-      // If tiers exist, the target is the first tier's percentage.
-      // If no tiers, target is VIP default.
       final int nextTarget = tiers.isNotEmpty ? tiers.first.percentage : config.percVip;
 
       return RewardState(
@@ -57,19 +83,14 @@ class RewardCalculator {
     }
 
     // 2. Dynamic Tiers Logic
-    // Sort tiers by hours just in case they aren't
     final sortedTiers = List<VenueTier>.from(tiers)..sort((a, b) => a.maxHours.compareTo(b.maxHours));
 
     for (int i = 0; i < sortedTiers.length; i++) {
       final tier = sortedTiers[i];
       
-      // If we are within this tier's window
       if (hoursPassed <= tier.maxHours) {
         final int endTimeSeconds = tier.maxHours * 3600;
         
-        // Determine next discount
-        // If there is a next tier, that's the next discount.
-        // If this is the last tier, next is Base.
         final int nextDisc = (i < sortedTiers.length - 1) 
             ? sortedTiers[i + 1].percentage 
             : config.percBase;
@@ -78,7 +99,6 @@ class RewardCalculator {
           currentDiscount: tier.percentage,
           nextDiscount: nextDisc,
           secondsUntilNextChange: endTimeSeconds - totalSecondsPassed,
-          // Map index to phase enum roughly for now, or add generic 'tier' phase
           phase: i == 0 ? RewardPhase.vip : RewardPhase.decay1, 
           statusLabelKey: 'valid_for',
           isLocked: false,
@@ -86,7 +106,7 @@ class RewardCalculator {
       }
     }
 
-    // 3. Reset / Base (e.g., hours > last tier)
+    // 3. Reset / Base
     return RewardState(
       currentDiscount: config.percBase,
       nextDiscount: config.percBase,
