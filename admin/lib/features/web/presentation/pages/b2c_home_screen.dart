@@ -29,6 +29,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
   bool _isLoading = true;
   bool _venueNotFound = false;
   String? _guestName;
+  String? _guestEmail; 
   int _currentDiscount = 5;
   VenueModel? _venue;
   bool _isTestMode = false;
@@ -104,6 +105,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
       // Check for user's last visit to THIS venue
       if (user != null) {
         final guestEmail = (prefs.getString('guestEmail') ?? '').toLowerCase();
+        _guestEmail = guestEmail; // Assign _guestEmail after email resolution logic.
         
         // 3a. Check User Profile (Persistence)
         if (_guestName == null) {
@@ -133,7 +135,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
 
         final visitsQuery = await FirebaseFirestore.instance
             .collection('visits')
-            .where('guestEmail', isEqualTo: guestEmail) // Use normalized email
+            .where('uid', isEqualTo: _user!.uid) // Use UID for reliable lookup
             .where('venueId', isEqualTo: widget.venueId)
             .orderBy('timestamp', descending: true)
             .orderBy('timestamp', descending: true)
@@ -254,6 +256,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
         'uid': user.uid,
         'venueId': widget.venueId,
         'guestName': _guestName ?? 'Guest',
+        'guestEmail': _guestEmail, // Save email for records
         'type': 'scan',
         'status': 'completed',
         'discountValue': _currentDiscount,
