@@ -42,8 +42,9 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
 
   // Prediction Logic
   int _predPercent = 20;
-  int _predSecondsLeft = 86400;
-  String _predLabel = 'max_discount_ends_in';
+  int _predSecondsLeft = 43200; // 12 hours initially
+  String _predLabel = '20% unlocks in:';
+  bool _isLocked = true; // New state to track if we are waiting for unlock
 
   @override
   void initState() {
@@ -75,26 +76,48 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
             }
           }
 
-          // 2. Prediction Window logic
+          // 2. Prediction Window logic (Strict to LoyaltyConfig)
           _secondsPassed++;
           final double hoursPassed = _secondsPassed / 3600.0;
 
-          if (hoursPassed < 24) {
-            _predPercent = 20;
-            _predSecondsLeft = (24 * 3600) - _secondsPassed;
-            _predLabel = '20% Discount valid for:';
-          } else if (hoursPassed < 36) {
-            _predPercent = 15;
-            _predSecondsLeft = (36 * 3600) - _secondsPassed;
-            _predLabel = '15% Discount valid for:';
-          } else if (hoursPassed < 240) {
-            _predPercent = 10;
-            _predSecondsLeft = (240 * 3600) - _secondsPassed;
-            _predLabel = '10% Discount valid for:';
-          } else {
-            _predPercent = 5;
-            _predSecondsLeft = 0;
-            _predLabel = 'Standard Discount';
+          // Phase 1: Cooldown (0 - 12h)
+          // User has 5%. Next target is 20%.
+          if (hoursPassed < 12) {
+             _predPercent = 20;
+             _predSecondsLeft = (12 * 3600) - _secondsPassed;
+             _predLabel = '20% unlocks in:';
+             _isLocked = true;
+          } 
+          // Phase 2: VIP Window (12h - 48h)
+          // User has 20%. 
+          else if (hoursPassed < 48) {
+             _predPercent = 20;
+             _predSecondsLeft = (48 * 3600) - _secondsPassed;
+             _predLabel = '20% Discount valid for:';
+             _isLocked = false;
+          }
+          // Phase 3: Decay Tier 1 (48h - 72h)
+          // User has 15%.
+          else if (hoursPassed < 72) {
+             _predPercent = 15;
+             _predSecondsLeft = (72 * 3600) - _secondsPassed;
+             _predLabel = '15% Discount valid for:';
+             _isLocked = false;
+          }
+          // Phase 4: Decay Tier 2 (72h - 168h)
+          // User has 10%.
+          else if (hoursPassed < 168) {
+             _predPercent = 10;
+             _predSecondsLeft = (168 * 3600) - _secondsPassed;
+             _predLabel = '10% Discount valid for:';
+             _isLocked = false;
+          }
+          // Reset
+          else {
+             _predPercent = 5;
+             _predSecondsLeft = 0;
+             _predLabel = 'Standard Discount';
+             _isLocked = false;
           }
         });
       }
@@ -267,14 +290,16 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: ThankYouColors.background,
+                                    color: _isLocked ? const Color(0xFFFFF3E0) : ThankYouColors.background, // Orange vs Green
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: ThankYouColors.border),
+                                    border: Border.all(
+                                      color: _isLocked ? const Color(0xFFFFB74D) : ThankYouColors.border
+                                    ),
                                   ),
                                   child: Text(
                                     _formatHours(_predSecondsLeft),
-                                    style: const TextStyle(
-                                      color: ThankYouColors.text,
+                                    style: TextStyle(
+                                      color: _isLocked ? const Color(0xFFE65100) : ThankYouColors.text,
                                       fontWeight: FontWeight.bold,
                                       fontFamily: 'monospace',
                                       fontSize: 14,
