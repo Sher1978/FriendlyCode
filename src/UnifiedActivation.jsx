@@ -19,8 +19,15 @@ const UnifiedActivation = () => {
     // Timer Logic
     const [isClaimed, setIsClaimed] = useState(false);
     const [isExpired, setIsExpired] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(300); // 300 seconds (5 minutes)
-    const [nextVisitLeft, setNextVisitLeft] = useState(86400); // 24 hours in seconds
+    const [timeLeft, setTimeLeft] = useState(300); // 300 seconds (5 minutes) for the claim itself
+
+    // Smart Prediction Timer State
+    const [secondsPassed, setSecondsPassed] = useState(0);
+    const [predictionState, setPredictionState] = useState({
+        percent: 20,
+        secondsLeft: 86400,
+        label: 'max_discount_ends'
+    });
 
     useEffect(() => {
         let interval = null;
@@ -35,10 +42,39 @@ const UnifiedActivation = () => {
         return () => clearInterval(interval);
     }, [isClaimed, timeLeft]);
 
-    // Next Visit Countdown
+    // Smart Timer Logic: Updates every second to simulate the passage of time since claim
     useEffect(() => {
         const interval = setInterval(() => {
-            setNextVisitLeft((prev) => (prev > 0 ? prev - 1 : 86400));
+            setSecondsPassed(prev => {
+                const newPassed = prev + 1;
+
+                // Calculate phase based on newPassed
+                const hoursPassed = newPassed / 3600;
+                let percent = 5;
+                let secondsLeft = 0;
+                let label = 'discount_stable';
+
+                if (hoursPassed < 24) {
+                    percent = 20;
+                    secondsLeft = (24 * 3600) - newPassed;
+                    label = 'max_discount_ends_in';
+                } else if (hoursPassed < 36) {
+                    percent = 15;
+                    secondsLeft = (36 * 3600) - newPassed;
+                    label = 'high_discount_ends_in';
+                } else if (hoursPassed < 240) {
+                    percent = 10;
+                    secondsLeft = (240 * 3600) - newPassed;
+                    label = 'base_discount_ends_in';
+                } else {
+                    percent = 5;
+                    secondsLeft = 0;
+                    label = 'standard_discount';
+                }
+
+                setPredictionState({ percent, secondsLeft, label });
+                return newPassed;
+            });
         }, 1000);
         return () => clearInterval(interval);
     }, []);
@@ -171,9 +207,11 @@ const UnifiedActivation = () => {
                     <div className="mt-8 relative">
                         {/* Next Visit Info */}
                         <div className="mb-4 text-[#1B5E20]/70 text-xs font-bold uppercase tracking-wider flex flex-col items-center gap-1">
-                            <span>{t('next_max_discount_in', "Next MAX Discount in:")}</span>
+                            <span>
+                                {predictionState.percent}% Discount valid for:
+                            </span>
                             <div className="bg-[#E8F5E9] px-3 py-1 rounded-lg border border-[#A5D6A7] text-[#2E7D32] font-mono text-sm">
-                                {formatHours(nextVisitLeft)}
+                                {formatHours(predictionState.secondsLeft)}
                             </div>
                         </div>
 
