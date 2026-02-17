@@ -65,12 +65,25 @@ class RewardCalculator {
     }
 
     // 1. Safety Cooldown (e.g. 0-12h) - Global Rule
-    // ... (rest is same)
+    // If the user returns too quickly (e.g. refreshing the page), we shouldn't punish them by dropping to Base.
+    // If they had a valid reward in the anchor visit, verify it.
     if (hoursPassed < config.safetyCooldownHours) {
       final int endTimeSeconds = config.safetyCooldownHours * 3600;
       
       // Determine what they are waiting for (First tier or VIP)
       final int nextTarget = tiers.isNotEmpty ? tiers.first.percentage : config.percVip;
+
+      // FIX: If we have a previous reward higher than base, maintain it during cooldown (Effective Maintenance)
+      if (previousReward != null && previousReward > config.percBase) {
+        return RewardState(
+          currentDiscount: previousReward,
+          nextDiscount: nextTarget,
+          secondsUntilNextChange: endTimeSeconds - totalSecondsPassed,
+          phase: RewardPhase.cooldown,
+          statusLabelKey: 'valid_for',
+          isLocked: false, // Not locked, they can use it
+        );
+      }
 
       return RewardState(
         currentDiscount: config.percBase,

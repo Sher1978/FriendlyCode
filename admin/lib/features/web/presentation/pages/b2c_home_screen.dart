@@ -145,9 +145,11 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
           final latestVisitDoc = visitsQuery.docs.first;
           final latestVisitData = latestVisitDoc.data();
           final Timestamp? ts = latestVisitData['timestamp'];
+          DateTime? latestRealDate; // captured for debounce checking
           
           if (ts != null) {
              DateTime latestVisitDate = ts.toDate();
+             latestRealDate = latestVisitDate;
              DateTime anchorDate = latestVisitDate;
              
              // --- ANCHOR LOGIC ---
@@ -241,6 +243,11 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
 
       // Record Scan for analytics
       if (!_isTestMode) {
+        // We pass the latestRealDate we found (if any) to check for debounce
+        // But we need to access it. scope issue.
+        // Let's rely on _lastVisitDate? No, that's anchor.
+        // We need to re-fetch or store it. 
+        // Better: store it in a class variable or check inside _recordScan
         _recordScan();
       }
     }
@@ -250,6 +257,31 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user == null || widget.venueId == null) return;
+
+      // Anti-Refresh Logic:
+      // If the user just scanned < 5 minutes ago, don't record another "visit".
+      // This prevents the user from accidentally resetting their cycle by refreshing the page.
+      // We need to check the LATEST visit timestamp.
+      // Since we already queried it in _checkVisit, we could optimize, but a quick query is safer here.
+      
+      final recentSnap = await FirebaseFirestore.instance
+          .collection('visits')
+          .where('uid', isEqualTo: user.uid)
+          .where('venueId', isEqualTo: widget.venueId)
+          .orderBy('timestamp', descending: true)
+          .limit(1)
+          .get();
+
+      if (recentSnap.docs.isNotEmpty) {
+        final lastData = recentSnap.docs.first.data();
+        if (lastData['timestamp'] != null) {
+           final lastTs = (lastData['timestamp'] as Timestamp).toDate();
+           if (DateTime.now().difference(lastTs).inMinutes < 5) {
+             debugPrint("Skipping scan record - user scanned ${DateTime.now().difference(lastTs).inSeconds}s ago.");
+             return;
+           }
+        }
+      }
 
       await FirebaseFirestore.instance.collection('visits').add({
         'uid': user.uid,
@@ -565,8 +597,10 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
               ],
             ),
             const Divider(color: Colors.white24),
+            _debugLine("UID", FirebaseAuth.instance.currentUser?.uid.substring(0, 6) ?? "null"), 
             _debugLine("Email", _debugInfo['email']),
             _debugLine("Venue", _debugInfo['venueId']),
+            _debugLine("Tiers Cfg", _venue?.tiers.length.toString() ?? "0"),
             _debugLine("Found Visit", _debugInfo['found'] == true ? "YES" : "NO"),
             _debugLine("Hours Passed", _debugInfo['hours']?.toString() ?? "0"),
             _debugLine("Last Visit", _debugInfo['lastVisit']),
@@ -589,6 +623,15 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
         ],
       ),
     );
+  }
+
+  // Helper to add UID to debug
+  void _updateDebugUserId(String uid) {
+    if (mounted) {
+      setState(() {
+        _debugInfo['uid'] = uid.substring(0, min(6, uid.length));
+      });
+    }
   }
 }
 
