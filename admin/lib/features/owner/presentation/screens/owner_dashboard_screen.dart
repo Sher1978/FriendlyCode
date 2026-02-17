@@ -232,13 +232,15 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
       );
     }
 
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: AppColors.premiumSand,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
-        title: _buildVenueSelector(venueIds),
+        title: _buildVenueSelector(venueIds, roleProvider),
         actions: [
           IconButton(
             icon: const Icon(Icons.language, color: AppColors.premiumBurntOrange),
@@ -295,7 +297,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     );
   }
 
-  Widget _buildVenueSelector(List<String> venueIds) {
+  Widget _buildVenueSelector(List<String> venueIds, RoleProvider roleProvider) {
     final l10n = AppLocalizations.of(context)!;
     if (venueIds.length <= 1) {
       return Text(
