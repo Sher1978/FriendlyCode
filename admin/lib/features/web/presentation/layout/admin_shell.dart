@@ -7,6 +7,7 @@ import 'package:friendly_code/features/owner/presentation/screens/settings_scree
 import 'package:friendly_code/features/owner/presentation/screens/analytics_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/billing_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/owner_venues_screen.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:friendly_code/core/localization/locale_provider.dart';
@@ -35,8 +36,8 @@ class _AdminShellState extends State<AdminShell> {
     _screens = [
       widget.child, // 0: Overview
       widget.role == UserRole.superAdmin 
-        ? const GlobalVenuesScreen() // Super Admin: Venues Master
-        : VenueEditorScreen(), // Owner: My Venue Profile
+        ? const GlobalVenuesScreen() 
+        : const OwnerVenuesScreen(), 
       widget.role == UserRole.superAdmin
         ? const AnalyticsModule() // Admin Global Analytics
         : const OwnerAnalyticsScreen(), // Owner Venue Analytics
@@ -49,77 +50,94 @@ class _AdminShellState extends State<AdminShell> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Row(
-        children: [
-          // Permanent Side Navigation
-          _buildSidebar(),
-          
-          // Main Content Area
-          Expanded(
-            child: Column(
-              children: [
-                // Header Search & User Info
-                _buildHeader(),
-                
-                // Actual Screen Content
-                Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.fromLTRB(0, 0, 24, 24),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: AppColors.softShadow,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 800;
+        
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: !isDesktop 
+            ? AppBar(
+                backgroundColor: AppColors.surface,
+                iconTheme: const IconThemeData(color: AppColors.title),
+                elevation: 0,
+                title: const Text("FRIENDLY CODE", style: TextStyle(color: AppColors.title, fontWeight: FontWeight.w900, fontSize: 16)),
+              )
+            : null,
+          drawer: !isDesktop ? Drawer(child: _buildSidebar(isMobile: true)) : null,
+          body: Row(
+            children: [
+              // Permanent Side Navigation (Desktop only)
+              if (isDesktop) _buildSidebar(),
+              
+              // Main Content Area
+              Expanded(
+                child: Column(
+                  children: [
+                    // Header Search & User Info
+                    _buildHeader(isDesktop: isDesktop),
+                    
+                    // Actual Screen Content
+                    Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.fromLTRB(0, 0, 24, 24),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: AppColors.softShadow,
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: _screens[_selectedIndex < _screens.length ? _selectedIndex : 0],
+                        ),
+                      ),
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: _screens[_selectedIndex < _screens.length ? _selectedIndex : 0],
-                    ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildSidebar() {
+  Widget _buildSidebar({bool isMobile = false}) {
     return Container(
       width: 260,
+      color: isMobile ? AppColors.surface : null, // Ensure background on drawer
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Logo
-          Padding(
-            padding: const EdgeInsets.only(left: 12, bottom: 48),
-            child: Row(
-              children: [
-                const Icon(Icons.auto_awesome, color: AppColors.accentOrange, size: 28),
-                const SizedBox(width: 12),
-                const Text(
-                  "FRIENDLY CODE",
-                  style: TextStyle(
-                    color: AppColors.title,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                    letterSpacing: -0.5,
+          if (!isMobile) // Hide logo in mobile drawer if also in AppBar
+            Padding(
+              padding: const EdgeInsets.only(left: 12, bottom: 48),
+              child: Row(
+                children: [
+                  const Icon(Icons.auto_awesome, color: AppColors.accentOrange, size: 28),
+                  const SizedBox(width: 12),
+                  const Text(
+                    "FRIENDLY CODE",
+                    style: TextStyle(
+                      color: AppColors.title,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                      letterSpacing: -0.5,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           
           // Navigation Items
-          _buildNavItem(0, Icons.grid_view_outlined, "Overview"),
-          _buildNavItem(1, Icons.storefront_outlined, widget.role == UserRole.superAdmin ? "Venues" : "My Venue"),
-          _buildNavItem(2, Icons.bar_chart_outlined, "Analytics"),
-          _buildNavItem(3, Icons.payments_outlined, "Billing"),
+          _buildNavItem(0, Icons.grid_view_outlined, "Overview", isMobile: isMobile),
+          _buildNavItem(1, Icons.storefront_outlined, "Venues", isMobile: isMobile),
+          _buildNavItem(2, Icons.bar_chart_outlined, "Analytics", isMobile: isMobile),
+          _buildNavItem(3, Icons.payments_outlined, "Billing", isMobile: isMobile),
           const Spacer(),
-          _buildNavItem(4, Icons.settings_outlined, "Settings"),
+          _buildNavItem(4, Icons.settings_outlined, "Settings", isMobile: isMobile),
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: InkWell(
@@ -142,12 +160,15 @@ class _AdminShellState extends State<AdminShell> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem(int index, IconData icon, String label, {bool isMobile = false}) {
     final bool isSelected = _selectedIndex == index;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
-        onTap: () => setState(() => _selectedIndex = index),
+        onTap: () {
+          setState(() => _selectedIndex = index);
+          if (isMobile) Navigator.pop(context); // Close drawer
+        },
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -178,45 +199,55 @@ class _AdminShellState extends State<AdminShell> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader({bool isDesktop = true}) {
     final currentUser = AuthService().currentUser;
     final userEmail = currentUser?.email ?? 'Venue Owner';
 
     return Container(
       height: 80,
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16),
       child: Row(
         children: [
           // Search Bar
-          Expanded(
-            child: Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.black.withOpacity(0.05)),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  const Icon(Icons.search, color: AppColors.body, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: widget.role == UserRole.superAdmin 
-                          ? "Search venues by name, ID, or owner email..."
-                          : "Search in your venue...",
-                        hintStyle: const TextStyle(color: Colors.black38, fontSize: 14),
-                        border: InputBorder.none,
+          if (isDesktop) 
+            Expanded(
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.black.withOpacity(0.05)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    const Icon(Icons.search, color: AppColors.body, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText: widget.role == UserRole.superAdmin 
+                            ? "Search venues..."
+                            : "Search in your venue...",
+                          hintStyle: const TextStyle(color: Colors.black38, fontSize: 14),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.only(bottom: 12), // Align text vertically
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              ),
+            )
+          else 
+            Expanded(
+              child: Text(
+                userEmail.split('@').first, 
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.title)
               ),
             ),
-          ),
-          const SizedBox(width: 24),
+          
+          if (isDesktop) const SizedBox(width: 24),
 
           // Language Switcher
           Consumer<LocaleProvider>(
@@ -250,40 +281,41 @@ class _AdminShellState extends State<AdminShell> {
               ),
             ),
           ),
-          const SizedBox(width: 24),
           
-          // User Info
-          Row(
-            children: [
-              Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    userEmail,
-                    style: const TextStyle(
-                      color: AppColors.title,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
+          if (isDesktop) ...[
+            const SizedBox(width: 24),
+            Row(
+              children: [
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      userEmail,
+                      style: const TextStyle(
+                        color: AppColors.title,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
-                  Text(
-                    widget.role == UserRole.superAdmin ? "System Access" : "Venue Owner",
-                    style: const TextStyle(
-                      color: AppColors.body,
-                      fontSize: 12,
+                    Text(
+                      widget.role == UserRole.superAdmin ? "System Access" : "Venue Owner",
+                      style: const TextStyle(
+                        color: AppColors.body,
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(width: 16),
-              const CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.background,
-                child: Icon(Icons.person_outline, color: AppColors.accentOrange),
-              ),
-            ],
-          ),
+                  ],
+                ),
+                const SizedBox(width: 16),
+                const CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.background,
+                  child: Icon(Icons.person_outline, color: AppColors.accentOrange),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

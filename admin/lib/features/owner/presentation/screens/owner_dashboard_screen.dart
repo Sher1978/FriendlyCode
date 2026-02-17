@@ -32,8 +32,8 @@ class OwnerDashboardScreen extends StatefulWidget {
 
 class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   final VenueRepository _venueRepo = VenueRepository();
-  String? _selectedVenueId;
   bool _isLoadingRole = false;
+  String? _lastInitializedVenueId;
 
   // Visit Listener Logic
   StreamSubscription? _visitSubscription;
@@ -163,19 +163,18 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
     final roleProvider = Provider.of<RoleProvider>(context);
     final venueIds = roleProvider.venueIds;
+    final activeVenueId = roleProvider.venueId;
 
-    // Default to first venue if none selected or selection invalid
-    if ((_selectedVenueId == null || !venueIds.contains(_selectedVenueId)) && venueIds.isNotEmpty) {
-      _selectedVenueId = venueIds.first;
-      // Start listening to the default venue
-      _subscribeToVisits(_selectedVenueId!);
-      // Initial Fetch
-      if (_realTimeStats == null && !_isLoadingStats) {
-         _fetchRealStats(_selectedVenueId!);
-      }
+    // Trigger side effects when active venue changes
+    // We use a static variable or a simple check to see if we've initialized for this ID
+    if (activeVenueId != null && activeVenueId != _lastInitializedVenueId) {
+      _lastInitializedVenueId = activeVenueId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _subscribeToVisits(activeVenueId);
+        _fetchRealStats(activeVenueId);
+      });
     }
 
     if (_isLoadingRole) {
@@ -268,13 +267,19 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
           const SizedBox(width: 16),
         ],
       ),
-      body: StreamBuilder<VenueModel?>(
-        stream: _venueRepo.getVenueStream(_selectedVenueId!),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: AppColors.premiumBurntOrange));
-          
-          final venue = snapshot.data!;
+      body: activeVenueId == null 
+        ? const Center(child: Text("No venue selected"))
+        : StreamBuilder<VenueModel?>(
+          stream: _venueRepo.getVenueStream(activeVenueId),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
+            if (!snapshot.hasData) return const Center(child: CircularProgressIndicator(color: AppColors.premiumBurntOrange));
+            
+            final venue = snapshot.data!;
+            
+            // Side effect: check if we need to refresh stats/visits for this venue
+            // This is a bit hacky in build, but since we are in a StatefulWidget and it's a specific ID...
+            // better way is using didUpdateWidget or just handle in the selector.
           final isBlocked = venue.isManuallyBlocked || 
                            (venue.subscription.expiryDate != null && venue.subscription.expiryDate!.isBefore(DateTime.now())) ||
                            (!venue.subscription.isPaid && venue.subscription.plan != 'free');
@@ -301,11 +306,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
 
     return PopupMenuButton<String>(
       onSelected: (val) {
-          setState(() {
-             _selectedVenueId = val;
-             _subscribeToVisits(val); // Update subscription
-             _fetchRealStats(val); // Fetch real stats
-          });
+          roleProvider.setActiveVenueId(val);
+          _subscribeToVisits(val); 
+          _fetchRealStats(val);
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -343,105 +346,112 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
   Widget _buildModernDashboard(BuildContext context, VenueModel venue, AppLocalizations l10n) {
     final userEmail = AuthService().currentUser?.email ?? 'User';
     
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Welcome Header
-          Column(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(isMobile ? 16 : 24),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Hello, ${userEmail.split('@').first}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.premiumBurntOrange)),
-              const SizedBox(height: 4),
-              Text(
-                venue.name, 
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  color: AppColors.title,
-                  fontWeight: FontWeight.w900,
-                )
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 32),
-          
-          // Marketing Blast Button (Quick Action)
-          InkWell(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MarketingBlastScreen(venueId: venue.id))),
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(colors: [AppColors.premiumBurntOrange, AppColors.premiumGold]),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [BoxShadow(color: AppColors.premiumBurntOrange.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
-              ),
-              child: Row(
+              // Welcome Header
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                    child: const Icon(Icons.campaign_outlined, color: Colors.white),
+                  Text("Hello, ${userEmail.split('@').first}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.premiumBurntOrange)),
+                  const SizedBox(height: 4),
+                  Text(
+                    venue.name, 
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: AppColors.title,
+                      fontWeight: FontWeight.w900,
+                      fontSize: isMobile ? 24 : null,
+                    )
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(l10n.marketingBlast.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.0, fontSize: 12)),
-                        const Text("Send offers to your guests", style: TextStyle(color: Colors.white, fontSize: 14)),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.arrow_forward, color: Colors.white),
                 ],
               ),
-            ),
-          ),
+              
+              const SizedBox(height: 32),
+              
+              // Marketing Blast Button (Quick Action)
+              InkWell(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MarketingBlastScreen(venueId: venue.id))),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [AppColors.premiumBurntOrange, AppColors.premiumGold]),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [BoxShadow(color: AppColors.premiumBurntOrange.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
+                        child: const Icon(Icons.campaign_outlined, color: Colors.white),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(l10n.marketingBlast.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.0, fontSize: 12)),
+                            const Text("Send offers to your guests", style: TextStyle(color: Colors.white, fontSize: 14)),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward, color: Colors.white),
+                    ],
+                  ),
+                ),
+              ),
 
-          const SizedBox(height: 32),
+              const SizedBox(height: 32),
 
-          // Stats Grid
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.5,
-            children: [
-              _buildStatCard("Total Scans", "${_realTimeStats?.totalCheckins ?? venue.stats.totalCheckins}", Icons.qr_code_scanner, AppColors.premiumBurntOrange),
-              _buildStatCard("Active Users (Mo)", "${_realTimeStats?.monthlyActiveUsers ?? 0}", Icons.group_outlined, AppColors.premiumGold),
-              _buildStatCard("Avg Discount", "${(_realTimeStats?.avgDiscount ?? 0).toStringAsFixed(1)}%", Icons.percent, Colors.green),
-              _buildStatCard("Retention Rate", "${(_realTimeStats?.retentionRate ?? 0).toStringAsFixed(1)}%", Icons.loop, Colors.blue),
+              // Stats Grid
+              GridView.count(
+                crossAxisCount: isMobile ? 2 : 4,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: isMobile ? 1.3 : 1.5,
+                children: [
+                  _buildStatCard("Total Scans", "${_realTimeStats?.totalCheckins ?? venue.stats.totalCheckins}", Icons.qr_code_scanner, AppColors.premiumBurntOrange),
+                  _buildStatCard("Active Users (Mo)", "${_realTimeStats?.monthlyActiveUsers ?? 0}", Icons.group_outlined, AppColors.premiumGold),
+                  _buildStatCard("Avg Discount", "${(_realTimeStats?.avgDiscount ?? 0).toStringAsFixed(1)}%", Icons.percent, Colors.green),
+                  _buildStatCard("Retention Rate", "${(_realTimeStats?.retentionRate ?? 0).toStringAsFixed(1)}%", Icons.loop, Colors.blue),
+                ],
+              ),
+              const SizedBox(height: 32),
+
+              // Guest Segmentation
+              Text("Guest Segments", style: const TextStyle(color: AppColors.title, fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              _buildSegmentationRow(_realTimeStats, isMobile),
+              const SizedBox(height: 32),
+              const SizedBox(height: 32),
+
+              // QR Card (Premium Look)
+              _buildPremiumQRCard(venue),
+              const SizedBox(height: 32),
+
+              // Settings Section
+              Text(l10n.management, style: const TextStyle(color: AppColors.title, fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              _buildManagementLink(Icons.people_alt_outlined, l10n.guestDatabase, l10n.guestDatabaseSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => GuestListScreen(venueId: venue.id)))),
+              const SizedBox(height: 12),
+              _buildManagementLink(Icons.badge_outlined, l10n.staffManagement, l10n.staffManagementSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffManagementScreen(venueId: venue.id)))),
+              const SizedBox(height: 12),
+              _buildManagementLink(Icons.storefront_outlined, l10n.venueProfile, l10n.venueProfileSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue)))),
+              const SizedBox(height: 12),
+              _buildManagementLink(Icons.print_rounded, l10n.posStickerGenerator, l10n.posStickerSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => PosStickerScreen(venue: venue)))),
             ],
           ),
-          const SizedBox(height: 32),
-
-          // Guest Segmentation
-          Text("Guest Segments", style: const TextStyle(color: AppColors.title, fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          _buildSegmentationRow(_realTimeStats),
-          const SizedBox(height: 32),
-          const SizedBox(height: 32),
-
-          // QR Card (Premium Look)
-          _buildPremiumQRCard(venue),
-          const SizedBox(height: 32),
-
-          // Settings Section
-          Text(l10n.management, style: const TextStyle(color: AppColors.title, fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 16),
-          _buildManagementLink(Icons.people_alt_outlined, l10n.guestDatabase, l10n.guestDatabaseSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => GuestListScreen(venueId: venue.id)))),
-          const SizedBox(height: 12),
-          _buildManagementLink(Icons.badge_outlined, l10n.staffManagement, l10n.staffManagementSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffManagementScreen(venueId: venue.id)))),
-          const SizedBox(height: 12),
-          _buildManagementLink(Icons.storefront_outlined, l10n.venueProfile, l10n.venueProfileSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue)))),
-          const SizedBox(height: 12),
-          _buildManagementLink(Icons.print_rounded, l10n.posStickerGenerator, l10n.posStickerSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => PosStickerScreen(venue: venue)))),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -583,8 +593,28 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
     );
   }
 
-  Widget _buildSegmentationRow(VenueStats? stats) {
+  Widget _buildSegmentationRow(VenueStats? stats, bool isMobile) {
     if (stats == null) return const Center(child: CircularProgressIndicator(color: AppColors.premiumBurntOrange));
+
+    if (isMobile) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              _buildSegmentCard("New", stats.newGuestsCount, Colors.green, "First visit this month"),
+              const SizedBox(width: 12),
+              _buildSegmentCard("VIP", stats.vipGuestsCount, AppColors.premiumGold, "> 5 visits/mo"),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _buildSegmentCard("Lost", stats.lostGuestsCount, Colors.red, "0 visits this month"),
+            ],
+          ),
+        ],
+      );
+    }
 
     return Row(
       children: [

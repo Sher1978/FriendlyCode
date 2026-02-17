@@ -9,14 +9,20 @@ class RoleProvider extends ChangeNotifier {
   UserRole _currentRole = UserRole.owner; 
   List<String> _venueIds = [];
   String? _uid;
+  String? _activeVenueId;
 
   UserRole get currentRole => _currentRole;
   List<String> get venueIds => _venueIds;
-  String? get venueId => _venueIds.isNotEmpty ? _venueIds.first : null;
+  String? get venueId => _activeVenueId ?? (_venueIds.isNotEmpty ? _venueIds.first : null);
   String? get uid => _uid;
 
   void setRole(UserRole role) {
     _currentRole = role;
+    notifyListeners();
+  }
+
+  void setActiveVenueId(String id) {
+    _activeVenueId = id;
     notifyListeners();
   }
 
