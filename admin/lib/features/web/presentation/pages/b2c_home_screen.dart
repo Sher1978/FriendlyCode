@@ -133,13 +133,30 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
           'lastVisit': 'none'
         };
 
-        final visitsQuery = await FirebaseFirestore.instance
+        var visitsQuery = await FirebaseFirestore.instance
             .collection('visits')
             .where('uid', isEqualTo: user!.uid) // Use UID for reliable lookup
             .where('venueId', isEqualTo: widget.venueId)
             .orderBy('timestamp', descending: true)
             .limit(10) // Fetch more to find chain start
             .get();
+
+        // FALLBACK: If UID lookup failed, try Email lookup (Identity Recovery)
+        if (visitsQuery.docs.isEmpty && guestEmail.isNotEmpty) {
+           debugPrint("UID lookup failed. Trying email: $guestEmail");
+           final emailQuery = await FirebaseFirestore.instance
+              .collection('visits')
+              .where('guestEmail', isEqualTo: guestEmail)
+              .where('venueId', isEqualTo: widget.venueId)
+              .orderBy('timestamp', descending: true)
+              .limit(10)
+              .get();
+           
+           if (emailQuery.docs.isNotEmpty) {
+             debugPrint("Recovered ${emailQuery.docs.length} visits via email.");
+             visitsQuery = emailQuery;
+           }
+        }
 
         if (visitsQuery.docs.isNotEmpty) {
           final latestVisitDoc = visitsQuery.docs.first;
