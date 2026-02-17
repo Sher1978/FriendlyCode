@@ -599,53 +599,56 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        GestureDetector(
-          onTap: onLogoTap,
-          behavior: HitTestBehavior.opaque,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min, // Added to prevent full width tap
-            children: [
-              const Icon(FontAwesomeIcons.leaf, size: 18, color: AppColors.accentGreen),
-              const SizedBox(width: 8),
-              Text(
-                "Friendly\nCode",
-                textAlign: TextAlign.left,
-                style: TextStyle(
-                  color: AppColors.title,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                  height: 1.0,
-                  letterSpacing: -0.5,
+    return SizedBox(
+      width: double.infinity,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          GestureDetector(
+            onTap: onLogoTap,
+            behavior: HitTestBehavior.opaque,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min, // Added to prevent full width tap
+              children: [
+                const Icon(FontAwesomeIcons.leaf, size: 18, color: AppColors.accentGreen),
+                const SizedBox(width: 8),
+                Text(
+                  "Friendly\nCode",
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    color: AppColors.title,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    height: 1.0,
+                    letterSpacing: -0.5,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        Positioned(
-          right: 0,
-          child: Consumer<LocaleProvider>(
-            builder: (context, provider, child) {
-              final isEn = provider.locale.languageCode == 'en';
-              return TextButton(
-                onPressed: () => provider.toggleLocale(),
-                style: TextButton.styleFrom(
-                  minimumSize: Size.zero,
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  foregroundColor: AppColors.title,
-                ),
-                child: Text(
-                  isEn ? "RU" : "EN",
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-              );
-            },
+          Positioned(
+            right: 0,
+            child: Consumer<LocaleProvider>(
+              builder: (context, provider, child) {
+                final isEn = provider.locale.languageCode == 'en';
+                return TextButton(
+                  onPressed: () => provider.toggleLocale(),
+                  style: TextButton.styleFrom(
+                    minimumSize: Size.zero,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    foregroundColor: AppColors.title,
+                  ),
+                  child: Text(
+                    isEn ? "RU" : "EN",
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                );
+              },
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
