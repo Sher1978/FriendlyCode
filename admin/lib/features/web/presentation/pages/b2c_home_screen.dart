@@ -375,8 +375,8 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                 animation: Listenable.merge([_gaugeController, _trembleController]),
                 builder: (context, child) {
                   return SizedBox(
-                    height: 180, // Increased height for larger labels
-                    width: 300,
+                    height: 171, // Reduced by 5% (180 * 0.95)
+                    width: 285,  // Reduced by 5% (300 * 0.95)
                     child: CustomPaint(
                       painter: GaugePainter(
                         value: _gaugeAnimation.value, 
@@ -411,39 +411,42 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
               const SizedBox(height: 40),
 
               // 4. Timeline
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: AppColors.premiumGold.withOpacity(0.2)),
-                ),
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  children: [
-                    _TimelineItem(
-                      label: l10n.timelineItem(l10n.timelineToday, 5),
-                      isActive: _currentDiscount == 5,
-                      isFuture: false,
-                    ),
-                    const SizedBox(height: 12),
-                    _TimelineItem(
-                      label: l10n.timelineItem(l10n.timelineTomorrow, 20),
-                      isActive: _currentDiscount == 20,
-                      isFuture: _currentDiscount < 20 && _status == VisitStatus.first,
-                    ),
-                    const SizedBox(height: 12),
-                    _TimelineItem(
-                      label: l10n.timelineItem(l10n.timelineInDays(3), 15),
-                      isActive: _currentDiscount == 15,
-                      isFuture: true,
-                    ),
-                    const SizedBox(height: 12),
-                    _TimelineItem(
-                      label: l10n.timelineItem(l10n.timelineInDays(7), 10),
-                      isActive: _currentDiscount == 10,
-                      isFuture: true,
-                    ),
-                  ],
+              Transform.scale(
+                scale: 0.95, // Reduced size by 5%
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.surface.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: AppColors.premiumGold.withOpacity(0.2)),
+                  ),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      _TimelineItem(
+                        label: l10n.timelineItem(l10n.timelineToday, 5),
+                        isActive: _currentDiscount == 5,
+                        isFuture: false,
+                      ),
+                      const SizedBox(height: 12),
+                      _TimelineItem(
+                        label: l10n.timelineItem(l10n.timelineTomorrow, 20),
+                        isActive: _currentDiscount == 20,
+                        isFuture: _currentDiscount < 20 && _status == VisitStatus.first,
+                      ),
+                      const SizedBox(height: 12),
+                      _TimelineItem(
+                        label: l10n.timelineItem(l10n.timelineInDays(3), 15),
+                        isActive: _currentDiscount == 15,
+                        isFuture: true,
+                      ),
+                      const SizedBox(height: 12),
+                      _TimelineItem(
+                        label: l10n.timelineItem(l10n.timelineInDays(7), 10),
+                        isActive: _currentDiscount == 10,
+                        isFuture: true,
+                      ),
+                    ],
+                  ),
                 ),
               ),
 
