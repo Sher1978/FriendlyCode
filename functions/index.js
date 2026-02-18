@@ -34,7 +34,7 @@ exports.generateTelegramLink = onCall(async (request) => {
         expiresAt
     });
 
-    return { url: `https://t.me/FriendlyCodeBot?start=auth_${code}` };
+    return { url: `https://t.me/FriendIycode_bot?start=auth_${code}` };
 });
 
 /**
