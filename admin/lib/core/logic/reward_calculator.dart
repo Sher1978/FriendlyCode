@@ -10,6 +10,7 @@ class RewardState {
   final int currentDiscount;
   final int nextDiscount;
   final int secondsUntilDecay; 
+  final int secondsUntilNextTier;
   final RewardPhase phase;
   final String statusLabelKey; // localization key
   final bool isLocked;
@@ -19,6 +20,7 @@ class RewardState {
     required this.currentDiscount,
     required this.nextDiscount,
     required this.secondsUntilDecay,
+    required this.secondsUntilNextTier,
     required this.phase,
     required this.statusLabelKey,
     required this.isLocked,
@@ -75,7 +77,17 @@ class RewardCalculator {
     // 2. Check Degradation (Melting)
     final diff = nowTz.difference(lastActiveTz);
     final hoursPassed = diff.inHours;
-    final hoursUntilDecay = config.degradationIntervalHours - hoursPassed;
+    
+    // Choose decay window based on current tier
+    final int tierWindowHours = (currentTierValue >= config.percVip)
+        ? config.vipWindowHours
+        : (currentTierValue >= config.percDecay1
+            ? config.tier1DecayHours
+            : (currentTierValue >= config.percDecay2
+                ? config.tier2DecayHours
+                : config.degradationIntervalHours)); // Fallback for base or others
+
+    final hoursUntilDecay = tierWindowHours - hoursPassed;
     
     // If cycle expired (reset interval), back to Base
     if (diff.inDays >= config.resetIntervalDays) {
@@ -107,10 +119,15 @@ class RewardCalculator {
     // 3. Check Active Day Status
     final bool isSameDay = nowDayStart.isAtSameMomentAs(lastActiveDayStart);
 
+    // 4. Time until midnight (Next Tier Unlock)
+    final nextDayStart = tz.TZDateTime(location, nowTz.year, nowTz.month, nowTz.day + 1);
+    final secondsUntilNextTier = nextDayStart.difference(nowTz).inSeconds;
+
     return RewardState(
       currentDiscount: currentTierValue,
       nextDiscount: maxTierValue,
       secondsUntilDecay: hoursUntilDecay > 0 ? hoursUntilDecay * 3600 : 0, 
+      secondsUntilNextTier: secondsUntilNextTier,
       phase: RewardPhase.active,
       statusLabelKey: isSameDay ? 'active_for_today' : 'return_tomorrow',
       isLocked: false,

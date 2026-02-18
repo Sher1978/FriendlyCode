@@ -36,10 +36,6 @@
         ],
         "rewrites": [
             {
-                "source": "/qr",
-                "destination": "/admin/index.html"
-            },
-            {
                 "source": "/admin/**",
                 "destination": "/admin/index.html"
             },

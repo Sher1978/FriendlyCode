@@ -578,4 +578,30 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get lostGuests => 'Потерянные гости';
+
+  @override
+  String thankYouNextReward(int percent, String time) {
+    return '$percent% откроется через: $time';
+  }
+
+  @override
+  String thankYouValidFor(int percent, String time) {
+    return 'Скидка $percent% действует еще: $time';
+  }
+
+  @override
+  String thankYouMaxReward(String time) {
+    return 'Ваша скидка действует еще $time, для максимальной скидки ждем Вас также завтра!';
+  }
+
+  @override
+  String get thankYouMaxRewardLabel => 'Ваша скидка действует еще';
+
+  @override
+  String get thankYouMaxRewardSubtext => 'для максимальной скидки ждем Вас также завтра!';
+
+  @override
+  String tomorrowMaxReward(int percent) {
+    return 'ЗАВТРА ВАША СКИДКА $percent%!';
+  }
 }

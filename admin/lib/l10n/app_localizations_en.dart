@@ -576,4 +576,30 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lostGuests => 'Lost Guests';
+
+  @override
+  String thankYouNextReward(int percent, String time) {
+    return '$percent% unlocks in: $time';
+  }
+
+  @override
+  String thankYouValidFor(int percent, String time) {
+    return '$percent% Discount valid for: $time';
+  }
+
+  @override
+  String thankYouMaxReward(String time) {
+    return 'Your discount is valid for $time. To maintain your max discount, visit us tomorrow too!';
+  }
+
+  @override
+  String get thankYouMaxRewardLabel => 'Your discount is valid for';
+
+  @override
+  String get thankYouMaxRewardSubtext => 'To maintain your max discount, visit us tomorrow too!';
+
+  @override
+  String tomorrowMaxReward(int percent) {
+    return 'TOMORROW YOUR DISCOUNT $percent%!';
+  }
 }

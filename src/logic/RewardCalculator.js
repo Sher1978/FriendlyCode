@@ -2,14 +2,9 @@ export class RewardCalculator {
     /**
      * Calculates the reward based on the time difference between now
      * and the last visit using the Venue's LoyaltyConfig.
-     * 
-     * @param {Date} lastVisit 
-     * @param {Date} currentTime 
-     * @param {Object} config - The loyaltyConfig object from Firestore
-     * @returns {Object} { discount: number, status: string, nextTierIn: number }
      */
     static calculate(lastVisit, currentTime, config) {
-        // Default Config if missing
+        // 1. Setup Defaults
         const safeConfig = {
             safetyCooldownHours: config?.safetyCooldownHours || 12,
             vipWindowHours: config?.vipWindowHours || 48,
@@ -19,54 +14,67 @@ export class RewardCalculator {
             percVip: config?.percVip || 20,
             percDecay1: config?.percDecay1 || 15,
             percDecay2: config?.percDecay2 || 10,
+            degradationIntervalHours: config?.degradationIntervalHours || 168
         };
 
         const diffMs = currentTime - lastVisit;
-        const hours = diffMs / (1000 * 60 * 60);
+        const totalHours = diffMs / (1000 * 60 * 60);
 
-        // 1. Safety Cooldown
-        if (hours < safeConfig.safetyCooldownHours) {
-            // Too soon -> No upgrade
+        // Calculate seconds until NEXT day (midnight) in venue's time
+        // Note: For React client, we'll use local midnight as a proxy or simple math 
+        // since full timezone logic is heavier here.
+        const tomorrow = new Date(currentTime);
+        tomorrow.setHours(24, 0, 0, 0);
+        const secondsUntilNextTier = Math.max(0, Math.floor((tomorrow - currentTime) / 1000));
+
+        // 2. ACTIVE DAY LOGIC (Safety Cooldown Window)
+        // If they returned between [12h - 24h], it's an "Active Day" visit -> Reset timer to 0
+        if (totalHours >= safeConfig.safetyCooldownHours && totalHours < 24) {
+            return {
+                discount: safeConfig.percVip,
+                status: 'active',
+                hoursPassed: totalHours,
+                secondsUntilDecay: safeConfig.vipWindowHours * 3600,
+                secondsUntilNextTier: secondsUntilNextTier,
+                isLocked: false
+            };
+        }
+
+        // 3. COOLDOWN (Too soon)
+        if (totalHours < safeConfig.safetyCooldownHours) {
             return {
                 discount: safeConfig.percBase,
                 status: 'cooldown',
-                hoursPassed: hours,
-                cooldownHours: safeConfig.safetyCooldownHours
+                hoursPassed: totalHours,
+                secondsUntilDecay: 0,
+                secondsUntilNextTier: secondsUntilNextTier,
+                isLocked: true
             };
         }
 
-        // 2. VIP Window (e.g., 12h <= delta <= 48h)
-        if (hours <= safeConfig.vipWindowHours) {
-            return {
-                discount: safeConfig.percVip, // 20%
-                status: 'vip',
-                hoursPassed: hours
-            };
+        // 4. DECAY LOGIC (Multi-tier windows)
+        // We calculate which window we are in
+        if (totalHours <= safeConfig.vipWindowHours) {
+            const left = (safeConfig.vipWindowHours - totalHours) * 3600;
+            return { discount: safeConfig.percVip, status: 'vip', secondsUntilDecay: left, secondsUntilNextTier, isLocked: false };
+        }
+        if (totalHours <= safeConfig.tier1DecayHours) {
+            const left = (safeConfig.tier1DecayHours - totalHours) * 3600;
+            return { discount: safeConfig.percDecay1, status: 'decay1', secondsUntilDecay: left, secondsUntilNextTier, isLocked: false };
+        }
+        if (totalHours <= safeConfig.tier2DecayHours) {
+            const left = (safeConfig.tier2DecayHours - totalHours) * 3600;
+            return { discount: safeConfig.percDecay2, status: 'decay2', secondsUntilDecay: left, secondsUntilNextTier, isLocked: false };
         }
 
-        // 3. Decay Tier 1 (e.g., 48h < delta <= 72h)
-        if (hours <= safeConfig.tier1DecayHours) {
-            return {
-                discount: safeConfig.percDecay1, // 15%
-                status: 'decay1',
-                hoursPassed: hours
-            };
-        }
-
-        // 4. Decay Tier 2 (e.g., 72h < delta <= 168h)
-        if (hours <= safeConfig.tier2DecayHours) {
-            return {
-                discount: safeConfig.percDecay2, // 10%
-                status: 'decay2',
-                hoursPassed: hours
-            };
-        }
-
-        // 5. Reset (e.g., delta > 168h)
+        // 5. BASE
         return {
-            discount: safeConfig.percBase, // 5%
+            discount: safeConfig.percBase,
             status: 'reset',
-            hoursPassed: hours
+            hoursPassed: totalHours,
+            secondsUntilDecay: 0,
+            secondsUntilNextTier: secondsUntilNextTier,
+            isLocked: false
         };
     }
 }

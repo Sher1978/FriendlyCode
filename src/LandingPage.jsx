@@ -140,6 +140,13 @@ const LandingPage = () => {
                     }
                     setLastVisitDebug(debugInfo);
                     setDiscount(calculatedDiscount);
+                    setPredictionState({
+                        percent: calculatedDiscount,
+                        secondsLeft: result.secondsUntilDecay || 0,
+                        label: result.status,
+                        isBase: calculatedDiscount <= 5,
+                        isMax: calculatedDiscount >= 20
+                    });
                     setStatus('first');
 
                 } catch (e) {

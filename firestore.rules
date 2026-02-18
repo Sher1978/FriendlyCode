@@ -63,8 +63,10 @@ service cloud.firestore {
     match /visits/{visitId} {
       allow create: if isAuthenticated();
       allow read: if isAuthenticated() && (
-        resource.data.guestId == request.auth.uid || 
-        isOwner() || isSuperAdmin()
+        resource.data.uid == request.auth.uid ||             
+        resource.data.guestEmail == request.auth.token.email || 
+        isOwner() || 
+        isSuperAdmin()
       );
     }
 

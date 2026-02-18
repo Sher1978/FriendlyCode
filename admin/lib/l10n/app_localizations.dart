@@ -800,6 +800,39 @@ abstract class AppLocalizations {
   /// **'Action Link (Optional)'**
   String get actionLink;
 
+  /// No description provided for @thankYouNextReward.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% unlocks in: {time}'**
+  String thankYouNextReward(int percent, String time);
+
+  /// No description provided for @thankYouValidFor.
+  ///
+  /// In en, this message translates to:
+  /// **'{percent}% Discount valid for: {time}'**
+  String thankYouValidFor(int percent, String time);
+
+  /// **'Your discount is valid for {time}. To maintain your max discount, visit us tomorrow too!'**
+  String thankYouMaxReward(String time);
+
+  /// No description provided for @thankYouMaxRewardLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Your discount is valid for'**
+  String get thankYouMaxRewardLabel;
+
+  /// No description provided for @thankYouMaxRewardSubtext.
+  ///
+  /// In en, this message translates to:
+  /// **'To maintain your max discount, visit us tomorrow too!'**
+  String get thankYouMaxRewardSubtext;
+
+  /// No description provided for @tomorrowMaxReward.
+  ///
+  /// In en, this message translates to:
+  /// **'TOMORROW YOUR DISCOUNT {percent}%!'**
+  String tomorrowMaxReward(int percent);
+
   /// No description provided for @actionLinkHint.
   ///
   /// In en, this message translates to:

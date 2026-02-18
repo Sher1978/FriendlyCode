@@ -54,7 +54,10 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
   
   // Prediction Logic
   int _predSecondsLeft = 43200; // 12 hours initially
-  String _predLabel = '20% unlocks in:';
+  String _predLabel = '';
+  String _predSubLabel = '';
+  bool _isBaseTier = false;
+  bool _isMaxTier = false;
   bool _isLocked = true; 
   bool _isLoading = false;
 
@@ -102,22 +105,30 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
           );
 
           _predSecondsLeft = rewardState.secondsUntilDecay;
-          
-          if (rewardState.statusLabelKey == 'unlocks_in') {
-             _predLabel = '20% unlocks in:';
-          } else if (rewardState.statusLabelKey == 'valid_for') {
-             _predLabel = '${rewardState.currentDiscount}% Discount valid for:';
-          } else {
-             // If active/base, show generic message or hide
-             if (widget.currentDiscount == widget.config.percBase) {
-                _predLabel = 'Next Reward: Return Tomorrow';
-                _predSecondsLeft = 0; // Hide timer effectively or handle in UI
-             } else {
-                _predLabel = 'Standard Discount';
-             }
-          }
-          
           _isLocked = rewardState.isLocked;
+          
+          final l10n = AppLocalizations.of(context)!;
+          
+          if (widget.currentDiscount <= widget.config.percBase) {
+             // 5% -> Tomorrow 20%
+             _isBaseTier = true;
+             _isMaxTier = false;
+             _predLabel = l10n.tomorrowMaxReward(widget.config.percVip);
+             _predSubLabel = '';
+             _predSecondsLeft = 0; 
+          } else if (widget.currentDiscount >= widget.config.percVip) {
+             // 20% (Max tier)
+             _isBaseTier = false;
+             _isMaxTier = true;
+             _predLabel = l10n.thankYouMaxRewardLabel;
+             _predSubLabel = l10n.thankYouMaxRewardSubtext;
+          } else {
+             // Intermediate tiers or decay tiers (e.g. 15%, 10%)
+             _isBaseTier = false;
+             _isMaxTier = false;
+             _predLabel = l10n.thankYouValidFor(widget.currentDiscount, "");
+             _predSubLabel = '';
+          }
         });
       }
     });
@@ -368,68 +379,103 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                                       ),
                                 ),
                               )
-                            else
-                              SizedBox(
-                                height: 80, // Request space for the popped out heart
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  alignment: Alignment.center,
-                                  children: [
-                                    Container(
-                                      width: double.infinity,
-                                      height: 64,
-                                      decoration: BoxDecoration(
-                                        color: _isExpired ? Colors.grey[200] : ThankYouColors.background,
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(color: _isExpired ? Colors.grey : ThankYouColors.button, width: 2),
+                          if (_isClaimed) 
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (_isBaseTier) 
+                                    Text(
+                                      _predLabel,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontSize: 22,
+                                        fontWeight: FontWeight.w900,
+                                        color: ThankYouColors.button,
                                       ),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                    )
+                                  else ...[
+                                    Text(
+                                      _predLabel,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: ThankYouColors.text.withOpacity(0.6),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    SizedBox(
+                                      height: 80, 
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        alignment: Alignment.center,
                                         children: [
-                                          const SizedBox(width: 40), // Spacer for the heart
-                                          Text(
-                                            _timerString,
-                                            style: TextStyle(
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.w900,
-                                              color: _isExpired ? Colors.grey : ThankYouColors.button,
-                                              fontFamily: 'monospace',
-                                              letterSpacing: 2.0,
+                                          Container(
+                                            width: double.infinity,
+                                            height: 64,
+                                            decoration: BoxDecoration(
+                                              color: _isExpired ? Colors.grey[200] : ThankYouColors.background,
+                                              borderRadius: BorderRadius.circular(20),
+                                              border: Border.all(color: _isExpired ? Colors.grey : ThankYouColors.button, width: 2),
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                const SizedBox(width: 40), // Spacer for the heart
+                                                Text(
+                                                  _timerString,
+                                                  style: TextStyle(
+                                                    fontSize: 24,
+                                                    fontWeight: FontWeight.w900,
+                                                    color: _isExpired ? Colors.grey : ThankYouColors.button,
+                                                    fontFamily: 'monospace',
+                                                    letterSpacing: 2.0,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
+                                          
+                                          // Floating Heart
+                                          if (!_isExpired)
+                                            Positioned(
+                                              left: 20,
+                                              child: AnimatedBuilder(
+                                                animation: _pulseAnimation,
+                                                builder: (context, child) => Transform.scale(scale: _pulseAnimation.value, child: child),
+                                                child: Container(
+                                                  decoration: const BoxDecoration(
+                                                    boxShadow: [
+                                                      BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 2)
+                                                    ],
+                                                    shape: BoxShape.circle,
+                                                    color: Colors.white 
+                                                  ),
+                                                  padding: const EdgeInsets.all(8),
+                                                  child: const Icon(FontAwesomeIcons.solidHeart, color: Colors.red, size: 40)
+                                                ),
+                                              ),
+                                            ),
                                         ],
                                       ),
                                     ),
-                                    
-                                    // Floating Heart
-                                    if (!_isExpired)
-                                      Positioned(
-                                        left: 20,
-                                        child: AnimatedBuilder(
-                                          animation: _pulseAnimation,
-                                          builder: (context, child) => Transform.scale(scale: _pulseAnimation.value, child: child),
-                                          child: Container(
-                                            decoration: const BoxDecoration(
-                                              boxShadow: [
-                                                BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 2)
-                                              ],
-                                              shape: BoxShape.circle,
-                                              color: Colors.white 
-                                            ),
-                                            padding: const EdgeInsets.all(8),
-                                            child: const Icon(FontAwesomeIcons.solidHeart, color: Colors.red, size: 40)
-                                          ),
+                                    if (_predSubLabel.isNotEmpty) ...[
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        _predSubLabel,
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: ThankYouColors.text.withOpacity(0.8),
                                         ),
                                       ),
-                                    
-                                    if (_isExpired)
-                                      const Positioned(
-                                        left: 30,
-                                        child: Icon(FontAwesomeIcons.ban, color: Colors.grey, size: 30),
-                                      ),
+                                    ],
                                   ],
-                                ),
+                                ],
                               ),
+                            ),
                           ],
                         ),
                       ),

@@ -44,40 +44,41 @@ const UnifiedActivation = () => {
 
     // Smart Timer Logic: Updates every second to simulate the passage of time since claim
     useEffect(() => {
-        const interval = setInterval(() => {
-            setSecondsPassed(prev => {
-                const newPassed = prev + 1;
+        const venueId = localStorage.getItem('currentVenueId') || 'unknown';
 
-                // Calculate phase based on newPassed
-                const hoursPassed = newPassed / 3600;
-                let percent = 5;
-                let secondsLeft = 0;
-                let label = 'discount_stable';
+        // We need the venue config for accurate windows
+        const fetchConfig = async () => {
+            try {
+                const docSnap = await getDoc(doc(db, 'venues', venueId));
+                if (docSnap.exists()) {
+                    const config = docSnap.data().loyaltyConfig;
 
-                if (hoursPassed < 24) {
-                    percent = 20;
-                    secondsLeft = (24 * 3600) - newPassed;
-                    label = 'max_discount_ends_in';
-                } else if (hoursPassed < 36) {
-                    percent = 15;
-                    secondsLeft = (36 * 3600) - newPassed;
-                    label = 'high_discount_ends_in';
-                } else if (hoursPassed < 240) {
-                    percent = 10;
-                    secondsLeft = (240 * 3600) - newPassed;
-                    label = 'base_discount_ends_in';
-                } else {
-                    percent = 5;
-                    secondsLeft = 0;
-                    label = 'standard_discount';
+                    const interval = setInterval(() => {
+                        const now = new Date();
+                        // Simulating based on a generic "last visit" if we don't have one 
+                        // Or better: just use the discount logic passed in.
+                        // But let's assume we want to show the timer properly.
+                        // For simplicity in this "Thank You" screen, we'll use the predictionState calculated in LandingPage 
+                        // OR recalculate here.
+
+                        // For the "Thank You" screen specifically, we care about the CURRENT discount state.
+                        let label = 'valid_for_label';
+                        let isBase = discountValue <= 5;
+                        let isMax = discountValue >= 20;
+
+                        setPredictionState(prev => ({
+                            ...prev,
+                            isBase,
+                            isMax,
+                            label: isMax ? 'valid_for_label' : 'discount_stable'
+                        }));
+                    }, 1000);
+                    return () => clearInterval(interval);
                 }
-
-                setPredictionState({ percent, secondsLeft, label });
-                return newPassed;
-            });
-        }, 1000);
-        return () => clearInterval(interval);
-    }, []);
+            } catch (e) { }
+        };
+        fetchConfig();
+    }, [discountValue]);
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -206,13 +207,26 @@ const UnifiedActivation = () => {
                     {/* Dynamic Action Area */}
                     <div className="mt-8 relative">
                         {/* Next Visit Info */}
-                        <div className="mb-4 text-[#1B5E20]/70 text-xs font-bold uppercase tracking-wider flex flex-col items-center gap-1">
-                            <span>
-                                {predictionState.percent}% Discount valid for:
-                            </span>
-                            <div className="bg-[#E8F5E9] px-3 py-1 rounded-lg border border-[#A5D6A7] text-[#2E7D32] font-mono text-sm">
-                                {formatHours(predictionState.secondsLeft)}
-                            </div>
+                        <div className="mb-4 flex flex-col items-center gap-2">
+                            {predictionState.isBase ? (
+                                <span className="text-lg font-black text-[#2E7D32] animate-pulse">
+                                    {t('tomorrow_20_percent')}
+                                </span>
+                            ) : (
+                                <>
+                                    <span className="text-[#1B5E20]/70 text-xs font-bold uppercase tracking-wider">
+                                        {t('valid_for_label')}
+                                    </span>
+                                    <div className="bg-[#E8F5E9] px-3 py-1 rounded-lg border border-[#A5D6A7] text-[#2E7D32] font-mono text-xl font-bold">
+                                        {formatHours(predictionState.secondsLeft || 172800)}
+                                    </div>
+                                    {predictionState.isMax && (
+                                        <span className="text-[10px] font-bold text-[#1B5E20]/50 mt-1 max-w-[200px]">
+                                            {t('max_reward_subtext')}
+                                        </span>
+                                    )}
+                                </>
+                            )}
                         </div>
 
                         <div className="h-[64px] relative">
