@@ -104,7 +104,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
       // 3. Fetch Last Visit (Server-Side) & User Profile
       // Check for user's last visit to THIS venue
       if (user != null) {
-        final guestEmail = (prefs.getString('guestEmail') ?? '').toLowerCase();
+        var guestEmail = (prefs.getString('guestEmail') ?? '').toLowerCase();
         _guestEmail = guestEmail; // Assign _guestEmail after email resolution logic.
         
         // 3a. Check User Profile (Persistence)
@@ -180,6 +180,23 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
           if (ts != null) {
              DateTime latestVisitDate = ts.toDate();
              latestRealDate = latestVisitDate;
+             
+             // --- FIX: Restore Email from History ---
+             // If local email is empty but we found it in the visit history, restore it.
+             if (guestEmail.isEmpty && latestVisitData['guestEmail'] != null && latestVisitData['guestEmail'].toString().isNotEmpty) {
+                guestEmail = latestVisitData['guestEmail'];
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('guestEmail', guestEmail);
+                debugPrint("Restored email from history: $guestEmail");
+                
+                // Update Debug Info with restored email
+                if (mounted) {
+                   setState(() {
+                      _debugInfo['email'] = guestEmail;
+                   });
+                }
+             }
+             
              // --- NEW ACTIVE DAY LOGIC ---
              // We only care about the LATEST visit to determine state.
              _lastVisitDate = latestVisitDate;
