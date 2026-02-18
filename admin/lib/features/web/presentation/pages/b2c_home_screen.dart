@@ -337,6 +337,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
              currentDiscount: _currentDiscount,
              tiers: _venue!.tiers,
              config: _venue!.loyaltyConfig,
+             timezone: _venue!.timezone,
           )
         ),
       );

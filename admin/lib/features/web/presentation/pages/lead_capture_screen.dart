@@ -13,6 +13,7 @@ class LeadCaptureScreen extends StatefulWidget {
   final int currentDiscount;
   final List<VenueTier> tiers;
   final LoyaltyConfig config;
+  final String timezone;
 
   const LeadCaptureScreen({
     super.key,
@@ -20,6 +21,7 @@ class LeadCaptureScreen extends StatefulWidget {
     required this.currentDiscount,
     required this.tiers,
     required this.config,
+    this.timezone = 'Etc/GMT-3', // Default if not passed, but should be passed
   });
 
   @override
@@ -75,6 +77,7 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
             guestName: name,
             tiers: widget.tiers,
             config: widget.config,
+            timezone: widget.timezone,
           ),
         ),
       );

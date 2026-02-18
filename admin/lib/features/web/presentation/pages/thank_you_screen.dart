@@ -31,7 +31,6 @@ class ThankYouScreen extends StatefulWidget {
     required this.guestName,
     required this.tiers,
     required this.config,
-    required this.config,
     required this.timezone,
     this.lastVisitDate,
   });
@@ -100,7 +99,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
             baseTierValue: widget.config.percBase,
           );
 
-          _predSecondsLeft = rewardState.secondsUntilNextChange;
+          _predSecondsLeft = rewardState.secondsUntilDecay;
           
           if (rewardState.statusLabelKey == 'unlocks_in') {
              _predLabel = '20% unlocks in:';

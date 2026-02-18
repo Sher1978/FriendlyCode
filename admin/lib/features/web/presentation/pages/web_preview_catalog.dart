@@ -25,6 +25,7 @@ class _WebPreviewCatalogState extends State<WebPreviewCatalog> {
         currentDiscount: 5,
         tiers: [],
         config: LoyaltyConfig(),
+        timezone: 'Etc/GMT-3',
       )
     },
     {
