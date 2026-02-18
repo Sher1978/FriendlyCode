@@ -46,6 +46,8 @@ class LoyaltyConfig {
   final int vipWindowHours;
   final int tier1DecayHours;
   final int tier2DecayHours;
+  final int degradationIntervalHours;
+  final int resetIntervalDays;
   
   final int percBase;
   final int percVip;
@@ -61,6 +63,8 @@ class LoyaltyConfig {
     this.percVip = 20,
     this.percDecay1 = 15,
     this.percDecay2 = 10,
+    this.degradationIntervalHours = 168, // 7 days default
+    this.resetIntervalDays = 30, // 30 days default
   });
 
   Map<String, dynamic> toMap() => {
@@ -72,6 +76,8 @@ class LoyaltyConfig {
     'percVip': percVip,
     'percDecay1': percDecay1,
     'percDecay2': percDecay2,
+    'degradationIntervalHours': degradationIntervalHours,
+    'resetIntervalDays': resetIntervalDays,
   };
 
   factory LoyaltyConfig.fromMap(Map<String, dynamic> map) => LoyaltyConfig(
@@ -83,6 +89,8 @@ class LoyaltyConfig {
     percVip: map['percVip'] ?? 20,
     percDecay1: map['percDecay1'] ?? 15,
     percDecay2: map['percDecay2'] ?? 10,
+    degradationIntervalHours: map['degradationIntervalHours'] ?? 168,
+    resetIntervalDays: map['resetIntervalDays'] ?? 30,
   );
 }
 
@@ -100,6 +108,7 @@ class VenueModel {
   final bool isManuallyBlocked;
   
   final String defaultLanguage;
+  final String timezone;
   
   final List<VenueTier> tiers;
   final VenueSubscription subscription;
@@ -123,6 +132,7 @@ class VenueModel {
     this.isActive = true,
     this.isManuallyBlocked = false,
     this.defaultLanguage = 'en',
+    this.timezone = 'Etc/GMT-3',
     List<VenueTier>? tiers,
     VenueSubscription? subscription,
     LoyaltyConfig? loyaltyConfig,
@@ -155,6 +165,7 @@ class VenueModel {
       'isActive': isActive,
       'isManuallyBlocked': isManuallyBlocked,
       'defaultLanguage': defaultLanguage,
+      'timezone': timezone,
       'tiers': tiers.map((t) => t.toMap()).toList(),
       'subscription': subscription.toMap(),
       'loyaltyConfig': loyaltyConfig.toMap(),
@@ -179,6 +190,7 @@ class VenueModel {
       isActive: map['isActive'] ?? true,
       isManuallyBlocked: map['isManuallyBlocked'] ?? false,
       defaultLanguage: map['defaultLanguage'] ?? 'en',
+      timezone: map['timezone'] ?? 'Etc/GMT-3',
       tiers: (map['tiers'] as List?)?.map((t) => VenueTier.fromMap(t)).toList(),
       subscription: map['subscription'] != null ? VenueSubscription.fromMap(map['subscription']) : null,
       loyaltyConfig: map['loyaltyConfig'] != null ? LoyaltyConfig.fromMap(map['loyaltyConfig']) : null,

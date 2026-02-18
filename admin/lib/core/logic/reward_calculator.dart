@@ -1,132 +1,120 @@
 import 'package:friendly_code/core/models/venue_model.dart';
+import 'package:timezone/standalone.dart' as tz;
 
-enum RewardPhase { cooldown, vip, decay1, decay2, base }
+enum RewardPhase { 
+  active, // Day is active, base or max tier
+  decay,  // Melted down to previous/base
+}
 
 class RewardState {
   final int currentDiscount;
   final int nextDiscount;
-  final int secondsUntilNextChange;
+  final int secondsUntilDecay; 
   final RewardPhase phase;
   final String statusLabelKey; // localization key
   final bool isLocked;
+  final bool isDayActive;
 
   const RewardState({
     required this.currentDiscount,
     required this.nextDiscount,
-    required this.secondsUntilNextChange,
+    required this.secondsUntilDecay,
     required this.phase,
     required this.statusLabelKey,
     required this.isLocked,
+    this.isDayActive = false,
   });
-
-  @override
-  String toString() => 'RewardState(current: $currentDiscount%, next: $nextDiscount%, phase: $phase, locked: $isLocked, secondsLeft: $secondsUntilNextChange)';
 }
 
 class RewardCalculator {
-  /// Calculates the complete reward state based on the time difference between now
-  /// and the last visit using the Venue's LoyaltyConfig and dynamic Tiers.
-  /// 
-  /// [previousReward]: The discount obtained in the last visit. Used for Maintenance Mode.
-  static RewardState calculate(
-    DateTime lastVisit, 
-    DateTime currentTime, 
-    LoyaltyConfig config, 
-    List<VenueTier> tiers, 
-    {int? previousReward}
-  ) {
-    final difference = currentTime.difference(lastVisit);
-    final totalSecondsPassed = difference.inSeconds;
-    final double hoursPassed = totalSecondsPassed / 3600.0;
-
-    // 0. Maintenance Mode
-    // If user previously earned VIP (>=20%), they keep it for 24h from that visit,
-    // bypassing the safety cooldown of the next visit.
-    if (previousReward != null && previousReward >= config.percVip) { // >= 20%
-       // The user rule: "continues to act for 24h from updated start".
-       // So if we are within 24h of the anchor/last visit that gave 20%:
-       if (hoursPassed < 24) {
-         final int endTimeSeconds = 24 * 3600;
-         return RewardState(
-            currentDiscount: previousReward,
-            nextDiscount: config.percDecay1, // After 24h maintenance, usually drops to Decay1
-            secondsUntilNextChange: endTimeSeconds - totalSecondsPassed,
-            phase: RewardPhase.vip,
-            statusLabelKey: 'valid_for',
-            isLocked: false,
-         );
-       }
-       // If > 24h, we fall through. 
-       // Should we skip Cooldown? 
-       // User: "After 24h, decay logic triggers".
-       // If we fall through to Cooldown check (if < 12h), that would be weird if hoursPassed > 24h.
-       // But if hoursPassed > 24h, then it's definitely > 12h, so Cooldown check (if < 12) won't trigger. 
-       // So standard logic works fine for Decay.
+  /// Calculates the reward state based on "Active Day" logic.
+  static RewardState calculate({
+    required DateTime? lastActivatedDate,
+    required DateTime currentTime,
+    required String timezone,
+    required LoyaltyConfig config,
+    required int currentTierValue,
+    required int maxTierValue,
+    required int baseTierValue,
+  }) {
+    // 1. Setup Timezone
+    late tz.Location location;
+    try {
+      location = tz.getLocation(timezone);
+    } catch (e) {
+      try {
+         location = tz.getLocation('Etc/GMT-3');
+      } catch (e) {
+         // Fallback to UTC if even GMT-3 fails (likely in test environment without full DB)
+         // Note: ensure timezone data is initialized in main/test
+         location = tz.getLocation('UTC');
+      }
     }
 
-    // 1. Safety Cooldown (e.g. 0-12h) - Global Rule
-    // If the user returns too quickly (e.g. refreshing the page), we shouldn't punish them by dropping to Base.
-    // If they had a valid reward in the anchor visit, verify it.
-    if (hoursPassed < config.safetyCooldownHours) {
-      final int endTimeSeconds = config.safetyCooldownHours * 3600;
-      
-      // Determine what they are waiting for (First tier or VIP)
-      final int nextTarget = tiers.isNotEmpty ? tiers.first.percentage : config.percVip;
-
-      // FIX: If we have a previous reward higher than base, maintain it during cooldown (Effective Maintenance)
-      if (previousReward != null && previousReward > config.percBase) {
-        return RewardState(
-          currentDiscount: previousReward,
-          nextDiscount: nextTarget,
-          secondsUntilNextChange: endTimeSeconds - totalSecondsPassed,
-          phase: RewardPhase.cooldown,
-          statusLabelKey: 'valid_for',
-          isLocked: false, // Not locked, they can use it
-        );
-      }
-
+    final tz.TZDateTime nowTz = tz.TZDateTime.from(currentTime, location);
+    
+    // If never visited, return Base state ready for activation
+    if (lastActivatedDate == null) {
       return RewardState(
-        currentDiscount: config.percBase,
-        nextDiscount: nextTarget,
-        secondsUntilNextChange: endTimeSeconds - totalSecondsPassed,
-        phase: RewardPhase.cooldown,
-        statusLabelKey: 'unlocks_in',
-        isLocked: true,
+        currentDiscount: baseTierValue,
+        nextDiscount: maxTierValue,
+        secondsUntilDecay: 0,
+        phase: RewardPhase.active,
+        statusLabelKey: 'start_journey',
+        isLocked: false,
+        isDayActive: false,
       );
     }
 
-    // 2. Dynamic Tiers Logic
-    final sortedTiers = List<VenueTier>.from(tiers)..sort((a, b) => a.maxHours.compareTo(b.maxHours));
+    final tz.TZDateTime lastActiveTz = tz.TZDateTime.from(lastActivatedDate, location);
+    
+    // Calculate start of days for comparison (00:00:00)
+    final nowDayStart = tz.TZDateTime(location, nowTz.year, nowTz.month, nowTz.day);
+    final lastActiveDayStart = tz.TZDateTime(location, lastActiveTz.year, lastActiveTz.month, lastActiveTz.day);
 
-    for (int i = 0; i < sortedTiers.length; i++) {
-      final tier = sortedTiers[i];
-      
-      if (hoursPassed <= tier.maxHours) {
-        final int endTimeSeconds = tier.maxHours * 3600;
-        
-        final int nextDisc = (i < sortedTiers.length - 1) 
-            ? sortedTiers[i + 1].percentage 
-            : config.percBase;
-
-        return RewardState(
-          currentDiscount: tier.percentage,
-          nextDiscount: nextDisc,
-          secondsUntilNextChange: endTimeSeconds - totalSecondsPassed,
-          phase: i == 0 ? RewardPhase.vip : RewardPhase.decay1, 
-          statusLabelKey: 'valid_for',
-          isLocked: false,
-        );
-      }
+    // 2. Check Degradation (Melting)
+    final diff = nowTz.difference(lastActiveTz);
+    final hoursPassed = diff.inHours;
+    final hoursUntilDecay = config.degradationIntervalHours - hoursPassed;
+    
+    // If cycle expired (reset interval), back to Base
+    if (diff.inDays >= config.resetIntervalDays) {
+       return RewardState(
+        currentDiscount: baseTierValue,
+        nextDiscount: baseTierValue, 
+        secondsUntilDecay: 0,
+        phase: RewardPhase.active,
+        statusLabelKey: 'cycle_reset',
+        isLocked: false,
+        isDayActive: false,
+      );
     }
 
-    // 3. Reset / Base
+    // If melted (degradation interval passed)
+    if (hoursPassed >= config.degradationIntervalHours) {
+      // Return to Base
+      return RewardState(
+        currentDiscount: baseTierValue, 
+        nextDiscount: baseTierValue,
+        secondsUntilDecay: 0,
+        phase: RewardPhase.decay,
+        statusLabelKey: 'discount_melted',
+        isLocked: false,
+        isDayActive: false, 
+      );
+    }
+
+    // 3. Check Active Day Status
+    final bool isSameDay = nowDayStart.isAtSameMomentAs(lastActiveDayStart);
+
     return RewardState(
-      currentDiscount: config.percBase,
-      nextDiscount: config.percBase,
-      secondsUntilNextChange: 0,
-      phase: RewardPhase.base,
-      statusLabelKey: 'standard',
+      currentDiscount: currentTierValue,
+      nextDiscount: maxTierValue,
+      secondsUntilDecay: hoursUntilDecay > 0 ? hoursUntilDecay * 3600 : 0, 
+      phase: RewardPhase.active,
+      statusLabelKey: isSameDay ? 'active_for_today' : 'return_tomorrow',
       isLocked: false,
+      isDayActive: isSameDay,
     );
   }
 }

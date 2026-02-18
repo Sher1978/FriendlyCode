@@ -167,65 +167,54 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
           if (ts != null) {
              DateTime latestVisitDate = ts.toDate();
              latestRealDate = latestVisitDate;
-             DateTime anchorDate = latestVisitDate;
+             // --- NEW ACTIVE DAY LOGIC ---
+             // We only care about the LATEST visit to determine state.
+             _lastVisitDate = latestVisitDate;
+             final int currentTierValue = latestVisitData['discountValue'] ?? 5; // Default to 5% if missing
              
-             // --- ANCHOR LOGIC ---
-             // Walk back to find the "Start" of this interaction chain.
-             // If visits are within 12h of each other, they belong to the same sequence.
-             // We want the TIMESTAMP of the FIRST visit in the sequence to be the "lastVisitDate" for calculation.
-             final docs = visitsQuery.docs;
-             for (int i = 0; i < docs.length - 1; i++) {
-                final curr = docs[i].data();
-                final prev = docs[i+1].data();
-                
-                final t1 = (curr['timestamp'] as Timestamp).toDate();
-                final t2 = (prev['timestamp'] as Timestamp).toDate();
-                
-                final diffHours = t1.difference(t2).inMinutes / 60.0;
-                
-                // If linked by cooldown (e.g. < 12h gap), the chain continues.
-                // We assume 'Start' is the oldest in this chain.
-                // Note: User said "Any scanning in 12h shows count from START".
-                if (diffHours < _venue!.loyaltyConfig.safetyCooldownHours) {
-                   anchorDate = t2; // Move anchor back
-                } else {
-                   break; // Chain broken
-                }
-             }
-             
-             _lastVisitDate = anchorDate; // Store for navigation (Use ANCHOR as the visit time)
-             
-             // --- MAINTENANCE LOGIC ---
-             // We need the discount of the LATEST visit to know if we are in Maintenance Mode.
-             // (e.g. if we got 20% at T=13, and now it's T=14, we need to know T=13 gave 20%).
-             final int? previousReward = latestVisitData['discountValue'] as int?;
-
-             // 4. Calculate Dynamic Reward
              final currentTime = DateTime.now();
-             debugPrint("Anchor: $anchorDate, Latest: $latestVisitDate, PrevReward: $previousReward");
              
              final rewardState = RewardCalculator.calculate(
-               anchorDate, 
-               currentTime, 
-               _venue!.loyaltyConfig,
-               _venue!.tiers,
-               previousReward: previousReward
+                lastActivatedDate: latestVisitDate,
+                currentTime: currentTime,
+                timezone: _venue!.timezone,
+                config: _venue!.loyaltyConfig,
+                currentTierValue: currentTierValue,
+                maxTierValue: _venue!.loyaltyConfig.percVip,
+                baseTierValue: _venue!.loyaltyConfig.percBase,
              );
 
+             // Update Debug Info
              _debugInfo['found'] = true;
-             _debugInfo['hours'] = currentTime.difference(anchorDate).inHours.toDouble();
-             _debugInfo['lastVisit'] = anchorDate.toIso8601String();
-             _debugInfo['latestReal'] = latestVisitDate.toIso8601String();
-             _debugInfo['phase'] = rewardState.phase.toString();
+             _debugInfo['lastVisit'] = latestVisitDate.toIso8601String();
+             _debugInfo['phase'] = rewardState.phase.toString().split('.').last;
+             _debugInfo['isDayActive'] = rewardState.isDayActive;
+             _debugInfo['timezone'] = _venue!.timezone;
+             _debugInfo['decayHours'] = (rewardState.secondsUntilDecay / 3600).toStringAsFixed(1);
+             _debugInfo['nextTier'] = "${rewardState.nextDiscount}%";
 
-             // Update UI with calculated state
-             _currentDiscount = rewardState.currentDiscount;
-             
-             if (rewardState.phase == RewardPhase.cooldown) {
-               _status = VisitStatus.cooldown;
+             // Determine Current Discount to Show/Record
+             if (rewardState.isDayActive) {
+                // Already active today -> Keep current
+                _currentDiscount = rewardState.currentDiscount;
+                _status = VisitStatus.cooldown; // Using cooldown status to indicate "Already Visited Today"
              } else {
-               _status = VisitStatus.recognized;
+                // New Day Activation!
+                if (rewardState.phase == RewardPhase.decay) {
+                   // Melted -> Base
+                   _currentDiscount = rewardState.currentDiscount; // Calculated as Base in logic
+                   _status = VisitStatus.recognized; // Will trigger new active animation
+                } else {
+                   // Promotion (Next Discount)
+                   _currentDiscount = rewardState.nextDiscount;
+                   _status = VisitStatus.recognized;
+                }
              }
+
+             // Idempotency: If day is active, we should NOT record a new visit (unless we want log? Spec says "ignore logic").
+             // But we might want to update UI.
+             // We will control recording in _recordScan logic or by flag.
+             // "Update last_activated_day_timestamp only on the first scan of a new day."
              
              // If we didn't get name from User Profile, try visit
              if (_guestName == null) {
@@ -234,12 +223,12 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                   await prefs.setString('guestName', _guestName!);
                 }
              }
-          }
-        } else {
-           // No server-side visits found -> First Visit
+         } else {
+           // No visits -> First Visit
            _currentDiscount = _venue!.loyaltyConfig.percBase;
            _status = VisitStatus.first;
-        }
+         }
+       }
       }
       
     } catch (e) {
@@ -265,7 +254,11 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
         // Let's rely on _lastVisitDate? No, that's anchor.
         // We need to re-fetch or store it. 
         // Better: store it in a class variable or check inside _recordScan
-        _recordScan();
+        if (_status != VisitStatus.cooldown) {
+             _recordScan();
+        } else {
+             debugPrint("Skipping scan record - Visit Status is Cooldown (Active Day)");
+        }
       }
     }
   }
@@ -310,6 +303,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
         'discountValue': _currentDiscount,
         'timestamp': FieldValue.serverTimestamp(),
         'is_test': _isTestMode,
+        'notifyOwner': true, // Trigger Telegram notification
       });
     } catch (e) {
       debugPrint("Error recording scan: $e");
@@ -328,6 +322,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
             guestName: _guestName!,
             tiers: _venue!.tiers,
             config: _venue!.loyaltyConfig,
+            timezone: _venue!.timezone,
             lastVisitDate: _lastVisitDate,
           )
         ),
@@ -619,7 +614,10 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
             _debugLine("Venue", _debugInfo['venueId']),
             _debugLine("Tiers Cfg", _venue?.tiers.length.toString() ?? "0"),
             _debugLine("Found Visit", _debugInfo['found'] == true ? "YES" : "NO"),
-            _debugLine("Hours Passed", _debugInfo['hours']?.toString() ?? "0"),
+            _debugLine("Timezone", _debugInfo['timezone']),
+            _debugLine("Active Day", _debugInfo['isDayActive'] == true ? "YES" : "NO"),
+            _debugLine("Phase", _debugInfo['phase']),
+            _debugLine("Decay In", "${_debugInfo['decayHours'] ?? 0}h"),
             _debugLine("Last Visit", _debugInfo['lastVisit']),
             const SizedBox(height: 8),
             const Text("(Tap 'X' to close)", style: TextStyle(color: Colors.white54, fontSize: 10)),

@@ -21,6 +21,7 @@ class ThankYouScreen extends StatefulWidget {
   final String guestName;
   final List<VenueTier> tiers;
   final LoyaltyConfig config;
+  final String timezone;
   final DateTime? lastVisitDate; // The actual visit time if this is a return visit
 
   const ThankYouScreen({
@@ -30,6 +31,8 @@ class ThankYouScreen extends StatefulWidget {
     required this.guestName,
     required this.tiers,
     required this.config,
+    required this.config,
+    required this.timezone,
     this.lastVisitDate,
   });
 
@@ -88,10 +91,13 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
           final now = DateTime.now();
           
           final rewardState = RewardCalculator.calculate(
-            baseTime, 
-            now, 
-            widget.config,
-            widget.tiers
+            lastActivatedDate: baseTime, 
+            currentTime: now, 
+            timezone: widget.timezone,
+            config: widget.config,
+            currentTierValue: widget.currentDiscount,
+            maxTierValue: widget.config.percVip, // Assuming Max is VIP
+            baseTierValue: widget.config.percBase,
           );
 
           _predSecondsLeft = rewardState.secondsUntilNextChange;
