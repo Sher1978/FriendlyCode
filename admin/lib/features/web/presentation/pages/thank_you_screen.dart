@@ -5,7 +5,9 @@ import 'package:friendly_code/l10n/app_localizations.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/logic/reward_calculator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ThankYouColors {
   static const Color background = Color(0xFFE8F5E9); // Light Green
@@ -106,7 +108,13 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
           } else if (rewardState.statusLabelKey == 'valid_for') {
              _predLabel = '${rewardState.currentDiscount}% Discount valid for:';
           } else {
-             _predLabel = 'Standard Discount';
+             // If active/base, show generic message or hide
+             if (widget.currentDiscount == widget.config.percBase) {
+                _predLabel = 'Next Reward: Return Tomorrow';
+                _predSecondsLeft = 0; // Hide timer effectively or handle in UI
+             } else {
+                _predLabel = 'Standard Discount';
+             }
           }
           
           _isLocked = rewardState.isLocked;
@@ -121,11 +129,15 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
       final user = FirebaseAuth.instance.currentUser;
       final uid = user?.uid ?? 'anonymous';
 
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString('guestEmail');
+
       // 1. Create visit record
       await FirebaseFirestore.instance.collection('visits').add({
         'uid': uid,
         'venueId': widget.venueId,
         'guestName': widget.guestName,
+        'guestEmail': email, // Added email persistence
         'discountValue': widget.currentDiscount,
         'timestamp': FieldValue.serverTimestamp(),
         'status': 'pending_validation',
@@ -160,7 +172,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
   }
 
   String _formatHours(int seconds) {
-    if (seconds <= 0) return "0:00:00";
+    if (seconds <= 0) return "--:--:--"; // Placeholder if 0
     final h = seconds ~/ 3600;
     final m = (seconds % 3600) ~/ 60;
     final s = seconds % 60;
