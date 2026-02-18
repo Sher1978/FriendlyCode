@@ -7,7 +7,24 @@
     <title>temp_client</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <style>
+        body { background-color: #FFF8E1; margin: 0; }
+        .initial-loader {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          height: 100vh;
+          color: #E68A00;
+          font-family: system-ui, -apple-system, sans-serif;
+          font-weight: 900;
+          font-size: 24px;
+          animation: pulse 1s infinite alternate;
+        }
+        @keyframes pulse { from { opacity: 0.6; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+      </style>
+      <div class="initial-loader">FRIENDLY CODE...</div>
+    </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

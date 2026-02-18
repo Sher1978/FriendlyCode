@@ -24,15 +24,27 @@ const LandingPage = () => {
     const location = useLocation();
 
     useEffect(() => {
+        // Safety Timeout to prevent infinite loading (Gray Screen of Death)
+        const safetyTimer = setTimeout(() => {
+            if (status === 'loading') {
+                console.error("Auth/Loading timed out - forcing error state");
+                setStatus('error');
+            }
+        }, 8000); // 8 seconds max wait time
+
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 try {
                     await signInAnonymously(auth);
                 } catch (e) {
                     console.error("Auth failed:", e);
+                    setStatus('error'); // Show error UI instead of hanging
                 }
                 return;
             }
+
+            // Clear safety timer if we got a user
+            clearTimeout(safetyTimer);
 
             // User is authenticated (anonymous or otherwise)
             const checkUserAndVenue = async () => {
@@ -160,7 +172,33 @@ const LandingPage = () => {
         return () => unsubscribe();
     }, [location]);
 
-    if (status === 'loading') return null;
+    if (status === 'loading') {
+        return (
+            <div className="flex flex-col h-[100dvh] bg-[#FFF8E1] p-6 animate-pulse">
+                {/* Header Skeleton */}
+                <div className="h-4 w-24 bg-black/5 rounded mx-auto mb-2"></div>
+                <div className="h-8 w-48 bg-black/10 rounded mx-auto mb-8"></div>
+
+                {/* Hero Skeleton */}
+                <div className="flex-grow flex flex-col items-center justify-center gap-8">
+                    <div className="w-full max-w-xs space-y-4">
+                        <div className="h-6 w-3/4 bg-black/5 rounded mx-auto"></div>
+                        <div className="h-10 w-1/2 bg-black/10 rounded mx-auto"></div>
+                    </div>
+
+                    {/* Gauge Skeleton */}
+                    <div className="w-48 h-32 bg-black/5 rounded-full rounded-b-none mx-auto opacity-50"></div>
+
+                    {/* Timeline Skeleton */}
+                    <div className="w-full max-w-md space-y-3">
+                        {[1, 2, 3].map(i => (
+                            <div key={i} className="h-16 w-full bg-black/5 rounded-xl"></div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (status === 'error' || status === 'blocked') {
         return (

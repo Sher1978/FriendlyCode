@@ -75,7 +75,9 @@ const UnifiedActivation = () => {
                     }, 1000);
                     return () => clearInterval(interval);
                 }
-            } catch (e) { }
+            } catch (e) {
+                console.error("Error fetching venue config for timer:", e);
+            }
         };
         fetchConfig();
     }, [discountValue]);
