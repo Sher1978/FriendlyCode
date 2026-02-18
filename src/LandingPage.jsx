@@ -21,6 +21,17 @@ const LandingPage = () => {
     const [debugClicks, setDebugClicks] = useState(0);
     const [lastVisitDebug, setLastVisitDebug] = useState(null);
 
+    // Missing States Restored
+    const [guestName, setGuestName] = useState('');
+    const [userRole, setUserRole] = useState('guest');
+    const [predictionState, setPredictionState] = useState({
+        percent: 5,
+        secondsLeft: 0,
+        label: 'reset',
+        isBase: true,
+        isMax: false
+    });
+
     const location = useLocation();
 
     useEffect(() => {
