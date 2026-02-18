@@ -5,6 +5,7 @@ import 'package:friendly_code/core/data/venue_repository.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/venue_search_screen.dart';
 
 class OwnerVenuesScreen extends StatefulWidget {
   const OwnerVenuesScreen({super.key});
@@ -40,6 +41,16 @@ class _OwnerVenuesScreenState extends State<OwnerVenuesScreen> {
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())),
                 icon: const Icon(Icons.add),
                 label: const Text("REGISTER NEW VENUE"),
+              ),
+              const SizedBox(width: 16),
+              OutlinedButton.icon(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueSearchScreen())),
+                icon: const Icon(Icons.search),
+                label: const Text("JOIN EXISTING VENUE"),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.accentOrange),
+                  foregroundColor: AppColors.accentOrange,
+                ),
               ),
             ],
           ),

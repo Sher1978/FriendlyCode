@@ -48,7 +48,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
         final isMobile = constraints.maxWidth < 800;
         
         return DefaultTabController(
-          length: 2,
+          length: 3,
           child: Scaffold(
             backgroundColor: AppColors.premiumSand,
             body: Padding(
@@ -146,6 +146,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                     tabs: [
                       Tab(text: "Approved Venues"),
                       Tab(text: "Pending Requests"),
+                      Tab(text: "Network Analytics"),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -155,6 +156,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                       children: [
                         _buildVenueList(isMobile),
                         _buildRequestsList(),
+                        _buildAnalyticsTab(isMobile),
                       ],
                     ),
                   ),
@@ -215,46 +217,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           const SizedBox(height: 32),
         
         // --- NEW ANALYTICS SECTION ---
-        if (!isMobile) ...[
-          const Text("NETWORK PERFORMANCE", style: TextStyle(color: AppColors.premiumBurntOrange, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  height: 300,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Venue Leaderboard", style: TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 16),
-                      const Expanded(child: VenueLeaderboard()),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: Container(
-                  height: 300,
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Peak Activity (24h)", style: TextStyle(fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 16),
-                      const Expanded(child: PeakActivityChart()),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-        ],
+        // --- ANALYTICS MOVED TO TAB ---
 
         Expanded(
           child: StreamBuilder<List<VenueModel>>(
@@ -627,6 +590,98 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           label,
           style: TextStyle(color: text, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
         ),
+      ),
+    );
+  }
+  Widget _buildAnalyticsTab(bool isMobile) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text("NETWORK PERFORMANCE", style: TextStyle(color: AppColors.premiumBurntOrange, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)),
+          const SizedBox(height: 16),
+          
+          if (isMobile) ...[
+            Container(
+              height: 300,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Venue Leaderboard", style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 16),
+                  Expanded(child: VenueLeaderboard()),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              height: 300,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text("Peak Activity (24h)", style: TextStyle(fontWeight: FontWeight.bold)),
+                  SizedBox(height: 16),
+                  Expanded(child: PeakActivityChart()),
+                ],
+              ),
+            ),
+          ] else
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 400, // Slightly taller for better view
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Venue Leaderboard", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        SizedBox(height: 24),
+                        Expanded(child: VenueLeaderboard()),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: Container(
+                    height: 400,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+                    child: const Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Peak Activity (24h)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        SizedBox(height: 24),
+                        Expanded(child: PeakActivityChart()),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 32),
+            // Placeholder for future metrics
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.title.withOpacity(0.05)),
+              ),
+              child: const Center(
+                child: Text("More analytics coming soon...", style: TextStyle(color: AppColors.body)),
+              ),
+            ),
+        ],
       ),
     );
   }
