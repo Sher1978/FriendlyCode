@@ -124,21 +124,25 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
            }
         }
 
-        // --- DEBUG INFO CAPTURE ---
+        // Initialize Debug Info EARLY so it shows even if query fails
         _debugInfo = {
           'email': guestEmail,
           'venueId': widget.venueId,
           'found': false,
           'hours': 0.0,
-          'lastVisit': 'none'
+          'lastVisit': 'none',
+          'timezone': _venue!.timezone, // Show timezone immediately
+          'error': null, // Field for error tracking
         };
 
+        // Optimized Query: Remove orderBy to avoid "Missing Index" errors on standard tier
+        // We filter by UID and Venue, then sort in memory.
         var visitsQuery = await FirebaseFirestore.instance
             .collection('visits')
-            .where('uid', isEqualTo: user!.uid) // Use UID for reliable lookup
+            .where('uid', isEqualTo: user!.uid)
             .where('venueId', isEqualTo: widget.venueId)
-            .orderBy('timestamp', descending: true)
-            .limit(10) // Fetch more to find chain start
+            // .orderBy('timestamp', descending: true) // REMOVED to prevent index error
+            .limit(20) 
             .get();
 
         // FALLBACK: If UID lookup failed, try Email lookup (Identity Recovery)
@@ -148,8 +152,8 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
               .collection('visits')
               .where('guestEmail', isEqualTo: guestEmail)
               .where('venueId', isEqualTo: widget.venueId)
-              .orderBy('timestamp', descending: true)
-              .limit(10)
+              // .orderBy('timestamp', descending: true) // Remove here too
+              .limit(20)
               .get();
            
            if (emailQuery.docs.isNotEmpty) {
@@ -158,8 +162,17 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
            }
         }
 
-        if (visitsQuery.docs.isNotEmpty) {
-          final latestVisitDoc = visitsQuery.docs.first;
+        List<QueryDocumentSnapshot<Map<String, dynamic>>> docs = visitsQuery.docs;
+        
+        // Memory Sort (since we removed orderBy)
+        docs.sort((a, b) {
+           Timestamp tA = a.data()['timestamp'] ?? Timestamp.now();
+           Timestamp tB = b.data()['timestamp'] ?? Timestamp.now();
+           return tB.compareTo(tA); // Descending
+        });
+
+        if (docs.isNotEmpty) {
+          final latestVisitDoc = docs.first;
           final latestVisitData = latestVisitDoc.data();
           final Timestamp? ts = latestVisitData['timestamp'];
           DateTime? latestRealDate; // captured for debounce checking
@@ -233,6 +246,11 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
       
     } catch (e) {
       debugPrint("Error loading B2C data: $e");
+      if (mounted) {
+         setState(() {
+            _debugInfo['error'] = e.toString(); // Show error in debug
+         });
+      }
       _currentDiscount = 5;
     }
 
@@ -620,6 +638,11 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
             _debugLine("Phase", _debugInfo['phase']),
             _debugLine("Decay In", "${_debugInfo['decayHours'] ?? 0}h"),
             _debugLine("Last Visit", _debugInfo['lastVisit']),
+            if (_debugInfo['error'] != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text("Error: ${_debugInfo['error']}", style: const TextStyle(color: Colors.red, fontSize: 10)),
+              ),
             const SizedBox(height: 8),
             const Text("(Tap 'X' to close)", style: TextStyle(color: Colors.white54, fontSize: 10)),
           ],
