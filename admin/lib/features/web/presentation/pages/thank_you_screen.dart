@@ -378,8 +378,8 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                                         ],
                                       ),
                                 ),
-                              )
-                          if (_isClaimed) 
+                              ),
+                          if (_isClaimed)
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 24.0),
                               child: Column(

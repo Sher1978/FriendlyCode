@@ -271,5 +271,45 @@
   "billingHistory": "BILLING HISTORY",
   "newGuests": "New Guests",
   "loyalGuests": "Loyal Guests",
-  "lostGuests": "Lost Guests"
+  "lostGuests": "Lost Guests",
+  "thankYouNextReward": "{percent}% unlocks in: {time}",
+  "@thankYouNextReward": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "thankYouValidFor": "{percent}% Discount valid for: {time}",
+  "@thankYouValidFor": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "thankYouMaxReward": "Your discount is valid for {time}. To maintain your max discount, visit us tomorrow too!",
+  "@thankYouMaxReward": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "thankYouMaxRewardLabel": "Your discount is valid for",
+  "thankYouMaxRewardSubtext": "To maintain your max discount, visit us tomorrow too!",
+  "tomorrowMaxReward": "TOMORROW YOUR DISCOUNT {percent}%!",
+  "@tomorrowMaxReward": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  }
 }

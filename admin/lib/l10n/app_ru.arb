@@ -271,5 +271,45 @@
   "billingHistory": "ИСТОРИЯ ПЛАТЕЖЕЙ",
   "newGuests": "Новые гости",
   "loyalGuests": "Лояльные гости",
-  "lostGuests": "Потерянные гости"
+  "lostGuests": "Потерянные гости",
+  "thankYouNextReward": "{percent}% откроется через: {time}",
+  "@thankYouNextReward": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "thankYouValidFor": "Скидка {percent}% действует еще: {time}",
+  "@thankYouValidFor": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "thankYouMaxReward": "Ваша скидка действует еще {time}, для максимальной скидки ждем Вас также завтра!",
+  "@thankYouMaxReward": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "thankYouMaxRewardLabel": "Ваша скидка действует еще",
+  "thankYouMaxRewardSubtext": "для максимальной скидки ждем Вас также завтра!",
+  "tomorrowMaxReward": "ЗАВТРА ВАША СКИДКА {percent}%!",
+  "@tomorrowMaxReward": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  }
 }
