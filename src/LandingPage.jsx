@@ -211,6 +211,12 @@ const LandingPage = () => {
             checkUserAndVenue();
         });
 
+        // --- Language Switcher Helper ---
+        const toggleLanguage = () => {
+            const newLang = i18n.language === 'en' ? 'ru' : 'en';
+            i18n.changeLanguage(newLang);
+        };
+
         return () => unsubscribe();
     }, [location]);
 
@@ -270,6 +276,16 @@ const LandingPage = () => {
 
     return (
         <div className="flex flex-col h-[100dvh] bg-[#FFF8E1] font-sans text-[#4E342E] antialiased overflow-hidden relative">
+
+            {/* Language Switcher (Top Right) */}
+            <div className="absolute top-4 right-4 z-50">
+                <button
+                    onClick={toggleLanguage}
+                    className="bg-white/50 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-[#4E342E] border border-[#4E342E]/10 hover:bg-white/80 transition-all uppercase"
+                >
+                    {i18n.language === 'en' ? 'RU' : 'EN'}
+                </button>
+            </div>
 
             {/* Header */}
             <div className="pt-6 px-6 text-center z-10">
@@ -374,6 +390,7 @@ const LandingPage = () => {
                                     : { duration: 1.5, type: "spring", bounce: 0.3 }, // Smooth entry
                                 x: { duration: 0 }
                             }}
+                            style={{ transformOrigin: "0px 0px" }} // CRITICAL: Rotate around the group origin (where pivot circle is)
                         >
                             {/* Needle Body: Points Left by default (angle 0) */}
                             <line
