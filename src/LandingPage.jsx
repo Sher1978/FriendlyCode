@@ -181,7 +181,11 @@ const LandingPage = () => {
                                 decayIn: (result.secondsUntilDecay / 3600).toFixed(1),
                                 tiersCfg: venueData.tiers?.length || 0,
                                 nextTier: result.nextDiscount,
-                                status: result.status
+                                status: result.status,
+                                // New Debug Fields
+                                changeIn: result.secondsUntilDecay
+                                    ? `${Math.floor(result.secondsUntilDecay / 3600)}h ${Math.floor((result.secondsUntilDecay % 3600) / 60)}m`
+                                    : 'N/A'
                             };
 
                             if (result.status === 'cooldown') {
@@ -327,7 +331,11 @@ const LandingPage = () => {
 
                     {!guestName && !cooldown && (
                         <p className="text-[#4E342E] opacity-60 font-medium text-xs">
-                            {t('want_max_discount')}
+                            {/* Dynamic Instruction based on current Discount */}
+                            {discount >= 20
+                                ? t('keep_max_reward_subtext')
+                                : t('get_max_reward_subtext')
+                            }
                         </p>
                     )}
                 </div>
@@ -343,12 +351,14 @@ const LandingPage = () => {
                         </defs>
 
                         {/* Background Track (Light Grey) */}
+                        {/* Background Track (Light Grey -> Now Faded Gradient to ensure "Always Orange-Green") */}
                         <path
                             d="M 20 151 A 122.5 122.5 0 0 1 265 151"
                             fill="none"
-                            stroke="#E0E0E0"
+                            stroke="url(#gaugeGradient)"
                             strokeWidth="28"
                             strokeLinecap="round"
+                            opacity="0.3"
                         />
 
                         {/* Progress Arch (Matches Gradient) - Always visible? No, masked by dashoffset */}
@@ -421,7 +431,18 @@ const LandingPage = () => {
                         </motion.g>
 
                         {/* Centered Value Text */}
-                        <text x="142.5" y="120" textAnchor="middle" className="text-[56px] font-black fill-[#D84315]" style={{ fontFamily: 'sans-serif' }}>
+                        {/* Centered Value Text with Dynamic Color */}
+                        {/* 5% -> Orange, 10% -> Red, 15% -> Orange, 20% -> Green */}
+                        <text
+                            x="142.5"
+                            y="120"
+                            textAnchor="middle"
+                            className={`text-[56px] font-black ${discount === 20 ? 'fill-[#2E7D32]' :
+                                    discount === 10 ? 'fill-[#D32F2F]' :
+                                        'fill-[#E68A00]' // 5% and 15% are Orange
+                                }`}
+                            style={{ fontFamily: 'sans-serif' }}
+                        >
                             {discount}%
                         </text>
                     </svg>
