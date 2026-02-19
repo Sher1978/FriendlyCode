@@ -211,14 +211,14 @@ const LandingPage = () => {
             checkUserAndVenue();
         });
 
-        // --- Language Switcher Helper ---
-        const toggleLanguage = () => {
-            const newLang = i18n.language === 'en' ? 'ru' : 'en';
-            i18n.changeLanguage(newLang);
-        };
-
         return () => unsubscribe();
     }, [location]);
+
+    // --- Language Switcher Helper ---
+    const toggleLanguage = () => {
+        const newLang = i18n.language === 'en' ? 'ru' : 'en';
+        i18n.changeLanguage(newLang);
+    };
 
     if (status === 'loading') {
         return (
