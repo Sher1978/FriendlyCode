@@ -52,9 +52,24 @@ export class RewardCalculator {
         }
 
         // 4. DECAY LOGIC (Multi-tier windows)
-        // We calculate which window we are in
-        if (hoursPassed <= safeConfig.vipWindowHours) {
-            const left = (safeConfig.vipWindowHours - hoursPassed) * 3600;
+        // User Logic: "Based on Calendar Day".
+        // If I visit Today (Day 0), I have until the End of Tomorrow (Day 1) to keep the streak.
+        // So expiration is Midnight at the start of Day 2.
+
+        // Calculate Midnight of the Day AFTER Tomorrow relative to lastVisit
+        // Example: Visit Monday 14:00. Day 0 = Monday. Day 1 = Tuesday. Expiry = Wednesday 00:00.
+        const visitDate = new Date(lastVisit);
+        visitDate.setHours(0, 0, 0, 0); // Start of Visit Day
+
+        const expiryDate = new Date(visitDate);
+        expiryDate.setDate(expiryDate.getDate() + 2); // Add 2 days (Mon -> Wed 00:00)
+
+        // Check if we are still within this "Safety Window" (i.e., it's Mon or Tue)
+        if (currentTime < expiryDate.getTime()) {
+            // We are safe. User can visit today or tomorrow.
+            // Time left is until that expiry deadline.
+            const left = Math.floor((expiryDate.getTime() - currentTime) / 1000);
+
             return {
                 discount: safeConfig.percVip,
                 status: 'vip',

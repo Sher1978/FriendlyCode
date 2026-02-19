@@ -401,7 +401,7 @@ const LandingPage = () => {
                 <div className="space-y-2 w-full">
                     <TimelineItem
                         isCompleted={true}
-                        text={t('today_val')}
+                        text={t('today_dynamic', { percent: discount })}
                         color="bg-white border-[#81C784]"
                         iconColor="text-[#81C784]"
                         icon={faCheckCircle}
