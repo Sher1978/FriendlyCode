@@ -29,8 +29,12 @@ const LandingPage = () => {
         secondsLeft: 0,
         label: 'reset',
         isBase: true,
+        isBase: true,
         isMax: false
     });
+
+    // Animation State
+    const [tremble, setTremble] = useState(false);
 
     const location = useLocation();
 
@@ -142,11 +146,21 @@ const LandingPage = () => {
 
                             calculatedDiscount = result.discount;
 
+                            // 4. Update Debug Info (Full Match to Flutter)
                             debugInfo = {
                                 email,
+                                uid: user.uid, // ADDED
+                                venueId,
                                 found: true,
                                 hours: result.hoursPassed.toFixed(1),
                                 lastVisit: lastVisit.toISOString(),
+                                // New Fields
+                                timezone: venueData.timezone || 'N/A',
+                                isDayActive: result.isDayActive,
+                                phase: result.phase,
+                                decayIn: (result.secondsUntilDecay / 3600).toFixed(1),
+                                tiersCfg: venueData.tiers?.length || 0,
+                                nextTier: result.nextDiscount,
                                 status: result.status
                             };
 
@@ -155,14 +169,15 @@ const LandingPage = () => {
                                     hoursPassed: result.hoursPassed,
                                     required: venueData.loyaltyConfig?.safetyCooldownHours || 12
                                 });
-                                // Optional: You could set a specific UI state here to tell them "Too soon!"
-                                // For now, we just log it and they get 5% (percBase)
-                                console.log(`Cooldown active. Hours passed: ${result.hoursPassed.toFixed(2)} < ${result.cooldownHours}`);
+                                // Keep discount as calculated (likely Base or Previous if logic allows)
                             }
                         }
                     }
                     setLastVisitDebug(debugInfo);
                     setDiscount(calculatedDiscount);
+
+                    // Trigger Tremble after main animation (simulated delay)
+                    setTimeout(() => setTremble(true), 1500);
                     setPredictionState({
                         percent: calculatedDiscount,
                         secondsLeft: result.secondsUntilDecay || 0,
@@ -322,7 +337,19 @@ const LandingPage = () => {
                         />
 
                         {/* Needle (Tapered & Rounded) */}
-                        <g transform={`rotate(${9 + (discount - 5) * 10}, 100, 100)`}>
+                        {/* Needle (Tapered & Rounded) with TREMBLE */}
+                        <motion.g
+                            initial={{ rotate: 9 }}
+                            animate={{
+                                rotate: 9 + (discount - 5) * 10,
+                                x: tremble ? [0, -1, 1, -1, 1, 0] : 0 // TREMBLE EFFECT
+                            }}
+                            transition={{
+                                rotate: { duration: 1.5, type: "spring", bounce: 0.3 },
+                                x: { duration: 0.2, repeat: tremble ? 3 : 0 }
+                            }}
+                            style={{ originX: "100px", originY: "100px" }} // Rotate around center
+                        >
                             {/* Pivot */}
                             <circle cx="100" cy="100" r="8" fill="#5D4037" />
                             {/* Tapered Body */}
@@ -333,10 +360,10 @@ const LandingPage = () => {
                                 strokeWidth="2"
                                 strokeLinejoin="round"
                             />
-                        </g>
+                        </motion.g>
 
-                        {/* Percentage Text */}
-                        <text x="100" y="80" textAnchor="middle" className="text-[36px] font-black fill-[#5D4037] drop-shadow-sm">
+                        {/* Percentage Text - Burnt Orange Match */}
+                        <text x="100" y="80" textAnchor="middle" className="text-[56px] font-black fill-[#D84315] drop-shadow-sm" style={{ fontFamily: 'sans-serif' }}>
                             {discount}%
                         </text>
 
@@ -415,21 +442,39 @@ const LandingPage = () => {
                     {guestName ? t('get_my_reward', 'Get My Reward') : t('get_my_discount')}
                 </button>
             </div>
-            {/* Debug Overlay */}
+            {/* Debug Overlay (Flutter Match) */}
             {debugClicks >= 5 && lastVisitDebug && (
-                <div className="fixed top-0 left-0 w-full bg-black/90 text-[#00FF00] p-4 z-50 font-mono text-xs overflow-auto" onClick={() => setDebugClicks(0)}>
-                    <h3 className="font-bold text-lg mb-2">Debug Info</h3>
-                    <p>Venue: {localStorage.getItem('currentVenueId')}</p>
-                    <p>Email: {lastVisitDebug.email}</p>
-                    <p>Found Visit: {lastVisitDebug.found ? 'YES' : 'NO'}</p>
-                    <p>Last Timestamp: {lastVisitDebug.lastVisit}</p>
-                    <p>Hours Passed: {lastVisitDebug.hours}</p>
-                    <p className="mt-2 text-white/50">(Tap to close)</p>
+                <div className="fixed top-20 left-4 right-4 bg-black/90 rounded-2xl border border-green-500 p-4 z-50 shadow-2xl" onClick={() => setDebugClicks(0)}>
+                    <div className="flex justify-between items-center mb-2 border-b border-white/20 pb-2">
+                        <h3 className="font-bold text-green-400 text-sm">DEBUG INFO</h3>
+                        <button className="text-white">X</button>
+                    </div>
+                    <div className="space-y-1 font-mono text-xs text-white">
+                        <DebugLine label="UID" value={lastVisitDebug.uid?.substring(0, 6) || "null"} />
+                        <DebugLine label="Email" value={lastVisitDebug.email} />
+                        <DebugLine label="Venue" value={localStorage.getItem('currentVenueId')} />
+                        <DebugLine label="Tiers Cfg" value={lastVisitDebug.tiersCfg} />
+                        <DebugLine label="Found Visit" value={lastVisitDebug.found ? 'YES' : 'NO'} />
+                        <DebugLine label="Timezone" value={lastVisitDebug.timezone} />
+                        <DebugLine label="Active Day" value={lastVisitDebug.isDayActive ? 'YES' : 'NO'} />
+                        <DebugLine label="Phase" value={lastVisitDebug.phase} />
+                        <DebugLine label="Decay In" value={`${lastVisitDebug.decayIn}h`} />
+                        <DebugLine label="Last Visit" value={lastVisitDebug.lastVisit} />
+                        <div className="text-[10px] text-white/50 mt-2 text-center">(Tap to close)</div>
+                    </div>
                 </div>
             )}
         </div >
     );
 };
+
+// Helper for Debug
+const DebugLine = ({ label, value }) => (
+    <div className="flex">
+        <span className="w-24 text-white/70">{label}:</span>
+        <span className="flex-1 text-white truncate">{value}</span>
+    </div>
+);
 
 const TimelineItem = ({ isCompleted, text, isNext, color, iconColor, icon, compact }) => {
     return (
