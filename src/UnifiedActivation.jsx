@@ -214,21 +214,7 @@ const UnifiedActivation = () => {
                                 <span className="text-lg font-black text-[#2E7D32] animate-pulse">
                                     {t('tomorrow_20_percent')}
                                 </span>
-                            ) : (
-                                <>
-                                    <span className="text-[#1B5E20]/70 text-xs font-bold uppercase tracking-wider">
-                                        {t('valid_for_label')}
-                                    </span>
-                                    <div className="bg-[#E8F5E9] px-3 py-1 rounded-lg border border-[#A5D6A7] text-[#2E7D32] font-mono text-xl font-bold">
-                                        {formatHours(predictionState.secondsLeft || 172800)}
-                                    </div>
-                                    {predictionState.isMax && (
-                                        <span className="text-[10px] font-bold text-[#1B5E20]/50 mt-1 max-w-[200px]">
-                                            {t('max_reward_subtext')}
-                                        </span>
-                                    )}
-                                </>
-                            )}
+                            ) : null}
                         </div>
 
                         <div className="h-[64px] relative">
