@@ -16,6 +16,7 @@ const LandingPage = () => {
     const [discount, setDiscount] = useState(5);
     const [venueName, setVenueName] = useState('');
     const [cooldown, setCooldown] = useState(null); // { hoursPassed, required }
+    const [minDelayPassed, setMinDelayPassed] = useState(false);
 
     // Debug Mode State
     const [debugClicks, setDebugClicks] = useState(0);
@@ -38,6 +39,9 @@ const LandingPage = () => {
     const location = useLocation();
 
     useEffect(() => {
+        // Minimum Splash Screen Timer
+        const timer = setTimeout(() => setMinDelayPassed(true), 1000);
+
         // Safety Timeout to prevent infinite loading (Gray Screen of Death)
         const safetyTimer = setTimeout(() => {
             if (status === 'loading') {
@@ -220,29 +224,29 @@ const LandingPage = () => {
         i18n.changeLanguage(newLang);
     };
 
-    if (status === 'loading') {
+    if (status === 'loading' || !minDelayPassed) {
         return (
-            <div className="flex flex-col h-[100dvh] bg-[#FFF8E1] p-6 animate-pulse">
-                {/* Header Skeleton */}
-                <div className="h-4 w-24 bg-black/5 rounded mx-auto mb-2"></div>
-                <div className="h-8 w-48 bg-black/10 rounded mx-auto mb-8"></div>
+            <div className="flex flex-col h-[100dvh] bg-[#FFF8E1] items-center justify-center p-6 relative overflow-hidden">
+                {/* Background Decorative Elements */}
+                <div className="absolute top-[-20%] left-[-20%] w-[140%] h-[140%] bg-[radial-gradient(circle_at_center,_#FFD54F_0%,_transparent_70%)] opacity-20 animate-pulse"></div>
 
-                {/* Hero Skeleton */}
-                <div className="flex-grow flex flex-col items-center justify-center gap-8">
-                    <div className="w-full max-w-xs space-y-4">
-                        <div className="h-6 w-3/4 bg-black/5 rounded mx-auto"></div>
-                        <div className="h-10 w-1/2 bg-black/10 rounded mx-auto"></div>
+                <div className="z-10 flex flex-col items-center text-center">
+                    {/* Bouncing Logo / Icon */}
+                    <div className="mb-8 relative">
+                        <div className="w-24 h-24 bg-[#E68A00] rounded-full flex items-center justify-center shadow-xl animate-bounce">
+                            <FontAwesomeIcon icon={faGift} className="text-white text-4xl" />
+                        </div>
+                        {/* Ripple Effect */}
+                        <div className="absolute top-0 left-0 w-full h-full bg-[#E68A00] rounded-full animate-ping opacity-20"></div>
                     </div>
 
-                    {/* Gauge Skeleton */}
-                    <div className="w-48 h-32 bg-black/5 rounded-full rounded-b-none mx-auto opacity-50"></div>
+                    <h2 className="text-2xl font-black text-[#4E342E] mb-2 uppercase tracking-wide">
+                        Friendly Code
+                    </h2>
 
-                    {/* Timeline Skeleton */}
-                    <div className="w-full max-w-md space-y-3">
-                        {[1, 2, 3].map(i => (
-                            <div key={i} className="h-16 w-full bg-black/5 rounded-xl"></div>
-                        ))}
-                    </div>
+                    <p className="text-[#4E342E]/70 font-medium text-lg animate-pulse">
+                        {t('calculating_discount')}
+                    </p>
                 </div>
             </div>
         );
