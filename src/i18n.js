@@ -146,6 +146,7 @@ const resources = {
             "your_discount_today": "Ваша скидка СЕГОДНЯ: 5%",
             "want_max_discount": "Хотите 20%? Приходите завтра!",
             "today_val": "Сегодня: 5%",
+            "today_dynamic": "Сегодня: {{percent}}%",
             "tomorrow_val": "Завтра: 20%",
             "in_3_days": "Через 3 дня: 15%",
             "in_7_days": "Через 7 дней: 10%",

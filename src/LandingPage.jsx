@@ -333,7 +333,7 @@ const LandingPage = () => {
                     <svg viewBox="0 0 285 171" className="w-full h-full overflow-visible">
                         <defs>
                             <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stopColor="#FF5252" /> {/* Red */}
+                                <stop offset="0%" stopColor="#E68A00" /> {/* Orange */}
                                 <stop offset="100%" stopColor="#4CAF50" /> {/* Green */}
                             </linearGradient>
                         </defs>
