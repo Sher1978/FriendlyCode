@@ -312,81 +312,76 @@ const LandingPage = () => {
                     )}
                 </div>
 
-                {/* Gauge Visual - Scaled down slightly */}
-                <div className="relative w-full h-32 flex items-center justify-center scale-90 origin-center">
-                    <svg viewBox="0 0 200 120" className="w-48 h-32 overflow-visible">
+                {/* Gauge Visual - Reduced Size by 10% (was 285px -> ~256px) & Pivot Fixed */}
+                <div className="relative w-[256px] h-[154px] flex items-center justify-center origin-center mx-auto my-8">
+                    <svg viewBox="0 0 285 171" className="w-full h-full overflow-visible">
                         <defs>
                             <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stopColor="#FFA726" />
-                                <stop offset="100%" stopColor="#66BB6A" />
+                                <stop offset="0%" stopColor="#D84315" /> {/* Premium Burnt Orange */}
+                                <stop offset="50%" stopColor="#FFD700" /> {/* Premium Gold */}
+                                <stop offset="100%" stopColor="#4CAF50" /> {/* Accent Green */}
                             </linearGradient>
-                            <filter id="gaugeShadow" x="-20%" y="-20%" width="140%" height="140%">
-                                <feGaussianBlur in="SourceAlpha" stdDeviation="2" />
-                                <feOffset dx="0" dy="2" result="offsetblur" />
-                                <feComponentTransfer>
-                                    <feFuncA type="linear" slope="0.2" />
-                                </feComponentTransfer>
-                                <feMerge>
-                                    <feMergeNode />
-                                    <feMergeNode in="SourceGraphic" />
-                                </feMerge>
-                            </filter>
                         </defs>
 
-                        {/* Background Track (Soft Creamy/Orange) */}
+                        {/* Background Track (Light Grey) */}
                         <path
-                            d="M 25 100 A 75 75 0 0 1 175 100"
+                            d="M 20 151 A 122.5 122.5 0 0 1 265 151" /* Adjusted for 285 width, padding 20 on sides */
                             fill="none"
-                            stroke="#FFCC80"
-                            strokeOpacity="0.3"
+                            stroke="#E0E0E0"
                             strokeWidth="28"
                             strokeLinecap="round"
                         />
 
-                        {/* Progress Arch (5% Segment) */}
+                        {/* Progress Arch (Matches Gradient) */}
                         <path
-                            d="M 25 100 A 75 75 0 0 1 25.8 89.6"
+                            d="M 20 151 A 122.5 122.5 0 0 1 265 151"
                             fill="none"
                             stroke="url(#gaugeGradient)"
                             strokeWidth="28"
                             strokeLinecap="round"
-                            filter="url(#gaugeShadow)"
+                            strokeDasharray="385" /* Approx length of arc */
+                            strokeDashoffset={385 * (1 - ((discount - 5) / 15))} /* Reveal based on progress */
                         />
 
-                        {/* Needle (Tapered & Rounded) */}
-                        {/* Needle (Tapered & Rounded) with TREMBLE */}
+                        {/* Labels */}
+                        <text x="20" y="151" dx="-35" dy="10" className="text-[20px] font-black fill-[#4E342E]">5%</text>
+                        <text x="265" y="151" dx="10" dy="10" className="text-[20px] font-black fill-[#4E342E]">20%</text>
+
+                        {/* Needle (Rounded Line) with ROBUST PIVOT */}
+                        {/* We translate the GROUP to the pivot center (142.5, 151)
+                            Then rotate the group. This ensures the axis is always correct. */}
                         <motion.g
-                            initial={{ rotate: 9 }}
+                            initial={{ rotate: 0, x: 142.5, y: 151 }}
                             animate={{
-                                rotate: 9 + (discount - 5) * 10,
-                                x: tremble ? [0, -1, 1, -1, 1, 0] : 0 // TREMBLE EFFECT
+                                rotate: ((discount - 5) / 15) * 180, // 0 to 180 degrees
+                                x: tremble ? [142.5, 141.5, 143.5, 141.5, 143.5, 142.5] : 142.5 // Tremble on X relative to pivot
                             }}
                             transition={{
                                 rotate: { duration: 1.5, type: "spring", bounce: 0.3 },
                                 x: { duration: 0.2, repeat: tremble ? 3 : 0 }
                             }}
-                            style={{ originX: "100px", originY: "100px" }} // Rotate around center
                         >
-                            {/* Pivot */}
-                            <circle cx="100" cy="100" r="8" fill="#5D4037" />
-                            {/* Tapered Body */}
-                            <path
-                                d="M 100 106 L 38 100 L 100 94 Z"
-                                fill="#5D4037"
-                                stroke="#5D4037"
-                                strokeWidth="2"
-                                strokeLinejoin="round"
+                            {/* Draw needle relative to (0,0) which is now the pivot.
+                                0 degrees should point LEFT (to match 5% label/start).
+                                So we draw line from (0,0) to (-100, 0).
+                            */}
+                            <line
+                                x1="0"
+                                y1="0"
+                                x2="-100"
+                                y2="0"
+                                stroke="#4E342E"
+                                strokeWidth="8"
+                                strokeLinecap="round"
                             />
+                            {/* Pivot Dot */}
+                            <circle cx="0" cy="0" r="12" fill="#4E342E" />
+                            <circle cx="0" cy="0" r="5" fill="white" />
                         </motion.g>
 
-                        {/* Percentage Text - Burnt Orange Match */}
-                        <text x="100" y="80" textAnchor="middle" className="text-[56px] font-black fill-[#D84315] drop-shadow-sm" style={{ fontFamily: 'sans-serif' }}>
+                        {/* Centered Value Text */}
+                        <text x="142.5" y="120" textAnchor="middle" className="text-[56px] font-black fill-[#D84315]" style={{ fontFamily: 'sans-serif' }}>
                             {discount}%
-                        </text>
-
-                        {/* Max Label */}
-                        <text x="180" y="95" textAnchor="middle" className="text-[14px] font-bold fill-[#5D4037] opacity-60">
-                            20%
                         </text>
                     </svg>
                 </div>
