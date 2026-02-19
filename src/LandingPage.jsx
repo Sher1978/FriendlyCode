@@ -356,12 +356,23 @@ const LandingPage = () => {
                         <motion.g
                             initial={{ rotate: 0, x: 142.5, y: 151 }}
                             animate={{
-                                rotate: ((discount - 5) / 15) * 180,
-                                x: tremble ? [142.5, 141.5, 143.5, 141.5, 143.5, 142.5] : 142.5
+                                rotate: tremble
+                                    ? [
+                                        ((discount - 5) / 15) * 180,
+                                        ((discount - 5) / 15) * 180 - 3,
+                                        ((discount - 5) / 15) * 180 + 3,
+                                        ((discount - 5) / 15) * 180 - 3,
+                                        ((discount - 5) / 15) * 180 + 3,
+                                        ((discount - 5) / 15) * 180
+                                    ]
+                                    : ((discount - 5) / 15) * 180,
+                                x: 142.5, // Fixed pivot position
                             }}
                             transition={{
-                                rotate: { duration: 1.5, type: "spring", bounce: 0.3 },
-                                x: { duration: 0.2, repeat: tremble ? 3 : 0 }
+                                rotate: tremble
+                                    ? { duration: 0.2, repeat: 3 } // Quick shake
+                                    : { duration: 1.5, type: "spring", bounce: 0.3 }, // Smooth entry
+                                x: { duration: 0 }
                             }}
                         >
                             {/* Needle Body: Points Left by default (angle 0) */}
