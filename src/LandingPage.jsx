@@ -343,28 +343,28 @@ const LandingPage = () => {
                             strokeDashoffset={385 * (1 - ((discount - 5) / 15))} /* Reveal based on progress */
                         />
 
-                        {/* Labels */}
-                        <text x="20" y="151" dx="-35" dy="10" className="text-[20px] font-black fill-[#4E342E]">5%</text>
-                        <text x="265" y="151" dx="10" dy="10" className="text-[20px] font-black fill-[#4E342E]">20%</text>
+                        {/* Labels - Moved further out */}
+                        <text x="20" y="151" dx="-45" dy="10" className="text-[20px] font-black fill-[#4E342E]">5%</text>
+                        <text x="265" y="151" dx="20" dy="10" className="text-[20px] font-black fill-[#4E342E]">20%</text>
 
                         {/* Needle (Rounded Line) with ROBUST PIVOT */}
-                        {/* We translate the GROUP to the pivot center (142.5, 151)
-                            Then rotate the group. This ensures the axis is always correct. */}
+                        {/* 
+                            Pivot Center: (142.5, 151) 
+                            The group is translated to this point. 
+                            Rotation logic: 0 deg = Left (Matches 5%), 180 deg = Right (Matches 20%).
+                        */}
                         <motion.g
                             initial={{ rotate: 0, x: 142.5, y: 151 }}
                             animate={{
-                                rotate: ((discount - 5) / 15) * 180, // 0 to 180 degrees
-                                x: tremble ? [142.5, 141.5, 143.5, 141.5, 143.5, 142.5] : 142.5 // Tremble on X relative to pivot
+                                rotate: ((discount - 5) / 15) * 180,
+                                x: tremble ? [142.5, 141.5, 143.5, 141.5, 143.5, 142.5] : 142.5
                             }}
                             transition={{
                                 rotate: { duration: 1.5, type: "spring", bounce: 0.3 },
                                 x: { duration: 0.2, repeat: tremble ? 3 : 0 }
                             }}
                         >
-                            {/* Draw needle relative to (0,0) which is now the pivot.
-                                0 degrees should point LEFT (to match 5% label/start).
-                                So we draw line from (0,0) to (-100, 0).
-                            */}
+                            {/* Needle Body: Points Left by default (angle 0) */}
                             <line
                                 x1="0"
                                 y1="0"
@@ -374,9 +374,9 @@ const LandingPage = () => {
                                 strokeWidth="8"
                                 strokeLinecap="round"
                             />
-                            {/* Pivot Dot */}
+                            {/* Pivot Decoration */}
                             <circle cx="0" cy="0" r="12" fill="#4E342E" />
-                            <circle cx="0" cy="0" r="5" fill="white" />
+                            <circle cx="0" cy="0" r="5" fill="#FFF8E1" /> {/* Match background cream color for "hole" look */}
                         </motion.g>
 
                         {/* Centered Value Text */}

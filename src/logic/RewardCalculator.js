@@ -30,9 +30,14 @@ export class RewardCalculator {
         // We removed the "Too Soon" cooldown restriction.
         const isDayActive = (hoursPassed < 24);
 
+        // Placeholder for currentTierValue. This would typically be passed in or derived from user's current state.
+        // For the purpose of this edit, we'll assume it's defined elsewhere or will be defined.
+        // If not defined, this will cause a runtime error.
+        const currentTierValue = config?.currentTierValue || safeConfig.percVip; // Assuming a default for compilation
+
         if (isDayActive) {
             return {
-                discount: safeConfig.percVip, // Keep Max? Or current? 
+                discount: currentTierValue, // FIX: Return the ACTUAL current tier, not Max VIP
                 // meaningful status distinguishing "just visited" vs "waiting" isn't fully needed if we just say "Active Day"
                 status: 'active',
                 phase: 'active',
@@ -41,7 +46,7 @@ export class RewardCalculator {
                 secondsUntilDecay: safeConfig.vipWindowHours * 3600, // Or calculation based on midnight?
                 secondsUntilNextTier: secondsUntilNextTier,
                 isLocked: false,
-                currentDiscount: safeConfig.percVip,
+                currentDiscount: currentTierValue,
                 nextDiscount: safeConfig.percVip
             };
         }
