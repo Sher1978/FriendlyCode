@@ -333,30 +333,29 @@ const LandingPage = () => {
                     <svg viewBox="0 0 285 171" className="w-full h-full overflow-visible">
                         <defs>
                             <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stopColor="#D84315" /> {/* Premium Burnt Orange */}
-                                <stop offset="50%" stopColor="#FFD700" /> {/* Premium Gold */}
-                                <stop offset="100%" stopColor="#4CAF50" /> {/* Accent Green */}
+                                <stop offset="0%" stopColor="#FF5252" /> {/* Red */}
+                                <stop offset="100%" stopColor="#4CAF50" /> {/* Green */}
                             </linearGradient>
                         </defs>
 
                         {/* Background Track (Light Grey) */}
                         <path
-                            d="M 20 151 A 122.5 122.5 0 0 1 265 151" /* Adjusted for 285 width, padding 20 on sides */
+                            d="M 20 151 A 122.5 122.5 0 0 1 265 151"
                             fill="none"
                             stroke="#E0E0E0"
                             strokeWidth="28"
                             strokeLinecap="round"
                         />
 
-                        {/* Progress Arch (Matches Gradient) */}
+                        {/* Progress Arch (Matches Gradient) - Always visible? No, masked by dashoffset */}
                         <path
                             d="M 20 151 A 122.5 122.5 0 0 1 265 151"
                             fill="none"
                             stroke="url(#gaugeGradient)"
                             strokeWidth="28"
                             strokeLinecap="round"
-                            strokeDasharray="385" /* Approx length of arc */
-                            strokeDashoffset={385 * (1 - ((discount - 5) / 15))} /* Reveal based on progress */
+                            strokeDasharray="385"
+                            strokeDashoffset={385 * (1 - ((discount - 5) / 15))}
                         />
 
                         {/* Labels - Moved further out */}
