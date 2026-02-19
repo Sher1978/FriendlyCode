@@ -299,7 +299,7 @@ const LandingPage = () => {
             <div className="pt-6 px-6 text-center z-10">
                 <p className="text-sm font-bold opacity-60 uppercase tracking-widest">Welcome to</p>
                 <h2 className="text-2xl font-black leading-tight text-[#E68A00] mb-1">{venueName}</h2>
-                <div className="flex items-center justify-center gap-1 opacity-40" onClick={() => setDebugClicks(c => c + 1)}>
+                <div className="flex items-center justify-center gap-1 opacity-40 p-4 -m-4 cursor-pointer" onClick={() => setDebugClicks(c => c + 1)}>
                     <span className="text-[10px] font-bold uppercase tracking-wider">powered by FriendlyCode</span>
                     <FontAwesomeIcon icon={faLeaf} className="text-[10px]" />
                 </div>
@@ -329,7 +329,7 @@ const LandingPage = () => {
                         </h1>
                     )}
 
-                    {!guestName && !cooldown && (
+                    {!cooldown && (
                         <p className="text-[#4E342E] opacity-60 font-medium text-xs">
                             {/* Dynamic Instruction based on current Discount */}
                             {discount >= 20
@@ -527,7 +527,8 @@ const LandingPage = () => {
                         <DebugLine label="Timezone" value={lastVisitDebug.timezone} />
                         <DebugLine label="Active Day" value={lastVisitDebug.isDayActive ? 'YES' : 'NO'} />
                         <DebugLine label="Phase" value={lastVisitDebug.phase} />
-                        <DebugLine label="Decay In" value={`${lastVisitDebug.decayIn}h`} />
+                        <DebugLine label="Next Tier" value={`${lastVisitDebug.nextTier}%`} />
+                        <DebugLine label="Change In" value={lastVisitDebug.changeIn} />
                         <DebugLine label="Last Visit" value={lastVisitDebug.lastVisit} />
                         <div className="text-[10px] text-white/50 mt-2 text-center">(Tap to close)</div>
                     </div>
