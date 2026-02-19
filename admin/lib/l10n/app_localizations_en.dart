@@ -596,7 +596,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get thankYouMaxRewardLabel => 'Your discount is valid for';
 
   @override
-  String get thankYouMaxRewardSubtext => 'To maintain your max discount, visit us tomorrow too!';
+  String get thankYouMaxRewardSubtext =>
+      'To maintain your max discount, visit us tomorrow too!';
 
   @override
   String tomorrowMaxReward(int percent) {

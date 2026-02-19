@@ -176,7 +176,7 @@ const UnifiedActivation = () => {
                         <FontAwesomeIcon icon={faStar} />
                     </div>
                     <h1 className="text-[28px] font-black leading-tight mb-2">
-                        {t('reward_greeting', { name: guestName, defaultValue: `Thanks for visit, ${guestName}!` })}
+                        {t('thanks_for_visiting', { name: guestName, defaultValue: `Thanks for visiting,\n${guestName}!` })}
                     </h1>
                     <p className="text-[#1B5E20]/60 font-medium text-lg">
                         {t('reward_sub', "Here is your special treat.")}

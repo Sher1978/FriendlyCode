@@ -25,37 +25,23 @@ export class RewardCalculator {
         tomorrow.setHours(24, 0, 0, 0);
         const secondsUntilNextTier = Math.max(0, Math.floor((tomorrow - currentTime) / 1000));
 
-        // 2. ACTIVE DAY LOGIC (Safety Cooldown Window)
-        // Flutter Logic: if (hoursPassed >= config.safetyCooldownHours && hoursPassed < 24)
-        const isDayActive = (hoursPassed >= safeConfig.safetyCooldownHours && hoursPassed < 24);
+        // 2. ACTIVE DAY LOGIC (0 - 24 Hours)
+        // Flutter/Business Logic: ANY visit within 24 hours is considered an "Active Day".
+        // We removed the "Too Soon" cooldown restriction.
+        const isDayActive = (hoursPassed < 24);
 
         if (isDayActive) {
             return {
-                discount: safeConfig.percVip, // Or keep previous? Flutter keeps current.
+                discount: safeConfig.percVip, // Keep Max? Or current? 
+                // meaningful status distinguishing "just visited" vs "waiting" isn't fully needed if we just say "Active Day"
                 status: 'active',
                 phase: 'active',
                 isDayActive: true,
                 hoursPassed: hoursPassed,
-                secondsUntilDecay: safeConfig.vipWindowHours * 3600,
+                secondsUntilDecay: safeConfig.vipWindowHours * 3600, // Or calculation based on midnight?
                 secondsUntilNextTier: secondsUntilNextTier,
                 isLocked: false,
-                currentDiscount: safeConfig.percVip, // Fallback
-                nextDiscount: safeConfig.percVip
-            };
-        }
-
-        // 3. COOLDOWN (Too soon)
-        if (hoursPassed < safeConfig.safetyCooldownHours) {
-            return {
-                discount: safeConfig.percBase,
-                status: 'cooldown',
-                phase: 'cooldown',
-                isDayActive: false, // Wait! Flutter might say active if same day? No, cooldown is strict.
-                hoursPassed: hoursPassed,
-                secondsUntilDecay: 0,
-                secondsUntilNextTier: secondsUntilNextTier,
-                isLocked: true,
-                currentDiscount: safeConfig.percBase,
+                currentDiscount: safeConfig.percVip,
                 nextDiscount: safeConfig.percVip
             };
         }

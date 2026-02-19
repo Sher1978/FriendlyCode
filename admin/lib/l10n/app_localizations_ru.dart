@@ -598,7 +598,8 @@ class AppLocalizationsRu extends AppLocalizations {
   String get thankYouMaxRewardLabel => 'Ваша скидка действует еще';
 
   @override
-  String get thankYouMaxRewardSubtext => 'для максимальной скидки ждем Вас также завтра!';
+  String get thankYouMaxRewardSubtext =>
+      'для максимальной скидки ждем Вас также завтра!';
 
   @override
   String tomorrowMaxReward(int percent) {

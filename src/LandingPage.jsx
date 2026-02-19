@@ -29,7 +29,6 @@ const LandingPage = () => {
         secondsLeft: 0,
         label: 'reset',
         isBase: true,
-        isBase: true,
         isMax: false
     });
 
@@ -126,7 +125,24 @@ const LandingPage = () => {
                     const email = rawEmail.toLowerCase();
 
                     let calculatedDiscount = 5;
-                    let debugInfo = { email, found: false, hours: 0, lastVisit: 'none' };
+                    let result = null; // Initialize to avoid ReferenceError later
+
+                    // Initialize Debug Info with Defaults (Fixes "null" issue for new users)
+                    let debugInfo = {
+                        email,
+                        uid: user.uid,
+                        venueId,
+                        found: false,
+                        hours: 0,
+                        lastVisit: 'none',
+                        timezone: venueData.timezone || 'N/A',
+                        isDayActive: false,
+                        phase: 'guest',
+                        decayIn: 0,
+                        tiersCfg: venueData.tiers?.length || 0,
+                        nextTier: 0,
+                        status: 'new'
+                    };
 
                     if (email) {
                         const qVisits = query(
@@ -180,8 +196,8 @@ const LandingPage = () => {
                     setTimeout(() => setTremble(true), 1500);
                     setPredictionState({
                         percent: calculatedDiscount,
-                        secondsLeft: result.secondsUntilDecay || 0,
-                        label: result.status,
+                        secondsLeft: result?.secondsUntilDecay || 0,
+                        label: result?.status || 'new',
                         isBase: calculatedDiscount <= 5,
                         isMax: calculatedDiscount >= 20
                     });
@@ -272,18 +288,19 @@ const LandingPage = () => {
                 <div className="text-center mt-2">
                     {cooldown ? (
                         <>
-                            <h1 className="text-[20px] font-black leading-tight mb-1 text-[#E68A00]">
-                                {t('too_soon_headline', 'Too soon! ⏳')}
+                            {/* This case should practically disappear with new logic, but if used for "active day default": */}
+                            <h1 className="text-[24px] font-black leading-tight mb-1 text-[#E68A00] whitespace-pre-line">
+                                {t('welcome_back_headline', { percent: discount })}
                             </h1>
                             <p className="text-[#4E342E] opacity-70 font-bold text-sm">
-                                {t('come_back_later', 'Come back in {{hours}} hours for a better reward.', { hours: (cooldown.required - cooldown.hoursPassed).toFixed(1) })}
+                                {t('welcome_back_subhead', { defaultValue: 'The sooner you return, the bigger the reward.' })}
                             </p>
                         </>
                     ) : (
-                        <h1 className="text-[24px] font-black leading-tight mb-1">
+                        <h1 className="text-[24px] font-black leading-tight mb-1 whitespace-pre-line">
                             {guestName
-                                ? `${guestName}, рады Вам! 💗 Скидка: ${discount}%`
-                                : `${t('your_discount_today').split(':')[0]}: ${discount}%`
+                                ? t('welcome_back_headline', { percent: discount })
+                                : t('reward_today_headline', { percent: discount })
                             }
                         </h1>
                     )}
