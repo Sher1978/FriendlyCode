@@ -41,6 +41,7 @@ const resources = {
             "your_discount_today": "Your Discount TODAY: 5%",
             "want_max_discount": "Want 20%? Come back tomorrow!",
             "today_val": "Today: 5%",
+            "today_dynamic": "Today: {{percent}}%",
             "tomorrow_val": "Tomorrow: 20%",
             "in_3_days": "In 3 Days: 15%",
             "in_7_days": "In 7 Days: 10%",

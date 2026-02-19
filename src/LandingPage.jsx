@@ -404,6 +404,16 @@ const LandingPage = () => {
                             {/* Pivot Decoration */}
                             <circle cx="0" cy="0" r="12" fill="#4E342E" />
                             <circle cx="0" cy="0" r="5" fill="#FFF8E1" /> {/* Match background cream color for "hole" look */}
+
+                            {/* INVISIBLE COUNTERWEIGHT: Forces BBox center to be (0,0) so rotation works naturally */}
+                            <line
+                                x1="0"
+                                y1="0"
+                                x2="100"
+                                y2="0"
+                                stroke="transparent"
+                                strokeWidth="0"
+                            />
                         </motion.g>
 
                         {/* Centered Value Text */}
