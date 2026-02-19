@@ -385,22 +385,17 @@ const LandingPage = () => {
                         <motion.g
                             initial={{ rotate: 0, x: 142.5, y: 151 }}
                             animate={{
-                                rotate: tremble
-                                    ? [
-                                        ((discount - 5) / 15) * 180,
-                                        ((discount - 5) / 15) * 180 - 3,
-                                        ((discount - 5) / 15) * 180 + 3,
-                                        ((discount - 5) / 15) * 180 - 3,
-                                        ((discount - 5) / 15) * 180 + 3,
-                                        ((discount - 5) / 15) * 180
-                                    ]
-                                    : ((discount - 5) / 15) * 180,
+                                // Binary Logic: if discount > 5, rotate to 180 (Full). If 5, rotate to 0 (Empty).
+                                // Tremble only active if discount is 5.
+                                rotate: (discount > 5)
+                                    ? 180 // Full Rotation for 10, 15, 20
+                                    : (tremble ? [-3, 3, -3, 3, 0] : 0), // Tremble at 0 for 5
                                 x: 142.5, // Fixed pivot position
                             }}
                             transition={{
-                                rotate: tremble
-                                    ? { duration: 0.2, repeat: 3 } // Quick shake
-                                    : { duration: 1.5, type: "spring", bounce: 0.3 }, // Smooth entry
+                                rotate: (discount === 5 && tremble)
+                                    ? { duration: 0.2, repeat: 3 } // Quick shake at 0
+                                    : { duration: 1.5, type: "spring", bounce: 0.3 }, // Smooth sweep to 180
                                 x: { duration: 0 }
                             }}
                             style={{ transformOrigin: "0px 0px" }} // CRITICAL: Rotate around the group origin (where pivot circle is)
@@ -438,8 +433,8 @@ const LandingPage = () => {
                             y="120"
                             textAnchor="middle"
                             className={`text-[56px] font-black ${discount === 20 ? 'fill-[#2E7D32]' :
-                                    discount === 10 ? 'fill-[#D32F2F]' :
-                                        'fill-[#E68A00]' // 5% and 15% are Orange
+                                discount === 10 ? 'fill-[#D32F2F]' :
+                                    'fill-[#E68A00]' // 5% and 15% are Orange
                                 }`}
                             style={{ fontFamily: 'sans-serif' }}
                         >
