@@ -25,10 +25,13 @@ export class RewardCalculator {
         tomorrow.setHours(24, 0, 0, 0);
         const secondsUntilNextTier = Math.max(0, Math.floor((tomorrow - currentTime) / 1000));
 
-        // 2. ACTIVE DAY LOGIC (0 - 24 Hours)
-        // Flutter/Business Logic: ANY visit within 24 hours is considered an "Active Day".
-        // We removed the "Too Soon" cooldown restriction.
-        const isDayActive = (hoursPassed < 24);
+        const currentDate = new Date(currentTime);
+        const visitData = new Date(lastVisit);
+        const isDayActive = (
+            currentDate.getFullYear() === visitData.getFullYear() &&
+            currentDate.getMonth() === visitData.getMonth() &&
+            currentDate.getDate() === visitData.getDate()
+        );
 
         // Placeholder for currentTierValue. This would typically be passed in or derived from user's current state.
         // For the purpose of this edit, we'll assume it's defined elsewhere or will be defined.
