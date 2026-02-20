@@ -1,8 +1,11 @@
+
 import 'package:flutter/material.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/data/venue_repository.dart';
-import 'package:friendly_code/features/admin/presentation/screens/venue_detail_view.dart';
+import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
+import 'package:friendly_code/core/auth/role_provider.dart';
+import 'package:provider/provider.dart';
 
 class GlobalVenuesScreen extends StatefulWidget {
   const GlobalVenuesScreen({super.key});
@@ -13,9 +16,13 @@ class GlobalVenuesScreen extends StatefulWidget {
 
 class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
   final VenueRepository _venueRepo = VenueRepository();
+  String _searchQuery = "";
 
   @override
   Widget build(BuildContext context) {
+    final roleProvider = Provider.of<RoleProvider>(context);
+    final userUid = roleProvider.uid; 
+    
     return Container(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -26,19 +33,34 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text("GLOBAL VENUES", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title)),
-                  Text("Manage all partner venues in the system.", style: TextStyle(color: AppColors.body)),
+                children: [
+                  const Text("VENUES", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title)),
+                  Text(roleProvider.isSuperAdmin ? "Manage all partner venues in the system." : "Manage your assigned venues.", style: const TextStyle(color: AppColors.body)),
                 ],
               ),
-              ElevatedButton.icon(
-                onPressed: () {}, 
-                icon: const Icon(Icons.add), 
-                label: const Text("REGISTER NEW VENUE"),
-              ),
+              if (roleProvider.canManageVenues) // Defined in RoleProvider
+                ElevatedButton.icon(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())), 
+                  icon: const Icon(Icons.add), 
+                  label: const Text("REGISTER NEW VENUE"),
+                ),
             ],
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 24),
+
+          // Search Bar
+          TextField(
+            decoration: InputDecoration(
+              hintText: "Search venues by name...",
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              filled: true,
+              fillColor: Colors.white,
+            ),
+             onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+          ),
+
+          const SizedBox(height: 24),
           
           Expanded(
             child: StreamBuilder<List<VenueModel>>(
@@ -47,8 +69,36 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                 if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
                 if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
                 
-                final venues = snapshot.data!;
+                // FILTER LOGIC
+                final allVenues = snapshot.data!;
+                final filteredVenues = allVenues.where((v) {
+                   // 1. Role Filter
+                   bool hasAccess = false;
+                   if (roleProvider.isSuperAdmin) {
+                     hasAccess = true;
+                   } else if (roleProvider.isAdmin) {
+                     hasAccess = v.assignedAdminId == userUid || v.ownerId == userUid; 
+                   } else if (roleProvider.currentRole == UserRole.manager) {
+                     hasAccess = v.assignedManagerId == userUid;
+                   } else {
+                     // Owner or Staff
+                     hasAccess = v.ownerId == userUid;
+                   }
+                   
+                   if (!hasAccess) return false;
+
+                   // 2. Search Filter
+                   final nameMatch = v.name.toLowerCase().contains(_searchQuery);
+                   // user can also search by owner email if superadmin?
+                   final ownerMatch = roleProvider.isSuperAdmin && (v.ownerEmail ?? '').toLowerCase().contains(_searchQuery);
+                   
+                   return nameMatch || ownerMatch;
+                }).toList();
                 
+                if (filteredVenues.isEmpty) {
+                   return const Center(child: Text("No venues found matching your criteria."));
+                }
+
                 return ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
@@ -73,14 +123,14 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                                 border: TableBorder(
                                   horizontalInside: BorderSide(color: AppColors.title.withOpacity(0.05), width: 1),
                                 ),
-                                columns: const [
-                                  DataColumn(label: Text("VENUE NAME")),
-                                  DataColumn(label: Text("OWNER")),
-                                  DataColumn(label: Text("STATUS")),
-                                  DataColumn(label: Text("SUBSCRIPTION")),
-                                  DataColumn(label: Text("ACTIONS")),
+                                columns: [
+                                  const DataColumn(label: Text("VENUE NAME")),
+                                  if (roleProvider.isSuperAdmin) const DataColumn(label: Text("OWNER")),
+                                  if (roleProvider.isSuperAdmin || roleProvider.isAdmin) const DataColumn(label: Text("ASSIGNED STAFF")),
+                                  const DataColumn(label: Text("STATUS")),
+                                  const DataColumn(label: Text("ACTIONS")),
                                 ],
-                                rows: venues.map((v) => DataRow(
+                                rows: filteredVenues.map((v) => DataRow(
                                   cells: [
                                     DataCell(
                                       Row(
@@ -96,45 +146,46 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                                         ],
                                       ),
                                     ),
-                                    DataCell(Text(v.ownerEmail ?? 'Unclaimed', style: const TextStyle(color: AppColors.body))),
+                                    if (roleProvider.isSuperAdmin)
+                                      DataCell(Text(v.ownerEmail ?? 'Unclaimed', style: const TextStyle(color: AppColors.body))),
+                                    if (roleProvider.isSuperAdmin || roleProvider.isAdmin)
+                                      DataCell(
+                                        Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            if (v.assignedAdminId != null) const Text("Admin Assigned", style: TextStyle(fontSize: 10, color: Colors.blue)),
+                                            if (v.assignedManagerId != null) const Text("Manager Assigned", style: TextStyle(fontSize: 10, color: Colors.orange)),
+                                            if (v.assignedAdminId == null && v.assignedManagerId == null) const Text("-", style: TextStyle(color: Colors.grey)),
+                                          ],
+                                        )
+                                      ),
                                     DataCell(
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                         decoration: BoxDecoration(
-                                          color: v.isActive ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                                          color: v.isActive ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
                                           borderRadius: BorderRadius.circular(20),
                                         ),
                                         child: Text(
-                                          v.isActive ? "ACTIVE" : "FROZEN",
-                                          style: TextStyle(color: v.isActive ? Colors.green : Colors.red, fontWeight: FontWeight.w900, fontSize: 10),
+                                          v.isActive ? "ACTIVE" : "INACTIVE",
+                                          style: TextStyle(
+                                            color: v.isActive ? Colors.green : Colors.grey,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
                                         ),
                                       ),
                                     ),
                                     DataCell(
-                                      Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Text(
-                                            v.subscription.isPaid ? "PAID (${v.subscription.plan.toUpperCase()})" : "UNPAID",
-                                            style: TextStyle(
-                                              color: v.subscription.isPaid ? Colors.blue : Colors.orange, 
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12
-                                            ),
+                                          IconButton(
+                                            icon: const Icon(Icons.edit_outlined, color: AppColors.body),
+                                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: v))),
                                           ),
-                                          if (v.subscription.expiryDate != null)
-                                            Text(
-                                              "Expires: ${v.subscription.expiryDate!.day}/${v.subscription.expiryDate!.month}/${v.subscription.expiryDate!.year}",
-                                              style: TextStyle(color: AppColors.body.withOpacity(0.5), fontSize: 10),
-                                            ),
                                         ],
-                                      ),
-                                    ),
-                                    DataCell(
-                                      IconButton(
-                                        icon: const Icon(Icons.settings_outlined, color: AppColors.body),
-                                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueDetailView(venue: v))),
                                       ),
                                     ),
                                   ],
@@ -143,7 +194,7 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                             ),
                           ),
                         );
-                      }
+                      },
                     ),
                   ),
                 );

@@ -1,116 +1,81 @@
-# TECHNICAL SPECIFICATIONS (v2.1)
+# TECHNICAL SPECIFICATIONS (v3.1)
 **Scope:** Global Platform (SaaS)
-**Framework:** Flutter (Unified Codebase)
+**Framework:** Hybrid (React + Flutter)
 
 ## 1. TECHNOLOGY STACK
-* **Client App:** Flutter Mobile (iOS/Android) + Web PWA.
-* **Business App:** Flutter Mobile (iOS/Android).
-* **Admin Panel:** Flutter Web (Desktop optimized).
+* **Guest Flow (B2C):** React (Vite) Web PWA. Optimized for mobile browser speed and low-friction entry.
+* **Admin/Owner Panels:** Flutter Web (Desktop/Tablet optimized).
 * **Backend:** Firebase (Auth, Firestore, Cloud Functions).
-* **Maps:** Google Maps Flutter plugin.
+* **Email:** Resend API (Triggered via Cloud Functions).
+* **Telegram:** Bot integration for venue staff notifications.
 
 ## 1.1 HYBRID ARCHITECTURE RULES
-To ensure consistency and avoid duplication of work, the following boundaries are enforced:
-
 *   **REACT (Vite/React)**:
-    *   **Scope**: Marketing Landing Pages (B2C Home, B2B Business Page).
-    *   **Primary Files**: `src/MarketingB2C.jsx`, `src/MarketingB2B.jsx`.
-    *   **Restriction**: Do NOT modify guest flow versions in Flutter (e.g., `b2c_home_screen.dart` when used for marketing).
-*   **FLUTTER (Web/Mobile)**:
-    *   **Scope**: QR Flow & Guest Funnel (Scanner, Registration, Rewards, Admin/Owner Panels).
-    *   **Primary Files**: `admin/lib/features/web/presentation/pages/` (QR, LeadCapture, ThankYou).
-    *   **Restriction**: Do NOT modify guest flow versions in React (e.g., `LandingPage.jsx`, `LeadCapture.jsx`, `UnifiedActivation.jsx`).
+    *   **Scope**: Marketing Landing Pages & Guest QR Funnel.
+    *   **Primary Files**: `src/LandingPage.jsx`, `src/UnifiedActivation.jsx`, `src/logic/RewardCalculator.js`.
+*   **FLUTTER (Web)**:
+    *   **Scope**: Admin/Owner Dashboard, Staff Management, Global Venue Management.
+    *   **Primary Files**: `admin/lib/features/web/presentation/layout/admin_shell.dart`, `admin/lib/features/admin/presentation/screens/`.
 
+## 2. INTERFACE A: GUEST WEB APP (REACT)
+**Goal:** Zero-friction reward activation.
 
-## 2. INTERFACE A: CLIENT APP (GUEST)
-**Target:** Mass User. Needs to be simple, fast, visual.
+### Screen A1: Discovery & Calculating (Splash)
+* **Logic:** Authenticates user via `signInAnonymously`. Fetches `guestName` from localStorage. Performs discount calculation based on `isDayActive` and decay stages.
 
-### Screen A1: Discovery Map (Home)
-* **Layout:**
-    * **Header:** "Browse" Title + Top-Right Profile Icon.
-    * **Search:** Inline rounded input (`#F0F3F4`) with "Search resorts" placeholder.
-    * **Body:** Vertical scrollable list of "Popular Resorts" (Horizontal Cards: Image + Title + Description).
-    * **Toggle:** Map View / List View.
-    * **Bottom Nav:** Fixed (Home, Browse, Track, Profile).
-* **Element:** **Global Scan Button** (Floating or integrated in Nav).
+### Screen A2: Reward Gauge (Home)
+* **Needle Logic:**
+    *   Angle Calculation: `((discount - 5) / 15) * 180`.
+    *   Binary State:
+        *   If **5%**: Needle sits at 0° with `animate: { rotate: [0, -1, 1, 0] }` (Tremble effect).
+        *   If **> 5%**: Needle sweeps to 180° (usually for 20% streaks).
+*   **Visuals:** Speedometer design with a grey track. Central value shows the numeric discount (e.g., "20%").
+*   **Colors:** Green (Active Streak), Orange (Base/Reset), Red (Warning).
 
-### Screen A2: Venue Profile (Loyalty View)
-* **Context:** User has valid Guest Token (Post-Connect).
-* **Header:** Friendly Greeting ("Hey, great to have you back! ☀️").
-* **Perk Reminder:** Container showing all 5 Tiers with emoji bullet points (🔥, ✨, 🌿, ☕️).
-* **Action:** "GET DISCOUNT" Button -> Navigates to Validator Code/Animation.
-* **Footer:** Warm closing message ("Until next time...").
+## 3. INTERFACE B: ADMIN PANEL (FLUTTER)
+**Goal:** Multi-tenant hierarchy management.
 
-### Screen A3: User Profile
-* **Header:** User Avatar, Name.
-* **Stats:** "Total Savings", "Total Visits".
-* **My Places:** List of connected venues.
-* **Settings:**
-    * Push Notifications (On/Off).
-    * Theme (Light/Dark/System).
-    * Language.
+### Screen B1: Master Dashboard (SuperAdmin)
+*   **Staff Management:** Screen to promote users to `admin` or `manager` roles. Handles search by email and role toggles.
+*   **Venue Control:** Global list of all venues with Search-by-name.
 
-## 3. INTERFACE B: BUSINESS APP (VENUE)
-**Target:** Owner & Waiter. Needs to be functional and data-heavy.
+### Screen B2: Venue Management (Admin/Manager)
+*   **Permissions:** Admins see all venues assigned to their ID. Managers see only their specific venues.
+*   **Assigment:** SuperAdmins/Admins assign `assignedAdminId` and `assignedManagerId` in the Venue Editor.
 
-### Screen B1: Validator (Waiter Mode)
-* **Header:** "Pending Scans".
-* **Body:** Real-time list of guests who just scanned the QR.
-    * Card: Guest Name | Current Discount % | Avatar.
-    * Actions: [REJECT] (Red) | [CONFIRM VISIT] (Green).
-* **Logic:** Auto-refresh via Firestore Stream.
+### Screen B3: Notification Center
+*   **Component:** `NotificationBadge` (Bell icon) in the header.
+*   **Logic:** Real-time stream from `notifications` collection. Marks as `read: true` on interaction.
 
-### Screen B2: Venue Settings (Owner Mode)
-* **General Info Tab:**
-    * Input: Venue Name.
-    * Input: Description (TextArea).
-    * Input: Working Hours (Start/End picker).
-    * Input: Contact Email.
-    * Input: Social Links (Insta, Maps).
-    * Upload: Cover Photo.
-* **Discount Rules Tab:**
-    * **Dynamic List (Max 5 items):**
-    * Row: [Time Window (Hours)] -> [Discount %].
-    * Example: `0-24h` -> `20%`. `24-72h` -> `10%`.
+## 4. BUSINESS LOGIC: TIME-DECAY 2.0
+*   **Active Streak:** 24h window to maintain 20%. 
+*   **Calendar Day Logic:** Status expires at midnight of the day *after* the last visit.
+*   **Decay Stages:**
+    *   15% (Stage 1 Decay)
+    *   10% (Stage 2 Decay)
+    *   5% (Base/Reset)
+*   **Verification:** Staff receives instant Email/Telegram/Browser notification upon guest activation.
 
-### Screen B3: Analytics Dashboard
-* **KPI Row:** Total Activations (Visits) | Active Users (Unique).
-* **Chart 1: Retention Rate:** Average return time (e.g., "Average guest returns in 3.5 days").
-* **Chart 2: Discount Distribution:** Pie chart (How many used 20% vs 10% vs 5%).
+## 5. DATABASE SCHEMA
+**Collection: `users`**
+*   `role`: enum('superAdmin', 'admin', 'manager', 'owner', 'staff').
 
-## 4. INTERFACE C: SUPER ADMIN PANEL (SHER)
-**Target:** Platform Management. Web Desktop view.
-
-### Screen C1: Master Dashboard
-* **Global KPI:** Total Venues, Total Guests, System Load.
-* **Venues Table:**
-    * Columns: ID | Name | Owner Email | Status (Active/Frozen) | Payment Status (Paid/Unpaid).
-    * **Action:** Toggle Status (Activate/Deactivate).
-    * **Action:** "Mark as Paid" (Manual Subscription control).
-
-### Screen C2: Venue Detail View
-* **Read-Only View:** See exactly what the Venue Owner sees (Stats, Rules, Info).
-* **Admin Logs:** History of status changes for this venue.
-
-## 5. DATABASE SCHEMA ADDITIONS
 **Collection: `venues`**
-* `tiers`: Array `[{ maxHours: 24, percent: 20 }, ...]` (Max 5).
-* `subscription`: `{ plan: "pro", isPaid: boolean, expiryDate: Timestamp }`.
-* `stats`: `{ avgReturnHours: number, totalCheckins: number }`.
+*   `assignedAdminId`: String (UID)
+*   `assignedManagerId`: String (UID)
+*   `loyaltyConfig`: `{ safetyCooldownHours, vipWindowHours, tier1DecayHours, tier2DecayHours, percBase, percVip, percDecay1, percDecay2 }`.
 
-**Collection: `app_config`**
-* `globalSettings`: `{ maxTiersAllowed: 5, maintenanceMode: boolean }`.
+**Collection: `notifications`**
+*   `venueId`: String
+*   `title`: String
+*   `message`: String
+*   `read`: Boolean
+*   `timestamp`: ServerTimestamp
 
-## 6. BUSINESS NOTIFICATIONS (TELEGRAM)
-**Target:** Venue Staff & Owners (Alternative to App Interface).
-
-### Feature: Group Integration
-*   **Logic:** Venue Owner creates a Telegram Group.
-*   **Setup:** Owner adds Platform Bot and sends command `/register_venue <VENUE_ID>`.
-*   **Storage:** `telegramGroupId` stored in `venues` document.
-
-### Feature: Live Notifications
-*   **Trigger:** Guest creates a Scan (Check-In).
-*   **Message:** Bot sends "New Guest Details" + "Current Discount" to the linked Group.
-*   **Interaction:** Message contains **Inline Button** [✅ Confirm].
-*   **Action:** Staff clicks Confirm -> Cloud Function updates Scan status in DB -> Database updates analytics.
+## 6. CLOUD FUNCTIONS
+*   **`onVisitCreated`**:
+    1.  Fetch Venue data.
+    2.  Fetch Owner User Profile (Fallback for Email if `ownerEmail` is missing in venue).
+    3.  Create Firestore `notification` document.
+    4.  Send Email via Resend.
+    5.  Push to Telegram (if `telegramChatId` exists).

@@ -118,6 +118,8 @@ class VenueModel {
   final DateTime? lastBlastDate;
   final double? latitude;
   final double? longitude;
+  final String? assignedAdminId;
+  final String? assignedManagerId;
 
   VenueModel({
     required this.id,

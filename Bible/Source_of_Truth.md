@@ -1,115 +1,71 @@
 # SOURCE OF TRUTH: PROJECT "FRIENDLY CODE"
-**Version:** 3.0 (ZERO FRICTION & B2B REBOOT)
-**Status:** APPROVED FOR IMPLEMENTATION
+**Version:** 3.5 (RBAC & ADVANCED NOTIFICATIONS)
+**Status:** IMPLEMENTED/PRODUCTION
 
 ## 1. PROJECT OVERVIEW
 "Friendly Code" is a **Global Loyalty Platform (SaaS)** connecting Guests with HoReCa venues via a unified "Time-Decay" reward system.
 *   **Core Value:** "Visit often, pay less."
-*   **Strategic Pivot:** "Zero Friction" onboarding for Guests and "Retention > Acquisition" focus for Business Owners.
+*   **Strategic Pivot:** "Zero Friction" onboarding for Guests and "Retention > Operations" focus for Business Owners.
 
-## 2. B2B LANDING PAGE STRATEGY (BUSINESS OWNERS)
-**Concept:** "Retention is cheaper than Acquisition."
-**Tone of Voice:** Friendly, energetic, honest, B2B-casual (no corporate jargon).
+## 2. SYSTEM ARCHITECTURE (THE HYBRID SPLIT)
+*   **B2C Guest Flow (React):** Marketing landing and the primary QR Scanning/Reward activation experience. Optimized for mobile browser performance and zero-friction.
+*   **Staff/Admin Panels (Flutter):** High-interaction dashboards for Venue Owners, Managers, and SuperAdmins.
 
-### Key Value Propositions:
-*   **The Problem:** Advertising is a casino (you pay for a *chance*).
-*   **The Solution:** Pay only for results (retention). Keeping an old client is 7x cheaper than finding a new one.
-*   **The Mechanics:** **Time-Decay Reward** (High reward for frequent visits, low reward for rare visits).
-*   **The "No-Risk" Guarantee:** The system is purely performance-based.
-*   **The Simplicity:** "Set it and forget it" tools for owners.
+## 3. B2C WEB APPLICATION FLOW (ZERO FRICTION)
+**Core Mechanic:** Identity is established via `signInAnonymously` (Firebase) and persistent `localStorage`. Email serves as a recovery/linking key.
 
-## 3. B2C WEB APPLICATION FLOW ("ZERO FRICTION" MODEL)
-**Core Change:** Remove functionality requiring app download or OTP registration for the first reward.
-**Technology:** Progressive Web App (PWA) / Mobile Web with LocalStorage/Cookies for persistence.
+### User Journey (QR Scan):
+1.  **Splash Screen:** Dynamic "Calculating Reward..." state while fetching venue/user data.
+2.  **Landing Page (The Gauge):**
+    *   **Visual:** A Speedometer-style Gauge.
+    *   **Logic (Binary Needle):** 
+        *   If Reward = **5%**, needle is at 0 degrees (Left) with a "Tremble" animation (Indicates "Cold" state).
+        *   If Reward > **5%** (10, 15, or 20%), needle sweeps to 180 degrees (Right) (Indicates "Active" state).
+    *   **Dynamic Instructions:** 
+        *   If 20%: "Visit today to keep your Max Discount!"
+        *   If <20%: "Visit today to get your Max Discount!"
+3.  **Activation:**
+    *   User enters Name/Email (if not saved).
+    *   One-click `[CONFIRM & ACTIVATE]`.
+    *   Instant Notification to Venue Staff (Email, Telegram, Browser).
 
-### User Journey A: First-Time Visitor (Cold)
-1.  **Scan QR:** User scans the table QR code.
-2.  **Landing Page:**
-    *   **Hero:** "Your reward TODAY is **5%**." (Immediate gratification).
-    *   **Hook:** "Want **20%**? Come back tomorrow!" (Explain Time-Decay: 20% tomorrow, 15% in 3 days, 5% in a week).
-3.  **Data Capture (Input Form):**
-    *   **Fields:** Name, Contact (Smart Input: Switcher for WhatsApp Number or Email).
-    *   **Consent (Crucial):** Checkbox `[ ] I agree to receive secret offers from this venue (max 1/week).`
-    *   **Action:** Button `[Get Reward]`.
-4.  **Verification Screen (Data Integrity):**
-    *   **Display:** Show the entered Name and Contact.
-    *   **Actions:** Button `[Edit]` (Go back) or Button `[Confirm & Activate]` (Proceed).
-    *   *Note:* No SMS OTP verification required at this stage. Trust the user to reduce friction.
+## 4. DYNAMIC DISCOUNT LOGIC (STAY ACTIVE)
+*   **Base (New/Cold):** 5%
+*   **Max (VIP):** 20%
+*   **Active Window:** 24 hours from the last visit.
+*   **Streak Protection:** Users typically hold their 20% status until midnight of the day *after* their last visit ("Come back tomorrow").
+*   **Decay Tiers:**
+    *   Stage 1: 15% (After 72 hours)
+    *   Stage 2: 10% (After 168 hours)
+*   **Reset:** Back to 5% after the final decay window.
 
-### User Journey B: Returning Visitor (Warm)
-1.  **Scan QR:** System detects User ID via Browser Cookies / LocalStorage.
-2.  **Auto-Login:** Skip Landing & Data Capture.
-3.  **Activation Screen:**
-    *   **Display:** "Welcome back, [Name]!"
-    *   **Dynamic Offer:** Show the calculated reward based on the time elapsed since the last visit (e.g., "Your Reward Today: **15%**").
-    *   **Action:** Large Button `[🚀 ACTIVATE REWARD]`.
+## 5. RBAC & ADMIN HIERARCHY (FLUTTER)
+The system supports four distinct operational roles within the Admin Panel:
 
-### User Journey C: Reward Activation (The "Moment of Truth")
-1.  **Trigger:** User clicks `[ACTIVATE REWARD]`.
-2.  **System Action:**
-    *   **Backend:** Records the transaction attempt.
-    *   **Notification:** Sends an immediate notification to the Staff (via the **Business App Push** or **Email**). *Content: "Table X (Alex) is redeeming 15%."*
-3.  **User UI Feedback:**
-    *   Redirect to **Thank You / Success Screen**.
-    *   Show a visual timer (e.g., "Active for 5 mins") or a Green Checkmark to show the waiter.
-4.  **Retention Loop (Upsell):**
-    *   **Hook:** "Want to find other places with these rewards?"
-    *   **CTA:** Soft-sell links to download the full Mobile App (App Store / Google Play).
+| Role | Access Level | Responsibilities |
+| :--- | :--- | :--- |
+| **SuperAdmin** | Global | Full platform control. Analytics, Billing, Staff Management (Creating Admins/Managers). |
+| **Admin** | Regional/Multi-Venue | Manages a set of assigned venues. View stats, edit venue info, assign Managers to venues. |
+| **Manager** | Venue-Specific | Primarily operational. Can edit assigned venue details (Categories, Links, Tiers). No Analytics access. |
+| **Owner** | Business | View analytics and reports for their specific venues. |
 
-## 4. MARKETING & RETENTION MODULE
-**Goal:** Allow businesses to reactivate their customer base without spamming.
+## 6. NOTIFICATION SYSTEM
+*   **Delivery Channels:**
+    *   **Browser (Bell Icon):** Real-time updates in the Admin Panel via `notifications` collection.
+    *   **Email:** via Resend API. Automatic fallback to Owner User Profile if Venue contact email is missing.
+    *   **Telegram:** Bot-driven notifications to venue groups.
+*   **Logic:** Triggered by `onVisitCreated` Firebase Cloud Function.
 
-### Client Side (Web/App)
-*   **Opt-In:** The checkbox during the First Visit flow (`marketing_consent = true`).
-*   **Opt-Out:** Unsubscribe link in every email/message.
+## 7. DESIGN SYSTEM (AESTHETIC)
+*   **Theme:** "Premium Dark/Light" with Glassmorphism.
+*   **Colors:**
+    *   **Accent:** Brand Orange (`#FF9933`).
+    *   **Hierarchy:** Green (20% - Profit), Orange (5%/15% - Base/Warning), Red (10% - Danger of Loss).
+*   **Typography:** `Plus Jakarta Sans` / `Outfit`.
 
-### Business Dashboard (Owner UI)
-*   **Feature:** "Broadcast Message".
-*   **Function:** Send a text/image blast to all users who visited this specific venue and opted in.
-*   **Constraints (Hard Logic):**
-    *   **Frequency Cap:** Max **1 broadcast per 7 days** per venue. (Prevent spam).
-    *   **Audience Filter:** All / Active (Last 30 days) / Lost (No visit > 30 days).
+## 8. DATABASE (FIRESTORE)
+*   `users`: Stores `role`, `email`, `name`.
+*   `venues`: Stores `ownerId`, `assignedAdminId`, `assignedManagerId`, `loyaltyConfig`.
+*   `visits`: Records every activation event.
+*   `notifications`: Queue for in-app browser notification badge.
 
-### Admin Dashboard (Super Admin)
-*   **Global Controls:** Ability to ban a venue from sending broadcasts.
-*   **Stats:** View open rates and "Return Rate" (users who visited within 3 days of a broadcast).
-
-## 5. BUSINESS LOGIC (CORE)
-### A. The "Time-Decay" Model
-*   Venues configure up to **5 Tiers** of rewards based on hours since the last visit.
-*   Example: 0-24h (20%), 24-48h (15%), etc.
-
-### B. The "Secure Handshake" (Security)
-*   Typically initiated by the Guest via the Web App (Journey C).
-*   Staff validates via their Validator App.
-
-## 6. DATABASE SCHEMA UPDATES
-### Users Table
-*   `contact_info` (String, Unique Index scope per venue or global depending on architecture).
-*   `contact_type` (Enum: 'whatsapp', 'email').
-*   `marketing_consent` (Boolean).
-*   `last_marketing_received_at` (Timestamp).
-
-### Visits Table
-*   Tracks every scan and activation.
-
-## 7. DESIGN & UX (THE "STITCH" SYSTEM)
-### A. Visual Identity
-*   **Aesthetic:** "Light & Slim" (Clean, Premium, Airy).
-*   **Palette:**
-    *   **Backgrounds:** White (`#FFFFFF`) & Soft Gray (`#F0F3F4`).
-    *   **Typography:** `Plus Jakarta Sans`. Dark Blue-Grey (`#111518`) for headings, Soft Slate (`#637C88`) for body.
-*   **Components:** Rounded corners (r12-r24), Flat elevations, Horizontal list items.
-
-### B. Tone of Voice
-*   **Personality:** Friendly, Enthusiastic, Warm, Emoji-rich.
-*   **Key Phrases:**
-    *   "Welcome!" instead of "Identify Yourself".
-    *   "YAY! REWARD UNLOCKED! 🎉" instead of "Status Activated".
-    *   "Stay safe, stay happy! 💛".
-
-## 8. IMPLEMENTATION PRIORITY
-1.  **Frontend:** B2C Web Flow (Zero Friction).
-2.  **Backend:** Staff Notification Logic.
-3.  **Frontend:** B2B Landing Page Copy & Design.
-4.  **Backend:** Marketing Broadcast Module.

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-enum UserRole { superAdmin, owner, staff }
+enum UserRole { superAdmin, admin, manager, owner, staff }
 
 class RoleProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -15,6 +15,12 @@ class RoleProvider extends ChangeNotifier {
   List<String> get venueIds => _venueIds;
   String? get venueId => _activeVenueId ?? (_venueIds.isNotEmpty ? _venueIds.first : null);
   String? get uid => _uid;
+
+  // Convenience getters for UI logic
+  bool get isSuperAdmin => _currentRole == UserRole.superAdmin;
+  bool get isAdmin => _currentRole == UserRole.superAdmin || _currentRole == UserRole.admin;
+  bool get canManageStaff => _currentRole == UserRole.superAdmin; // Only SuperAdmin creates Admins/Managers
+  bool get canManageVenues => _currentRole == UserRole.superAdmin || _currentRole == UserRole.admin || _currentRole == UserRole.manager;
 
   void setRole(UserRole role) {
     _currentRole = role;
@@ -37,15 +43,17 @@ class RoleProvider extends ChangeNotifier {
         if (doc.exists && doc.data() != null) {
           final data = doc.data()!;
           final userEmail = user.email?.trim().toLowerCase();
-          
-          if (data['role'] == 'superAdmin' || userEmail == '0451611@gmail.com') {
+          final roleStr = data['role'] as String? ?? 'owner';
+
+          if (roleStr == 'superAdmin' || userEmail == '0451611@gmail.com') {
             _currentRole = UserRole.superAdmin;
-            
-            // Auto-fix Firestore if it's missing the string but email matches
             if (data['role'] != 'superAdmin') {
-               debugPrint("Fixing role for founder in existing doc.");
-               await docRef.update({'role': 'superAdmin'});
+                await docRef.update({'role': 'superAdmin'});
             }
+          } else if (roleStr == 'admin') {
+            _currentRole = UserRole.admin;
+          } else if (roleStr == 'manager') {
+            _currentRole = UserRole.manager;
           } else {
             _currentRole = UserRole.owner;
           }
@@ -71,7 +79,6 @@ class RoleProvider extends ChangeNotifier {
                String resolvedRole = (stubData['role'] as String?) ?? 'owner';
                if (user.email != null && user.email!.trim().toLowerCase() == '0451611@gmail.com') {
                   resolvedRole = 'superAdmin';
-                  debugPrint("Founder email recognized during merge. Forcing superAdmin.");
                }
 
                // 1. Merge Data (Priority to New Google Auth for Profile, Old Stub for Roles/Venues)
@@ -90,6 +97,7 @@ class RoleProvider extends ChangeNotifier {
 
                // 3. Migrate Venue Ownership
                // Find venues owned by the OLD stub ID and update them to the NEW auth ID
+               // Also check assignedAdminId / assignedManagerId if we want deep migration
                final venuesOwnedByStub = await FirebaseFirestore.instance
                    .collection('venues')
                    .where('ownerId', isEqualTo: stubId)
@@ -99,6 +107,15 @@ class RoleProvider extends ChangeNotifier {
                  await vDoc.reference.update({'ownerId': user.uid});
                  debugPrint("Migrated venue ${vDoc.id} ownership to ${user.uid}");
                }
+               
+               // Use resolved role for current session
+               if (resolvedRole == 'superAdmin') _currentRole = UserRole.superAdmin;
+               else if (resolvedRole == 'admin') _currentRole = UserRole.admin;
+               else if (resolvedRole == 'manager') _currentRole = UserRole.manager;
+               else _currentRole = UserRole.owner;
+             }
+          }
+        }
 
                // 4. Delete Old Stub (to prevent future confusion/duplicates)
                await stubDoc.reference.delete();

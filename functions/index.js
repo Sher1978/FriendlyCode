@@ -133,7 +133,18 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
         const venueName = venueData.name || "Default Venue";
 
         if (!ownerEmail) {
-            logger.warn(`No owner email found for venue ${venueId}`);
+            // Fallback: Try to get email from the Owner's User Profile
+            if (venueData.ownerId) {
+                const ownerUserDoc = await db.collection("users").doc(venueData.ownerId).get();
+                if (ownerUserDoc.exists && ownerUserDoc.data().email) {
+                    ownerEmail = ownerUserDoc.data().email;
+                    logger.info(`Found owner email in user profile: ${ownerEmail}`);
+                }
+            }
+        }
+
+        if (!ownerEmail) {
+            logger.warn(`No owner email found for venue ${venueId} (checked venue doc and owner profile)`);
             return;
         }
 
@@ -152,6 +163,21 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
                 else if (totalVisits > 3) guestStatus = "Regular";
             }
         }
+
+        // 2.5. Create In-App Notification (Browser/Admin Panel)
+        await db.collection("notifications").add({
+            type: "new_visit",
+            venueId: venueId,
+            title: "New Guest Checked In",
+            message: `${guestName} has arrived. Discount: ${discountValue}%`,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            read: false,
+            data: {
+                visitId: event.params.visitId,
+                uid: uid,
+                discount: discountValue
+            }
+        });
 
         // 3. Send Email via Resend
         const { data, error } = await resend.emails.send({

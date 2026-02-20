@@ -1,386 +1,211 @@
+
 import 'package:flutter/material.dart';
-import 'package:friendly_code/core/services/user_service.dart';
-import 'package:friendly_code/core/theme/colors.dart';
-import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:friendly_code/core/theme/colors.dart';
 
 class StaffManagementScreen extends StatefulWidget {
-  final String venueId;
-
-  const StaffManagementScreen({super.key, required this.venueId});
+  const StaffManagementScreen({super.key});
 
   @override
   State<StaffManagementScreen> createState() => _StaffManagementScreenState();
 }
 
-class _StaffManagementScreenState extends State<StaffManagementScreen> with SingleTickerProviderStateMixin {
-  final UserService _userService = UserService();
-  final TextEditingController _searchCtrl = TextEditingController();
-  late TabController _tabController;
-  
-  Map<String, dynamic>? _foundUser;
-  bool _isSearching = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  // ... (Keep existing _searchUser, _assignRole, _createUser, _showCreateUserDialog, _removeUser)
-
-  // Fetch Requests
-  Stream<QuerySnapshot> _getRequestsStream() {
-    return FirebaseFirestore.instance
-        .collection('venue_requests')
-        .where('venueId', isEqualTo: widget.venueId)
-        .where('status', isEqualTo: 'pending')
-        .snapshots();
-  }
-
-  Future<void> _approveRequest(DocumentSnapshot doc) async {
-    final data = doc.data() as Map<String, dynamic>;
-    final userId = data['userId'];
-    final email = data['userEmail'];
-    
-    try {
-      // 1. Assign Role
-      await _userService.addPersonnelByEmail(email: email, venueId: widget.venueId, role: UserRole.staff);
-      
-      // 2. Delete Request
-      await doc.reference.delete();
-      
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Approved $email!")));
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-    }
-  }
-
-  Future<void> _rejectRequest(DocumentSnapshot doc) async {
-    try {
-      await doc.reference.delete();
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Request rejected")));
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-    }
-  }
-
-  void _searchUser() async {
-    final email = _searchCtrl.text.trim();
-    if (email.isEmpty) return;
-
-    setState(() {
-      _isSearching = true;
-      _foundUser = null;
-    });
-
-    try {
-      final user = await _userService.getUserByEmail(email);
-      setState(() => _foundUser = user);
-      if (user == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("User not found")),
-        );
-      }
-    } finally {
-      setState(() => _isSearching = false);
-    }
-  }
-
-  Future<void> _assignRole(String email, UserRole role) async {
-    try {
-      await _userService.addPersonnelByEmail(
-        email: email,
-        venueId: widget.venueId,
-        role: role,
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("User with email $email assigned as ${role.name}")),
-      );
-      setState(() => _foundUser = null); // Reset search
-      _searchCtrl.clear();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
-    }
-  }
-
-  Future<void> _createUser(String name, String email) async {
-    try {
-      await _userService.createUserStub(
-        email: email, 
-        name: name, 
-        venueId: widget.venueId, 
-        role: UserRole.staff
-      );
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("User created and assigned!")));
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
-    }
-  }
-
-  void _showCreateUserDialog() {
-    final nameCtrl = TextEditingController();
-    final emailCtrl = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Create New User"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text("This creates a placeholder account. The user can claim it by signing up with this email."),
-            const SizedBox(height: 16),
-            TextField(controller: nameCtrl, decoration: const InputDecoration(labelText: "Full Name", filled: true)),
-            const SizedBox(height: 8),
-            TextField(controller: emailCtrl, decoration: const InputDecoration(labelText: "Email Address", filled: true)),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("CANCEL")),
-          TextButton(
-            onPressed: () {
-              if (nameCtrl.text.isEmpty || emailCtrl.text.isEmpty) return;
-              Navigator.pop(context);
-              _createUser(nameCtrl.text.trim(), emailCtrl.text.trim());
-            },
-            child: const Text("CREATE & ASSIGN", style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _removeUser(String uid) async {
-    try {
-      await _userService.removeUserFromVenue(uid);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User removed from personnel")),
-      );
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error removing user: $e")),
-      );
-    }
-  }
+class _StaffManagementScreenState extends State<StaffManagementScreen> {
+  final _firestore = FirebaseFirestore.instance;
+  String _searchQuery = "";
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text("STAFF MANAGEMENT"),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: "Current Staff"),
-            Tab(text: "Pending Requests"),
-          ],
-          indicatorColor: AppColors.accentOrange,
-          labelColor: AppColors.accentOrange,
-          unselectedLabelColor: Colors.grey,
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.info_outline, color: AppColors.accentOrange),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // Tab 1: Current Staff (Original UI)
-          Column(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header
+        Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Search Card
-              Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: AppColors.softShadow,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                       const Text("ADD PERSONNEL", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.5)),
-                       const SizedBox(height: 16),
-                       TextField(
-                         controller: _searchCtrl,
-                         decoration: InputDecoration(
-                           hintText: "Enter email address...",
-                           prefixIcon: const Icon(Icons.search, color: AppColors.accentOrange),
-                           suffixIcon: IconButton(
-                             icon: _isSearching 
-                               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                               : const Icon(Icons.arrow_forward_rounded, color: AppColors.accentOrange),
-                             onPressed: _isSearching ? null : _searchUser,
-                           ),
-                         ),
-                         onSubmitted: (_) => _searchUser(),
-                       ),
-                       const SizedBox(height: 12),
-                       Align(
-                         alignment: Alignment.centerRight,
-                         child: TextButton.icon(
-                           onPressed: _showCreateUserDialog,
-                           icon: const Icon(Icons.person_add, size: 16),
-                           label: const Text("OR CREATE NEW USER", style: TextStyle(fontWeight: FontWeight.bold)),
-                           style: TextButton.styleFrom(foregroundColor: AppColors.accentOrange),
-                         ),
-                       ),
-                    ],
-                  ),
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                   const Text("Staff Management", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.title)),
+                   const SizedBox(height: 4),
+                   Text("Manage SuperAdmins, Admins, and Managers", style: TextStyle(fontSize: 14, color: AppColors.body.withOpacity(0.7))),
+                ],
               ),
-
-              // Search Results
-              if (_foundUser != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentOrange,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(_foundUser!['email'] ?? 'Unknown', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                              Text("ROLE: ${(_foundUser!['role'] ?? 'GUEST').toString().toUpperCase()}", style: const TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                        ElevatedButton(
-                          onPressed: () => _assignRole(_foundUser!['email'], UserRole.staff),
-                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentGreen, foregroundColor: Colors.white),
-                          child: const Text("ADD STAFF"),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: () => _assignRole(_foundUser!['email'], UserRole.owner),
-                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentOrange, foregroundColor: Colors.white),
-                          child: const Text("MAKE OWNER"),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-              const Padding(
-                padding: EdgeInsets.all(24.0),
-                child: Row(
-                  children: [
-                    Text("CURRENT PERSONNEL", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, color: AppColors.body)),
-                    Spacer(),
-                  ],
-                ),
-              ),
-
-              // Personnel List
-              Expanded(
-                child: StreamBuilder<List<Map<String, dynamic>>>(
-                  stream: _userService.getStaffForVenue(widget.venueId),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
-                    if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-
-                    final personnel = snapshot.data!;
-                    if (personnel.isEmpty) return const Center(child: Text("No personnel assigned yet."));
-
-                    return ListView.builder(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      itemCount: personnel.length,
-                      itemBuilder: (context, index) {
-                        final user = personnel[index];
-                        final isOwner = user['role'] == 'owner';
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.accentOrange.withOpacity(0.05)),
-                          ),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: (isOwner ? AppColors.accentOrange : AppColors.accentGreen).withOpacity(0.1),
-                              child: Icon(isOwner ? Icons.admin_panel_settings_outlined : Icons.badge_outlined, color: isOwner ? AppColors.accentOrange : AppColors.accentGreen, size: 20),
-                            ),
-                            title: Text(user['email'] ?? 'No Email', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-                            subtitle: Text(user['role']?.toString().toUpperCase() ?? 'STAFF', style: TextStyle(color: AppColors.body.withOpacity(0.5), fontSize: 11, fontWeight: FontWeight.bold)),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.remove_circle_outline, color: Colors.redAccent, size: 20),
-                              onPressed: () => _removeUser(user['uid']),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
+              ElevatedButton.icon(
+                onPressed: () => _showAddStaffDialog(context),
+                icon: const Icon(Icons.add),
+                label: const Text("Add Staff"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.brandOrange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 ),
               ),
             ],
           ),
+        ),
 
-          // Tab 2: Pending Requests
-          StreamBuilder<QuerySnapshot>(
-            stream: _getRequestsStream(),
+        // Search
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: "Search by email...",
+              prefixIcon: const Icon(Icons.search),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              filled: true,
+              fillColor: Colors.white,
+            ),
+            onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // List
+        Expanded(
+          child: StreamBuilder<QuerySnapshot>(
+            stream: _firestore.collection('users').where('role', whereIn: ['superAdmin', 'admin', 'manager', 'staff']).snapshots(),
             builder: (context, snapshot) {
-              if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
-              if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+              if (snapshot.hasError) return const Center(child: Text("Error loading staff"));
+              if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-              final requests = snapshot.data!.docs;
-              if (requests.isEmpty) return const Center(child: Text("No pending requests.", style: TextStyle(color: Colors.grey)));
+              final docs = snapshot.data!.docs.where((doc) {
+                 final data = doc.data() as Map<String, dynamic>;
+                 final email = (data['email'] as String? ?? '').toLowerCase();
+                 return email.contains(_searchQuery);
+              }).toList();
 
-              return ListView.builder(
+              return ListView.separated(
                 padding: const EdgeInsets.all(24),
-                itemCount: requests.length,
+                itemCount: docs.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
                 itemBuilder: (context, index) {
-                  final req = requests[index];
-                  final data = req.data() as Map<String, dynamic>;
+                  final data = docs[index].data() as Map<String, dynamic>;
+                  final uid = docs[index].id;
+                  final role = data['role'] ?? 'staff';
 
-                  return Card(
-                    elevation: 0,
-                    color: AppColors.surface,
-                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    margin: const EdgeInsets.only(bottom: 12),
-                    child: ListTile(
-                      leading: const CircleAvatar(child: Icon(Icons.person_outline)),
-                      title: Text(data['userName'] ?? 'Unknown User', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(data['userEmail'] ?? 'No Email'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.check_circle, color: Colors.green),
-                            onPressed: () => _approveRequest(req),
-                            tooltip: "Approve",
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.black12),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: _getRoleColor(role).withOpacity(0.1),
+                          child: Icon(Icons.person, color: _getRoleColor(role)),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(data['email'] ?? 'No Email', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: _getRoleColor(role).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(role.toString().toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _getRoleColor(role))),
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.cancel, color: Colors.red),
-                            onPressed: () => _rejectRequest(req),
-                            tooltip: "Reject",
-                          ),
-                        ],
-                      ),
+                        ),
+                        IconButton(
+                           icon: const Icon(Icons.edit_outlined),
+                           onPressed: () => _showEditRoleDialog(context, uid, role, data['email']),
+                        ),
+                      ],
                     ),
                   );
                 },
               );
             },
           ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  Color _getRoleColor(String role) {
+    switch (role) {
+      case 'superAdmin': return Colors.purple;
+      case 'admin': return Colors.blue;
+      case 'manager': return Colors.orange;
+      default: return Colors.grey;
+    }
+  }
+
+  void _showEditRoleDialog(BuildContext context, String uid, String currentRole, String? email) {
+    String selectedRole = currentRole;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text("Edit Role for $email"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RadioListTile(
+                title: const Text("Super Admin"), 
+                value: 'superAdmin', 
+                groupValue: selectedRole, 
+                onChanged: (v) => setState(() => selectedRole = v!),
+              ),
+              RadioListTile(
+                title: const Text("Admin"), 
+                value: 'admin', 
+                groupValue: selectedRole, 
+                onChanged: (v) => setState(() => selectedRole = v!),
+              ),
+              RadioListTile(
+                title: const Text("Manager"), 
+                value: 'manager', 
+                groupValue: selectedRole, 
+                onChanged: (v) => setState(() => selectedRole = v!),
+              ),
+              RadioListTile(
+                title: const Text("Staff (No Access)"), 
+                value: 'staff', 
+                groupValue: selectedRole, 
+                onChanged: (v) => setState(() => selectedRole = v!),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+            ElevatedButton(
+              onPressed: () async {
+                 await _firestore.collection('users').doc(uid).update({'role': selectedRole});
+                 if (mounted) Navigator.pop(ctx);
+              },
+              child: const Text("Save"),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  void _showAddStaffDialog(BuildContext context) {
+      // For now, simpler implementation: Ask for email, find user, assign role.
+      // Or create a dummy user logic (requires Cloud Function to create Auth user).
+      // Let's just show an info dialog that the user must sign up first.
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("Add New Staff"),
+          content: const Text("To add a new staff member, ask them to sign up / log in to the App/Panel once via Google. \n\nOnce they are in the 'users' list (as 'owner' or 'staff'), you can find them here and Promote them."),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("OK")),
+          ],
+        ),
+      );
   }
 }

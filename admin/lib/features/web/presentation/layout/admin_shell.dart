@@ -11,6 +11,8 @@ import 'package:friendly_code/features/owner/presentation/screens/owner_venues_s
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:friendly_code/core/localization/locale_provider.dart';
+import 'package:friendly_code/features/admin/presentation/widgets/notification_badge.dart';
+import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
 
 class AdminShell extends StatefulWidget {
   final Widget child; // Default/Initial screen
@@ -37,13 +39,22 @@ class _AdminShellState extends State<AdminShell> {
       widget.child, // 0: Overview
       widget.role == UserRole.superAdmin 
         ? const GlobalVenuesScreen() 
-        : const OwnerVenuesScreen(), 
-      widget.role == UserRole.superAdmin
-        ? const AnalyticsModule() // Admin Global Analytics
-        : const OwnerAnalyticsScreen(), // Owner Venue Analytics
-      widget.role == UserRole.superAdmin
-        ? const Center(child: Text("System Billing", style: TextStyle(color: AppColors.title)))
-        : const OwnerBillingScreen(), // Owner Billing
+        : const OwnerVenuesScreen(), // 1: Venues
+      if (widget.role != UserRole.manager) // 2: Analytics (Hidden for Manager)
+        widget.role == UserRole.superAdmin
+          ? const AnalyticsModule()
+          : const OwnerAnalyticsScreen()
+      else
+        const Center(child: Text("Analytics not available for Managers", style: TextStyle(color: AppColors.title))),
+      
+      // 3. Billing / Staff (Depends on Role)
+      if (widget.role == UserRole.superAdmin)
+         const StaffManagementScreen() // Staff Management
+      else if (widget.role == UserRole.admin)
+          const Center(child: Text("My Staff (Managers) - Coming Soon", style: TextStyle(color: AppColors.title)))
+      else 
+          const Center(child: Text("No Billing Access", style: TextStyle(color: AppColors.title))),
+
       const GeneralSettingsScreen(), // 4: Settings
     ];
   }
@@ -134,8 +145,17 @@ class _AdminShellState extends State<AdminShell> {
           // Navigation Items
           _buildNavItem(0, Icons.grid_view_outlined, "Overview", isMobile: isMobile),
           _buildNavItem(1, Icons.storefront_outlined, "Venues", isMobile: isMobile),
-          _buildNavItem(2, Icons.bar_chart_outlined, "Analytics", isMobile: isMobile),
-          _buildNavItem(3, Icons.payments_outlined, "Billing", isMobile: isMobile),
+          
+          if (widget.role != UserRole.manager)
+             _buildNavItem(2, Icons.bar_chart_outlined, "Analytics", isMobile: isMobile),
+          
+          if (widget.role == UserRole.superAdmin)
+             _buildNavItem(3, Icons.people_outline, "Staff", isMobile: isMobile)
+          else if (widget.role == UserRole.admin)
+             _buildNavItem(3, Icons.people_outline, "My Team", isMobile: isMobile)
+          else if (widget.role == UserRole.owner)
+             _buildNavItem(3, Icons.payments_outlined, "Billing", isMobile: isMobile),
+
           const Spacer(),
           _buildNavItem(4, Icons.settings_outlined, "Settings", isMobile: isMobile),
           Padding(
@@ -248,6 +268,10 @@ class _AdminShellState extends State<AdminShell> {
             ),
           
           if (isDesktop) const SizedBox(width: 24),
+
+          // Notification Badge
+          const NotificationBadge(),
+          const SizedBox(width: 16),
 
           // Language Switcher
           Consumer<LocaleProvider>(
