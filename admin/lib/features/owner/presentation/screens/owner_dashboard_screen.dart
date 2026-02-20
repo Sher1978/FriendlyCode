@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
@@ -261,11 +262,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               }
             },
           ),
-          const SizedBox(width: 8),
-          IconButton(
-            icon: const Icon(Icons.person_outline, color: AppColors.title),
-            onPressed: () {}, 
-          ),
           const SizedBox(width: 16),
         ],
       ),
@@ -339,7 +335,16 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
       itemBuilder: (context) => [
         ...venueIds.map((id) => PopupMenuItem(
           value: id,
-          child: Text("Venue ID: ...${id.substring(max(0, id.length - 4))}"),
+          child: FutureBuilder<VenueModel?>(
+            future: _venueRepo.getVenueById(id),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Text("...${id.substring(max(0, id.length - 4))}");
+              }
+              final name = snapshot.data?.name ?? "Unknown Venue";
+              return Text(name, style: const TextStyle(fontWeight: FontWeight.w600));
+            }
+          ),
         )),
       ],
     );
@@ -482,6 +487,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
 
   Widget _buildPremiumQRCard(VenueModel venue) {
     final l10n = AppLocalizations.of(context)!;
+    final venueUrl = "https://www.friendlycode.fun/qr?id=${venue.id}";
     return Container(
       decoration: BoxDecoration(
         color: AppColors.title, // Deep Brown
@@ -505,11 +511,47 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
                 const SizedBox(height: 4),
                 Text(venue.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 12),
+                
+                // Shareable Link Block
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          venueUrl, 
+                          style: const TextStyle(color: Colors.white70, fontSize: 11),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () async {
+                           await Clipboard.setData(ClipboardData(text: venueUrl));
+                           if (context.mounted) {
+                             ScaffoldMessenger.of(context).showSnackBar(
+                               const SnackBar(content: Text('Link copied to clipboard!'), behavior: SnackBarBehavior.floating),
+                             );
+                           }
+                        },
+                        child: const Icon(Icons.copy, color: AppColors.premiumGold, size: 16),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+
                 SizedBox(
                   height: 36,
                   child: ElevatedButton(
                     onPressed: () {
-                      final url = "https://quickchart.io/qr?text=${Uri.encodeComponent('https://www.friendlycode.fun/qr?id=${venue.id}')}&size=1000&format=png&ecLevel=H";
+                      final url = "https://quickchart.io/qr?text=${Uri.encodeComponent(venueUrl)}&size=1000&format=png&ecLevel=H";
                       url_launcher.launchUrl(Uri.parse(url));
                     },
                     style: ElevatedButton.styleFrom(backgroundColor: AppColors.premiumSand, foregroundColor: AppColors.title, elevation: 0),
