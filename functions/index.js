@@ -194,18 +194,18 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
                     const { data: welcomeData, error: welcomeError } = await resend.emails.send({
                         from: "Friendly Code <no-reply@friendlycode.fun>",
                         to: [visitGuestEmail],
-                        subject: `Добро пожаловать в ${venueName}! 🎉`,
+                        subject: `Welcome to ${venueName}! 🎉`,
                         html: `
                             <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 40px; background-color: #FFF8E1; border-radius: 24px; color: #4E342E; text-align: center;">
-                                <h1 style="font-size: 28px; font-weight: 900; margin-bottom: 20px; color: #E68A00;">Спасибо за визит!</h1>
+                                <h1 style="font-size: 28px; font-weight: 900; margin-bottom: 20px; color: #E68A00;">Thank you for your visit!</h1>
                                 <p style="font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
-                                    Мы были очень рады видеть вас в <strong>${venueName}</strong>!
+                                    We were thrilled to see you at <strong>${venueName}</strong>!
                                 </p>
                                 <div style="background: #ffffff; padding: 24px; border-radius: 20px; border: 1px solid rgba(78, 52, 46, 0.1); margin-bottom: 30px;">
-                                    <p style="font-size: 16px; margin-bottom: 10px;">С радостью сообщаем, что завтра весь день вам доступна скидка:</p>
+                                    <p style="font-size: 16px; margin-bottom: 10px;">We are happy to let you know that tomorrow all day you have a discount of:</p>
                                     <span style="font-size: 48px; font-weight: 900; color: #2E7D32;">${maxTier}%</span>
                                 </div>
-                                <p style="font-size: 16px; font-weight: bold; color: #4E342E;">Ждем вас в гости снова! ☕✨</p>
+                                <p style="font-size: 16px; font-weight: bold; color: #4E342E;">We look forward to seeing you again! ☕✨</p>
                             </div>
                         `
                     });
@@ -227,43 +227,43 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
                 from: "Friendly Code <no-reply@friendlycode.fun>",
                 to: [ownerEmail],
                 reply_to: "support@friendlycode.fun",
-                subject: `🚀 Новое сканирование в ${venueName}!`,
+                subject: `🚀 New scan at ${venueName}!`,
                 html: `
                     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #4E342E; max-width: 600px; margin: auto; padding: 40px; background-color: #FFF8E1; border-radius: 24px;">
                         <div style="text-align: center; margin-bottom: 30px;">
                             <span style="font-size: 12px; font-weight: 900; letter-spacing: 2px; color: #E68A00; text-transform: uppercase;">Friendly Code</span>
                         </div>
-                        <h1 style="font-size: 28px; font-weight: 900; margin-bottom: 20px; color: #4E342E; text-align: center;">У вас новый гость!</h1>
+                        <h1 style="font-size: 28px; font-weight: 900; margin-bottom: 20px; color: #4E342E; text-align: center;">You have a new guest!</h1>
                         <p style="font-size: 16px; line-height: 1.6; text-align: center; margin-bottom: 30px;">
-                            Только что в <strong>${venueName}</strong> было зафиксировано новое сканирование.
+                            A new scan was just recorded at <strong>${venueName}</strong>.
                         </p>
                         <div style="background: #ffffff; padding: 24px; border-radius: 20px; border: 1px solid rgba(78, 52, 46, 0.1); margin-bottom: 30px;">
                             <table width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td style="padding-bottom: 15px;">
-                                        <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Имя гостя</span><br/>
+                                        <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Guest Name</span><br/>
                                         <span style="font-size: 18px; font-weight: 900; color: #4E342E;">${guestName}</span>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td style="padding-bottom: 15px;">
-                                        <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Статус</span><br/>
+                                        <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Status</span><br/>
                                         <span style="font-size: 18px; font-weight: 900; color: #4CAF50;">${guestStatus}</span>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td>
-                                        <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Примененная скидка</span><br/>
+                                        <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Applied Discount</span><br/>
                                         <span style="font-size: 24px; font-weight: 900; color: #E68A00;">${discountValue}%</span>
                                     </td>
                                 </tr>
                             </table>
                         </div>
                         <div style="text-align: center;">
-                            <a href="https://friendlycode.fun/admin" style="display: inline-block; background: #E68A00; color: #FFF8E1; padding: 18px 36px; border-radius: 18px; text-decoration: none; font-weight: 900; font-size: 16px; box-shadow: 0 8px 20px rgba(230, 138, 0, 0.2);">Посмотреть аналитику</a>
+                            <a href="https://friendlycode.fun/admin" style="display: inline-block; background: #E68A00; color: #FFF8E1; padding: 18px 36px; border-radius: 18px; text-decoration: none; font-weight: 900; font-size: 16px; box-shadow: 0 8px 20px rgba(230, 138, 0, 0.2);">View Analytics</a>
                         </div>
                         <p style="margin-top: 50px; text-align: center; font-size: 12px; color: #795548; font-weight: 500;">
-                            Friendly Code — мы помогаем вашим гостям любить вас в ответ.
+                            Friendly Code — we help your guests love you back.
                         </p>
                     </div>
                 `
@@ -335,7 +335,7 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
         }
 
         if (telegramUsers.length > 0) {
-            const message = `🔔 <b>Новый визит!</b>\n\n👤 <b>Гость:</b> ${guestName}\n🎁 <b>Скидка:</b> ${discountValue}%\n🕓 <b>Время:</b> ${new Date().toLocaleTimeString('ru-RU', { timeZone: 'Asia/Dubai' })}`;
+            const message = `🔔 <b>New Visit!</b>\n\n👤 <b>Guest:</b> ${guestName}\n🎁 <b>Discount:</b> ${discountValue}%\n🕓 <b>Time:</b> ${new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Dubai' })}`;
             for (const chatId of telegramUsers) {
                 await sendTelegramMessage(chatId, message);
             }
@@ -751,15 +751,15 @@ exports.onLeadCreated = onDocumentCreated("leads/{leadId}", async (event) => {
             from: "Friendly Code <no-reply@friendlycode.fun>",
             to: ["friiendlycode@gmail.com"],
             reply_to: email,
-            subject: `🔥 Новый лид (B2B): ${email}`,
+            subject: `🔥 New Lead (B2B): ${email}`,
             html: `
                 <div style="font-family: sans-serif; padding: 20px;">
-                    <h1>Новая заявка на подключение!</h1>
+                    <h1>New Connection Request!</h1>
                     <p><strong>Email:</strong> ${email}</p>
-                    <p><strong>Телефон:</strong> ${phone || "Не указан"}</p>
-                    <p><strong>Город:</strong> ${city || "Не указан"}</p>
-                    <p><strong>Источник:</strong> ${source || "Неизвестно"}</p>
-                    <p><strong>Время:</strong> ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Dubai' })}</p>
+                    <p><strong>Phone:</strong> ${phone || "Not specified"}</p>
+                    <p><strong>City:</strong> ${city || "Not specified"}</p>
+                    <p><strong>Source:</strong> ${source || "Unknown"}</p>
+                    <p><strong>Time:</strong> ${new Date().toLocaleString('en-US', { timeZone: 'Asia/Dubai' })}</p>
                 </div>
             `
         });
@@ -833,7 +833,7 @@ exports.discountDecayReminder = onSchedule({
             const venueDoc = await db.collection("venues").doc(candidate.venueId).get();
             if (venueDoc.exists) {
                 const venueData = venueDoc.data();
-                const venueName = venueData.name || "вашем любимом заведении";
+                const venueName = venueData.name || "your favorite venue";
                 const tiers = venueData.tiers || [];
                 const maxTier = tiers.length > 0 ? Math.max(...tiers.map(t => t.discountPercent)) : 20;
 
@@ -845,17 +845,17 @@ exports.discountDecayReminder = onSchedule({
                 const html = `
                     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: auto; padding: 40px; background-color: #FFF8E1; border-radius: 24px; color: #4E342E; text-align: center;">
                         <span style="font-size: 40px; display: block; margin-bottom: 10px;">⏳</span>
-                        <h1 style="font-size: 24px; font-weight: 900; margin-bottom: 20px; color: #D32F2F;">Ваша максимальная скидка скоро сгорит!</h1>
+                        <h1 style="font-size: 24px; font-weight: 900; margin-bottom: 20px; color: #D32F2F;">Your maximum discount is expiring soon!</h1>
                         <p style="font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
-                            Уважаемый(ая) <strong>${candidate.guestName}</strong>,<br/>
-                            Ваша скидка <strong>${maxTier}%</strong> в <strong>${venueName}</strong> действует только до конца текущего дня!
+                            Dear <strong>${candidate.guestName}</strong>,<br/>
+                            Your <strong>${maxTier}%</strong> discount at <strong>${venueName}</strong> is only valid until the end of today!
                         </p>
                         <div style="background: #ffffff; padding: 30px; border-radius: 20px; border: 1px solid rgba(78, 52, 46, 0.1); margin-bottom: 30px;">
-                            <p style="font-size: 16px; margin-bottom: 15px; color: #795548; font-weight: bold;">Ровно в полночь она снизится до:</p>
+                            <p style="font-size: 16px; margin-bottom: 15px; color: #795548; font-weight: bold;">Exactly at midnight, it will drop to:</p>
                             <span style="font-size: 56px; font-weight: 900; color: #E68A00; line-height: 1;">${nextTier}%</span>
                         </div>
                         <p style="font-size: 16px; font-weight: 600; color: #4E342E; background-color: rgba(230, 138, 0, 0.1); padding: 20px; border-radius: 12px;">
-                            🏃‍♂️ Успейте зайти к нам сегодня, чтобы обновить таймер и сохранить максимальную выгоду! 😉✨
+                            🏃‍♂️ Make sure to visit us today to reset your timer and keep your maximum discount! 😉✨
                         </p>
                     </div>
                 `;
@@ -863,7 +863,7 @@ exports.discountDecayReminder = onSchedule({
                 const { error } = await resend.emails.send({
                     from: "Friendly Code <no-reply@friendlycode.fun>",
                     to: [candidate.email],
-                    subject: `⚠️ Скидка ${maxTier}% в ${venueName} сгорает сегодня!`,
+                    subject: `⚠️ Your ${maxTier}% discount at ${venueName} expires today!`,
                     html: html
                 });
 
