@@ -136,16 +136,8 @@ const LandingPage = () => {
                         email,
                         uid: user.uid,
                         venueId,
-                        found: false,
-                        hours: 0,
-                        lastVisit: 'none',
-                        timezone: venueData.timezone || 'N/A',
-                        isDayActive: false,
-                        phase: 'guest',
-                        decayIn: 0,
-                        tiersCfg: venueData.tiers?.length || 0,
-                        nextTier: 0,
-                        status: 'new'
+                        daysAgoStr: 'Никогда',
+                        discountToday: 5
                     };
 
                     if (email) {
@@ -166,26 +158,20 @@ const LandingPage = () => {
 
                             calculatedDiscount = result.discount;
 
-                            // 4. Update Debug Info (Full Match to Flutter)
+                            const today = new Date(now);
+                            today.setHours(0, 0, 0, 0);
+                            const visitDate = new Date(lastVisit);
+                            visitDate.setHours(0, 0, 0, 0);
+                            const daysAgo = Math.round((today - visitDate) / (1000 * 60 * 60 * 24));
+                            const daysAgoStr = daysAgo === 0 ? "Сегодня (0)" : `${daysAgo} дн. назад`;
+
+                            // 4. Update Debug Info
                             debugInfo = {
                                 email,
-                                uid: user.uid, // ADDED
+                                uid: user.uid,
                                 venueId,
-                                found: true,
-                                hours: result.hoursPassed.toFixed(1),
-                                lastVisit: lastVisit.toISOString(),
-                                // New Fields
-                                timezone: venueData.timezone || 'N/A',
-                                isDayActive: result.isDayActive,
-                                phase: result.phase,
-                                decayIn: (result.secondsUntilDecay / 3600).toFixed(1),
-                                tiersCfg: venueData.tiers?.length || 0,
-                                nextTier: result.nextDiscount,
-                                status: result.status,
-                                // New Debug Fields
-                                changeIn: result.secondsUntilDecay
-                                    ? `${Math.floor(result.secondsUntilDecay / 3600)}h ${Math.floor((result.secondsUntilDecay % 3600) / 60)}m`
-                                    : 'N/A'
+                                daysAgoStr,
+                                discountToday: calculatedDiscount
                             };
 
                             if (result.status === 'cooldown') {
@@ -299,9 +285,9 @@ const LandingPage = () => {
             <div className="pt-6 px-6 text-center z-10">
                 <p className="text-sm font-bold opacity-60 uppercase tracking-widest">Welcome to</p>
                 <h2 className="text-2xl font-black leading-tight text-[#E68A00] mb-1">{venueName}</h2>
-                <div className="flex items-center justify-center gap-1 opacity-40 p-4 -m-4 cursor-pointer" onClick={() => setDebugClicks(c => c + 1)}>
-                    <span className="text-[10px] font-bold uppercase tracking-wider">powered by FriendlyCode</span>
-                    <FontAwesomeIcon icon={faLeaf} className="text-[10px]" />
+                <div className="flex items-center justify-center gap-1 opacity-40 p-10 -m-10 cursor-pointer" onClick={() => setDebugClicks(c => c + 1)}>
+                    <span className="text-[12px] font-bold uppercase tracking-wider">powered by FriendlyCode</span>
+                    <FontAwesomeIcon icon={faLeaf} className="text-[12px]" />
                 </div>
             </div>
 
@@ -511,26 +497,20 @@ const LandingPage = () => {
                     {guestName ? t('get_my_reward', 'Get My Reward') : t('get_my_discount')}
                 </button>
             </div>
-            {/* Debug Overlay (Flutter Match) */}
+            {/* Debug Overlay */}
             {debugClicks >= 5 && lastVisitDebug && (
                 <div className="fixed top-20 left-4 right-4 bg-black/90 rounded-2xl border border-green-500 p-4 z-50 shadow-2xl" onClick={() => setDebugClicks(0)}>
                     <div className="flex justify-between items-center mb-2 border-b border-white/20 pb-2">
                         <h3 className="font-bold text-green-400 text-sm">DEBUG INFO</h3>
                         <button className="text-white">X</button>
                     </div>
-                    <div className="space-y-1 font-mono text-xs text-white">
-                        <DebugLine label="UID" value={lastVisitDebug.uid?.substring(0, 6) || "null"} />
+                    <div className="space-y-2 font-mono text-[11px] text-white">
+                        <DebugLine label="UID" value={lastVisitDebug.uid?.substring(0, 8) || "null"} />
                         <DebugLine label="Email" value={lastVisitDebug.email} />
-                        <DebugLine label="Venue" value={localStorage.getItem('currentVenueId')} />
-                        <DebugLine label="Tiers Cfg" value={lastVisitDebug.tiersCfg} />
-                        <DebugLine label="Found Visit" value={lastVisitDebug.found ? 'YES' : 'NO'} />
-                        <DebugLine label="Timezone" value={lastVisitDebug.timezone} />
-                        <DebugLine label="Active Day" value={lastVisitDebug.isDayActive ? 'YES' : 'NO'} />
-                        <DebugLine label="Phase" value={lastVisitDebug.phase} />
-                        <DebugLine label="Next Tier" value={`${lastVisitDebug.nextTier}%`} />
-                        <DebugLine label="Change In" value={lastVisitDebug.changeIn} />
-                        <DebugLine label="Last Visit" value={lastVisitDebug.lastVisit} />
-                        <div className="text-[10px] text-white/50 mt-2 text-center">(Tap to close)</div>
+                        <DebugLine label="Venue" value={lastVisitDebug.venueId || localStorage.getItem('currentVenueId')} />
+                        <DebugLine label="Активный день" value={lastVisitDebug.daysAgoStr} />
+                        <DebugLine label="Скидка сегодня" value={`${lastVisitDebug.discountToday}%`} />
+                        <div className="text-[10px] text-white/50 mt-4 text-center border-t border-white/20 pt-2">(Нажмите, чтобы закрыть)</div>
                     </div>
                 </div>
             )}
