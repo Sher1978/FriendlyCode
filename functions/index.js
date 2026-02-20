@@ -129,26 +129,19 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
         const venueDoc = await db.collection("venues").doc(venueId).get();
         if (!venueDoc.exists) return;
         const venueData = venueDoc.data();
-        const ownerEmail = venueData.ownerEmail;
+        let ownerEmail = venueData.ownerEmail;
         const venueName = venueData.name || "Default Venue";
 
-        if (!ownerEmail) {
-            // Fallback: Try to get email from the Owner's User Profile
-            if (venueData.ownerId) {
-                const ownerUserDoc = await db.collection("users").doc(venueData.ownerId).get();
-                if (ownerUserDoc.exists && ownerUserDoc.data().email) {
-                    ownerEmail = ownerUserDoc.data().email;
-                    logger.info(`Found owner email in user profile: ${ownerEmail}`);
-                }
+        // Fallback: Try to get email from the Owner's User Profile
+        if (!ownerEmail && venueData.ownerId) {
+            const ownerUserDoc = await db.collection("users").doc(venueData.ownerId).get();
+            if (ownerUserDoc.exists && ownerUserDoc.data().email) {
+                ownerEmail = ownerUserDoc.data().email;
+                logger.info(`Found owner email in user profile: ${ownerEmail}`);
             }
         }
 
-        if (!ownerEmail) {
-            logger.warn(`No owner email found for venue ${venueId} (checked venue doc and owner profile)`);
-            return;
-        }
-
-        // 2. Get Guest Info (Fallback to visit data if user doc missing)
+        // 2. Get Guest Info
         let guestName = visitGuestName || "A guest";
         let guestStatus = "Level 1";
 
@@ -157,14 +150,15 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
             if (guestDoc.exists) {
                 const guestData = guestDoc.data();
                 guestName = guestData.displayName || guestData.name || guestName;
-                // Simple status logic for now
                 const totalVisits = guestData.totalVisits || 0;
                 if (totalVisits > 10) guestStatus = "Super VIP";
                 else if (totalVisits > 3) guestStatus = "Regular";
             }
         }
 
-        // 2.5. Create In-App Notification (Browser/Admin Panel)
+        // ==========================================
+        // 3. IN-APP NOTIFICATION (Prioritized)
+        // ==========================================
         await db.collection("notifications").add({
             type: "new_visit",
             venueId: venueId,
@@ -179,75 +173,75 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
             }
         });
 
-        // 3. Send Email via Resend
-        const { data, error } = await resend.emails.send({
-            from: "Friendly Code <no-reply@friendlycode.fun>",
-            to: [ownerEmail],
-            reply_to: "support@friendlycode.fun",
-            subject: `🚀 Новое сканирование в ${venueName}!`,
-            html: `
-                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #4E342E; max-width: 600px; margin: auto; padding: 40px; background-color: #FFF8E1; border-radius: 24px;">
-                    <div style="text-align: center; margin-bottom: 30px;">
-                        <span style="font-size: 12px; font-weight: 900; letter-spacing: 2px; color: #E68A00; text-transform: uppercase;">Friendly Code</span>
+        // ==========================================
+        // 4. EMAIL NOTIFICATION
+        // ==========================================
+        if (ownerEmail) {
+            const { data, error } = await resend.emails.send({
+                from: "Friendly Code <no-reply@friendlycode.fun>",
+                to: [ownerEmail],
+                reply_to: "support@friendlycode.fun",
+                subject: `🚀 Новое сканирование в ${venueName}!`,
+                html: `
+                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #4E342E; max-width: 600px; margin: auto; padding: 40px; background-color: #FFF8E1; border-radius: 24px;">
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <span style="font-size: 12px; font-weight: 900; letter-spacing: 2px; color: #E68A00; text-transform: uppercase;">Friendly Code</span>
+                        </div>
+                        <h1 style="font-size: 28px; font-weight: 900; margin-bottom: 20px; color: #4E342E; text-align: center;">У вас новый гость!</h1>
+                        <p style="font-size: 16px; line-height: 1.6; text-align: center; margin-bottom: 30px;">
+                            Только что в <strong>${venueName}</strong> было зафиксировано новое сканирование.
+                        </p>
+                        <div style="background: #ffffff; padding: 24px; border-radius: 20px; border: 1px solid rgba(78, 52, 46, 0.1); margin-bottom: 30px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="padding-bottom: 15px;">
+                                        <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Имя гостя</span><br/>
+                                        <span style="font-size: 18px; font-weight: 900; color: #4E342E;">${guestName}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="padding-bottom: 15px;">
+                                        <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Статус</span><br/>
+                                        <span style="font-size: 18px; font-weight: 900; color: #4CAF50;">${guestStatus}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Примененная скидка</span><br/>
+                                        <span style="font-size: 24px; font-weight: 900; color: #E68A00;">${discountValue}%</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div style="text-align: center;">
+                            <a href="https://friendlycode.fun/admin" style="display: inline-block; background: #E68A00; color: #FFF8E1; padding: 18px 36px; border-radius: 18px; text-decoration: none; font-weight: 900; font-size: 16px; box-shadow: 0 8px 20px rgba(230, 138, 0, 0.2);">Посмотреть аналитику</a>
+                        </div>
+                        <p style="margin-top: 50px; text-align: center; font-size: 12px; color: #795548; font-weight: 500;">
+                            Friendly Code — мы помогаем вашим гостям любить вас в ответ.
+                        </p>
                     </div>
-                    
-                    <h1 style="font-size: 28px; font-weight: 900; margin-bottom: 20px; color: #4E342E; text-align: center;">У вас новый гость!</h1>
-                    
-                    <p style="font-size: 16px; line-height: 1.6; text-align: center; margin-bottom: 30px;">
-                        Только что в <strong>${venueName}</strong> было зафиксировано новое сканирование.
-                    </p>
-                    
-                    <div style="background: #ffffff; padding: 24px; border-radius: 20px; border: 1px solid rgba(78, 52, 46, 0.1); margin-bottom: 30px;">
-                        <table width="100%" cellpadding="0" cellspacing="0">
-                            <tr>
-                                <td style="padding-bottom: 15px;">
-                                    <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Имя гостя</span><br/>
-                                    <span style="font-size: 18px; font-weight: 900; color: #4E342E;">${guestName}</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style="padding-bottom: 15px;">
-                                    <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Статус</span><br/>
-                                    <span style="font-size: 18px; font-weight: 900; color: #4CAF50;">${guestStatus}</span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>
-                                    <span style="font-size: 12px; font-weight: 700; color: #795548; text-transform: uppercase;">Примененная скидка</span><br/>
-                                    <span style="font-size: 24px; font-weight: 900; color: #E68A00;">${discountValue}%</span>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
-                    
-                    <div style="text-align: center;">
-                        <a href="https://friendlycode.fun/admin" style="display: inline-block; background: #E68A00; color: #FFF8E1; padding: 18px 36px; border-radius: 18px; text-decoration: none; font-weight: 900; font-size: 16px; box-shadow: 0 8px 20px rgba(230, 138, 0, 0.2);">Посмотреть аналитику</a>
-                    </div>
-                    
-                    <p style="margin-top: 50px; text-align: center; font-size: 12px; color: #795548; font-weight: 500;">
-                        Friendly Code — мы помогаем вашим гостям любить вас в ответ.
-                    </p>
-                </div>
-            `
-        });
+                `
+            });
 
-        if (error) throw error;
-        logger.info(`Email sent to ${ownerEmail} for visit ${event.params.visitId}`);
-        // 4. Send Push Notification (FCM) to Owner AND Staff
-        // Find all users linked to this venue (Owner + Staff)
-        const staffSnapshot = await db.collection("users")
-            .where("venueId", "==", venueId)
-            .get();
+            if (error) {
+                logger.error("Resend Email error:", error);
+            } else {
+                logger.info(`Email sent to ${ownerEmail} for visit ${event.params.visitId}`);
+            }
+        } else {
+            logger.warn(`No owner email found for venue ${venueId}. Skipping email notification.`);
+        }
 
+        // ==========================================
+        // 5. FCM PUSH NOTIFICATIONS
+        // ==========================================
+        const staffSnapshot = await db.collection("users").where("venueId", "==", venueId).get();
         const tokens = [];
         staffSnapshot.forEach(doc => {
             const userData = doc.data();
-            if (userData.fcmToken) {
-                tokens.push(userData.fcmToken);
-            }
+            if (userData.fcmToken) tokens.push(userData.fcmToken);
         });
 
-        // Also check if owner is not in the list (if they haven't set their venueId in profile but are listed in venue doc)
         if (venueData.ownerId) {
             const ownerDoc = await db.collection("users").doc(venueData.ownerId).get();
             if (ownerDoc.exists && ownerDoc.data().fcmToken && !tokens.includes(ownerDoc.data().fcmToken)) {
@@ -257,50 +251,41 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
 
         if (tokens.length > 0) {
             try {
-                // Multicast message
                 await admin.messaging().sendEachForMulticast({
                     tokens: tokens,
                     notification: {
                         title: `🚀 New Guest in ${venueName}!`,
                         body: `${guestName} just checked in. Discount: ${discountValue}%`,
                     },
-                    android: {
-                        notification: {
-                            sound: "doorbell"
-                        }
-                    },
-                    apns: {
-                        payload: {
-                            aps: {
-                                sound: "doorbell.mp3"
-                            }
-                        }
-                    },
-                    data: {
-                        visitId: event.params.visitId,
-                        venueId: venueId,
-                        type: "new_visit"
-                    }
+                    data: { visitId: event.params.visitId, venueId: venueId, type: "new_visit" }
                 });
-                logger.info(`FCM sent to ${tokens.length} devices for ${venueName}`);
             } catch (fcmErr) {
                 logger.error("FCM multicast error", fcmErr);
             }
         }
 
-        // 5. Send Telegram Notification
-        // Find users with telegramChatId
+        // ==========================================
+        // 6. TELEGRAM NOTIFICATIONS
+        // ==========================================
         const telegramUsers = [];
+
+        // 6a. Check Staff profiles for Telegram IDs
         staffSnapshot.forEach(doc => {
             const d = doc.data();
             if (d.telegramChatId) telegramUsers.push(d.telegramChatId);
         });
 
+        // 6b. Check Owner profile for Telegram ID
         if (venueData.ownerId) {
             const ownerDoc = await db.collection("users").doc(venueData.ownerId).get();
             if (ownerDoc.exists && ownerDoc.data().telegramChatId && !telegramUsers.includes(ownerDoc.data().telegramChatId)) {
                 telegramUsers.push(ownerDoc.data().telegramChatId);
             }
+        }
+
+        // 6c. Check Venue configuration for Group Telegram ID
+        if (venueData.telegramGroupId && !telegramUsers.includes(venueData.telegramGroupId)) {
+            telegramUsers.push(venueData.telegramGroupId);
         }
 
         if (telegramUsers.length > 0) {
