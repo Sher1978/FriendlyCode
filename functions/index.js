@@ -174,8 +174,54 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
         });
 
         // ==========================================
-        // 4. EMAIL NOTIFICATION
+        // 4. EMAIL NOTIFICATIONS (Welcome & Owner)
         // ==========================================
+
+        // 4a. Guest Welcome Email (First Visit)
+        if (visitGuestEmail) {
+            try {
+                const previousVisits = await db.collection("visits")
+                    .where("guestEmail", "==", visitGuestEmail)
+                    .where("venueId", "==", venueId)
+                    .limit(2)
+                    .get();
+
+                if (previousVisits.size === 1) { // Current visit is the only one = First Visit
+                    const maxTier = venueData.tiers && venueData.tiers.length > 0
+                        ? Math.max(...venueData.tiers.map(t => t.discountPercent))
+                        : 20;
+
+                    const { data: welcomeData, error: welcomeError } = await resend.emails.send({
+                        from: "Friendly Code <no-reply@friendlycode.fun>",
+                        to: [visitGuestEmail],
+                        subject: `Добро пожаловать в ${venueName}! 🎉`,
+                        html: `
+                            <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 40px; background-color: #FFF8E1; border-radius: 24px; color: #4E342E; text-align: center;">
+                                <h1 style="font-size: 28px; font-weight: 900; margin-bottom: 20px; color: #E68A00;">Спасибо за визит!</h1>
+                                <p style="font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                                    Мы были очень рады видеть вас в <strong>${venueName}</strong>!
+                                </p>
+                                <div style="background: #ffffff; padding: 24px; border-radius: 20px; border: 1px solid rgba(78, 52, 46, 0.1); margin-bottom: 30px;">
+                                    <p style="font-size: 16px; margin-bottom: 10px;">С радостью сообщаем, что завтра весь день вам доступна скидка:</p>
+                                    <span style="font-size: 48px; font-weight: 900; color: #2E7D32;">${maxTier}%</span>
+                                </div>
+                                <p style="font-size: 16px; font-weight: bold; color: #4E342E;">Ждем вас в гости снова! ☕✨</p>
+                            </div>
+                        `
+                    });
+
+                    if (welcomeError) {
+                        logger.error("Resend Welcome Email error:", welcomeError);
+                    } else {
+                        logger.info(`Welcome email sent to ${visitGuestEmail} for venue ${venueId}`);
+                    }
+                }
+            } catch (err) {
+                logger.error("Error sending welcome email:", err);
+            }
+        }
+
+        // 4b. Owner Notification Email
         if (ownerEmail) {
             const { data, error } = await resend.emails.send({
                 from: "Friendly Code <no-reply@friendlycode.fun>",
@@ -224,12 +270,12 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
             });
 
             if (error) {
-                logger.error("Resend Email error:", error);
+                logger.error("Resend Owner Email error:", error);
             } else {
-                logger.info(`Email sent to ${ownerEmail} for visit ${event.params.visitId}`);
+                logger.info(`Owner email sent to ${ownerEmail} for visit ${event.params.visitId}`);
             }
         } else {
-            logger.warn(`No owner email found for venue ${venueId}. Skipping email notification.`);
+            logger.warn(`No owner email found for venue ${venueId}. Skipping owner email notification.`);
         }
 
         // ==========================================
@@ -729,95 +775,103 @@ exports.onLeadCreated = onDocumentCreated("leads/{leadId}", async (event) => {
 });
 
 /**
- * Scenario E: Discount Expiry Reminder (Hourly)
- * Logic: Checks specific window (expiry - 6h)
+ * Scenario E: Discount Expiry Reminder (Daily at 19:00)
+ * Logic: Checks if the calendar day VIP window is ending tonight at midnight.
  */
-exports.checkExpiringDiscounts = onSchedule({
-    schedule: "0 * * * *", // Every hour
-    timeZone: "Asia/Dubai",
-    region: "asia-south1"
+exports.discountDecayReminder = onSchedule({
+    schedule: "0 19 * * *",
+    timeZone: "Europe/Moscow"
 }, async (event) => {
-    logger.info("Starting discount expiry check...");
-    const venuesSnapshot = await db.collection("venues").where("isActive", "==", true).get();
+    logger.info("Running daily discount decay reminder...");
 
+    // We want to find users whose last visit at a venue was exactly *yesterday*.
     const now = new Date();
 
-    for (const venueDoc of venuesSnapshot.docs) {
-        const venueData = venueDoc.data();
-        const venueId = venueDoc.id;
-        const tiers = venueData.tiers || []; // [{ maxHours: 12, ... }, { maxHours: 24, ... }]
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
 
-        if (tiers.length === 0) continue;
+    const startOfYesterday = new Date(startOfToday);
+    startOfYesterday.setDate(startOfYesterday.getDate() - 1);
 
-        // Find the absolute maximum duration of the discount (usually the last tier)
-        // Assuming sorted or we just take max
-        const maxDurationHours = Math.max(...tiers.map(t => t.maxHours));
+    const yesterdayTimestamp = admin.firestore.Timestamp.fromDate(startOfYesterday);
+    const todayTimestamp = admin.firestore.Timestamp.fromDate(startOfToday);
 
-        if (maxDurationHours <= 6) continue; // Logic doesn't apply if total duration is short
+    // Query all visits from yesterday
+    const yesterdayVisitsSnapshot = await db.collection("visits")
+        .where("timestamp", ">=", yesterdayTimestamp)
+        .where("timestamp", "<", todayTimestamp)
+        .get();
 
-        // We want to notify 6 hours BEFORE expiry
-        // So User has been here for (maxDuration - 6) hours
-        const targetDuration = maxDurationHours - 6;
+    // Group by guestEmail and venueId
+    const candidates = {}; // "email_venueId" -> { email, venueId, guestName }
 
-        // Calculate the timestamp window:
-        // Visit time = Now - targetDuration hours
-        // Window = [TargetTime - 30min, TargetTime + 30min] to catch them in this hourly run
+    yesterdayVisitsSnapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.guestEmail) {
+            const key = `${data.guestEmail}_${data.venueId}`;
+            candidates[key] = {
+                email: data.guestEmail,
+                venueId: data.venueId,
+                guestName: data.guestName || "Гость"
+            };
+        }
+    });
 
-        const targetTime = new Date(now.getTime() - (targetDuration * 60 * 60 * 1000));
-        const windowStart = new Date(targetTime.getTime() - (30 * 60 * 1000));
-        const windowEnd = new Date(targetTime.getTime() + (30 * 60 * 1000));
+    // For each candidate, check if they visited TODAY
+    for (const key of Object.keys(candidates)) {
+        const candidate = candidates[key];
 
-        // Query visits created in this window
-        // Note: This relies on 'timestamp' being the creation of the visit/scan
-        const visitsSnapshot = await db.collection("visits")
-            .where("venueId", "==", venueId)
-            .where("timestamp", ">=", admin.firestore.Timestamp.fromDate(windowStart))
-            .where("timestamp", "<=", admin.firestore.Timestamp.fromDate(windowEnd))
+        const todayVisits = await db.collection("visits")
+            .where("guestEmail", "==", candidate.email)
+            .where("venueId", "==", candidate.venueId)
+            .where("timestamp", ">=", todayTimestamp)
+            .limit(1)
             .get();
 
-        for (const visitDoc of visitsSnapshot.docs) {
-            const visitData = visitDoc.data();
+        if (todayVisits.empty) {
+            // No visits today! Their VIP will drop at midnight.
+            const venueDoc = await db.collection("venues").doc(candidate.venueId).get();
+            if (venueDoc.exists) {
+                const venueData = venueDoc.data();
+                const venueName = venueData.name || "вашем любимом заведении";
+                const tiers = venueData.tiers || [];
+                const maxTier = tiers.length > 0 ? Math.max(...tiers.map(t => t.discountPercent)) : 20;
 
-            if (visitData.reminderSent) continue;
+                // Assuming tier1 is the next one down. e.g. 15%
+                const sortedTiers = tiers.map(t => t.discountPercent).sort((a, b) => b - a);
+                const nextTier = sortedTiers.length > 1 ? sortedTiers[1] : 15;
 
-            // Get Guest Email
-            const guestId = visitData.guestId;
-            const guestDoc = await db.collection("users").doc(guestId).get();
-            if (!guestDoc.exists || !guestDoc.data().email) continue;
-
-            const guestEmail = guestDoc.data().email;
-            const guestName = guestDoc.data().name || "Гость";
-
-            // Get Current Discount (approximated or max)
-            // Just say "Your discount" or calculate based on tiers?
-            // Let's use generic copy as requested.
-
-            try {
-                await resend.emails.send({
-                    from: "Friendly Code <no-reply@friendlycode.fun>",
-                    to: [guestEmail],
-                    subject: `⏳ Ваша скидка в ${venueData.name} скоро сгорит!`,
-                    html: `
-                        <div style="font-family: sans-serif; padding: 20px; background-color: #FFF8E1; border-radius: 16px;">
-                            <h2 style="color: #4E342E;">Привет, ${guestName}!</h2>
-                            <p style="font-size: 16px; color: #5D4037;">
-                                Ваша суперскидка в <strong>${venueData.name}</strong> действует еще <strong>6 часов</strong>.
-                            </p>
-                            <p style="font-size: 16px; color: #5D4037;">
-                                Мы приглашаем вас воспользоваться ей, пока она не исчезла!
-                            </p>
-                            <div style="text-align: center; margin-top: 30px;">
-                                <a href="https://friendlycode.fun" style="background-color: #E68A00; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Мой QR-код</a>
-                            </div>
+                // Send Reminder Email
+                const html = `
+                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: auto; padding: 40px; background-color: #FFF8E1; border-radius: 24px; color: #4E342E; text-align: center;">
+                        <span style="font-size: 40px; display: block; margin-bottom: 10px;">⏳</span>
+                        <h1 style="font-size: 24px; font-weight: 900; margin-bottom: 20px; color: #D32F2F;">Ваша максимальная скидка скоро сгорит!</h1>
+                        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
+                            Уважаемый(ая) <strong>${candidate.guestName}</strong>,<br/>
+                            Ваша скидка <strong>${maxTier}%</strong> в <strong>${venueName}</strong> действует только до конца текущего дня!
+                        </p>
+                        <div style="background: #ffffff; padding: 30px; border-radius: 20px; border: 1px solid rgba(78, 52, 46, 0.1); margin-bottom: 30px;">
+                            <p style="font-size: 16px; margin-bottom: 15px; color: #795548; font-weight: bold;">Ровно в полночь она снизится до:</p>
+                            <span style="font-size: 56px; font-weight: 900; color: #E68A00; line-height: 1;">${nextTier}%</span>
                         </div>
-                    `
+                        <p style="font-size: 16px; font-weight: 600; color: #4E342E; background-color: rgba(230, 138, 0, 0.1); padding: 20px; border-radius: 12px;">
+                            🏃‍♂️ Успейте зайти к нам сегодня, чтобы обновить таймер и сохранить максимальную выгоду! 😉✨
+                        </p>
+                    </div>
+                `;
+
+                const { error } = await resend.emails.send({
+                    from: "Friendly Code <no-reply@friendlycode.fun>",
+                    to: [candidate.email],
+                    subject: `⚠️ Скидка ${maxTier}% в ${venueName} сгорает сегодня!`,
+                    html: html
                 });
 
-                await visitDoc.ref.update({ reminderSent: true });
-                logger.info(`Reminder sent to ${guestEmail} for visit ${visitDoc.id}`);
-
-            } catch (err) {
-                logger.error(`Failed to send reminder for visit ${visitDoc.id}`, err);
+                if (error) {
+                    logger.error("Resend reminder error:", error);
+                } else {
+                    logger.info(`Sent discount drop reminder to ${candidate.email} for venue ${candidate.venueId}`);
+                }
             }
         }
     }
