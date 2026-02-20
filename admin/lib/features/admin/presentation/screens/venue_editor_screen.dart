@@ -146,9 +146,9 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
       );
 
       if (widget.venue == null) {
-        await _venuesService.createVenue(updatedVenue);
+        await _venuesService.saveVenue(updatedVenue);
       } else {
-        await _venuesService.updateVenue(updatedVenue);
+        await _venuesService.saveVenue(updatedVenue);
       }
 
       if (mounted) Navigator.pop(context);

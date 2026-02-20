@@ -407,7 +407,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                          if (value == 'edit') {
                            Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue)));
                          } else if (value == 'staff') {
-                           Navigator.push(context, MaterialPageRoute(builder: (_) => StaffManagementScreen(venueId: venue.id)));
+                           Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffManagementScreen()));
                          } else if (value == 'config') {
                            showDialog(
                              context: context,
@@ -521,7 +521,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                 if (value == 'edit') {
                   Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue)));
                 } else if (value == 'staff') {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => StaffManagementScreen(venueId: venue.id)));
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffManagementScreen()));
                 } else if (value == 'config') {
                   showDialog(
                     context: context,

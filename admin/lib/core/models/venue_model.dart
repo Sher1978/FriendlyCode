@@ -142,6 +142,8 @@ class VenueModel {
     this.lastBlastDate,
     this.latitude,
     this.longitude,
+    this.assignedAdminId,
+    this.assignedManagerId,
   }) : 
     tiers = tiers ?? [],
     subscription = subscription ?? VenueSubscription(),

@@ -113,20 +113,9 @@ class RoleProvider extends ChangeNotifier {
                else if (resolvedRole == 'admin') _currentRole = UserRole.admin;
                else if (resolvedRole == 'manager') _currentRole = UserRole.manager;
                else _currentRole = UserRole.owner;
-             }
-          }
-        }
-
+               
                // 4. Delete Old Stub (to prevent future confusion/duplicates)
                await stubDoc.reference.delete();
-               
-               // 5. Update Local State
-               if (mergedData['role'] == 'superAdmin') {
-                 _currentRole = UserRole.superAdmin;
-               } else {
-                 _currentRole = UserRole.owner;
-               }
-
              } else {
                // AUTO-CREATE USER RECORD
                debugPrint("User document missing for ${user.email}. Creating default record...");

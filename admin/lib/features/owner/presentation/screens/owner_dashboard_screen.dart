@@ -445,8 +445,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               const SizedBox(height: 16),
               _buildManagementLink(Icons.people_alt_outlined, l10n.guestDatabase, l10n.guestDatabaseSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => GuestListScreen(venueId: venue.id)))),
               const SizedBox(height: 12),
-              _buildManagementLink(Icons.badge_outlined, l10n.staffManagement, l10n.staffManagementSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffManagementScreen(venueId: venue.id)))),
-              const SizedBox(height: 12),
               _buildManagementLink(Icons.storefront_outlined, l10n.venueProfile, l10n.venueProfileSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue)))),
               const SizedBox(height: 12),
               _buildManagementLink(Icons.print_rounded, l10n.posStickerGenerator, l10n.posStickerSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => PosStickerScreen(venue: venue)))),
