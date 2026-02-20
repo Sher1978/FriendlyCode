@@ -17,6 +17,29 @@ const resend = new Resend("re_hhcZAqvV_PrA1srdegsuaoqkQEVZoGCNc");
 const SUPER_ADMIN_CHAT_ID = "YOUR_SUPER_ADMIN_CHAT_ID"; // Replace with actual ID or logic to fetch
 
 /**
+ * Helper: Fetch Global Email Control Settings
+ * Defaults all features to TRUE if document doesn't exist
+ */
+async function getEmailControls() {
+    try {
+        const doc = await db.collection("system_settings").doc("email_controls").get();
+        if (doc.exists) {
+            return doc.data();
+        }
+    } catch (e) {
+        logger.error("Error fetching email_controls:", e);
+    }
+    return {
+        enableWelcomeEmails: true,
+        enableOwnerNotifications: true,
+        enableDiscountReminders: true,
+        enableBulkMarketing: true,
+        enableLeadNotifications: true,
+        enableDailyReports: true
+    };
+}
+
+/**
  * 1. Generate Telegram Auth Link
  */
 exports.generateTelegramLink = onCall(async (request) => {
@@ -176,9 +199,10 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
         // ==========================================
         // 4. EMAIL NOTIFICATIONS (Welcome & Owner)
         // ==========================================
+        const emailControls = await getEmailControls();
 
         // 4a. Guest Welcome Email (First Visit)
-        if (visitGuestEmail) {
+        if (visitGuestEmail && emailControls.enableWelcomeEmails !== false) {
             try {
                 const previousVisits = await db.collection("visits")
                     .where("guestEmail", "==", visitGuestEmail)
@@ -222,7 +246,7 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
         }
 
         // 4b. Owner Notification Email
-        if (ownerEmail) {
+        if (ownerEmail && emailControls.enableOwnerNotifications !== false) {
             const { data, error } = await resend.emails.send({
                 from: "Friendly Code <no-reply@friendlycode.fun>",
                 to: [ownerEmail],
@@ -469,6 +493,13 @@ exports.dailyStatsReport = onSchedule({
     region: "asia-south1"
 }, async (event) => {
     logger.info("Starting daily statistics report generation.");
+
+    const emailControls = await getEmailControls();
+    if (emailControls.enableDailyReports === false) {
+        logger.info("Daily reports disabled by global settings.");
+        return;
+    }
+
     const venuesSnapshot = await db.collection("venues").get();
 
     for (const venueDoc of venuesSnapshot.docs) {
@@ -589,6 +620,11 @@ exports.dailyStatsReport = onSchedule({
 exports.sendBulkCampaign = onCall(async (request) => {
     const { title, text, imageUrl, actionLink } = request.data;
     const uid = request.auth?.uid;
+
+    const emailControls = await getEmailControls();
+    if (emailControls.enableBulkMarketing === false) {
+        throw new HttpsError("permission-denied", "Извините, сейчас массовые рассылки временно отключены.");
+    }
 
     if (!uid) {
         throw new HttpsError("unauthenticated", "User must be logged in.");
@@ -743,6 +779,12 @@ exports.onLeadCreated = onDocumentCreated("leads/{leadId}", async (event) => {
     const snapshot = event.data;
     if (!snapshot) return;
 
+    const emailControls = await getEmailControls();
+    if (emailControls.enableLeadNotifications === false) {
+        logger.info("Lead notifications disabled by global settings.");
+        return;
+    }
+
     const leadData = snapshot.data();
     const { email, phone, city, source } = leadData;
 
@@ -783,6 +825,12 @@ exports.discountDecayReminder = onSchedule({
     timeZone: "Europe/Moscow"
 }, async (event) => {
     logger.info("Running daily discount decay reminder...");
+
+    const emailControls = await getEmailControls();
+    if (emailControls.enableDiscountReminders === false) {
+        logger.info("Discount reminders disabled by global settings.");
+        return;
+    }
 
     // We want to find users whose last visit at a venue was exactly *yesterday*.
     const now = new Date();

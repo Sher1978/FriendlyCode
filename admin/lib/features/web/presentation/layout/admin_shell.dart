@@ -15,6 +15,7 @@ import 'package:provider/provider.dart';
 import 'package:friendly_code/core/localization/locale_provider.dart';
 import 'package:friendly_code/features/admin/presentation/widgets/notification_badge.dart';
 import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/global_email_settings_screen.dart';
 
 class AdminShell extends StatefulWidget {
   final Widget child; // Default/Initial screen
@@ -60,7 +61,10 @@ class _AdminShellState extends State<AdminShell> {
       else 
           const Center(child: Text("No Billing Access", style: TextStyle(color: AppColors.title))),
 
-      const GeneralSettingsScreen(), // 4: Settings
+      if (widget.role == UserRole.superAdmin)
+          const GlobalEmailSettingsScreen(),
+
+      const GeneralSettingsScreen(), // Settings (Index 5 for SuperAdmin, 4 otherwise)
     ];
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -230,8 +234,11 @@ class _AdminShellState extends State<AdminShell> {
           else if (widget.role == UserRole.owner)
              _buildNavItem(3, Icons.payments_outlined, "Billing", isMobile: isMobile),
 
+          if (widget.role == UserRole.superAdmin)
+             _buildNavItem(4, Icons.email_outlined, "Email Setup", isMobile: isMobile),
+
           const Spacer(),
-          _buildNavItem(4, Icons.settings_outlined, "Settings", isMobile: isMobile),
+          _buildNavItem(widget.role == UserRole.superAdmin ? 5 : 4, Icons.settings_outlined, "Settings", isMobile: isMobile),
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: InkWell(
