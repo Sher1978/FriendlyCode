@@ -194,18 +194,72 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
   }
 
   void _showAddStaffDialog(BuildContext context) {
-      // For now, simpler implementation: Ask for email, find user, assign role.
-      // Or create a dummy user logic (requires Cloud Function to create Auth user).
-      // Let's just show an info dialog that the user must sign up first.
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text("Add New Staff"),
-          content: const Text("To add a new staff member, ask them to sign up / log in to the App/Panel once via Google. \n\nOnce they are in the 'users' list (as 'owner' or 'staff'), you can find them here and Promote them."),
+    String searchEmail = '';
+    bool isSearching = false;
+    String errorMessage = '';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text("Add Staff by Email"),
+          content: Column(
+             mainAxisSize: MainAxisSize.min,
+             children: [
+                const Text("Enter the email of a registered user (e.g. guest) to promote them to Staff."),
+                const SizedBox(height: 16),
+                TextField(
+                  decoration: InputDecoration(
+                     labelText: "Email address",
+                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                     errorText: errorMessage.isNotEmpty ? errorMessage : null,
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  onChanged: (val) => setState(() {
+                     searchEmail = val.trim().toLowerCase();
+                     errorMessage = ''; 
+                  }),
+                ),
+                if (isSearching) ...[
+                   const SizedBox(height: 16),
+                   const CircularProgressIndicator(),
+                ]
+             ],
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("OK")),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx), 
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: isSearching || searchEmail.isEmpty ? null : () async {
+                  setState(() { isSearching = true; errorMessage = ''; });
+                  try {
+                     final snap = await _firestore.collection('users')
+                         .where('email', isEqualTo: searchEmail)
+                         .limit(1)
+                         .get();
+                     if (snap.docs.isEmpty) {
+                        setState(() { isSearching = false; errorMessage = 'User not found. They must open the QR link first.'; });
+                     } else {
+                        final doc = snap.docs.first;
+                        await doc.reference.update({'role': 'staff'});
+                        if (mounted) {
+                           Navigator.pop(ctx);
+                           ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Successfully added $searchEmail as Staff!')),
+                           );
+                        }
+                     }
+                  } catch (e) {
+                     setState(() { isSearching = false; errorMessage = 'Error occurred during search.'; });
+                  }
+              }, 
+              child: const Text("Search & Add")
+            ),
           ],
         ),
-      );
+      ),
+    );
   }
 }
