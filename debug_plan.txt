@@ -1,0 +1,28 @@
+
+const admin = require("firebase-admin");
+const serviceAccount = require("./service-account.json"); 
+
+// Initialize App (Mocking the environment or using default if avail)
+// Since we are running in a context where we might not have the key file handy, 
+// let's assume we can use the 'firebase-admin' already initialized via 'firebase functions:shell' 
+// BUT we can't run that easily here.
+
+// ALTERNATIVE: Use the Frontend SDK (firebase.js) to query.
+// This is much easier as we have the config.
+// formatting as a node script using 'firebase' package (not admin)
+
+// We need to require the firebase deps.
+// Run this with `node debug_venue.js` in the `src` folder (might fail due to ESM)
+// Actually, let's just write the code I would WANT the user to run in their browser console.
+// That is the most reliable way.
+
+/*
+// COPY PASTE THIS INTO BROWSER CONSOLE ON LANDING PAGE
+import { db } from './firebase'; // This won't work in console directly.
+
+// We need to rely on the user or use the `run_command` to execute a script.
+// I will try to use `firebase-admin` with a script in `functions` folder since that has the deps?
+// But it needs creds.
+*/
+
+// Let's try to find the credentials file.

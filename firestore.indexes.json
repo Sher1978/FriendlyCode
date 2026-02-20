@@ -1,55 +1,150 @@
 {
-    "indexes": [
+  "indexes": [
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
         {
-            "collectionGroup": "scans",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "venueId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "timestamp",
-                    "order": "DESCENDING"
-                }
-            ]
+          "fieldPath": "read",
+          "order": "ASCENDING"
         },
         {
-            "collectionGroup": "scans",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "venueId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "status",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "timestamp",
-                    "order": "DESCENDING"
-                }
-            ]
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
         },
         {
-            "collectionGroup": "visits",
-            "queryScope": "COLLECTION",
-            "fields": [
-                {
-                    "fieldPath": "venueId",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "guestEmail",
-                    "order": "ASCENDING"
-                },
-                {
-                    "fieldPath": "timestamp",
-                    "order": "DESCENDING"
-                }
-            ]
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
         }
-    ],
-    "fieldOverrides": []
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "notifications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "venueId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "read",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "scans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "venueID",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "scans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "venueId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "scans",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "venueId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "venues",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "isActive",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "visits",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "venueId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "guestEmail",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "timestamp",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "DESCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
+    }
+  ],
+  "fieldOverrides": []
 }

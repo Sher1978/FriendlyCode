@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/features/admin/presentation/widgets/analytics_module.dart';
@@ -31,10 +33,13 @@ class AdminShell extends StatefulWidget {
 class _AdminShellState extends State<AdminShell> {
   int _selectedIndex = 0;
   late List<Widget> _screens;
+  StreamSubscription<QuerySnapshot>? _notificationSubscription;
+  DateTime? _lastNotificationTime;
 
   @override
   void initState() {
     super.initState();
+    _lastNotificationTime = DateTime.now(); // Only show notifications that arrive after login
     _screens = [
       widget.child, // 0: Overview
       widget.role == UserRole.superAdmin 
@@ -57,6 +62,75 @@ class _AdminShellState extends State<AdminShell> {
 
       const GeneralSettingsScreen(), // 4: Settings
     ];
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupNotificationListener();
+    });
+  }
+
+  void _setupNotificationListener() {
+    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+    final venueIds = roleProvider.venueIds;
+    final isSuperAdmin = roleProvider.isSuperAdmin;
+
+    if (!isSuperAdmin && venueIds.isEmpty) return;
+
+    Query query = FirebaseFirestore.instance
+        .collection('notifications')
+        .where('timestamp', isGreaterThanOrEqualTo: Timestamp.fromDate(_lastNotificationTime!))
+        .orderBy('timestamp', descending: true);
+
+    if (!isSuperAdmin) {
+      if (venueIds.isNotEmpty && venueIds.length <= 10) {
+        query = query.where('venueId', whereIn: venueIds);
+      }
+    }
+
+    _notificationSubscription = query.snapshots().listen((snapshot) {
+      for (var change in snapshot.docChanges) {
+        if (change.type == DocumentChangeType.added) {
+          final data = change.doc.data() as Map<String, dynamic>?;
+          if (data == null) continue;
+          
+          final title = data['title'] ?? 'New Notification';
+          final message = data['message'] ?? '';
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.notifications_active, color: Colors.white),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          Text(message, style: const TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                backgroundColor: AppColors.brandOrange,
+                behavior: SnackBarBehavior.floating,
+                margin: const EdgeInsets.only(bottom: 24, right: 24, left: 24),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _notificationSubscription?.cancel();
+    super.dispose();
   }
 
   @override

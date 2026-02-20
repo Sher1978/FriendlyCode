@@ -1,75 +1,77 @@
 {
-    "functions": [
-        {
-            "source": "functions",
-            "codebase": "default",
-            "ignore": [
-                "node_modules",
-                ".git",
-                "firebase-debug.log",
-                "firestore-debug.log",
-                "ui-debug.log"
-            ]
-        }
-    ],
-    "hosting": {
-        "public": "dist",
-        "predeploy": [
-            "node scripts/build-all.js"
-        ],
-        "ignore": [
-            "firebase.json",
-            "**/.*",
-            "**/node_modules/**"
-        ],
-        "redirects": [
-            {
-                "source": "/owner",
-                "destination": "/admin/owner",
-                "type": 301
-            },
-            {
-                "source": "/Superadmin",
-                "destination": "/admin/admin",
-                "type": 301
-            }
-        ],
-        "rewrites": [
-            {
-                "source": "/admin/**",
-                "destination": "/admin/index.html"
-            },
-            {
-                "source": "**",
-                "destination": "/index.html"
-            }
-        ]
-    },
-    "firestore": {
-        "rules": "firestore.rules",
-        "indexes": "firestore.indexes.json"
-    },
-    "flutter": {
-        "platforms": {
-            "android": {
-                "default": {
-                    "projectId": "bot-lab-21910",
-                    "appId": "1:331010142763:android:7a5188d055487fe499f06e",
-                    "fileOutput": "android/app/google-services.json"
-                }
-            },
-            "dart": {
-                "lib/firebase_options.dart": {
-                    "projectId": "bot-lab-21910",
-                    "configurations": {
-                        "android": "1:331010142763:android:7a5188d055487fe499f06e",
-                        "ios": "1:331010142763:ios:88ba4f825184863f99f06e",
-                        "macos": "1:331010142763:ios:88ba4f825184863f99f06e",
-                        "web": "1:331010142763:web:cfd9fa17ed9bf99a99f06e",
-                        "windows": "1:331010142763:web:18d8549078a1f50a99f06e"
-                    }
-                }
-            }
-        }
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firestore-debug.log",
+        "ui-debug.log"
+      ]
     }
+  ],
+  "hosting": {
+    "public": "dist",
+    "predeploy": [
+      "node scripts/build-all.js"
+    ],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "redirects": [
+      {
+        "source": "/owner",
+        "destination": "/admin/owner",
+        "type": 301
+      },
+      {
+        "source": "/Superadmin",
+        "destination": "/admin/admin",
+        "type": 301
+      }
+    ],
+    "rewrites": [
+      {
+        "source": "/admin/**",
+        "destination": "/admin/index.html"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "firestore": {
+    "database": "(default)",
+    "location": "asia-south1",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "bot-lab-21910",
+          "appId": "1:331010142763:android:7a5188d055487fe499f06e",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "bot-lab-21910",
+          "configurations": {
+            "android": "1:331010142763:android:7a5188d055487fe499f06e",
+            "ios": "1:331010142763:ios:88ba4f825184863f99f06e",
+            "macos": "1:331010142763:ios:88ba4f825184863f99f06e",
+            "web": "1:331010142763:web:cfd9fa17ed9bf99a99f06e",
+            "windows": "1:331010142763:web:18d8549078a1f50a99f06e"
+          }
+        }
+      }
+    }
+  }
 }

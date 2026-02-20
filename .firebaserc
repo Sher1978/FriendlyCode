@@ -1,6 +1,7 @@
 {
   "projects": {
-    "Default": "bot-lab-21910"
+    "Default": "bot-lab-21910",
+    "default": "bot-lab-21910"
   },
   "targets": {},
   "etags": {}
