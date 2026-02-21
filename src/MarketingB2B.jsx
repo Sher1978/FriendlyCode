@@ -8,6 +8,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from './firebase';
 
 const MarketingB2B = () => {
     const { t, i18n } = useTranslation();
@@ -30,10 +32,6 @@ const MarketingB2B = () => {
         e.preventDefault();
 
         try {
-            // dynamic import to avoid breaking if firebase not set up
-            const { doc, setDoc } = await import('firebase/firestore');
-            const { db } = await import('./firebase');
-
             // Use email as document ID to prevent duplicates without needing read permissions
             // The security rules allow create if it doesn't exist, but deny update (if it does exist)
             // effective preventing duplicates.

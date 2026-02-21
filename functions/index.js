@@ -791,7 +791,7 @@ exports.onLeadCreated = onDocumentCreated("leads/{leadId}", async (event) => {
     try {
         const { data, error } = await resend.emails.send({
             from: "Friendly Code <no-reply@friendlycode.fun>",
-            to: ["friiendlycode@gmail.com"],
+            to: ["0451611@gmail.com"], // Fixed typo from 'friiendlycode'
             reply_to: email,
             subject: `🔥 New Lead (B2B): ${email}`,
             html: `
