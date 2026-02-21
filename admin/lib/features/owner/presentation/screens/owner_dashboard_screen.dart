@@ -14,6 +14,7 @@ import 'package:friendly_code/features/owner/presentation/screens/marketing_blas
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/guest_list_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/venue_staff_screen.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/services/notification_service.dart';
@@ -451,6 +452,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
               _buildManagementLink(Icons.people_alt_outlined, l10n.guestDatabase, l10n.guestDatabaseSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => GuestListScreen(venueId: venue.id)))),
               const SizedBox(height: 12),
               _buildManagementLink(Icons.storefront_outlined, l10n.venueProfile, l10n.venueProfileSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue)))),
+              const SizedBox(height: 12),
+              _buildManagementLink(Icons.manage_accounts_outlined, "Staff Management", "Manage venue staff", () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueStaffScreen(venueId: venue.id)))),
               const SizedBox(height: 12),
               _buildManagementLink(Icons.print_rounded, l10n.posStickerGenerator, l10n.posStickerSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => PosStickerScreen(venue: venue)))),
             ],

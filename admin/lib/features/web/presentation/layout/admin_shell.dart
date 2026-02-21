@@ -6,9 +6,6 @@ import 'package:friendly_code/features/admin/presentation/widgets/analytics_modu
 import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:friendly_code/features/admin/presentation/screens/global_venues_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/settings_screen.dart';
-import 'package:friendly_code/features/owner/presentation/screens/owner_analytics_screen.dart';
-import 'package:friendly_code/features/owner/presentation/screens/billing_screen.dart';
-import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/owner_venues_screen.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:provider/provider.dart';
@@ -16,6 +13,7 @@ import 'package:friendly_code/core/localization/locale_provider.dart';
 import 'package:friendly_code/features/admin/presentation/widgets/notification_badge.dart';
 import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/global_email_settings_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/my_team_screen.dart';
 
 class AdminShell extends StatefulWidget {
   final Widget child; // Default/Initial screen
@@ -56,8 +54,8 @@ class _AdminShellState extends State<AdminShell> {
       // 3. Billing / Staff (Depends on Role)
       if (widget.role == UserRole.superAdmin)
          const StaffManagementScreen() // Staff Management
-      else if (widget.role == UserRole.admin)
-          const Center(child: Text("My Staff (Managers) - Coming Soon", style: TextStyle(color: AppColors.title)))
+      else if (widget.role == UserRole.admin || widget.role == UserRole.manager)
+          const MyTeamScreen()
       else 
           const Center(child: Text("No Billing Access", style: TextStyle(color: AppColors.title))),
 
@@ -203,20 +201,10 @@ class _AdminShellState extends State<AdminShell> {
           if (!isMobile) // Hide logo in mobile drawer if also in AppBar
             Padding(
               padding: const EdgeInsets.only(left: 12, bottom: 48),
-              child: Row(
-                children: [
-                  const Icon(Icons.auto_awesome, color: AppColors.accentOrange, size: 28),
-                  const SizedBox(width: 12),
-                  const Text(
-                    "FRIENDLY CODE",
-                    style: TextStyle(
-                      color: AppColors.title,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                ],
+              child: Image.asset(
+                'assets/images/logo.png',
+                height: 48,
+                fit: BoxFit.contain,
               ),
             ),
           
@@ -229,7 +217,7 @@ class _AdminShellState extends State<AdminShell> {
           
           if (widget.role == UserRole.superAdmin)
              _buildNavItem(3, Icons.people_outline, "Staff", isMobile: isMobile)
-          else if (widget.role == UserRole.admin)
+          else if (widget.role == UserRole.admin || widget.role == UserRole.manager)
              _buildNavItem(3, Icons.people_outline, "My Team", isMobile: isMobile)
           else if (widget.role == UserRole.owner)
              _buildNavItem(3, Icons.payments_outlined, "Billing", isMobile: isMobile),
@@ -242,7 +230,7 @@ class _AdminShellState extends State<AdminShell> {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: InkWell(
-              onTap: () => Navigator.pushReplacementNamed(context, '/login'),
+              onTap: () => Navigator.pushReplacementNamed(context, '/'),
               borderRadius: BorderRadius.circular(12),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),

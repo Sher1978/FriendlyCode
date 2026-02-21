@@ -70,10 +70,10 @@ service cloud.firestore {
       );
     }
 
-    // 4. Leads Collection (B2B)
+    // 4. Leads Collection (B2B and B2C tracking)
     match /leads/{leadId} {
       allow create: if true;
-      allow read, update, delete: if isSuperAdmin();
+      allow read, update, delete: if isSuperAdmin() || (resource != null && resource.data.venueId != null && ownsVenue(resource.data.venueId));
     }
 
     // 5. Venue Requests Collection

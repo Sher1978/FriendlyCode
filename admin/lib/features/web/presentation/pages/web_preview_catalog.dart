@@ -36,6 +36,7 @@ class _WebPreviewCatalogState extends State<WebPreviewCatalog> {
         guestName: 'Preview Guest',
         tiers: [],
         config: LoyaltyConfig(),
+        timezone: 'Etc/GMT-3',
       )
     },
     {'name': '4. B2B Landing (Desktop/Mobile)', 'widget': const B2BLandingScreen()},

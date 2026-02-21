@@ -180,63 +180,149 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
               IconButton(onPressed: _save, icon: const Icon(Icons.check)),
          ],
        ),
-       body: SingleChildScrollView(
-         padding: const EdgeInsets.all(24),
-         child: Form(
-           key: _formKey,
-           child: Column(
-             crossAxisAlignment: CrossAxisAlignment.start,
-             children: [
-               // Basic Info Section
-               _buildSectionHeader("Basic Info"),
-               _buildTextField(_nameCtrl, "Venue Name", required: true),
-               const SizedBox(height: 16),
-               
-               // RBAC ASSIGNMENT (Only for SuperAdmin/Admin)
-               if (isSuperAdmin || isAdmin) ...[
-                 _buildSectionHeader("Staff Assignment"),
-                 if (isSuperAdmin) 
-                   DropdownButtonFormField<String>(
-                     decoration: const InputDecoration(labelText: "Assigned Admin", border: OutlineInputBorder()),
-                     value: _selectedAdminId,
-                     items: [
-                       const DropdownMenuItem(value: null, child: Text("None")),
-                       ..._admins.map((a) => DropdownMenuItem(value: a['id'] as String, child: Text(a['email'] ?? 'Unknown'))),
-                     ],
-                     onChanged: (val) => setState(() => _selectedAdminId = val),
-                   ),
-                 const SizedBox(height: 16),
-                 DropdownButtonFormField<String>(
-                   decoration: const InputDecoration(labelText: "Assigned Manager", border: OutlineInputBorder()),
-                   value: _selectedManagerId,
-                   items: [
-                      const DropdownMenuItem(value: null, child: Text("None")),
-                      ..._managers.map((m) => DropdownMenuItem(value: m['id'] as String, child: Text(m['email'] ?? 'Unknown'))),
-                   ],
-                   onChanged: (val) => setState(() => _selectedManagerId = val),
-                 ),
-                 const SizedBox(height: 24),
+       body: DefaultTabController(
+         length: 3,
+         child: Column(
+           children: [
+             const TabBar(
+               labelColor: AppColors.brandOrange,
+               unselectedLabelColor: AppColors.title,
+               indicatorColor: AppColors.brandOrange,
+               tabs: [
+                 Tab(text: "Venue Settings"),
+                 Tab(text: "Staff & RBAC"),
+                 Tab(text: "Discount Strategy"),
                ],
+             ),
+             Expanded(
+               child: Form(
+                 key: _formKey,
+                 child: TabBarView(
+                   children: [
+                     // TAB 1: Venue Settings
+                     SingleChildScrollView(
+                       padding: const EdgeInsets.all(24),
+                       child: Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           _buildSectionHeader("Basic Info"),
+                           _buildTextField(_nameCtrl, "Venue Name", required: true),
+                           const SizedBox(height: 16),
+                           _buildTextField(_categoryCtrl, "Category"),
+                           const SizedBox(height: 16),
+                           _buildTextField(_addressCtrl, "Address"),
+                           const SizedBox(height: 24),
 
-               _buildTextField(_categoryCtrl, "Category"),
-               const SizedBox(height: 16),
-               _buildTextField(_addressCtrl, "Address"),
-               const SizedBox(height: 24),
+                           _buildSectionHeader("Ownership"),
+                           _buildTextField(_ownerEmailCtrl, "Owner Email"),
+                           const SizedBox(height: 16),
+                           _buildTextField(_ownerIdCtrl, "Owner ID (Firebase UID)"),
+                           const SizedBox(height: 24),
 
-               // Owner Info (Read-only for non-SuperAdmin usually, but editable here for flexibility)
-               _buildSectionHeader("Ownership"),
-               _buildTextField(_ownerEmailCtrl, "Owner Email"),
-               const SizedBox(height: 16),
-               _buildTextField(_ownerIdCtrl, "Owner ID (Firebase UID)"),
-               const SizedBox(height: 24),
+                           _buildSectionHeader("Media"),
+                           _buildTextField(_logoUrlCtrl, "Logo URL"),
+                           const SizedBox(height: 16),
+                           _buildTextField(_linkUrlCtrl, "External Link / Website"),
+                         ],
+                       ),
+                     ),
 
-               // Links & Media
-               _buildSectionHeader("Media"),
-               _buildTextField(_logoUrlCtrl, "Logo URL"),
-               const SizedBox(height: 16),
-               _buildTextField(_linkUrlCtrl, "External Link / Website"),
-             ],
-           ),
+                     // TAB 2: Staff Settings
+                     SingleChildScrollView(
+                       padding: const EdgeInsets.all(24),
+                       child: Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           if (isSuperAdmin || isAdmin) ...[
+                             _buildSectionHeader("Staff Assignment"),
+                             if (isSuperAdmin) 
+                                DropdownButtonFormField<String>(
+                                  decoration: const InputDecoration(labelText: "Assigned Admin", border: OutlineInputBorder()),
+                                  initialValue: _selectedAdminId,
+                                  items: [
+                                   const DropdownMenuItem(value: null, child: Text("None")),
+                                   ..._admins.map((a) => DropdownMenuItem(value: a['id'] as String, child: Text(a['email'] ?? 'Unknown'))),
+                                 ],
+                                 onChanged: (val) => setState(() => _selectedAdminId = val),
+                               ),
+                             const SizedBox(height: 16),
+                              DropdownButtonFormField<String>(
+                                decoration: const InputDecoration(labelText: "Assigned Manager", border: OutlineInputBorder()),
+                                initialValue: _selectedManagerId,
+                                items: [
+                                  const DropdownMenuItem(value: null, child: Text("None")),
+                                  ..._managers.map((m) => DropdownMenuItem(value: m['id'] as String, child: Text(m['email'] ?? 'Unknown'))),
+                               ],
+                               onChanged: (val) => setState(() => _selectedManagerId = val),
+                             ),
+                           ] else ...[
+                             const Text("Only SuperAdmins and Admins can assign staff roles from this menu.", style: TextStyle(color: AppColors.body)),
+                           ]
+                         ],
+                       ),
+                     ),
+
+                     // TAB 3: Discount Settings
+                     SingleChildScrollView(
+                       padding: const EdgeInsets.all(24),
+                       child: Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: [
+                           _buildSectionHeader("Loyalty Rules (Tiers)"),
+                           const Text("Configure the max hours a guest can be gone and the percentage they earn.", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                           const SizedBox(height: 8),
+                           ...List.generate(_tiers.length, (index) {
+                             return Padding(
+                               padding: const EdgeInsets.only(bottom: 8.0),
+                               child: Row(
+                                 children: [
+                                   Expanded(
+                                     child: TextFormField(
+                                       initialValue: _tiers[index].maxHours.toString(),
+                                       decoration: InputDecoration(labelText: "Max Hours", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Colors.white),
+                                       keyboardType: TextInputType.number,
+                                       onChanged: (val) {
+                                          _tiers[index] = VenueTier(maxHours: int.tryParse(val) ?? 0, percentage: _tiers[index].percentage);
+                                       },
+                                     ),
+                                   ),
+                                   const SizedBox(width: 16),
+                                   Expanded(
+                                     child: TextFormField(
+                                       initialValue: _tiers[index].percentage.toString(),
+                                       decoration: InputDecoration(labelText: "Percentage (%)", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Colors.white),
+                                       keyboardType: TextInputType.number,
+                                       onChanged: (val) {
+                                          _tiers[index] = VenueTier(maxHours: _tiers[index].maxHours, percentage: int.tryParse(val) ?? 0);
+                                       },
+                                     ),
+                                   ),
+                                   IconButton(
+                                     icon: const Icon(Icons.delete, color: Colors.red),
+                                     onPressed: () => setState(() => _tiers.removeAt(index)),
+                                   )
+                                 ],
+                               ),
+                             );
+                           }),
+                           if (_tiers.length < 5)
+                             TextButton.icon(
+                               onPressed: () => setState(() => _tiers.add(VenueTier(maxHours: 0, percentage: 0))),
+                               icon: const Icon(Icons.add),
+                               label: const Text("Add Tier"),
+                             ),
+                           const SizedBox(height: 24),
+
+                           _buildSectionHeader("Subscription & Status"),
+                           _buildSubscriptionInfo(isSuperAdmin),
+                         ],
+                       ),
+                     ),
+                   ],
+                 ),
+               ),
+             ),
+           ],
          ),
        ),
      );
@@ -259,6 +345,59 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         fillColor: Colors.white,
       ),
       validator: required ? (val) => val == null || val.isEmpty ? "Required" : null : null,
+    );
+  }
+
+  Widget _buildSubscriptionInfo(bool isSuperAdmin) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Plan:", style: TextStyle(fontWeight: FontWeight.bold)),
+              if (!isSuperAdmin) Text(_subscription.plan.toUpperCase(), style: const TextStyle(color: AppColors.brandOrange, fontWeight: FontWeight.bold)),
+              if (isSuperAdmin)
+                DropdownButton<String>(
+                  value: _subscription.plan,
+                  items: ['free', 'pro', 'enterprise'].map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase()))).toList(),
+                  onChanged: (val) => setState(() => _subscription = VenueSubscription(plan: val ?? 'free', isPaid: _subscription.isPaid, expiryDate: _subscription.expiryDate)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Payment Status:", style: TextStyle(fontWeight: FontWeight.bold)),
+              if (!isSuperAdmin) Text(_subscription.isPaid ? "PAID" : "UNPAID", style: TextStyle(color: _subscription.isPaid ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
+              if (isSuperAdmin)
+                Switch(
+                  value: _subscription.isPaid,
+                  onChanged: (val) => setState(() => _subscription = VenueSubscription(plan: _subscription.plan, isPaid: val, expiryDate: _subscription.expiryDate)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text("Expiry Date:", style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(
+                _subscription.expiryDate != null ? "${_subscription.expiryDate!.day}/${_subscription.expiryDate!.month}/${_subscription.expiryDate!.year}" : "N/A",
+                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.body),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

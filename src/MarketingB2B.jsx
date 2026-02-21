@@ -8,13 +8,14 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { doc, setDoc } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 const MarketingB2B = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const [formData, setFormData] = useState({ city: '', phone: '', email: '' });
+    const [isSubmitted, setIsSubmitted] = useState(false);
 
     const toggleLanguage = () => {
         const newLang = i18n.language === 'en' ? 'ru' : 'en';
@@ -32,28 +33,18 @@ const MarketingB2B = () => {
         e.preventDefault();
 
         try {
-            // Use email as document ID to prevent duplicates without needing read permissions
-            // The security rules allow create if it doesn't exist, but deny update (if it does exist)
-            // effective preventing duplicates.
-            const leadRef = doc(db, 'leads', formData.email);
-
-            await setDoc(leadRef, {
+            // Use addDoc to allow multiple submissions without hitting update restrictions
+            await addDoc(collection(db, 'leads'), {
                 ...formData,
                 createdAt: new Date(),
                 source: 'b2b_landing'
             });
 
-            alert(i18n.language === 'ru' ? "Заявка принята! Мы свяжемся с вами в течение 24 часов." : "Request received! We will contact you within 24 hours.");
+            setIsSubmitted(true);
             setFormData({ city: '', phone: '', email: '' });
         } catch (error) {
             console.error("Error adding document: ", error);
-            // If the error code indicates permission denied, it likely means the document already exists
-            // (since our rules allow create but deny update/read for public users)
-            if (error.code === 'permission-denied') {
-                alert(i18n.language === 'ru' ? "Вы уже оставили заявку! Мы скоро свяжемся с вами." : "You have already submitted a request! We will contact you soon.");
-            } else {
-                alert("Error submitting form. Please try again.");
-            }
+            alert("Error submitting form. Please try again.");
         }
     };
 
@@ -341,39 +332,76 @@ const MarketingB2B = () => {
                             initial={{ opacity: 0, scale: 0.95 }}
                             whileInView={{ opacity: 1, scale: 1 }}
                             viewport={{ once: true }}
-                            className="bg-white p-12 rounded-[4rem] shadow-2xl shadow-brand-brown/10 border border-white"
+                            className="bg-white p-12 rounded-[4rem] shadow-2xl shadow-brand-brown/10 border border-white relative overflow-hidden"
                         >
-                            <form className="space-y-6" onSubmit={handleSubmit}>
-                                <div className="space-y-4">
-                                    <input
-                                        type="text"
-                                        required
-                                        placeholder={t('b2b_form_city')}
-                                        className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
-                                        value={formData.city}
-                                        onChange={e => setFormData({ ...formData, city: e.target.value })}
-                                    />
-                                    <input
-                                        type="tel"
-                                        required
-                                        placeholder={t('b2b_form_phone')}
-                                        className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
-                                        value={formData.phone}
-                                        onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                    />
-                                    <input
-                                        type="email"
-                                        required
-                                        placeholder={t('b2b_form_email')}
-                                        className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
-                                        value={formData.email}
-                                        onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                    />
-                                </div>
-                                <button className="w-full py-6 bg-brand-orange text-white rounded-[2rem] font-black text-xl tracking-wide hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-brand-orange/20">
-                                    {t('b2b_final_cta')}
-                                </button>
-                            </form>
+                            <AnimatePresence mode="wait">
+                                {isSubmitted ? (
+                                    <motion.div
+                                        key="thank-you"
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -20 }}
+                                        className="text-center py-12"
+                                    >
+                                        <div className="w-24 h-24 bg-green-50 text-green-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-8 shadow-inner">
+                                            <FontAwesomeIcon icon={faHandshake} />
+                                        </div>
+                                        <h3 className="text-3xl font-black text-brand-brown mb-4 tracking-tight">
+                                            {i18n.language === 'ru' ? 'Спасибо!' : 'Thank you!'}
+                                        </h3>
+                                        <p className="text-lg opacity-70 mb-8 font-medium leading-relaxed max-w-sm mx-auto">
+                                            {i18n.language === 'ru'
+                                                ? 'Мы получили вашу заявку и свяжемся с вами в течение 24 часов.'
+                                                : 'We have received your request and will contact you within 24 hours.'}
+                                        </p>
+                                        <div className="pt-8 border-t border-brand-brown/5">
+                                            <p className="text-sm opacity-50 mb-2">{i18n.language === 'ru' ? 'Срочный вопрос?' : 'Urgent question?'}</p>
+                                            <a href="mailto:friiendlycode@gmail.com" className="text-brand-orange font-bold hover:underline transition-all">
+                                                friiendlycode@gmail.com
+                                            </a>
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <motion.form
+                                        key="lead-form"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="space-y-6"
+                                        onSubmit={handleSubmit}
+                                    >
+                                        <div className="space-y-4">
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder={t('b2b_form_city')}
+                                                className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
+                                                value={formData.city}
+                                                onChange={e => setFormData({ ...formData, city: e.target.value })}
+                                            />
+                                            <input
+                                                type="tel"
+                                                required
+                                                placeholder={t('b2b_form_phone')}
+                                                className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
+                                                value={formData.phone}
+                                                onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                            />
+                                            <input
+                                                type="email"
+                                                required
+                                                placeholder={t('b2b_form_email')}
+                                                className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
+                                                value={formData.email}
+                                                onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                            />
+                                        </div>
+                                        <button className="w-full py-6 bg-brand-orange text-white rounded-[2rem] font-black text-xl tracking-wide hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-brand-orange/20">
+                                            {t('b2b_final_cta')}
+                                        </button>
+                                    </motion.form>
+                                )}
+                            </AnimatePresence>
                         </motion.div>
                     </div>
                 </div>

@@ -791,7 +791,7 @@ exports.onLeadCreated = onDocumentCreated("leads/{leadId}", async (event) => {
     try {
         const { data, error } = await resend.emails.send({
             from: "Friendly Code <no-reply@friendlycode.fun>",
-            to: ["0451611@gmail.com"], // Fixed typo from 'friiendlycode'
+            to: ["friiendlycode@gmail.com"], // Correct address as per user
             reply_to: email,
             subject: `🔥 New Lead (B2B): ${email}`,
             html: `
@@ -922,5 +922,82 @@ exports.discountDecayReminder = onSchedule({
                 }
             }
         }
+    }
+});
+
+/**
+ * Scenario F: Subscription Expiry Reminder (Daily at 10:00)
+ * Logic: Checks if the venue subscription is expiring in exactly 7 days.
+ */
+exports.subscriptionExpiryReminder = onSchedule({
+    schedule: "0 10 * * *",
+    timeZone: "Europe/Moscow"
+}, async (event) => {
+    logger.info("Running daily subscription expiry reminder...");
+
+    const now = new Date();
+    const targetDate = new Date(now);
+    targetDate.setDate(targetDate.getDate() + 7);
+
+    // We want to find dates between start and end of target date
+    const startOfTarget = new Date(targetDate);
+    startOfTarget.setHours(0, 0, 0, 0);
+    const endOfTarget = new Date(targetDate);
+    endOfTarget.setHours(23, 59, 59, 999);
+
+    const startTimestamp = admin.firestore.Timestamp.fromDate(startOfTarget);
+    const endTimestamp = admin.firestore.Timestamp.fromDate(endOfTarget);
+
+    try {
+        const expiringVenuesSnapshot = await db.collection("venues")
+            .where("subscription.expiryDate", ">=", startTimestamp)
+            .where("subscription.expiryDate", "<=", endTimestamp)
+            .get();
+
+        if (expiringVenuesSnapshot.empty) {
+            logger.info("No venues expiring in exactly 7 days.");
+            return;
+        }
+
+        for (const doc of expiringVenuesSnapshot.docs) {
+            const venueData = doc.data();
+            const venueName = venueData.name || "your venue";
+            let ownerEmail = venueData.ownerEmail;
+
+            if (!ownerEmail && venueData.ownerId) {
+                const ownerUserDoc = await db.collection("users").doc(venueData.ownerId).get();
+                if (ownerUserDoc.exists && ownerUserDoc.data().email) {
+                    ownerEmail = ownerUserDoc.data().email;
+                }
+            }
+
+            if (ownerEmail) {
+                const html = `
+                    <div style="font-family: sans-serif; padding: 20px; background-color: #f9f9f9; color: #333;">
+                        <h2 style="color: #d32f2f;">⚠️ Action Required: Subscription Expiring Soon</h2>
+                        <p>Hello,</p>
+                        <p>This is an automated reminder that the subscription for your venue <b>${venueName}</b> will expire in exactly 7 days.</p>
+                        <p>To avoid any interruption of service, please ensure your payment method is up to date or contact support to renew.</p>
+                        <br/>
+                        <p>Best regards,<br/>Friendly Code Team</p>
+                    </div>
+                `;
+
+                const { error } = await resend.emails.send({
+                    from: "Friendly Code <no-reply@friendlycode.fun>",
+                    to: [ownerEmail],
+                    subject: `⚠️ Action Required: Subscription for ${venueName} expiring in 7 days`,
+                    html: html
+                });
+
+                if (error) {
+                    logger.error("Failed to send expiry reminder to " + ownerEmail, error);
+                } else {
+                    logger.info("Sent expiry reminder to " + ownerEmail + " for venue " + doc.id);
+                }
+            }
+        }
+    } catch (err) {
+        logger.error("Error in subscriptionExpiryReminder: ", err);
     }
 });

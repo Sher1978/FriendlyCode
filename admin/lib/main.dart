@@ -8,7 +8,6 @@ import 'core/navigation/dispatcher_screen.dart';
 import 'features/owner/presentation/screens/owner_dashboard_screen.dart';
 import 'features/admin/presentation/screens/super_admin_dashboard.dart';
 import 'features/web/presentation/pages/b2b_landing_screen.dart';
-import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/owner/presentation/screens/onboarding_wizard_screen.dart';
 import 'package:provider/provider.dart';
 import 'core/localization/locale_provider.dart';
@@ -98,7 +97,6 @@ class FriendlyCodeApp extends StatelessWidget {
            final venueId = uri.queryParameters['id'];
            return B2CHomeScreen(venueId: venueId);
         },
-        '/login': (context) => const LoginScreen(),
         '/onboarding': (context) => const OnboardingWizardScreen(),
         '/owner': (context) => Consumer<RoleProvider>(
           builder: (context, roleProvider, _) => AdminShell(

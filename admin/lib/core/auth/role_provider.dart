@@ -19,7 +19,7 @@ class RoleProvider extends ChangeNotifier {
   // Convenience getters for UI logic
   bool get isSuperAdmin => _currentRole == UserRole.superAdmin;
   bool get isAdmin => _currentRole == UserRole.superAdmin || _currentRole == UserRole.admin;
-  bool get canManageStaff => _currentRole == UserRole.superAdmin; // Only SuperAdmin creates Admins/Managers
+  bool get canManageStaff => _currentRole == UserRole.superAdmin || _currentRole == UserRole.admin; // SuperAdmin/Admin can manage roles
   bool get canManageVenues => _currentRole == UserRole.superAdmin || _currentRole == UserRole.admin || _currentRole == UserRole.manager;
 
   void setRole(UserRole role) {
@@ -180,6 +180,20 @@ class RoleProvider extends ChangeNotifier {
             venueIdsSet.add(data['venueId']);
           }
         }
+
+        // 4. Venues assigned as Admin
+        final adminVenues = await FirebaseFirestore.instance
+            .collection('venues')
+            .where('assignedAdminId', isEqualTo: user.uid)
+            .get();
+        venueIdsSet.addAll(adminVenues.docs.map((d) => d.id));
+
+        // 5. Venues assigned as Manager
+        final managerVenues = await FirebaseFirestore.instance
+            .collection('venues')
+            .where('assignedManagerId', isEqualTo: user.uid)
+            .get();
+        venueIdsSet.addAll(managerVenues.docs.map((d) => d.id));
 
         _venueIds = venueIdsSet.toList();
 

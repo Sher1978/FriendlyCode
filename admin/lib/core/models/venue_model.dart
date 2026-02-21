@@ -177,6 +177,8 @@ class VenueModel {
       'lastBlastDate': lastBlastDate != null ? Timestamp.fromDate(lastBlastDate!) : null,
       'latitude': latitude,
       'longitude': longitude,
+      'assignedAdminId': assignedAdminId,
+      'assignedManagerId': assignedManagerId,
     };
   }
 
@@ -202,6 +204,8 @@ class VenueModel {
       lastBlastDate: map['lastBlastDate'] != null ? (map['lastBlastDate'] as Timestamp).toDate() : null,
       latitude: map['latitude']?.toDouble(),
       longitude: map['longitude']?.toDouble(),
+      assignedAdminId: map['assignedAdminId'],
+      assignedManagerId: map['assignedManagerId'],
     );
   }
 }

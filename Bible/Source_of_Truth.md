@@ -47,14 +47,16 @@ The system supports four distinct operational roles within the Admin Panel:
 | **SuperAdmin** | Global | Full platform control. Analytics, Billing, Staff Management (Creating Admins/Managers). |
 | **Admin** | Regional/Multi-Venue | Manages a set of assigned venues. View stats, edit venue info, assign Managers to venues. |
 | **Manager** | Venue-Specific | Primarily operational. Can edit assigned venue details (Categories, Links, Tiers). No Analytics access. |
-| **Owner** | Business | View analytics and reports for their specific venues. |
+| **Owner** | Business | View analytics, edit venue details (Loyalty Tiers, Profile), assign per-venue staff, and view subscription status. |
 
 ## 6. NOTIFICATION SYSTEM
 *   **Delivery Channels:**
     *   **Browser (Bell Icon):** Real-time updates in the Admin Panel via `notifications` collection.
     *   **Email:** via Resend API. Automatic fallback to Owner User Profile if Venue contact email is missing.
     *   **Telegram:** Bot-driven notifications to venue groups.
-*   **Logic:** Triggered by `onVisitCreated` Firebase Cloud Function.
+*   **Logic:** 
+    * Triggered by `onVisitCreated` Firebase Cloud Function.
+    * Subscription Expiry Warning: Automated email sent 7 days before subscription end date to owners.
 
 ## 7. DESIGN SYSTEM (AESTHETIC)
 *   **Theme:** "Premium Dark/Light" with Glassmorphism.

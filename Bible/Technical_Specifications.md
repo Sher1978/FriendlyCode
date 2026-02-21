@@ -59,6 +59,7 @@
 ## 5. DATABASE SCHEMA
 **Collection: `users`**
 *   `role`: enum('superAdmin', 'admin', 'manager', 'owner', 'staff').
+*   `venueId`: String (Optional, denotes per-venue assignment for staff/managers).
 
 **Collection: `venues`**
 *   `assignedAdminId`: String (UID)
@@ -79,3 +80,6 @@
     3.  Create Firestore `notification` document.
     4.  Send Email via Resend.
     5.  Push to Telegram (if `telegramChatId` exists).
+*   **`subscriptionExpiryReminder`** (Scheduled Daily):
+    1. Finds venues whose subscription expires in exactly 7 days.
+    2. Sends warning emails to venue owners.

@@ -131,12 +131,12 @@ const LandingPage = () => {
                     let calculatedDiscount = 5;
                     let result = null; // Initialize to avoid ReferenceError later
 
-                    // Initialize Debug Info with Defaults (Fixes "null" issue for new users)
                     let debugInfo = {
-                        email,
+                        email: email || 'No Email',
                         uid: user.uid,
                         venueId,
                         daysAgoStr: 'Никогда',
+                        prevDaysAgoStr: 'Никогда',
                         discountToday: 5
                     };
 
@@ -146,31 +146,66 @@ const LandingPage = () => {
                             where('guestEmail', '==', email),
                             where('venueId', '==', venueId),
                             orderBy('timestamp', 'desc'),
-                            limit(1)
+                            limit(2) // Fetch last 2 visits for previous active day
                         );
                         const querySnapshot = await getDocs(qVisits);
 
                         if (!querySnapshot.empty) {
-                            const lastVisit = querySnapshot.docs[0].data().timestamp.toDate();
+                            const docs = querySnapshot.docs;
+                            const firstVisit = docs[0].data().timestamp.toDate();
+
+                            const todayStart = new Date(now);
+                            todayStart.setHours(0, 0, 0, 0);
+
+                            let lastVisitBeforeToday = null;
+                            let visitToday = null;
+
+                            if (firstVisit >= todayStart) {
+                                // Most recent visit is Today
+                                visitToday = firstVisit;
+                                if (docs.length > 1) {
+                                    lastVisitBeforeToday = docs[1].data().timestamp.toDate();
+                                }
+                            } else {
+                                // Most recent visit is in the past
+                                lastVisitBeforeToday = firstVisit;
+                            }
 
                             // Use the new shared logic
-                            const result = RewardCalculator.calculate(lastVisit, now, venueData.loyaltyConfig);
+                            const result = RewardCalculator.calculate(lastVisitBeforeToday, now, venueData.loyaltyConfig, visitToday);
 
                             calculatedDiscount = result.discount;
 
-                            const today = new Date(now);
-                            today.setHours(0, 0, 0, 0);
-                            const visitDate = new Date(lastVisit);
-                            visitDate.setHours(0, 0, 0, 0);
-                            const daysAgo = Math.round((today - visitDate) / (1000 * 60 * 60 * 24));
-                            const daysAgoStr = daysAgo === 0 ? "Сегодня (0)" : `${daysAgo} дн. назад`;
+                            // Update Days Ago display for Debug
+                            let daysAgoStr = 'Никогда';
+                            if (lastVisitBeforeToday) {
+                                const refDate = new Date(lastVisitBeforeToday);
+                                refDate.setHours(0, 0, 0, 0);
+                                const diffDays = Math.round((todayStart - refDate) / (1000 * 60 * 60 * 24));
+                                daysAgoStr = `${diffDays} дн. назад`;
+                            }
+
+                            const currentActiveDayStr = visitToday ? "Сегодня (0)" : daysAgoStr;
+
+                            // Fetch a previous visit strictly for the "Previous active day" label (if we have more than 2)
+                            let prevDaysAgoStr = 'Никогда';
+                            const historicalVisit = visitToday ? (docs.length > 1 ? docs[1].data().timestamp.toDate() : null) : (docs.length > 1 ? docs[1].data().timestamp.toDate() : null);
+                            // Wait, if visitToday is present, docs[1] is the lastVisitBeforeToday. We want the one BEFORE that for "Previous".
+                            // But for debug simplicity, let's just show the one we used for calculation if it's not today.
+
+                            const debugRef = lastVisitBeforeToday;
+                            if (debugRef) {
+                                const d = new Date(debugRef);
+                                d.setHours(0, 0, 0, 0);
+                                const diff = Math.round((todayStart - d) / (1000 * 60 * 60 * 24));
+                                prevDaysAgoStr = `${diff} дн. назад`;
+                            }
 
                             // 4. Update Debug Info
                             debugInfo = {
-                                email,
-                                uid: user.uid,
-                                venueId,
-                                daysAgoStr,
+                                ...debugInfo,
+                                daysAgoStr: currentActiveDayStr,
+                                prevDaysAgoStr: prevDaysAgoStr,
                                 discountToday: calculatedDiscount
                             };
 
@@ -221,13 +256,13 @@ const LandingPage = () => {
                 <div className="absolute top-[-20%] left-[-20%] w-[140%] h-[140%] bg-[radial-gradient(circle_at_center,_#FFD54F_0%,_transparent_70%)] opacity-20 animate-pulse"></div>
 
                 <div className="z-10 flex flex-col items-center text-center">
-                    {/* Bouncing Logo / Icon */}
+                    {/* Bouncing Logo */}
                     <div className="mb-8 relative">
-                        <div className="w-24 h-24 bg-[#E68A00] rounded-full flex items-center justify-center shadow-xl animate-bounce">
-                            <FontAwesomeIcon icon={faGift} className="text-white text-4xl" />
+                        <div className="w-24 h-24 flex items-center justify-center p-2 rounded-2xl bg-white shadow-xl animate-bounce overflow-hidden">
+                            <img src="/logo.png" alt="Friendly Code Logo" className="w-full h-full object-contain" />
                         </div>
                         {/* Ripple Effect */}
-                        <div className="absolute top-0 left-0 w-full h-full bg-[#E68A00] rounded-full animate-ping opacity-20"></div>
+                        <div className="absolute top-0 left-0 w-full h-full bg-[#E68A00] rounded-2xl animate-ping opacity-20"></div>
                     </div>
 
                     <h2 className="text-2xl font-black text-[#4E342E] mb-2 uppercase tracking-wide">
@@ -269,7 +304,37 @@ const LandingPage = () => {
     }
 
     return (
-        <div className="flex flex-col h-[100dvh] bg-[#FFF8E1] font-sans text-[#4E342E] antialiased overflow-hidden relative">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8 }}
+            className="flex flex-col h-[100dvh] bg-[#FFF8E1] font-sans text-[#4E342E] antialiased overflow-hidden relative"
+        >
+            {/* Sparkle effect for 20% */}
+            {discount >= 20 && (
+                <div className="absolute inset-0 pointer-events-none z-0">
+                    {[...Array(12)].map((_, i) => (
+                        <motion.div
+                            key={i}
+                            className="absolute w-2 h-2 bg-yellow-400 rounded-full"
+                            style={{
+                                top: `${Math.random() * 60}%`,
+                                left: `${Math.random() * 100}%`,
+                            }}
+                            animate={{
+                                opacity: [0, 1, 0],
+                                scale: [0, 1, 0],
+                            }}
+                            transition={{
+                                duration: 2,
+                                repeat: Infinity,
+                                delay: Math.random() * 2,
+                                ease: "easeInOut",
+                            }}
+                        />
+                    ))}
+                </div>
+            )}
 
             {/* Language Switcher (Top Right) */}
             <div className="absolute top-4 right-4 z-50">
@@ -363,28 +428,39 @@ const LandingPage = () => {
                         <text x="265" y="151" dx="20" dy="10" className="text-[20px] font-black fill-[#4E342E]">20%</text>
 
                         {/* Needle (Rounded Line) with ROBUST PIVOT */}
-                        {/* 
-                            Pivot Center: (142.5, 151) 
-                            The group is translated to this point. 
-                            Rotation logic: 0 deg = Left (Matches 5%), 180 deg = Right (Matches 20%).
-                        */}
                         <motion.g
                             initial={{ rotate: 0, x: 142.5, y: 151 }}
                             animate={{
-                                // Binary Logic: if discount > 5, rotate to 180 (Full). If 5, rotate to 0 (Empty).
-                                // Tremble only active if discount is 5.
-                                rotate: (discount > 5)
-                                    ? 180 // Full Rotation for 10, 15, 20
-                                    : (tremble ? [-3, 3, -3, 3, 0] : 0), // Tremble at 0 for 5
-                                x: 142.5, // Fixed pivot position
+                                rotate: tremble
+                                    ? [
+                                        0, // Start at 0
+                                        180, // Sweep all the way to 180
+                                        ((discount - 5) / 15) * 180 + 3, // Bounce back slightly past target
+                                        ((discount - 5) / 15) * 180 - 3, // Wobble
+                                        ((discount - 5) / 15) * 180 + 2,
+                                        ((discount - 5) / 15) * 180 - 2,
+                                        ((discount - 5) / 15) * 180, // Settle at target
+                                        // Continuous tremble for 5 seconds
+                                        ((discount - 5) / 15) * 180 + 1,
+                                        ((discount - 5) / 15) * 180 - 1,
+                                        ((discount - 5) / 15) * 180 + 1,
+                                        ((discount - 5) / 15) * 180 - 1,
+                                        ((discount - 5) / 15) * 180,
+                                    ]
+                                    : ((discount - 5) / 15) * 180, // Default to calculated position if not trembling
+                                x: 142.5,
                             }}
                             transition={{
-                                rotate: (discount === 5 && tremble)
-                                    ? { duration: 0.2, repeat: 3 } // Quick shake at 0
-                                    : { duration: 1.5, type: "spring", bounce: 0.3 }, // Smooth sweep to 180
+                                rotate: tremble
+                                    ? {
+                                        duration: 5.0, // Total animation time across all keyframes
+                                        times: [0, 0.15, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0], // Distribution of timing
+                                        ease: "easeInOut"
+                                    }
+                                    : { duration: 0 },
                                 x: { duration: 0 }
                             }}
-                            style={{ transformOrigin: "0px 0px" }} // CRITICAL: Rotate around the group origin (where pivot circle is)
+                            style={{ transformOrigin: "0px 0px" }}
                         >
                             {/* Needle Body: Points Left by default (angle 0) */}
                             <line
@@ -498,23 +574,24 @@ const LandingPage = () => {
                 </button>
             </div>
             {/* Debug Overlay */}
-            {debugClicks >= 5 && lastVisitDebug && (
-                <div className="fixed top-20 left-4 right-4 bg-black/90 rounded-2xl border border-green-500 p-4 z-50 shadow-2xl" onClick={() => setDebugClicks(0)}>
+            {debugClicks >= 5 && (
+                <div className="fixed top-20 left-4 right-4 bg-black/90 rounded-2xl border border-green-500 p-4 z-[9999] shadow-2xl" onClick={() => setDebugClicks(0)}>
                     <div className="flex justify-between items-center mb-2 border-b border-white/20 pb-2">
                         <h3 className="font-bold text-green-400 text-sm">DEBUG INFO</h3>
                         <button className="text-white">X</button>
                     </div>
                     <div className="space-y-2 font-mono text-[11px] text-white">
-                        <DebugLine label="UID" value={lastVisitDebug.uid?.substring(0, 8) || "null"} />
-                        <DebugLine label="Email" value={lastVisitDebug.email} />
-                        <DebugLine label="Venue" value={lastVisitDebug.venueId || localStorage.getItem('currentVenueId')} />
-                        <DebugLine label="Активный день" value={lastVisitDebug.daysAgoStr} />
-                        <DebugLine label="Скидка сегодня" value={`${lastVisitDebug.discountToday}%`} />
+                        <DebugLine label="UID" value={lastVisitDebug?.uid?.substring(0, 8) || "null"} />
+                        <DebugLine label="Email" value={lastVisitDebug?.email || "Unknown"} />
+                        <DebugLine label="Venue" value={lastVisitDebug?.venueId || localStorage.getItem('currentVenueId')} />
+                        <DebugLine label="Активный день (посл.)" value={lastVisitDebug?.daysAgoStr || "Никогда"} />
+                        <DebugLine label="Пред. активный день" value={lastVisitDebug?.prevDaysAgoStr || "Никогда"} />
+                        <DebugLine label="Скидка сегодня" value={`${lastVisitDebug?.discountToday || 5}%`} />
                         <div className="text-[10px] text-white/50 mt-4 text-center border-t border-white/20 pt-2">(Нажмите, чтобы закрыть)</div>
                     </div>
                 </div>
             )}
-        </div >
+        </motion.div >
     );
 };
 
