@@ -8,6 +8,7 @@ import 'package:friendly_code/features/admin/presentation/screens/global_venues_
 import 'package:friendly_code/features/owner/presentation/screens/settings_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/owner_venues_screen.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
+import 'package:friendly_code/features/owner/presentation/screens/owner_analytics_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:friendly_code/core/localization/locale_provider.dart';
 import 'package:friendly_code/features/admin/presentation/widgets/notification_badge.dart';
@@ -42,27 +43,27 @@ class _AdminShellState extends State<AdminShell> {
     _screens = [
       widget.child, // 0: Overview
       widget.role == UserRole.superAdmin 
-        ? const GlobalVenuesScreen() 
-        : const OwnerVenuesScreen(), // 1: Venues
+        ? GlobalVenuesScreen() 
+        : OwnerVenuesScreen(), // 1: Venues
       if (widget.role != UserRole.manager) // 2: Analytics (Hidden for Manager)
         widget.role == UserRole.superAdmin
-          ? const AnalyticsModule()
-          : const OwnerAnalyticsScreen()
+          ? AnalyticsModule()
+          : OwnerAnalyticsScreen()
       else
         const Center(child: Text("Analytics not available for Managers", style: TextStyle(color: AppColors.title))),
       
       // 3. Billing / Staff (Depends on Role)
       if (widget.role == UserRole.superAdmin)
-         const StaffManagementScreen() // Staff Management
+         StaffManagementScreen() // Staff Management
       else if (widget.role == UserRole.admin || widget.role == UserRole.manager)
-          const MyTeamScreen()
+          MyTeamScreen()
       else 
           const Center(child: Text("No Billing Access", style: TextStyle(color: AppColors.title))),
 
       if (widget.role == UserRole.superAdmin)
-          const GlobalEmailSettingsScreen(),
+          GlobalEmailSettingsScreen(),
 
-      const GeneralSettingsScreen(), // Settings (Index 5 for SuperAdmin, 4 otherwise)
+      GeneralSettingsScreen(), // Settings (Index 5 for SuperAdmin, 4 otherwise)
     ];
 
     WidgetsBinding.instance.addPostFrameCallback((_) {

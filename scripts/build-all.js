@@ -17,7 +17,7 @@ try {
     // 2. Build Flutter App
     console.log('--- Building Flutter Admin ---');
     const adminDir = path.join(rootDir, 'admin');
-    run('flutter build web --release --no-tree-shake-icons --base-href /admin/', adminDir);
+    run('flutter build web --release --no-tree-shake-icons --base-href /admin/ --no-wasm-dry-run', adminDir);
 
     // 3. Merge Artifacts
     console.log('--- Merging Artifacts ---');
