@@ -218,8 +218,8 @@ const MarketingB2B = () => {
                                             <FontAwesomeIcon icon={faQrcode} />
                                         </div>
                                         <div>
-                                            <p className="font-bold text-xl tracking-tight">{t('b2b_simplicity_rare')}</p>
-                                            <p className="text-xs font-bold uppercase tracking-widest text-brand-brown">Automatic Decay</p>
+                                            <p className="font-bold text-xl tracking-tight">QR & NFC Activation</p>
+                                            <p className="text-xs font-bold uppercase tracking-widest text-brand-brown">Instant Login</p>
                                         </div>
                                     </div>
                                 </div>

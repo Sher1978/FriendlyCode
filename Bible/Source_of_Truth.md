@@ -6,6 +6,7 @@
 "Friendly Code" is a **Global Loyalty Platform (SaaS)** connecting Guests with HoReCa venues via a unified "Time-Decay" reward system.
 *   **Core Value:** "Visit often, pay less."
 *   **Strategic Pivot:** "Zero Friction" onboarding for Guests and "Retention > Operations" focus for Business Owners.
+*   **B2B Onboarding Model:** Paid Setup with 30-Day Money-Back Guarantee (Retention-based).
 
 ## 2. SYSTEM ARCHITECTURE (THE HYBRID SPLIT)
 *   **B2C Guest Flow (React):** Marketing landing and the primary QR Scanning/Reward activation experience. Optimized for mobile browser performance and zero-friction.
@@ -14,9 +15,10 @@
 ## 3. B2C WEB APPLICATION FLOW (ZERO FRICTION)
 **Core Mechanic:** Identity is established via `signInAnonymously` (Firebase) and persistent `localStorage`. Email serves as a recovery/linking key.
 
-### User Journey (QR Scan):
+### User Journey (QR Scan or NFC Tap):
 1.  **Splash Screen:** Dynamic "Calculating Reward..." state while fetching venue/user data.
 2.  **Landing Page (The Gauge):**
+    *   **Activation:** Tap NFC tag or scan QR code. No app required.
     *   **Visual:** A Speedometer-style Gauge.
     *   **Logic (Binary Needle):** 
         *   If Reward = **5%**, needle is at 0 degrees (Left) with a "Tremble" animation (Indicates "Cold" state).

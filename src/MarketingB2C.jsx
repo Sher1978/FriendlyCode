@@ -71,13 +71,13 @@ const MarketingB2C = () => {
 
                         <PathStep
                             num="1"
-                            title="Приди в любимое кафе и найди qr код"
+                            title="Приди в любимое кафе и найди QR или NFC"
                             icon={faUtensils}
                             delay={0.7}
                         />
                         <PathStep
                             num="2"
-                            title="Отсканируй код"
+                            title="Отсканируй или просто приложи телефон"
                             icon={faQrcode}
                             delay={0.8}
                         />
