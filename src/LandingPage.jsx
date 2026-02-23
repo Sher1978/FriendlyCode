@@ -363,35 +363,27 @@ const LandingPage = () => {
             <div className="flex-grow flex flex-col items-center justify-evenly px-6 pb-24 w-full max-w-md mx-auto">
 
                 {/* Hero */}
-                <div className="text-center mt-2">
-                    {cooldown ? (
-                        <>
-                            {/* This case should practically disappear with new logic, but if used for "active day default": */}
-                            <h1 className="text-[24px] font-black leading-tight mb-1 text-[#E68A00] whitespace-pre-line">
-                                {t('welcome_back_headline', { percent: discount })}
-                            </h1>
-                            <p className="text-[#4E342E] opacity-70 font-bold text-sm">
-                                {t('welcome_back_subhead', { defaultValue: 'The sooner you return, the bigger the reward.' })}
-                            </p>
-                        </>
+                <div className="text-center mt-2 flex flex-col items-center gap-2">
+                    <h1 className="text-[20px] font-black opacity-60 uppercase tracking-widest">
+                        {t('hero_welcome_back')}
+                    </h1>
+
+                    {guestName ? (
+                        <div className="text-[32px] font-black text-[#E68A00] animate-orange-glow leading-tight">
+                            {guestName}
+                        </div>
                     ) : (
-                        <h1 className="text-[24px] font-black leading-tight mb-1 whitespace-pre-line">
-                            {guestName
-                                ? t('welcome_back_headline', { percent: discount })
-                                : t('reward_today_headline', { percent: discount })
-                            }
-                        </h1>
+                        <button
+                            onClick={() => navigate('/activate', { state: { discount, guestName, userRole } })}
+                            className="text-[14px] font-black text-[#E68A00] animate-orange-glow leading-tight border-2 border-[#E68A00]/20 px-6 py-2 rounded-full hover:bg-[#E68A00]/5 transition-all mt-1"
+                        >
+                            {t('hero_please_sign_in')}
+                        </button>
                     )}
 
-                    {!cooldown && (
-                        <p className="text-[#4E342E] opacity-60 font-medium text-xs">
-                            {/* Dynamic Instruction based on current Discount */}
-                            {discount >= 20
-                                ? t('keep_max_reward_subtext')
-                                : t('get_max_reward_subtext')
-                            }
-                        </p>
-                    )}
+                    <h1 className="text-[20px] font-black opacity-60 uppercase tracking-widest mt-1">
+                        {t('hero_reward_today')}
+                    </h1>
                 </div>
 
                 {/* Gauge Visual - Reduced Size by 10% (was 285px -> ~256px) & Pivot Fixed */}
@@ -578,24 +570,50 @@ const LandingPage = () => {
                 </button>
             </div>
             {/* Debug Overlay */}
-            {debugClicks >= 5 && (
-                <div className="fixed top-20 left-4 right-4 bg-black/90 rounded-2xl border border-green-500 p-4 z-[9999] shadow-2xl" onClick={() => setDebugClicks(0)}>
-                    <div className="flex justify-between items-center mb-2 border-b border-white/20 pb-2">
-                        <h3 className="font-bold text-green-400 text-sm">DEBUG INFO</h3>
-                        <button className="text-white">X</button>
-                    </div>
-                    <div className="space-y-2 font-mono text-[11px] text-white">
-                        <DebugLine label="UID" value={lastVisitDebug?.uid?.substring(0, 8) || "null"} />
-                        <DebugLine label="Email" value={lastVisitDebug?.email || "Unknown"} />
-                        <DebugLine label="Venue" value={lastVisitDebug?.venueId || localStorage.getItem('currentVenueId')} />
-                        <DebugLine label="Активный день (посл.)" value={lastVisitDebug?.daysAgoStr || "Никогда"} />
-                        <DebugLine label="Пред. активный день" value={lastVisitDebug?.prevDaysAgoStr || "Никогда"} />
-                        <DebugLine label="Скидка сегодня" value={`${lastVisitDebug?.discountToday || 5}%`} />
-                        <div className="text-[10px] text-white/50 mt-4 text-center border-t border-white/20 pt-2">(Нажмите, чтобы закрыть)</div>
+            {debugClicks >= 5 && lastVisitDebug && (
+                <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-6 backdrop-blur-md" onClick={() => setDebugClicks(0)}>
+                    <div className="bg-[#1e1e1e] w-full max-w-sm rounded-[32px] p-8 border border-white/10 shadow-2xl relative">
+                        <button className="absolute top-6 right-8 text-white/40 text-2xl font-black">X</button>
+                        <h3 className="text-[#00E676] font-black tracking-widest text-xs uppercase mb-8 flex items-center gap-2">
+                            <div className="w-2 h-2 bg-[#00E676] rounded-full animate-ping"></div>
+                            Debug Info
+                        </h3>
+
+                        <div className="space-y-6">
+                            {[
+                                { label: 'UID', value: lastVisitDebug.uid, color: 'text-white/40' },
+                                { label: 'Email', value: lastVisitDebug.email, color: 'text-white/40' },
+                                { label: 'Venue', value: lastVisitDebug.venueId, color: 'text-white/40' },
+                                { label: 'Активный день (посл.)', value: lastVisitDebug.daysAgoStr, color: 'text-white' },
+                                { label: 'Пред. активный день', value: lastVisitDebug.prevDaysAgoStr, color: 'text-white' },
+                                { label: 'Скидка сегодня', value: `${lastVisitDebug.discountToday}%`, color: 'text-[#E68A00]' }
+                            ].map((item, idx) => (
+                                <div key={idx} className="flex flex-col gap-1">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-white/20">{item.label}</span>
+                                    <span className={`text-[14px] font-bold truncate ${item.color}`}>{item.value}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <p className="mt-10 text-center text-white/20 text-[10px] font-black uppercase tracking-widest">
+                            (Нажмите, чтобы закрыть)
+                        </p>
                     </div>
                 </div>
             )}
-        </motion.div >
+
+            {/* Custom Styles for Glow Effect */}
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @keyframes orangeGlow {
+                    0%, 100% { text-shadow: 0 0 4px rgba(230, 138, 0, 0.2), 0 0 10px rgba(230, 138, 0, 0.1); }
+                    50% { text-shadow: 0 0 15px rgba(230, 138, 0, 0.6), 0 0 25px rgba(230, 138, 0, 0.3); }
+                }
+                .animate-orange-glow {
+                    animation: orangeGlow 3s ease-in-out infinite;
+                }
+            ` }} />
+        </motion.div>
     );
 };
 
