@@ -201,47 +201,102 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
         // ==========================================
         const emailControls = await getEmailControls();
 
-        // 4a. Guest Welcome Email (First Visit)
+        // 4a. Guest Loyalty Perk Reminder Email
         if (visitGuestEmail && emailControls.enableWelcomeEmails !== false) {
             try {
-                const previousVisits = await db.collection("visits")
-                    .where("guestEmail", "==", visitGuestEmail)
-                    .where("venueId", "==", venueId)
-                    .limit(2)
-                    .get();
+                // Determine Tiers
+                let sortedTiers = [];
+                if (venueData.tiers && Array.isArray(venueData.tiers)) {
+                    sortedTiers = [...venueData.tiers].sort((a, b) => b.discountPercent - a.discountPercent);
+                }
 
-                if (previousVisits.size === 1) { // Current visit is the only one = First Visit
-                    const maxTier = venueData.tiers && venueData.tiers.length > 0
-                        ? Math.max(...venueData.tiers.map(t => t.discountPercent))
-                        : 20;
+                // Default Tiers if none or empty (Safety fallback)
+                if (sortedTiers.length === 0) {
+                    sortedTiers = [
+                        { discountPercent: 20, maxHours: 24 },
+                        { discountPercent: 15, maxHours: 72 },
+                        { discountPercent: 10, maxHours: 168 }
+                    ];
+                }
 
-                    const { data: welcomeData, error: welcomeError } = await resend.emails.send({
-                        from: "Friendly Code <no-reply@friendlycode.fun>",
-                        to: [visitGuestEmail],
-                        subject: `Welcome to ${venueName}! 🎉`,
-                        html: `
-                            <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 40px; background-color: #FFF8E1; border-radius: 24px; color: #4E342E; text-align: center;">
-                                <h1 style="font-size: 28px; font-weight: 900; margin-bottom: 20px; color: #E68A00;">Thank you for your visit!</h1>
-                                <p style="font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
-                                    We were thrilled to see you at <strong>${venueName}</strong>!
-                                </p>
-                                <div style="background: #ffffff; padding: 24px; border-radius: 20px; border: 1px solid rgba(78, 52, 46, 0.1); margin-bottom: 30px;">
-                                    <p style="font-size: 16px; margin-bottom: 10px;">We are happy to let you know that tomorrow all day you have a discount of:</p>
-                                    <span style="font-size: 48px; font-weight: 900; color: #2E7D32;">${maxTier}%</span>
+                // Helper to format time (e.g. 24h -> tomorrow)
+                const getTimeLabel = (hours) => {
+                    const days = Math.round(hours / 24);
+                    if (hours === 24 || (hours > 0 && days === 1)) return "tomorrow";
+                    return `${days} ${days === 1 ? 'day' : 'days'}`;
+                };
+
+                const topTier = sortedTiers[0];
+                const secondTier = sortedTiers[1] || { discountPercent: 10, maxHours: 168 }; // Specific fallbacks
+                const thirdTier = sortedTiers[2] || { discountPercent: 7, maxHours: 336 };
+                const minimalTier = venueData.baseDiscount || 5;
+
+                const { data: loyaltyData, error: loyaltyError } = await resend.emails.send({
+                    from: "Friendly Code <no-reply@friendlycode.fun>",
+                    to: [visitGuestEmail],
+                    subject: `Loyalty Perk Reminder: ${venueName} ☀️`,
+                    html: `
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: auto; padding: 40px; background-color: #FFF8E1; border-radius: 24px; color: #4E342E;">
+                            <p style="font-size: 18px; font-weight: 500; margin-bottom: 24px;">
+                                Hey, great to have you back at <strong>${venueName}</strong>! ☀️
+                            </p>
+                            
+                            <p style="font-size: 16px; font-weight: 700; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; color: #E68A00;">
+                                Here’s your loyalty perk reminder:
+                            </p>
+                            
+                            <div style="background: #ffffff; padding: 30px; border-radius: 24px; border: 1px solid rgba(78, 52, 46, 0.05); shadow: 0 10px 30px rgba(0,0,0,0.02);">
+                                <div style="margin-bottom: 20px; display: flex; align-items: center; border-bottom: 1px solid #f5f5f5; padding-bottom: 15px;">
+                                    <span style="font-size: 24px; margin-right: 15px;">🔥</span>
+                                    <div style="flex: 1;">
+                                        <p style="margin: 0; font-size: 16px; font-weight: 800; color: #2E7D32;">Visit ${getTimeLabel(topTier.maxHours)}</p>
+                                        <p style="margin: 0; font-size: 20px; font-weight: 900; color: #4E342E;">${topTier.discountPercent}% OFF your total bill</p>
+                                    </div>
                                 </div>
-                                <p style="font-size: 16px; font-weight: bold; color: #4E342E;">We look forward to seeing you again! ☕✨</p>
-                            </div>
-                        `
-                    });
 
-                    if (welcomeError) {
-                        logger.error("Resend Welcome Email error:", welcomeError);
-                    } else {
-                        logger.info(`Welcome email sent to ${visitGuestEmail} for venue ${venueId}`);
-                    }
+                                <div style="margin-bottom: 20px; display: flex; align-items: center; border-bottom: 1px solid #f5f5f5; padding-bottom: 15px;">
+                                    <span style="font-size: 24px; margin-right: 15px;">✨</span>
+                                    <div style="flex: 1;">
+                                        <p style="margin: 0; font-size: 15px; font-weight: 700; opacity: 0.7;">Visit within ${getTimeLabel(secondTier.maxHours)}</p>
+                                        <p style="margin: 0; font-size: 18px; font-weight: 800; color: #4E342E;">${secondTier.discountPercent}% OFF your total bill</p>
+                                    </div>
+                                </div>
+
+                                <div style="margin-bottom: 20px; display: flex; align-items: center; border-bottom: 1px solid #f5f5f5; padding-bottom: 15px;">
+                                    <span style="font-size: 24px; margin-right: 15px;">🌿</span>
+                                    <div style="flex: 1;">
+                                        <p style="margin: 0; font-size: 15px; font-weight: 700; opacity: 0.7;">Visit in next ${getTimeLabel(thirdTier.maxHours)}</p>
+                                        <p style="margin: 0; font-size: 18px; font-weight: 800; color: #4E342E;">${thirdTier.discountPercent}% OFF your total bill</p>
+                                    </div>
+                                </div>
+
+                                <div style="display: flex; align-items: center;">
+                                    <span style="font-size: 24px; margin-right: 15px;">☕</span>
+                                    <div style="flex: 1;">
+                                        <p style="margin: 0; font-size: 15px; font-weight: 700; opacity: 0.7;">Visit anytime after</p>
+                                        <p style="margin: 0; font-size: 18px; font-weight: 800; color: #4E342E;">${minimalTier}% OFF your total bill</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p style="margin-top: 32px; font-size: 16px; font-weight: 600; text-align: center; color: #795548;">
+                                Until next time — stay safe, stay happy and have a good life! 😄☕💛
+                            </p>
+                            
+                            <div style="margin-top: 40px; text-align: center; font-size: 12px; color: #4E342E66; font-weight: 700; border-top: 1px solid rgba(78, 52, 46, 0.05); padding-top: 20px;">
+                                POWERED BY FRIENDLY CODE
+                            </div>
+                        </div>
+                    `
+                });
+
+                if (loyaltyError) {
+                    logger.error("Resend Loyalty Email error:", loyaltyError);
+                } else {
+                    logger.info(`Loyalty perk email sent to ${visitGuestEmail} for venue ${venueId}`);
                 }
             } catch (err) {
-                logger.error("Error sending welcome email:", err);
+                logger.error("Error sending loyalty email:", err);
             }
         }
 

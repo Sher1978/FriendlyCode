@@ -105,13 +105,16 @@ const LandingPage = () => {
 
                     if (userData) {
                         setUserRole(userData.role || 'guest');
-                        if (userData.displayName) {
-                            setGuestName(userData.displayName);
-                            localStorage.setItem('guestName', userData.displayName);
-                            localStorage.setItem('guestEmail', userData.email || '');
+                        const displayName = userData.displayName || userData.name;
+                        if (displayName) {
+                            setGuestName(displayName);
+                            localStorage.setItem('guestName', displayName);
+                        }
+                        if (userData.email) {
+                            localStorage.setItem('guestEmail', userData.email);
                         }
                     } else {
-                        // Fallback to localStorage if Firestore doc doesn't exist yet
+                        // Fallback to localStorage
                         const savedName = localStorage.getItem('guestName');
                         if (savedName) setGuestName(savedName);
                     }
@@ -551,12 +554,13 @@ const LandingPage = () => {
             <div className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-[#FFF8E1] via-[#FFF8E1] to-transparent pb-8">
                 <button
                     onClick={() => {
-                        if (guestName) {
-                            // If guest is recognized, skip input screen and go straight to reward
+                        const guestEmail = localStorage.getItem('guestEmail');
+                        if (guestName || guestEmail) {
+                            // If guest is recognized (name or email), skip input screen
                             navigate('/thank-you', {
                                 state: {
-                                    guestName,
-                                    guestEmail: localStorage.getItem('guestEmail'),
+                                    guestName: guestName || 'Friend', // Fallback name
+                                    guestEmail: guestEmail,
                                     discountValue: discount,
                                     venueId: localStorage.getItem('currentVenueId'),
                                     userRole
@@ -570,7 +574,7 @@ const LandingPage = () => {
                     className="w-full h-[64px] bg-[#E68A00] text-white rounded-[20px] font-black text-[18px] active:scale-[0.98] transition-all shadow-xl shadow-[#E68A00]/30 uppercase flex items-center justify-center gap-3"
                 >
                     <FontAwesomeIcon icon={faRocket} />
-                    {guestName ? t('get_my_reward', 'Get My Reward') : t('get_my_discount')}
+                    {(guestName || localStorage.getItem('guestEmail')) ? t('get_my_reward', 'Get My Reward') : t('get_my_discount')}
                 </button>
             </div>
             {/* Debug Overlay */}
