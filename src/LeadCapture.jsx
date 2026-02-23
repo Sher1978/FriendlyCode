@@ -5,7 +5,7 @@ import { faUser, faEnvelope, faArrowLeft } from '@fortawesome/free-solid-svg-ico
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { db, auth } from './firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, limit, doc, setDoc, getDoc, orderBy } from 'firebase/firestore';
 import { RewardCalculator } from './logic/RewardCalculator';
 
 const LeadCapture = () => {
@@ -31,8 +31,6 @@ const LeadCapture = () => {
 
             if (user) {
                 // 0. Check if this email already exists in 'users' collection
-                const { collection, query, where, getDocs, limit, doc, setDoc, serverTimestamp, addDoc, getDoc, orderBy } = await import('firebase/firestore');
-
                 const q = query(collection(db, 'users'), where('email', '==', lowerEmail), limit(1));
                 const querySnapshot = await getDocs(q);
 
@@ -45,9 +43,7 @@ const LeadCapture = () => {
                     // Update existing user with latest name/timestamp
                     await setDoc(doc(db, 'users', effectiveUid), {
                         displayName: name.trim(),
-                        // email is same, no need to update
                         updatedAt: serverTimestamp(),
-                        // We do NOT overwrite role or other fields
                     }, { merge: true });
 
                     // Recalculate discount based on actual history
@@ -55,6 +51,8 @@ const LeadCapture = () => {
                         const vDoc = await getDoc(doc(db, 'venues', venueId));
                         if (vDoc.exists()) {
                             const venueData = vDoc.data();
+                            console.log("Recalculating discount for existing user using tiers:", venueData.tiers);
+
                             const qVisits = query(
                                 collection(db, 'visits'),
                                 where('guestEmail', '==', lowerEmail),
@@ -66,14 +64,14 @@ const LeadCapture = () => {
                             if (!visitsSnap.empty) {
                                 const lastVisitDate = visitsSnap.docs[0].data().timestamp.toDate();
                                 const now = new Date();
-                                const calcResult = RewardCalculator.calculate(lastVisitDate, now, venueData.loyaltyConfig);
+                                const calcResult = RewardCalculator.calculate(lastVisitDate, now, venueData.tiers);
                                 finalDiscount = calcResult.discount;
+                                console.log(`New discount calculated for ${lowerEmail}: ${finalDiscount}%`);
                             }
                         }
                     } catch (err) {
                         console.error("Error recalculating discount on email match:", err);
                     }
-
                 } else {
                     // NEW USER -> Create new doc with current auth UID
                     await setDoc(doc(db, 'users', user.uid), {

@@ -363,31 +363,31 @@ const LandingPage = () => {
             <div className="flex-grow flex flex-col items-center justify-evenly px-6 pb-24 w-full max-w-md mx-auto">
 
                 {/* Hero */}
-                <div className="text-center mt-2 flex flex-col items-center gap-2">
-                    <h1 className="text-[20px] font-black opacity-60 uppercase tracking-widest">
+                <div className="text-center mt-0 flex flex-col items-center gap-0">
+                    <h1 className="text-[20px] font-black opacity-60 uppercase tracking-widest leading-[0.9] mb-1">
                         {t('hero_welcome_back')}
                     </h1>
 
                     {guestName ? (
-                        <div className="text-[32px] font-black text-[#E68A00] animate-orange-glow leading-tight">
+                        <div className="text-[32px] font-black text-[#E68A00] animate-orange-glow leading-[0.9] my-1">
                             {guestName}
                         </div>
                     ) : (
                         <button
                             onClick={() => navigate('/activate', { state: { discount, guestName, userRole } })}
-                            className="text-[14px] font-black text-[#E68A00] animate-orange-glow leading-tight border-2 border-[#E68A00]/20 px-6 py-2 rounded-full hover:bg-[#E68A00]/5 transition-all mt-1"
+                            className="text-[14px] font-black text-[#E68A00] animate-orange-glow leading-tight border-2 border-[#E68A00]/20 px-6 py-2 rounded-full hover:bg-[#E68A00]/5 transition-all my-1"
                         >
                             {t('hero_please_sign_in')}
                         </button>
                     )}
 
-                    <h1 className="text-[20px] font-black opacity-60 uppercase tracking-widest mt-1">
+                    <h1 className="text-[20px] font-black opacity-60 uppercase tracking-widest leading-[0.9]">
                         {t('hero_reward_today')}
                     </h1>
                 </div>
 
-                {/* Gauge Visual - Reduced Size by 10% (was 285px -> ~256px) & Pivot Fixed */}
-                <div className="relative w-[256px] h-[154px] flex items-center justify-center origin-center mx-auto my-8">
+                {/* Gauge Visual - Reduced Size by 10% (was 285px -> ~256px) & Moved UP */}
+                <div className="relative w-[256px] h-[154px] flex items-center justify-center origin-center mx-auto mt-[-4px] mb-8">
                     <svg viewBox="0 0 285 171" className="w-full h-full overflow-visible">
                         <defs>
                             <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -570,29 +570,33 @@ const LandingPage = () => {
                 </button>
             </div>
             {/* Debug Overlay */}
-            {debugClicks >= 5 && lastVisitDebug && (
+            {debugClicks >= 5 && (
                 <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-6 backdrop-blur-md" onClick={() => setDebugClicks(0)}>
                     <div className="bg-[#1e1e1e] w-full max-w-sm rounded-[32px] p-8 border border-white/10 shadow-2xl relative">
                         <button className="absolute top-6 right-8 text-white/40 text-2xl font-black">X</button>
-                        <h3 className="text-[#00E676] font-black tracking-widest text-xs uppercase mb-8 flex items-center gap-2">
+                        <h3 className="text-[#00E676] font-black tracking-widest text-xs uppercase mb-8 flex items-center gap-1">
                             <div className="w-2 h-2 bg-[#00E676] rounded-full animate-ping"></div>
                             Debug Info
                         </h3>
 
                         <div className="space-y-6">
-                            {[
-                                { label: 'UID', value: lastVisitDebug.uid, color: 'text-white/40' },
-                                { label: 'Email', value: lastVisitDebug.email, color: 'text-white/40' },
-                                { label: 'Venue', value: lastVisitDebug.venueId, color: 'text-white/40' },
-                                { label: 'Активный день (посл.)', value: lastVisitDebug.daysAgoStr, color: 'text-white' },
-                                { label: 'Пред. активный день', value: lastVisitDebug.prevDaysAgoStr, color: 'text-white' },
-                                { label: 'Скидка сегодня', value: `${lastVisitDebug.discountToday}%`, color: 'text-[#E68A00]' }
-                            ].map((item, idx) => (
-                                <div key={idx} className="flex flex-col gap-1">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-white/20">{item.label}</span>
-                                    <span className={`text-[14px] font-bold truncate ${item.color}`}>{item.value}</span>
-                                </div>
-                            ))}
+                            {lastVisitDebug ? (
+                                [
+                                    { label: 'UID', value: lastVisitDebug.uid, color: 'text-white/40' },
+                                    { label: 'Email', value: lastVisitDebug.email, color: 'text-white/40' },
+                                    { label: 'Venue', value: lastVisitDebug.venueId, color: 'text-white/40' },
+                                    { label: 'Активный день (посл.)', value: lastVisitDebug.daysAgoStr, color: 'text-white' },
+                                    { label: 'Пред. активный день', value: lastVisitDebug.prevDaysAgoStr, color: 'text-white' },
+                                    { label: 'Скидка сегодня', value: `${lastVisitDebug.discountToday}%`, color: 'text-[#E68A00]' }
+                                ].map((item, idx) => (
+                                    <div key={idx} className="flex flex-col gap-1">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-white/20">{item.label}</span>
+                                        <span className={`text-[14px] font-bold truncate ${item.color}`}>{item.value}</span>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-white/40 text-sm font-bold italic">Loading data for debug overlay...</p>
+                            )}
                         </div>
 
                         <p className="mt-10 text-center text-white/20 text-[10px] font-black uppercase tracking-widest">

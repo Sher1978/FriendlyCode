@@ -3,24 +3,42 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGift, faCalendarAlt, faCrown, faQrcode, faArrowUp, faUtensils, faCheckCircle, faHistory, faRocket, faLeaf, faStar, faHeart } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 
 const MarketingB2C = () => {
     const navigate = useNavigate();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+
+    useEffect(() => {
+        // Ensure EN is default for B2C if no language is set
+        if (!localStorage.getItem('i18nextLng')) {
+            i18n.changeLanguage('en');
+        }
+    }, []);
 
     return (
         <div className="min-h-screen bg-background-cream font-sans text-brand-brown overflow-x-hidden relative">
             {/* Navbar */}
             <nav className="fixed top-0 w-full bg-background-cream/80 backdrop-blur-md z-50 border-b border-brand-brown/5 h-16 flex items-center justify-between px-6">
                 <div className="font-black text-xl tracking-tighter text-brand-brown">FRIENDLY CODE</div>
-                <button
-                    onClick={() => navigate('/business')}
-                    className="text-brand-orange font-black uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-2 group transition-all"
-                >
-                    For Business
-                    <span className="w-4 h-px bg-brand-orange group-hover:w-6 transition-all"></span>
-                </button>
+
+                <div className="flex items-center gap-6">
+                    {/* Language Switcher */}
+                    <button
+                        onClick={() => i18n.changeLanguage(i18n.language === 'en' ? 'ru' : 'en')}
+                        className="bg-brand-brown/5 hover:bg-brand-brown/10 px-3 py-1 rounded-full text-[10px] font-black text-brand-brown transition-all uppercase tracking-widest border border-brand-brown/5"
+                    >
+                        {i18n.language === 'en' ? 'RU' : 'EN'}
+                    </button>
+
+                    <button
+                        onClick={() => navigate('/business')}
+                        className="text-brand-orange font-black uppercase tracking-widest text-[10px] md:text-xs flex items-center gap-2 group transition-all"
+                    >
+                        {t('b2c_nav_for_business')}
+                        <span className="w-4 h-px bg-brand-orange group-hover:w-6 transition-all"></span>
+                    </button>
+                </div>
             </nav>
 
             {/* Block 0: Emotional Intro (NEW) */}
@@ -45,7 +63,9 @@ const MarketingB2C = () => {
                     transition={{ delay: 0.3, duration: 0.8 }}
                     className="text-4xl md:text-6xl lg:text-7xl font-black leading-[1.05] mb-8 tracking-tight text-brand-brown"
                 >
-                    Friendly Code — первое умное приложение для гостей, где тебя <span className="text-brand-orange italic font-serif">любят</span> в ответ.
+                    <Trans i18nKey="b2c_hero_title">
+                        Friendly Code — первое умное приложение для гостей, где тебя <span className="text-brand-orange italic font-serif">любят</span> в ответ.
+                    </Trans>
                 </motion.h1>
 
                 <motion.p
@@ -54,7 +74,7 @@ const MarketingB2C = () => {
                     transition={{ delay: 0.5, duration: 0.8 }}
                     className="text-lg md:text-2xl text-brand-brown/70 max-w-4xl leading-relaxed mb-10 font-medium"
                 >
-                    Мы создали технологию взаимности. Хватит быть просто «номером столика». Твоя преданность заведению всегда возвращается к тебе в виде реальных привилегий и заботы.
+                    {t('b2c_hero_sub')}
                 </motion.p>
 
                 <motion.div
@@ -63,7 +83,7 @@ const MarketingB2C = () => {
                     transition={{ delay: 0.6, duration: 0.8 }}
                     className="w-full max-w-5xl mt-12 bg-white/50 backdrop-blur-sm rounded-[3rem] p-8 md:p-12 border border-brand-brown/5 shadow-xl shadow-brand-brown/5"
                 >
-                    <h3 className="text-xl md:text-2xl font-black text-brand-brown/80 mb-12 uppercase tracking-widest">Вот как это работает:</h3>
+                    <h3 className="text-xl md:text-2xl font-black text-brand-brown/80 mb-12 uppercase tracking-widest">{t('b2c_how_it_works')}</h3>
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8 relative">
                         {/* Connecting line for desktop */}
@@ -71,25 +91,25 @@ const MarketingB2C = () => {
 
                         <PathStep
                             num="1"
-                            title="Приди в любимое кафе и найди QR или NFC"
+                            title={t('b2c_path_step_1')}
                             icon={faUtensils}
                             delay={0.7}
                         />
                         <PathStep
                             num="2"
-                            title="Отсканируй или просто приложи телефон"
+                            title={t('b2c_path_step_2')}
                             icon={faQrcode}
                             delay={0.8}
                         />
                         <PathStep
                             num="3"
-                            title="Покажи экран официанту"
+                            title={t('b2c_path_step_3')}
                             icon={faCheckCircle}
                             delay={0.9}
                         />
                         <PathStep
                             num="4"
-                            title="Мгновенно получи подарок"
+                            title={t('b2c_path_step_4')}
                             icon={faGift}
                             delay={1.0}
                         />
@@ -107,7 +127,9 @@ const MarketingB2C = () => {
                     viewport={{ once: true }}
                     className="text-3xl md:text-5xl font-black mb-6 text-brand-brown"
                 >
-                    Подарки, ради которых <span className="text-brand-orange italic font-serif">НЕ НУЖНО</span> ничего скачивать.
+                    <Trans i18nKey="b2c_zero_friction_title">
+                        Подарки, ради которых <span className="text-brand-orange italic font-serif">НЕ НУЖНО</span> ничего скачивать.
+                    </Trans>
                 </motion.h2>
 
                 <motion.p
@@ -116,14 +138,14 @@ const MarketingB2C = () => {
                     viewport={{ once: true }}
                     className="text-lg md:text-xl text-brand-brown/70 max-w-2xl leading-relaxed mb-10"
                 >
-                    Забудь про анкеты, пластик и спам. Твой любимый город теперь знает тебя в лицо.
+                    {t('b2c_zero_friction_sub')}
                 </motion.p>
 
                 <button
                     onClick={() => navigate('/map')}
                     className="text-brand-orange font-black uppercase tracking-widest text-sm flex items-center gap-3 group"
                 >
-                    Найти скидки рядом
+                    {t('b2c_find_nearby')}
                     <span className="w-8 h-px bg-brand-orange group-hover:w-12 transition-all"></span>
                 </button>
             </section>
@@ -138,19 +160,19 @@ const MarketingB2C = () => {
                         className="space-y-8"
                     >
                         <h2 className="text-3xl md:text-5xl font-black text-brand-brown leading-tight">
-                            Хватит копить баллы <br /> к 2030 году!
+                            {t('b2c_anti_boring_title')}
                         </h2>
                         <div className="space-y-4">
                             <p className="text-brand-brown/70 text-lg md:text-xl leading-relaxed">
-                                Копить бонусы годами — это жутко устарело и скучно. Мы ценим твое время.
+                                {t('b2c_anti_boring_desc')}
                             </p>
                             <div className="bg-white p-6 rounded-2xl border-l-4 border-brand-orange shadow-lg">
-                                <span className="text-sm font-black text-brand-orange uppercase tracking-widest block mb-2">The Golden Rule</span>
+                                <span className="text-sm font-black text-brand-orange uppercase tracking-widest block mb-2">{t('b2c_golden_rule_label')}</span>
                                 <p className="text-xl md:text-2xl font-black text-brand-brown">
-                                    Просто приди завтра — и получи максимальную скидку!
+                                    {t('b2c_golden_rule_title')}
                                 </p>
                                 <p className="text-sm text-brand-brown/50 mt-2">
-                                    Logic: Сегодня (Welcome) → Завтра (Super VIP). Максимум сразу за возврат на следующий день.
+                                    {t('b2c_golden_rule_logic')}
                                 </p>
                             </div>
                         </div>
@@ -194,13 +216,13 @@ const MarketingB2C = () => {
                                 className="bg-brand-orange px-6 py-3 rounded-full text-white font-black uppercase tracking-widest text-sm mb-6 flex items-center gap-2"
                             >
                                 <FontAwesomeIcon icon={faStar} />
-                                Super VIP Magic
+                                {t('b2c_magic_label')}
                             </motion.div>
                             <h2 className="text-3xl md:text-6xl font-black text-white leading-tight max-w-3xl mb-6">
-                                Почувствуй магию признания.
+                                {t('b2c_magic_title')}
                             </h2>
                             <p className="text-lg md:text-2xl text-white/90 max-w-2xl font-medium">
-                                Статус Super VIP — это когда тебя ждут. Ты больше не гость, ты — часть семьи.
+                                {t('b2c_magic_sub')}
                             </p>
                         </div>
                     </motion.div>
@@ -216,28 +238,28 @@ const MarketingB2C = () => {
                             viewport={{ once: true }}
                             className="text-3xl md:text-5xl font-black text-brand-brown"
                         >
-                            Стать Super VIP другом — это проще простого.
+                            {t('b2c_easier_title')}
                         </motion.h2>
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                             <Step
                                 num="01"
                                 icon={faQrcode}
-                                title="Сканируй QR"
-                                desc="Наведи камеру на код."
+                                title={t('b2c_step_scan_title')}
+                                desc={t('b2c_step_scan_desc')}
                             />
                             <Step
                                 num="02"
                                 icon={faArrowUp}
-                                title="Расти мгновенно"
-                                desc="Твой статус растет сразу."
+                                title={t('b2c_step_grow_title')}
+                                desc={t('b2c_step_grow_desc')}
                                 highlight
                             />
                             <Step
                                 num="03"
                                 icon={faUtensils}
-                                title="Наслаждайся"
-                                desc="Получай свои подарки."
+                                title={t('b2c_step_enjoy_title')}
+                                desc={t('b2c_step_enjoy_desc')}
                             />
                         </div>
 
@@ -249,17 +271,17 @@ const MarketingB2C = () => {
                             className="pt-16 border-t border-brand-brown/10 w-full max-w-3xl mx-auto"
                         >
                             <h3 className="text-2xl md:text-3xl font-black mb-4 text-brand-brown leading-tight">
-                                Готов к новому уровню гостеприимства?
+                                {t('b2c_ready_title')}
                             </h3>
                             <p className="text-brand-brown/60 mb-10 text-lg">
-                                Попробуй демку прямо сейчас и ощути магию Friendly Code.
+                                {t('b2c_ready_sub')}
                             </p>
                             <button
                                 onClick={() => navigate('/qr?id=komKf0beSnsuuZ6p0Igh')}
                                 className="w-full md:w-auto bg-brand-orange text-white px-8 py-4 md:px-12 md:py-6 rounded-full font-black text-base md:text-xl shadow-xl shadow-brand-orange/40 hover:shadow-brand-orange/60 hover:scale-[1.02] transition-all flex items-center justify-center gap-4 uppercase tracking-wider mx-auto"
                             >
                                 <FontAwesomeIcon icon={faRocket} />
-                                Запустить демку
+                                {t('b2c_launch_demo')}
                             </button>
                         </motion.div>
                     </div>

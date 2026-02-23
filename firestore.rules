@@ -62,12 +62,7 @@ service cloud.firestore {
     // 3. Visits Collection
     match /visits/{visitId} {
       allow create: if isAuthenticated();
-      allow read: if isAuthenticated() && (
-        resource.data.uid == request.auth.uid ||             
-        resource.data.guestEmail == request.auth.token.email || 
-        isOwner() || 
-        isSuperAdmin()
-      );
+      allow read: if isAuthenticated(); // Allow reading visits for guest recognition and history
     }
 
     // 4. Leads Collection (B2B and B2C tracking)
