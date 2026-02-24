@@ -229,7 +229,7 @@ const LandingPage = () => {
                                 daysAgoStr: currentActiveDayStr,
                                 prevDaysAgoStr: prevDaysAgoStr,
                                 discountToday: calculatedDiscount,
-                                diffDays: result.diffDays
+                                diffDays: result.diffDays ?? 'N/A'
                             };
 
                             if (result.status === 'cooldown') {
@@ -238,8 +238,19 @@ const LandingPage = () => {
                                     required: venueData.loyaltyConfig?.safetyCooldownHours || 12
                                 });
                             }
+                        } else {
+                            // User has email but NO visits yet
+                            result = RewardCalculator.calculate(null, now, venueData.loyaltyConfig, null);
+                            calculatedDiscount = result.discount;
+                            debugInfo.diffDays = result.diffDays ?? 'N/A';
                         }
+                    } else {
+                        // User has no email entirely
+                        result = RewardCalculator.calculate(null, now, venueData.loyaltyConfig, null);
+                        calculatedDiscount = result.discount;
+                        debugInfo.diffDays = result.diffDays ?? 'N/A';
                     }
+
                     setLastVisitDebug(debugInfo);
                     setDiscount(calculatedDiscount);
 
