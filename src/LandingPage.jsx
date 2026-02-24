@@ -140,7 +140,8 @@ const LandingPage = () => {
                         venueId,
                         daysAgoStr: 'Никогда',
                         prevDaysAgoStr: 'Никогда',
-                        discountToday: 5
+                        discountToday: 5,
+                        diffDays: 'N/A'
                     };
 
                     if (email) {
@@ -227,7 +228,8 @@ const LandingPage = () => {
                                 ...debugInfo,
                                 daysAgoStr: currentActiveDayStr,
                                 prevDaysAgoStr: prevDaysAgoStr,
-                                discountToday: calculatedDiscount
+                                discountToday: calculatedDiscount,
+                                diffDays: result.diffDays
                             };
 
                             if (result.status === 'cooldown') {
@@ -604,6 +606,7 @@ const LandingPage = () => {
                                     { label: 'Venue', value: lastVisitDebug.venueId, color: 'text-white/40' },
                                     { label: 'Активный день (посл.)', value: lastVisitDebug.daysAgoStr, color: 'text-white' },
                                     { label: 'Пред. активный день', value: lastVisitDebug.prevDaysAgoStr, color: 'text-white' },
+                                    { label: 'DiffDays', value: lastVisitDebug.diffDays, color: 'text-[#E68A00]' },
                                     { label: 'Скидка сегодня', value: `${lastVisitDebug.discountToday}%`, color: 'text-[#E68A00]' }
                                 ].map((item, idx) => (
                                     <div key={idx} className="flex flex-col gap-1">
