@@ -149,7 +149,7 @@ const LandingPage = () => {
                             where('guestEmail', '==', email),
                             where('venueId', '==', venueId),
                             orderBy('timestamp', 'desc'),
-                            limit(5) // Fetch last 5 visits to find real previous days if they spammed today
+                            limit(50) // Fetch up to 50 to reliably bypass legacy spam duplicates
                         );
                         const querySnapshot = await getDocs(qVisits);
 
