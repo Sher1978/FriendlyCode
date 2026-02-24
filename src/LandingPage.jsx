@@ -2,12 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLeaf, faCheckCircle, faRocket, faGift } from '@fortawesome/free-solid-svg-icons';
+import { faLeaf, faCheckCircle, faRocket, faGift, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import { motion } from 'framer-motion';
 import { db, auth } from './firebase';
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { RewardCalculator } from './logic/RewardCalculator';
+
+// Safe wrapper to prevent DOMException crashes in strict mobile browsers
+const safeStorage = {
+    getItem: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    setItem: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { console.warn('Storage blocked'); } }
+};
 
 const LandingPage = () => {
     const { t, i18n } = useTranslation();
@@ -68,7 +74,7 @@ const LandingPage = () => {
             const checkUserAndVenue = async () => {
                 const searchParams = new URLSearchParams(location.search);
                 const venueId = searchParams.get('id') || searchParams.get('v') || 'default_venue';
-                localStorage.setItem('currentVenueId', venueId);
+                safeStorage.setItem('currentVenueId', venueId);
 
                 try {
                     // 1. Check Venue Status
@@ -108,14 +114,14 @@ const LandingPage = () => {
                         const displayName = userData.displayName || userData.name;
                         if (displayName) {
                             setGuestName(displayName);
-                            localStorage.setItem('guestName', displayName);
+                            safeStorage.setItem('guestName', displayName);
                         }
                         if (userData.email) {
-                            localStorage.setItem('guestEmail', userData.email);
+                            safeStorage.setItem('guestEmail', userData.email);
                         }
                     } else {
                         // Fallback to localStorage
-                        const savedName = localStorage.getItem('guestName');
+                        const savedName = safeStorage.getItem('guestName');
                         if (savedName) setGuestName(savedName);
                     }
 
@@ -128,7 +134,7 @@ const LandingPage = () => {
 
                     // 4. Calculate Discount
                     // FORCE LOWERCASE EMAIL
-                    const rawEmail = userData?.email || localStorage.getItem('guestEmail') || '';
+                    const rawEmail = userData?.email || safeStorage.getItem('guestEmail') || '';
                     const email = rawEmail.toLowerCase();
 
                     let calculatedDiscount = 5;
@@ -267,6 +273,9 @@ const LandingPage = () => {
 
                 } catch (e) {
                     console.error("Error in checkUserAndVenue:", e);
+                    setLastVisitDebug({
+                        error: e.message || String(e)
+                    });
                     setStatus('first');
                 }
             };
@@ -576,7 +585,7 @@ const LandingPage = () => {
             <div className="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-[#FFF8E1] via-[#FFF8E1] to-transparent pb-8">
                 <button
                     onClick={() => {
-                        const guestEmail = localStorage.getItem('guestEmail');
+                        const guestEmail = safeStorage.getItem('guestEmail');
                         if (guestName || guestEmail) {
                             // If guest is recognized (name or email), skip input screen
                             navigate('/thank-you', {
@@ -584,7 +593,7 @@ const LandingPage = () => {
                                     guestName: guestName || 'Friend', // Fallback name
                                     guestEmail: guestEmail,
                                     discountValue: discount,
-                                    venueId: localStorage.getItem('currentVenueId'),
+                                    venueId: safeStorage.getItem('currentVenueId'),
                                     userRole
                                 }
                             });
@@ -596,7 +605,7 @@ const LandingPage = () => {
                     className="w-full h-[64px] bg-[#E68A00] text-white rounded-[20px] font-black text-[18px] active:scale-[0.98] transition-all shadow-xl shadow-[#E68A00]/30 uppercase flex items-center justify-center gap-3"
                 >
                     <FontAwesomeIcon icon={faRocket} />
-                    {(guestName || localStorage.getItem('guestEmail')) ? t('get_my_reward', 'Get My Reward') : t('get_my_discount')}
+                    {(guestName || safeStorage.getItem('guestEmail')) ? t('get_my_reward', 'Get My Reward') : t('get_my_discount')}
                 </button>
             </div>
             {/* Debug Overlay */}
@@ -611,22 +620,33 @@ const LandingPage = () => {
 
                         <div className="space-y-6">
                             {lastVisitDebug ? (
-                                [
-                                    { label: 'UID', value: lastVisitDebug.uid, color: 'text-white/40' },
-                                    { label: 'Email', value: lastVisitDebug.email, color: 'text-white/40' },
-                                    { label: 'Venue', value: lastVisitDebug.venueId, color: 'text-white/40' },
-                                    { label: 'Активный день (посл.)', value: lastVisitDebug.daysAgoStr, color: 'text-white' },
-                                    { label: 'Пред. активный день', value: lastVisitDebug.prevDaysAgoStr, color: 'text-white' },
-                                    { label: 'DiffDays', value: lastVisitDebug.diffDays, color: 'text-[#E68A00]' },
-                                    { label: 'Скидка сегодня', value: `${lastVisitDebug.discountToday}%`, color: 'text-[#E68A00]' }
-                                ].map((item, idx) => (
-                                    <div key={idx} className="flex flex-col gap-1">
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-white/20">{item.label}</span>
-                                        <span className={`text-[14px] font-bold truncate ${item.color}`}>{item.value}</span>
+                                lastVisitDebug.error ? (
+                                    <div className="flex items-start gap-4 p-4 bg-red-900/30 border border-red-500/50 rounded-2xl relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 w-16 h-16 bg-red-500/10 rounded-full -mr-8 -mt-8 blur-md"></div>
+                                        <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-400 text-xl shrink-0 mt-1" />
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-red-400 mb-1">Crash Report</span>
+                                            <span className="text-sm font-bold text-red-100 break-words leading-tight">{lastVisitDebug.error}</span>
+                                        </div>
                                     </div>
-                                ))
+                                ) : (
+                                    [
+                                        { label: 'UID', value: lastVisitDebug.uid, color: 'text-white/40' },
+                                        { label: 'Email', value: lastVisitDebug.email, color: 'text-white/40' },
+                                        { label: 'Venue', value: lastVisitDebug.venueId, color: 'text-white/40' },
+                                        { label: 'Активный день (посл.)', value: lastVisitDebug.daysAgoStr, color: 'text-white' },
+                                        { label: 'Пред. активный день', value: lastVisitDebug.prevDaysAgoStr, color: 'text-white' },
+                                        { label: 'DiffDays', value: lastVisitDebug.diffDays, color: 'text-[#E68A00]' },
+                                        { label: 'Скидка сегодня', value: `${lastVisitDebug.discountToday}%`, color: 'text-[#E68A00]' }
+                                    ].map((item, idx) => (
+                                        <div key={idx} className="flex flex-col gap-1">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-white/20">{item.label}</span>
+                                            <span className={`text-[14px] font-bold truncate ${item.color}`}>{item.value}</span>
+                                        </div>
+                                    ))
+                                )
                             ) : (
-                                <p className="text-white/40 text-sm font-bold italic">Loading data for debug overlay...</p>
+                                <p className="text-white/40 text-sm font-bold italic animate-pulse">Loading data for debug overlay...</p>
                             )}
                         </div>
 
