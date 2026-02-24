@@ -211,9 +211,7 @@ const LandingPage = () => {
                             let prevDaysAgoStr = 'Никогда';
                             let prevActiveDayDate = null;
 
-                            if (visitToday && uniqueDays.length > 2) {
-                                prevActiveDayDate = uniqueDays[2].date;
-                            } else if (!visitToday && uniqueDays.length > 1) {
+                            if (uniqueDays.length > 1) {
                                 prevActiveDayDate = uniqueDays[1].date;
                             }
 
