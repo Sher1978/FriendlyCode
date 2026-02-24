@@ -82,12 +82,14 @@ const resources = {
             "b2b_hero_cta_calc": "Calculate ROI",
 
             "b2b_leaky_bucket_h2": "Why isn't your current loyalty system working 100%?",
+            "b2b_leaky_bucket_intro": "Why do you lose up to 83% of first-time guests? Classic loyalty programs are hopelessly outdated. They don't work because people don't want to wait. You're losing money.",
             "b2b_problem_app_title": "App Barrier",
             "b2b_problem_app_desc": "80% of guests refuse to download another app or fill out long forms at the checkout.",
             "b2b_problem_stanford_title": "Scientific Fact (Fogg Model)",
             "b2b_problem_stanford_desc": "Stanford scientists proved: if an action requires effort (high friction), the client won't do it, no matter how big the reward.",
             "b2b_problem_blindspot_title": "The Blind Spot",
             "b2b_problem_blindspot_desc": "Paper stamp cards know nothing about your guests. You don't see who stopped visiting until it's too late.",
+            "b2b_leaky_bucket_fact": "Crucial Fact: Acquiring a new customer costs 7x more than retaining an existing one. Your budget goes into a \"leaky bucket\" if the guest doesn't return.",
 
             "b2b_simplicity_h2": "One-touch loyalty. Literally.",
             "b2b_simplicity_intro": "We removed all barriers between you and your client.",
@@ -240,12 +242,14 @@ const resources = {
             "b2b_hero_cta_calc": "Рассчитать окупаемость",
 
             "b2b_leaky_bucket_h2": "Почему ваша текущая система лояльности не работает на 100%?",
+            "b2b_leaky_bucket_intro": "Почему вы теряете до 83% гостей, которые пришли к вам впервые? Классические программы лояльности безнадежно устарели. Они не работают, потому что люди не хотят ждать и усложнять. А вы теряете деньги.",
             "b2b_problem_app_title": "Барьер приложения",
             "b2b_problem_app_desc": "80% гостей отказываются скачивать еще одно приложение или заполнять долгие анкеты на кассе.",
             "b2b_problem_stanford_title": "Научный факт (Fogg Behavior Model)",
             "b2b_problem_stanford_desc": "Ученые Стэнфорда доказали — если действие требует усилий (высокое трение), клиент его не совершит, какой бы большой ни была награда.",
             "b2b_problem_blindspot_title": "Слепая зона",
             "b2b_problem_blindspot_desc": "Бумажные карточки с печатями ничего не знают о ваших гостях. Вы не видите, кто перестал к вам ходить, пока не становится слишком поздно.",
+            "b2b_leaky_bucket_fact": "Важный факт: Помните, что приводя новых клиентов, вы зарабатываете в 7 раз меньше, чем удерживая старых. Весь ваш рекламный бюджет уходит в «дырявое ведро», если гость не возвращается к вам снова.",
 
             "b2b_simplicity_h2": "Лояльность в одно касание. Буквально.",
             "b2b_simplicity_intro": "Мы убрали все барьеры между вами и вашим клиентом.",
