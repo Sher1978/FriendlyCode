@@ -149,34 +149,51 @@ const LandingPage = () => {
                             where('guestEmail', '==', email),
                             where('venueId', '==', venueId),
                             orderBy('timestamp', 'desc'),
-                            limit(2) // Fetch last 2 visits for previous active day
+                            limit(5) // Fetch last 5 visits to find real previous days if they spammed today
                         );
                         const querySnapshot = await getDocs(qVisits);
 
                         if (!querySnapshot.empty) {
                             const docs = querySnapshot.docs;
-                            const firstVisit = docs[0].data().timestamp.toDate();
+
+                            // Map visits to their YYYY-MM-DD string to find unique days
+                            const uniqueDays = [];
+                            const tzOffset = now.getTimezoneOffset() * 60000;
+
+                            docs.forEach(docSnap => {
+                                const timestamp = docSnap.data().timestamp;
+                                if (!timestamp) return;
+                                const dateObj = timestamp.toDate();
+                                // Create local date string (YYYY-MM-DD)
+                                const localISOTime = (new Date(dateObj - tzOffset)).toISOString().split('T')[0];
+
+                                if (!uniqueDays.find(d => d.dateStr === localISOTime)) {
+                                    uniqueDays.push({
+                                        dateStr: localISOTime,
+                                        date: dateObj
+                                    });
+                                }
+                            });
 
                             const todayStart = new Date(now);
                             todayStart.setHours(0, 0, 0, 0);
+                            const todayStr = (new Date(now - tzOffset)).toISOString().split('T')[0];
 
                             let lastVisitBeforeToday = null;
                             let visitToday = null;
 
-                            if (firstVisit >= todayStart) {
-                                // Most recent visit is Today
-                                visitToday = firstVisit;
-                                if (docs.length > 1) {
-                                    lastVisitBeforeToday = docs[1].data().timestamp.toDate();
+                            // Check if the very first unique day is today
+                            if (uniqueDays.length > 0 && uniqueDays[0].dateStr === todayStr) {
+                                visitToday = uniqueDays[0].date;
+                                if (uniqueDays.length > 1) {
+                                    lastVisitBeforeToday = uniqueDays[1].date;
                                 }
-                            } else {
-                                // Most recent visit is in the past
-                                lastVisitBeforeToday = firstVisit;
+                            } else if (uniqueDays.length > 0) {
+                                lastVisitBeforeToday = uniqueDays[0].date;
                             }
 
-                            // Use the new shared logic
-                            const result = RewardCalculator.calculate(lastVisitBeforeToday, now, venueData.loyaltyConfig, visitToday);
-
+                            // Use the new shared logic without re-declaring `result` using const
+                            result = RewardCalculator.calculate(lastVisitBeforeToday, now, venueData.loyaltyConfig, visitToday);
                             calculatedDiscount = result.discount;
 
                             // Update Days Ago display for Debug
@@ -190,15 +207,18 @@ const LandingPage = () => {
 
                             const currentActiveDayStr = visitToday ? "Сегодня (0)" : daysAgoStr;
 
-                            // Fetch a previous visit strictly for the "Previous active day" label (if we have more than 2)
+                            // Fetch a previous visit strictly for the "Previous active day" label 
                             let prevDaysAgoStr = 'Никогда';
-                            const historicalVisit = visitToday ? (docs.length > 1 ? docs[1].data().timestamp.toDate() : null) : (docs.length > 1 ? docs[1].data().timestamp.toDate() : null);
-                            // Wait, if visitToday is present, docs[1] is the lastVisitBeforeToday. We want the one BEFORE that for "Previous".
-                            // But for debug simplicity, let's just show the one we used for calculation if it's not today.
+                            let prevActiveDayDate = null;
 
-                            const debugRef = lastVisitBeforeToday;
-                            if (debugRef) {
-                                const d = new Date(debugRef);
+                            if (visitToday && uniqueDays.length > 2) {
+                                prevActiveDayDate = uniqueDays[2].date;
+                            } else if (!visitToday && uniqueDays.length > 1) {
+                                prevActiveDayDate = uniqueDays[1].date;
+                            }
+
+                            if (prevActiveDayDate) {
+                                const d = new Date(prevActiveDayDate);
                                 d.setHours(0, 0, 0, 0);
                                 const diff = Math.round((todayStart - d) / (1000 * 60 * 60 * 24));
                                 prevDaysAgoStr = `${diff} дн. назад`;
@@ -217,7 +237,6 @@ const LandingPage = () => {
                                     hoursPassed: result.hoursPassed,
                                     required: venueData.loyaltyConfig?.safetyCooldownHours || 12
                                 });
-                                // Keep discount as calculated (likely Base or Previous if logic allows)
                             }
                         }
                     }

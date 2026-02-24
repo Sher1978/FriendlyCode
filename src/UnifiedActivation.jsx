@@ -105,19 +105,37 @@ const UnifiedActivation = () => {
             // Use duplicated-resolved ID if available, otherwise auth ID
             const effectiveUid = location.state?.effectiveUid || localStorage.getItem('effectiveUid') || user?.uid || 'anonymous';
 
-            // 1. Create visit record (Core Logic)
-            await addDoc(collection(db, 'visits'), {
-                uid: effectiveUid,
-                venueId: venueId,
-                guestEmail: guestEmail,
-                guestName: guestName,
-                discountValue: discountValue,
-                timestamp: serverTimestamp(),
-                status: 'pending_validation',
-                is_test: ['staff', 'owner', 'superadmin'].includes(role)
-            });
+            // Check if user already claimed today
+            const startOfToday = new Date();
+            startOfToday.setHours(0, 0, 0, 0);
 
-            // 2. Also keep legacy request for compatibility
+            const { getDocs, query, collection, where, addDoc, serverTimestamp } = await import('firebase/firestore');
+
+            const qRecent = query(
+                collection(db, 'visits'),
+                where('guestEmail', '==', guestEmail),
+                where('venueId', '==', venueId),
+                where('timestamp', '>=', startOfToday)
+            );
+            const recentSnaps = await getDocs(qRecent);
+
+            if (recentSnaps.empty) {
+                // 1. Create visit record (Core Logic)
+                await addDoc(collection(db, 'visits'), {
+                    uid: effectiveUid,
+                    venueId: venueId,
+                    guestEmail: guestEmail,
+                    guestName: guestName,
+                    discountValue: discountValue,
+                    timestamp: serverTimestamp(),
+                    status: 'pending_validation',
+                    is_test: ['staff', 'owner', 'superadmin'].includes(role)
+                });
+            } else {
+                console.log("Visit already recorded for today, skipping duplicate insert.");
+            }
+
+            // 2. Also keep legacy request for compatibility (we let this run to not break legacy admin UI)
             await addDoc(collection(db, 'discount_requests'), {
                 venueId: venueId,
                 guestEmail: guestEmail,
