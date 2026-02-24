@@ -3,7 +3,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faLeaf, faChartLine, faBell, faQrcode, faHandshake,
     faComments, faGlobe, faArrowRight, faUsers, faBolt,
-    faDatabase, faPaperPlane, faMobileButton, faIdCard
+    faDatabase, faPaperPlane, faMobileButton, faIdCard,
+    faTrophy, faBrain, faStethoscope, faUtensils, faScissors, faTableTennisPaddleBall
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -103,8 +104,14 @@ const MarketingB2B = () => {
                                 onClick={() => window.location.href = '#footer-form'}
                                 className="px-10 py-6 bg-brand-orange text-white rounded-[2rem] font-black text-xl tracking-tight shadow-[0_20px_60px_-15px_rgba(230,138,0,0.4)] hover:shadow-[0_25px_70px_-12px_rgba(230,138,0,0.6)] hover:-translate-y-2 transition-all active:scale-95 flex items-center justify-center gap-3"
                             >
-                                {t('b2b_hero_cta_new')}
+                                {t('b2b_hero_cta_demo')}
                                 <FontAwesomeIcon icon={faArrowRight} className="text-sm opacity-50" />
+                            </button>
+                            <button
+                                onClick={() => window.location.href = '#footer-form'}
+                                className="px-10 py-6 bg-white text-brand-brown border-2 border-brand-brown/10 rounded-[2rem] font-black text-xl tracking-tight hover:border-brand-orange hover:text-brand-orange hover:-translate-y-2 transition-all active:scale-95 flex items-center justify-center"
+                            >
+                                {t('b2b_hero_cta_calc')}
                             </button>
                         </div>
                     </motion.div>
@@ -148,22 +155,22 @@ const MarketingB2B = () => {
 
                             <div className="grid grid-cols-1 gap-6 mb-12">
                                 <ProblemCard
-                                    icon={faGlobe}
-                                    title={t('b2b_problem_aggregators_title')}
-                                    desc={t('b2b_problem_aggregators_desc')}
-                                    tag="Margin Killer"
-                                />
-                                <ProblemCard
                                     icon={faMobileButton}
                                     title={t('b2b_problem_app_title')}
                                     desc={t('b2b_problem_app_desc')}
-                                    tag="$20k+ Loss"
+                                    tag={i18n.language === 'ru' ? '80% Отказов' : '80% Drop-off'}
+                                />
+                                <ProblemCard
+                                    icon={faGlobe}
+                                    title={t('b2b_problem_stanford_title')}
+                                    desc={t('b2b_problem_stanford_desc')}
+                                    tag={i18n.language === 'ru' ? 'Наука' : 'Science'}
                                 />
                                 <ProblemCard
                                     icon={faIdCard}
-                                    title={t('b2b_problem_plastic_title')}
-                                    desc={t('b2b_problem_plastic_desc')}
-                                    tag="Analog Era"
+                                    title={t('b2b_problem_blindspot_title')}
+                                    desc={t('b2b_problem_blindspot_desc')}
+                                    tag={i18n.language === 'ru' ? 'Слепая зона' : 'Zero Data'}
                                 />
                             </div>
 
@@ -193,7 +200,7 @@ const MarketingB2B = () => {
                 </div>
             </section>
 
-            {/* 4. Brilliant Simplicity Block */}
+            {/* 4. One-touch loyalty Block & Science of Retention */}
             <section className="px-6 py-32 bg-background-cream">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-32 items-center">
                     <motion.div {...fadeInUp}>
@@ -206,110 +213,126 @@ const MarketingB2B = () => {
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-6 group">
                                         <div className="w-16 h-16 rounded-[1.5rem] bg-orange-400/10 flex items-center justify-center text-orange-400 text-2xl group-hover:bg-orange-400 group-hover:text-white transition-all">
-                                            <FontAwesomeIcon icon={faBolt} />
+                                            <FontAwesomeIcon icon={faMobileButton} />
                                         </div>
                                         <div>
-                                            <p className="font-black text-xl tracking-tight">{t('b2b_simplicity_daily')}</p>
-                                            <p className="text-xs opacity-50 font-bold uppercase tracking-widest text-brand-brown">Super VIP Enabled</p>
+                                            <p className="font-black text-lg tracking-tight">{t('b2b_simplicity_tap')}</p>
                                         </div>
                                     </div>
-                                    <div className="flex items-center gap-6 grayscale opacity-40 group hover:grayscale-0 hover:opacity-100 transition-all">
-                                        <div className="w-16 h-16 rounded-[1.5rem] bg-brand-orange/10 flex items-center justify-center text-brand-orange text-2xl group-hover:bg-brand-orange group-hover:text-white transition-all">
+                                    <div className="flex items-center gap-6 group">
+                                        <div className="w-16 h-16 rounded-[1.5rem] bg-indigo-600/10 flex items-center justify-center text-indigo-600 text-2xl group-hover:bg-indigo-600 group-hover:text-white transition-all">
                                             <FontAwesomeIcon icon={faQrcode} />
                                         </div>
                                         <div>
-                                            <p className="font-bold text-xl tracking-tight">QR & NFC Activation</p>
-                                            <p className="text-xs font-bold uppercase tracking-widest text-brand-brown">Instant Login</p>
+                                            <p className="font-black text-lg tracking-tight">{t('b2b_simplicity_recognize')}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-6 group">
+                                        <div className="w-16 h-16 rounded-[1.5rem] bg-green-500/10 flex items-center justify-center text-green-500 text-2xl group-hover:bg-green-500 group-hover:text-white transition-all">
+                                            <FontAwesomeIcon icon={faDatabase} />
+                                        </div>
+                                        <div>
+                                            <p className="font-black text-lg tracking-tight">{t('b2b_simplicity_done')}</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <p className="text-xl opacity-60 leading-relaxed font-black uppercase tracking-tight text-center px-10 text-brand-brown">
-                                {t('b2b_simplicity_footer')}
-                            </p>
                         </div>
                     </motion.div>
 
-                    <div className="relative">
-                        <div className="bg-brand-brown p-16 rounded-[5rem] shadow-[0_50px_100px_-20px_rgba(78,52,46,0.5)] relative overflow-hidden h-[600px] flex flex-col justify-between border-4 border-white/10">
-                            <div className="flex items-end justify-between h-80 gap-6">
-                                <DetailedBar height="40%" label="Day 1" val="5%" color="#E68A0033" />
-                                <DetailedBar height="100%" label="Day 2" val="20%" active color="#E68A00" />
-                                <DetailedBar height="65%" label="Day 5" val="15%" color="#E68A0066" />
-                                <DetailedBar height="55%" label="Day 10" val="10%" color="#E68A0044" />
-                            </div>
-                            <div className="text-center mt-12">
-                                <div className="inline-block px-6 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/60 text-xs font-black uppercase tracking-widest">
-                                    Dynamic Discount Algorithm
+                    <motion.div {...fadeInUp} className="relative h-full">
+                        <div className="bg-[#1a1a1a] p-12 sm:p-16 rounded-[5rem] shadow-2xl relative overflow-hidden h-full flex flex-col justify-center border-4 border-white/5 text-white">
+                            <div className="absolute inset-0 z-0 opacity-20 bg-[url('/vip_pov_celebration_final.jpg')] bg-cover bg-center mix-blend-overlay"></div>
+                            <div className="relative z-10">
+                                <h3 className="text-3xl sm:text-4xl font-black mb-6 leading-tight">{t('b2b_science_h2')}</h3>
+                                <p className="text-lg opacity-80 mb-10 text-white/80">{t('b2b_science_intro')}</p>
+
+                                <div className="space-y-6">
+                                    <div className="flex items-start gap-4">
+                                        <div className="text-brand-orange text-2xl mt-1"><FontAwesomeIcon icon={faTrophy} /></div>
+                                        <div>
+                                            <h4 className="font-bold text-xl mb-2">{t('b2b_science_nobel_title')}</h4>
+                                            <p className="text-sm opacity-70 leading-relaxed">{t('b2b_science_nobel_desc')}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-4">
+                                        <div className="text-blue-400 text-2xl mt-1"><FontAwesomeIcon icon={faChartLine} /></div>
+                                        <div>
+                                            <h4 className="font-bold text-xl mb-2">{t('b2b_science_melting_title')}</h4>
+                                            <p className="text-sm opacity-70 leading-relaxed">{t('b2b_science_melting_desc')}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-4">
+                                        <div className="text-green-400 text-2xl mt-1"><FontAwesomeIcon icon={faHandshake} /></div>
+                                        <div>
+                                            <h4 className="font-bold text-xl mb-2">{t('b2b_science_result_title')}</h4>
+                                            <p className="text-sm opacity-70 leading-relaxed">{t('b2b_science_result_desc')}</p>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
             </section>
 
-            {/* 5. Growth Formula Block */}
+            {/* 5. AI Block */}
             <section className="px-6 py-32 bg-white">
                 <div className="max-w-7xl mx-auto">
                     <motion.div {...fadeInUp} className="text-center mb-24">
-                        <h2 className="text-4xl md:text-7xl font-black mb-8 tracking-tighter text-brand-brown">{t('b2b_formula_h2')}</h2>
-                        <p className="text-xl md:text-2xl opacity-60 max-w-3xl mx-auto leading-relaxed font-medium">{t('b2b_formula_intro')}</p>
+                        <h2 className="text-4xl md:text-7xl font-black mb-8 tracking-tighter text-brand-brown">{t('b2b_ai_h2')}</h2>
+                        <p className="text-xl md:text-2xl opacity-60 max-w-3xl mx-auto leading-relaxed font-medium">{t('b2b_ai_intro')}</p>
                     </motion.div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                         <LargePillarCard
-                            icon={faBolt}
-                            number="01"
-                            title={t('b2b_formula_pillar1_title')}
-                            desc={t('b2b_formula_pillar1_desc')}
-                            color="bg-brand-orange"
-                        />
-                        <LargePillarCard
-                            icon={faUsers}
-                            number="02"
-                            title={t('b2b_formula_pillar2_title')}
-                            desc={t('b2b_formula_pillar2_desc')}
+                            icon={faBrain}
+                            number="AI"
+                            title={t('b2b_ai_cocktail_title')}
+                            desc={t('b2b_ai_cocktail_desc')}
                             color="bg-indigo-600"
                         />
                         <LargePillarCard
                             icon={faChartLine}
-                            number="03"
-                            title={t('b2b_formula_pillar3_title')}
-                            desc={t('b2b_formula_pillar3_desc')}
-                            color="bg-green-600"
+                            number="80/20"
+                            title={t('b2b_ai_pareto_title')}
+                            desc={t('b2b_ai_pareto_desc')}
+                            color="bg-brand-orange"
                         />
                     </div>
                 </div>
             </section>
 
-            {/* 6. Benefits & Social Proof */}
+            {/* 6. Use Cases */}
             <section className="px-6 py-40 bg-brand-brown text-white mx-0 sm:mx-6 sm:rounded-[4rem] my-12 overflow-hidden relative shadow-2xl">
-                {/* Background Image Overlay */}
-                <div className="absolute inset-0 z-0 opacity-20">
-                    <img src="/vip_pov_celebration_final.jpg" alt="Celebration" className="w-full h-full object-cover grayscale" />
-                </div>
+                <div className="absolute inset-0 z-0 opacity-20 bg-[url('/vip_pov_celebration_final.jpg')] bg-cover bg-center mix-blend-overlay grayscale"></div>
                 <div className="absolute inset-0 bg-gradient-to-t from-brand-brown via-brand-brown/90 to-brand-brown/80 z-0"></div>
 
                 <div className="max-w-7xl mx-auto relative z-10">
-                    <motion.h2 {...fadeInUp} className="text-4xl md:text-7xl font-black mb-32 text-center leading-tight tracking-tighter">
-                        {t('b2b_benefits_h2')}
+                    <motion.h2 {...fadeInUp} className="text-4xl md:text-7xl font-black mb-24 text-center leading-tight tracking-tighter">
+                        {i18n.language === 'ru' ? 'Для кого это создано?' : 'Who is this for?'}
                     </motion.h2>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-24">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
                         <BigBenefitItem
-                            icon={faBolt}
-                            title={t('b2b_benefit_install_title')}
-                            desc={t('b2b_benefit_install_desc')}
+                            icon={faTableTennisPaddleBall}
+                            title={t('b2b_usecase_sports_title')}
+                            desc={t('b2b_usecase_sports_desc')}
                         />
                         <BigBenefitItem
-                            icon={faDatabase}
-                            title={t('b2b_benefit_analytics_title')}
-                            desc={t('b2b_benefit_analytics_desc')}
+                            icon={faStethoscope}
+                            title={t('b2b_usecase_clinic_title')}
+                            desc={t('b2b_usecase_clinic_desc')}
                         />
                         <BigBenefitItem
-                            icon={faPaperPlane}
-                            title={t('b2b_benefit_autopilot_title')}
-                            desc={t('b2b_benefit_autopilot_desc')}
+                            icon={faUtensils}
+                            title={t('b2b_usecase_resto_title')}
+                            desc={t('b2b_usecase_resto_desc')}
+                        />
+                        <BigBenefitItem
+                            icon={faScissors}
+                            title={t('b2b_usecase_beauty_title')}
+                            desc={t('b2b_usecase_beauty_desc')}
                         />
                     </div>
                 </div>
@@ -323,9 +346,16 @@ const MarketingB2B = () => {
                             <h2 className="text-4xl md:text-7xl font-black mb-8 leading-[1] tracking-tighter text-brand-brown">
                                 {t('b2b_final_h2')}
                             </h2>
-                            <p className="text-xl opacity-60 mb-12 leading-relaxed font-medium">
+                            <p className="text-xl opacity-60 mb-8 leading-relaxed font-medium">
                                 {t('b2b_final_sub')}
                             </p>
+                            <div className="p-6 bg-red-50 rounded-3xl border border-red-100 flex gap-4 text-left">
+                                <div className="text-red-500 text-2xl mt-1"><FontAwesomeIcon icon={faHandshake} /></div>
+                                <div>
+                                    <h4 className="font-bold text-xl mb-2 text-red-900">{t('b2b_final_guarantee_title')}</h4>
+                                    <p className="text-sm opacity-80 leading-relaxed text-red-900">{t('b2b_final_guarantee')}</p>
+                                </div>
+                            </div>
                         </motion.div>
 
                         <motion.div
