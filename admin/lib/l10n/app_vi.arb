@@ -345,6 +345,35 @@
   "joinExistingVenue": "Tham gia địa điểm có sẵn",
   "noVenuesFound": "Không tìm thấy địa điểm nào.",
   "venueNameCol": "TÊN ĐỊA ĐIỂM",
+  "hello": "Xin chào, {name}",
+  "subscriptionDaysLeft": "Còn {days} ngày",
+  "guestWaiting": "KHÁCH ĐANG CHỜ",
+  "loyaltyRules": "Quy tắc lòng trung thành",
+  "timeDecayConfig": "Cấu hình Time-Decay",
+  "baseTier": "Cơ bản",
+  "decayTier": "Giảm dần {index}",
+  "vipTier": "VIP",
+  "@hello": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@subscriptionDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "@decayTier": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
   "@tomorrowMaxReward": {
     "placeholders": {
       "percent": {

@@ -394,6 +394,35 @@
   "noVenuesFound": "No venues found.",
   "venueNameCol": "VENUE NAME",
   "tomorrowMaxReward": "Come back tomorrow for {percent}% max reward!",
+  "hello": "Hello, {name}",
+  "subscriptionDaysLeft": "{days} days left",
+  "guestWaiting": "GUEST WAITING",
+  "loyaltyRules": "Loyalty Rules",
+  "timeDecayConfig": "Time-Decay Configuration",
+  "baseTier": "Base",
+  "decayTier": "Decay {index}",
+  "vipTier": "VIP",
+  "@hello": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@subscriptionDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "@decayTier": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
   "@tomorrowMaxReward": {
     "placeholders": {
       "percent": {

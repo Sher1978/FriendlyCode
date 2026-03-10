@@ -376,7 +376,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "Hello, ${userEmail.split('@').first}",
+                          l10n.hello(userEmail.split('@').first),
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.premiumBurntOrange),
                         ),
                         const SizedBox(height: 4),
@@ -507,17 +507,17 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
 
     if (expiry == null || expiry.isBefore(now)) {
       badgeColor = Colors.red;
-      badgeText = "EXPIRED";
+      badgeText = l10n.expired;
       badgeIcon = Icons.error_outline;
     } else {
       final daysLeft = expiry.difference(now).inDays;
       if (daysLeft <= 7) {
         badgeColor = const Color(0xFFFF9800);
-        badgeText = "$daysLeft days left";
+        badgeText = l10n.subscriptionDaysLeft(max(1, daysLeft));
         badgeIcon = Icons.warning_amber_rounded;
       } else {
         badgeColor = Colors.green;
-        badgeText = "ACTIVE";
+        badgeText = l10n.statusActive;
         badgeIcon = Icons.check_circle_outline;
       }
     }
@@ -579,9 +579,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "GUEST WAITING",
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFFE65100), letterSpacing: 1.2),
+                    Text(
+                      l10n.guestWaiting,
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFFE65100), letterSpacing: 1.2),
                     ),
                     const SizedBox(height: 2),
                     Text(
@@ -636,12 +636,12 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                   child: const Icon(Icons.tune_rounded, color: AppColors.premiumBurntOrange, size: 20),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Loyalty Rules", style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.title)),
-                      Text("Time-Decay Configuration", style: TextStyle(color: AppColors.body, fontSize: 12)),
+                      Text(l10n.loyaltyRules, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.title)),
+                      Text(l10n.timeDecayConfig, style: const TextStyle(color: AppColors.body, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -653,11 +653,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildTierPill("Base", "${config?.percBase ?? 5}%", Colors.orange),
+                _buildTierPill(l10n.baseTier, "${config?.percBase ?? 5}%", Colors.orange),
                 const Icon(Icons.arrow_forward, size: 14, color: AppColors.body),
-                _buildTierPill("Decay 1", "${config?.percDecay1 ?? 15}%", Colors.blue),
+                _buildTierPill(l10n.decayTier(1), "${config?.percDecay1 ?? 15}%", Colors.blue),
                 const Icon(Icons.arrow_forward, size: 14, color: AppColors.body),
-                _buildTierPill("VIP", "${config?.percVip ?? 20}%", Colors.green),
+                _buildTierPill(l10n.vipTier, "${config?.percVip ?? 20}%", Colors.green),
               ],
             ),
           ],

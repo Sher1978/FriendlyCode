@@ -347,6 +347,35 @@
   "joinExistingVenue": "Присоединиться",
   "noVenuesFound": "Заведения не найдены.",
   "venueNameCol": "НАЗВАНИЕ",
+  "hello": "Привет, {name}",
+  "subscriptionDaysLeft": "Осталось {days} дн.",
+  "guestWaiting": "ГОСТЬ ЖДЕТ",
+  "loyaltyRules": "Правила лояльности",
+  "timeDecayConfig": "Конфигурация Time-Decay",
+  "baseTier": "База",
+  "decayTier": "Уровень {index}",
+  "vipTier": "VIP",
+  "@hello": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@subscriptionDaysLeft": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "@decayTier": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
   "@tomorrowMaxReward": {
     "placeholders": {
       "percent": {
