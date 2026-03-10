@@ -75,12 +75,12 @@ class _NavBar extends StatelessWidget {
               children: [
                 TextButton(
                   onPressed: () {},
-                  child: const Text('Pricing', style: TextStyle(color: AppColors.brandBrown)),
+                  child: Text(l10n.navPricing, style: const TextStyle(color: AppColors.brandBrown)),
                 ),
                 const SizedBox(width: 24),
                 TextButton(
                   onPressed: () {},
-                  child: const Text('Login', style: TextStyle(color: AppColors.brandBrown)),
+                  child: Text(l10n.navLogin, style: const TextStyle(color: AppColors.brandBrown)),
                 ),
                 const SizedBox(width: 24),
                 ElevatedButton(
@@ -90,7 +90,7 @@ class _NavBar extends StatelessWidget {
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
-                  child: const Text('Get Started Free'),
+                  child: Text(l10n.navGetStarted),
                 ),
               ],
             ),
@@ -160,9 +160,9 @@ class _HeroCopy extends StatelessWidget {
               fontFamily: 'Inter',
             ),
             children: [
-              TextSpan(text: isRu ? 'Привлечь гостя — дорого. Удержать — ' : 'Attract a guest — expensive. Retain — '),
+              TextSpan(text: l10n.heroAttractExpensive),
               TextSpan(
-                text: isRu ? 'бесценно' : 'priceless',
+                text: l10n.heroPriceless,
                 style: const TextStyle(
                   color: AppColors.brandOrange,
                   fontStyle: FontStyle.italic,
@@ -191,9 +191,9 @@ class _HeroCopy extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
-          child: const Text(
-            '🤝 Join Friendly Code Free',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          child: Text(
+            l10n.joinPartnerFree,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
       ],
@@ -243,16 +243,16 @@ class _ProblemSolutionSection extends StatelessWidget {
             direction: isDesktop ? Axis.horizontal : Axis.vertical,
             children: [
               _Card(
-                title: 'Advertising is a Casino 🎰',
-                body: 'You pay upfront, hope for clicks, and pray they return. Why pay for a chance when you can pay for results?',
+                title: l10n.casinoTitle,
+                body: l10n.casinoBody,
                 color: Colors.red.shade50,
                 textColor: Colors.red.shade900,
                 isDesktop: isDesktop,
               ),
               const SizedBox(width: 32, height: 32),
               _Card(
-                title: 'Your Profit is at Table #4',
-                body: 'Keeping an old friend is 7x cheaper than finding a new one. We make sure your current guests come back twice as often.',
+                title: l10n.table4Title,
+                body: l10n.table4Body,
                 color: AppColors.brandGreen.withOpacity(0.1),
                 textColor: AppColors.brandBrown,
                 isDesktop: isDesktop,
@@ -332,14 +332,14 @@ class _MechanicsSection extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'The Fair Game',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.brandOrange, letterSpacing: 1.5),
+            l10n.fairGameLabel,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.brandOrange, letterSpacing: 1.5),
           ),
           const SizedBox(height: 16),
           Text(
-            'Pay Less for Frequent Flyers',
+            l10n.fairGameTitle,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.brandBrown),
+            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.brandBrown),
           ),
           const SizedBox(height: 48),
           Container(
@@ -361,17 +361,17 @@ class _MechanicsSection extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _Bar(height: 100, label: 'Today', value: '5%'),
-                    _Bar(height: 200, label: 'Tmrw', value: '20%', isActive: true),
-                    _Bar(height: 150, label: '3 Days', value: '15%'),
-                    _Bar(height: 120, label: '7 Days', value: '10%'),
+                    _Bar(height: 100, label: l10n.graphToday, value: '5%'),
+                    _Bar(height: 200, label: l10n.graphTmrw, value: '20%', isActive: true),
+                    _Bar(height: 150, label: l10n.graph3Days, value: '15%'),
+                    _Bar(height: 120, label: l10n.graph7Days, value: '10%'),
                   ],
                 ),
                 const SizedBox(height: 32),
-                const Text(
-                  'Max discount for quick returns. Low discount for occasional visitors. You never lose margin unnecessarily.',
+                Text(
+                  l10n.fairGameDesc,
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 16, color: AppColors.textSecondary),
+                  style: const TextStyle(fontSize: 16, color: AppColors.textSecondary),
                 ),
               ],
             ),
@@ -426,16 +426,16 @@ class _ZeroFrictionSection extends StatelessWidget {
           const Icon(FontAwesomeIcons.qrcode, size: 48, color: AppColors.brandBrown),
           const SizedBox(height: 24),
           Text(
-            'No App Download Required',
-            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.brandBrown),
+            l10n.noAppDownload,
+            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.brandBrown),
           ),
           const SizedBox(height: 16),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 600),
-            child: const Text(
-              'Guests scan QR -> Get Discount. That\'s it. No registration forms. No friction. 100% Conversion.',
+            child: Text(
+              l10n.noAppDownloadSub,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, color: AppColors.textSecondary, height: 1.5),
+              style: const TextStyle(fontSize: 18, color: AppColors.textSecondary, height: 1.5),
             ),
           ),
         ],
@@ -452,8 +452,8 @@ class _WhatYouGetSection extends StatelessWidget {
     return Column(
       children: [
         Text(
-          'What You Get',
-          style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.brandBrown),
+          l10n.whatYouGet,
+          style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.brandBrown),
         ),
         const SizedBox(height: 48),
         Wrap(
@@ -462,14 +462,14 @@ class _WhatYouGetSection extends StatelessWidget {
           alignment: WrapAlignment.center,
           children: [
             _FeatureCard(
-              title: "Detailed Visitor Statistics",
-              body: "Understand your guests. Track frequency, spending, and retention rates in real-time.",
+              title: l10n.featureStatsTitle,
+              body: l10n.featureStatsBody,
               icon: FontAwesomeIcons.chartLine,
               color: AppColors.brandGreen,
             ),
             _FeatureCard(
-              title: "Smart Communication",
-              body: "We divide your clients into Random, Regular, and Constant. Automatically send targeted retention offers.",
+              title: l10n.featureCrmTitle,
+              body: l10n.featureCrmBody,
               icon: FontAwesomeIcons.solidComments,
               color: AppColors.brandOrange,
             ),
@@ -531,9 +531,9 @@ class _Footer extends StatelessWidget {
       color: AppColors.brandBrown,
       child: Column(
         children: [
-          const Text(
-            'Ready to raise your profit?',
-            style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
+          Text(
+            l10n.readyToRaise,
+            style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           const SizedBox(height: 32),
           ElevatedButton(
@@ -544,15 +544,15 @@ class _Footer extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             ),
-            child: const Text(
-              'Start My Free Trial',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            child: Text(
+              l10n.startFreeTrial,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 80),
-          const Text(
-            '© 2026 Friendly Code. Built with ❤️ for Hospitality.',
-            style: TextStyle(color: Colors.white38),
+          Text(
+            l10n.footerCopyright,
+            style: const TextStyle(color: Colors.white38),
           ),
         ],
       ),

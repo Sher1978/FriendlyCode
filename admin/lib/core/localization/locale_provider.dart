@@ -18,7 +18,7 @@ class LocaleProvider extends ChangeNotifier {
   }
 
   Future<void> setLocale(Locale locale) async {
-    if (!['en', 'ru'].contains(locale.languageCode)) return;
+    if (!['en', 'ru', 'vi'].contains(locale.languageCode)) return;
     _locale = locale;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('languageCode', locale.languageCode);
@@ -26,7 +26,9 @@ class LocaleProvider extends ChangeNotifier {
   }
 
   Future<void> toggleLocale() async {
-    final newLocale = _locale.languageCode == 'en' ? const Locale('ru') : const Locale('en');
-    await setLocale(newLocale);
+    final nextLocale = _locale.languageCode == 'en' 
+        ? const Locale('ru') 
+        : (_locale.languageCode == 'ru' ? const Locale('vi') : const Locale('en'));
+    await setLocale(nextLocale);
   }
 }

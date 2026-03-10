@@ -71,8 +71,11 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                           children: [
                             _buildMobileHeaderAction(Icons.language, "Lang", () {
                                final provider = Provider.of<LocaleProvider>(context, listen: false);
-                               final newLocale = provider.locale.languageCode == 'en' ? const Locale('ru') : const Locale('en');
-                               provider.setLocale(newLocale);
+                               // Cycle EN -> RU -> VI
+                               final nextLocale = provider.locale.languageCode == 'en' 
+                                   ? const Locale('ru') 
+                                   : (provider.locale.languageCode == 'ru' ? const Locale('vi') : const Locale('en'));
+                               provider.setLocale(nextLocale);
                             }),
                             _buildMobileHeaderAction(Icons.campaign_outlined, "Marketing", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MarketingCampaignScreen()))),
                             _buildMobileHeaderAction(Icons.description_outlined, "Flyers", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FlyerGeneratorScreen()))),
@@ -101,8 +104,11 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                               tooltip: "Switch Language",
                               onPressed: () {
                                  final provider = Provider.of<LocaleProvider>(context, listen: false);
-                                 final newLocale = provider.locale.languageCode == 'en' ? const Locale('ru') : const Locale('en');
-                                 provider.setLocale(newLocale);
+                                 // Cycle EN -> RU -> VI
+                                 final nextLocale = provider.locale.languageCode == 'en' 
+                                     ? const Locale('ru') 
+                                     : (provider.locale.languageCode == 'ru' ? const Locale('vi') : const Locale('en'));
+                                 provider.setLocale(nextLocale);
                               },
                             ),
                             const SizedBox(width: 16),

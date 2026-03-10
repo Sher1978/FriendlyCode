@@ -600,7 +600,253 @@ class AppLocalizationsEn extends AppLocalizations {
       'To maintain your max discount, visit us tomorrow too!';
 
   @override
-  String tomorrowMaxReward(int percent) {
-    return 'TOMORROW YOUR DISCOUNT $percent%!';
+  String get statusColUpper => 'STATUS';
+
+  @override
+  String get subscriptionCol => 'SUBSCRIPTION';
+
+  @override
+  String get actionsCol => 'ACTIONS';
+
+  @override
+  String get currentlyActive => 'Currently Active';
+
+  @override
+  String get statusActive => 'ACTIVE';
+
+  @override
+  String get statusFrozen => 'FROZEN';
+
+  @override
+  String get planPaid => 'PAID';
+
+  @override
+  String get planUnpaid => 'UNPAID';
+
+  @override
+  String expiresAt(Object date) {
+    return 'Expires: $date';
   }
+
+  @override
+  String get switchBtn => 'SWITCH';
+
+  @override
+  String switchedTo(Object name) {
+    return 'Switched to $name';
+  }
+
+  @override
+  String get newVenue => 'New Venue';
+
+  @override
+  String get editVenue => 'Edit Venue';
+
+  @override
+  String get tabVenueSettings => 'Venue Settings';
+
+  @override
+  String get tabStaffRbac => 'Staff & RBAC';
+
+  @override
+  String get tabDiscountStrategy => 'Discount Strategy';
+
+  @override
+  String get sectionBasicInfo => 'Basic Info';
+
+  @override
+  String get labelVenueName => 'Venue Name';
+
+  @override
+  String get labelCategory => 'Category';
+
+  @override
+  String get labelAddress => 'Address';
+
+  @override
+  String get sectionOwnership => 'Ownership';
+
+  @override
+  String get labelOwnerEmail => 'Owner Email';
+
+  @override
+  String get labelOwnerId => 'Owner ID (Firebase UID)';
+
+  @override
+  String get sectionMedia => 'Media';
+
+  @override
+  String get labelLogoUrl => 'Logo URL';
+
+  @override
+  String get labelExternalLink => 'External Link / Website';
+
+  @override
+  String get sectionStaffAssignment => 'Staff Assignment';
+
+  @override
+  String get labelAssignedAdmin => 'Assigned Admin';
+
+  @override
+  String get labelAssignedManager => 'Assigned Manager';
+
+  @override
+  String get none => 'None';
+
+  @override
+  String get rbacNotice =>
+      'Only SuperAdmins and Admins can assign staff roles from this menu.';
+
+  @override
+  String get sectionLoyaltyRules => 'Loyalty Rules (Tiers)';
+
+  @override
+  String get loyaltyRulesDesc =>
+      'Configure the max hours a guest can be gone and the percentage they earn.';
+
+  @override
+  String get labelMaxHours => 'Max Hours';
+
+  @override
+  String get labelPercentage => 'Percentage (%)';
+
+  @override
+  String get sectionSubscriptionStatus => 'Subscription & Status';
+
+  @override
+  String get labelPlan => 'Plan:';
+
+  @override
+  String get labelPaymentStatus => 'Payment Status:';
+
+  @override
+  String get labelExpiryDate => 'Expiry Date:';
+
+  @override
+  String get required => 'Обязательно';
+
+  @override
+  String get errorLabel => 'Error:';
+
+  @override
+  String get notSet => 'Not Set';
+
+  @override
+  String get notAvailable => 'N/A';
+
+  @override
+  String get navPricing => 'Pricing';
+
+  @override
+  String get navLogin => 'Login';
+
+  @override
+  String get navGetStarted => 'Get Started Free';
+
+  @override
+  String get joinPartnerFree => '🤝 Join Friendly Code Free';
+
+  @override
+  String get heroAttractExpensive => 'Attract a guest — expensive. Retain — ';
+
+  @override
+  String get heroPriceless => 'priceless';
+
+  @override
+  String get casinoTitle => 'Advertising is a Casino 🎰';
+
+  @override
+  String get casinoBody =>
+      'You pay upfront, hope for clicks, and pray they return. Why pay for a chance when you can pay for results?';
+
+  @override
+  String get table4Title => 'Your Profit is at Table #4';
+
+  @override
+  String get table4Body =>
+      'Keeping an old friend is 7x cheaper than finding a new one. We make sure your current guests come back twice as often.';
+
+  @override
+  String get fairGameLabel => 'THE FAIR GAME';
+
+  @override
+  String get fairGameTitle => 'Pay Less for Frequent Flyers';
+
+  @override
+  String get graphToday => 'Today';
+
+  @override
+  String get graphTmrw => 'Tmrw';
+
+  @override
+  String get graph3Days => '3 Days';
+
+  @override
+  String get graph7Days => '7 Days';
+
+  @override
+  String get fairGameDesc =>
+      'Max discount for quick returns. Low discount for occasional visitors. You never lose margin unnecessarily.';
+
+  @override
+  String get noAppDownload => 'No App Download Required';
+
+  @override
+  String get noAppDownloadSub =>
+      'Guests scan QR -> Get Discount. That\'s it. No registration forms. No friction. 100% Conversion.';
+
+  @override
+  String get whatYouGet => 'What You Get';
+
+  @override
+  String get featureStatsTitle => 'Detailed Visitor Statistics';
+
+  @override
+  String get featureStatsBody =>
+      'Understand your guests. Track frequency, spending, and retention rates in real-time.';
+
+  @override
+  String get featureCrmTitle => 'Smart Communication';
+
+  @override
+  String get featureCrmBody =>
+      'We divide your clients into Random, Regular, and Constant. Automatically send targeted retention offers.';
+
+  @override
+  String get readyToRaise => 'Ready to raise your profit?';
+
+  @override
+  String get startFreeTrial => 'Start My Free Trial';
+
+  @override
+  String get footerCopyright =>
+      '© 2026 Friendly Code. Built with ❤️ for Hospitality.';
+
+  @override
+  String get flyerTitle => 'B2B Euro Flyer Generator';
+
+  @override
+  String get flyerCasinoBody =>
+      'Advertising is a Casino. You pay for a chance. We offer you to pay for results.';
+
+  @override
+  String get flyerDiscountTitle => 'Discount for Return';
+
+  @override
+  String get flyerYouGet => 'YOU GET:';
+
+  @override
+  String get flyerFeatureStats => 'Real-time Guest Analytics';
+
+  @override
+  String get flyerFeatureCrm => 'Smart CRM & Communications';
+
+  @override
+  String get flyerFeatureLaunch => 'Launch in 5 minutes';
+
+  @override
+  String get flyerTryFree => 'Try 14 Days Free';
+
+  @override
+  String get flyerDownload => 'Download Print-Ready PNG';
 }

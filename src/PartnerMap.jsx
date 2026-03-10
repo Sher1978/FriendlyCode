@@ -3,6 +3,7 @@ import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/ap
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faLocationArrow, faMapMarkerAlt, faStore, faDirections, faLeaf } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const containerStyle = {
     width: '100%',
@@ -37,6 +38,7 @@ const mockVenues = [
 ];
 
 const PartnerMap = () => {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const [currentPosition, setCurrentPosition] = useState(defaultCenter);
     const [selectedVenue, setSelectedVenue] = useState(null);
@@ -65,15 +67,15 @@ const PartnerMap = () => {
                 <div className="w-24 h-24 bg-brand-brown/5 rounded-full flex items-center justify-center mb-6">
                     <FontAwesomeIcon icon={faMapMarkerAlt} className="text-4xl text-brand-orange" />
                 </div>
-                <h2 className="text-3xl font-black mb-2">Partner Map</h2>
+                <h2 className="text-3xl font-black mb-2">{t('partner_map_title')}</h2>
                 <p className="text-brand-brown/60 mb-8 max-w-sm font-medium">
-                    The interactive city guide is currently in development mode.
+                    {t('map_dev_mode')}
                     <br />
                     (API Key Missing)
                 </p>
                 <div className="w-full max-w-md h-96 bg-surface-cream border-2 border-brand-brown/10 rounded-[32px] flex items-center justify-center text-brand-brown/40 font-bold tracking-widest relative overflow-hidden">
                     <div className="absolute inset-0 bg-brand-brown/5 animate-pulse"></div>
-                    <span className="relative z-10">MAP PLACEHOLDER</span>
+                    <span className="relative z-10">{t('map_placeholder')}</span>
                 </div>
                 <button
                     onClick={() => navigate('/')}

@@ -1,0 +1,349 @@
+{
+  "appName": "Friendly Code",
+  "loginTitle": "Chào mừng quay lại",
+  "loginSubtitle": "Đăng nhập để quản lý địa điểm và xem báo cáo.",
+  "googleSignIn": "Đăng nhập bằng Google",
+  "ownerDashboard": "Bảng điều khiển Chủ sở hữu",
+  "adminDashboard": "Bảng điều khiển Admin",
+  "settings": "Cài đặt",
+  "language": "Ngôn ngữ",
+  "logout": "Đăng xuất",
+  "metrics": "CHỈ SỐ HÔM NAY",
+  "totalCheckins": "Tổng lượt check-in",
+  "avgReturn": "Tỷ lệ quay lại TB",
+  "discountDist": "PHÂN BỔ GIẢM GIÁ",
+  "tier1": "Hạng 1 (20%)",
+  "tier2": "Hạng 2 (15%)",
+  "tier3": "Hạng 3 (10%)",
+  "expired": "Hết hạn (5%)",
+  "management": "QUẢN LÝ",
+  "venueProfile": "Hồ sơ Địa điểm",
+  "venueProfileSub": "Tên, Giờ mở cửa, Ảnh",
+  "configRules": "Cấu hình Quy tắc thời gian",
+  "configRulesSub": "Điều chỉnh giới hạn giảm dần và tỷ lệ",
+  "marketingBlast": "Gửi thông báo Marketing",
+  "marketingBlastSub": "Kết nối lại với khách hàng đã mất",
+  "adminConsole": "BẢNG ĐIỀU KHIỂN TỔNG",
+  "platformOverview": "Tổng quan Nền tảng",
+  "totalVenues": "Tổng số Địa điểm",
+  "totalGuests": "Tổng số Khách",
+  "pendingApproval": "Chờ phê duyệt",
+  "activeVenues": "Địa điểm đang hoạt động",
+  "manage": "QUẢN LÝ",
+  "venues": "Địa điểm",
+  "users": "Người dùng",
+  "systemStats": "Thống kê Hệ thống",
+  "rewardLogicConfig": "Cấu hình Logic Thưởng",
+  "configTierLimit": "Cấu hình tối đa 5 hạng thời gian.",
+  "addTier": "Thêm hạng",
+  "retentionBase": "Mức giữ chân (Hết hạn)",
+  "rewardPercent": "Tỷ lệ thưởng %",
+  "tierHint": "Áp dụng khi khách quay lại SAU thời hạn của hạng cuối cùng.",
+  "saveLogic": "LƯU LOGIC",
+  "logicUpdated": "Đã cập nhật Logic Thưởng!",
+  "visitWithinHrs": "Ghé thăm trong (Giờ)",
+  "tierLabel": "Hạng {index}",
+  "@tierLabel": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "marketingTitle": "Thông báo Marketing",
+  "marketingDesc": "Gửi thông báo nhắc nhở tới những khách đã lâu chưa quay lại.",
+  "sendBlast": "GỬI THÔNG BÁO",
+  "blastSuccess": "Đã gửi thông báo Marketing!",
+  "editVenueProfile": "Chỉnh sửa Hồ sơ Địa điểm",
+  "venueEditor": "Biên tập Địa điểm",
+  "guestPortalLanguage": "Ngôn ngữ Cổng thông tin Khách",
+  "guestPortalLanguageDescription": "Chọn ngôn ngữ mặc định mà khách sẽ thấy khi họ quét mã QR của bạn.",
+  "venueName": "Tên Địa điểm",
+  "description": "Mô tả",
+  "workingHours": "Giờ làm việc",
+  "instagram": "Instagram",
+  "saveChanges": "LƯU THAY ĐỔI",
+  "profileUpdated": "Cập nhật Hồ sơ thành công",
+  "tapToChangeCover": "Chạm để thay đổi Ảnh bìa",
+  "uploadPhoto": "Trình tải ảnh",
+  "posStickerGenerator": "Tạo nhãn POS",
+  "posStickerSub": "In nhãn dán cho bàn",
+  "guestDatabase": "Cơ sở dữ liệu Khách",
+  "guestDatabaseSub": "Xem danh sách khách hàng thân thiết",
+  "staffManagement": "Quản lý Nhân sự",
+  "staffManagementSub": "Quản lý nhân viên của bạn",
+  "downloadHighRes": "TẢI ẢNH ĐỘ PHÂN GIẢI CAO",
+  "stickerInstantDiscount": "Giảm giá tức thì.",
+  "stickerNoApps": "Không app, không đăng ký.",
+  "stickerToday": "Hôm nay: {percent}%",
+  "@stickerToday": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "stickerTomorrow": "Ngày mai: {percent}%",
+  "@stickerTomorrow": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "shareToClients": "CHIA SẺ VỚI KHÁCH",
+  "downloadQr": "TẢI MÃ QR",
+  "myDashboard": "BẢNG ĐIỀU KHIỂN CỦA TÔI",
+  "switchVenue": "CHUYỂN ĐỊA ĐIỂM ({count})",
+  "@switchVenue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "welcomeBackHeadline": "Chào mừng trở lại! 🌟 \nƯu đãi HÔM NAY: {percent}%",
+  "@welcomeBackHeadline": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "welcomeBackSubhead": "Bạn quay lại càng sớm, ưu đãi càng lớn.",
+  "rewardTodayHeadline": "Ưu đãi của bạn \nHÔM NAY: {percent}%",
+  "@rewardTodayHeadline": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "rewardTodaySubhead": "Muốn 20%? Hãy quay lại vào ngày mai!",
+  "getReward": "NHẬN ƯU ĐÃI",
+  "venueNotFound": "Không tìm thấy địa điểm",
+  "venueNotFoundSub": "Liên kết có vẻ bị hỏng hoặc địa điểm không còn hoạt động.",
+  "goToHome": "VỀ TRANG CHỦ",
+  "b2bHeroH1": "Thu hút khách mới — tốn kém. Giữ chân khách cũ — vô giá.",
+  "b2bHeroSub": "Hệ thống khách hàng thân thiết \"thông minh\" duy nhất giúp tăng lợi nhuận thêm 25%. Biến khách vãng lai thành VIP chỉ sau 24 giờ. Không cần app. Không thẻ nhựa. Không tốn sức.",
+  "b2bHeadline": "Khách hàng thân thiết không rào cản",
+  "getTheApp": "Tải ứng dụng Friendly Code",
+  "downloadOn": "Tải trên",
+  "accessDeniedAdmin": "Truy cập bị từ chối: Bạn không có quyền Admin.",
+  "loginFailed": "Đăng nhập thất bại: {error}",
+  "@loginFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "timelineItem": "{time}: {percent}%",
+  "@timelineItem": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "timelineToday": "Hôm nay",
+  "timelineTomorrow": "Ngày mai",
+  "timelineInDays": "Sau {count} ngày",
+  "@timelineInDays": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "almostThere": "Sắp xong rồi!",
+  "introduceYourself": "Vui lòng giới thiệu bản thân để nhận ưu đãi.",
+  "yourName": "TÊN CỦA BẠN",
+  "nameHint": "vd: Alex",
+  "yourEmail": "EMAIL CỦA BẠN",
+  "emailHint": "name@example.com",
+  "expired": "HẾT HẠN",
+  "thanksForVisiting": "Cảm ơn bạn đã ghé thăm, \n{name}!",
+  "@thanksForVisiting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "specialTreat": "Đây là món quà đặc biệt dành cho bạn.",
+  "currentDiscount": "ƯU ĐÃI HIỆN TẠI",
+  "offTotalBill": "GIẢM TỔNG HÓA ĐƠN",
+  "getMyGift": "NHẬN QUÀ",
+  "showStaff": "Hiển thị màn hình này cho nhân viên \nkhi thanh toán để nhận ưu đãi.",
+  "tapWhenReady": "Chạm vào nút phía trên khi \nbạn đã sẵn sàng thanh toán.",
+  "marketingAudience": "Chọn Đối tượng",
+  "marketingAudienceSub": "Chọn những người sẽ nhận tin nhắn của bạn.",
+  "marketingMessage": "Nội dung Tin nhắn",
+  "marketingMessageSub": "Viết một lý do thuyết phục để họ quay lại.",
+  "campaignTitle": "Tiêu đề Chiến dịch",
+  "campaignTitleHint": "Brunch cuối tuần giảm 20%!",
+  "messageBody": "Nội dung Tin nhắn",
+  "messageBodyHint": "Này! Chúng tôi nhớ bạn. Hãy đưa tin nhắn này để nhận cafe miễn phí cho bữa ăn tiếp theo nhé! ☕",
+  "campaignImage": "ẢNH CHIẾN DỊCH (TÙY CHỌN)",
+  "actionLink": "Liên kết hành động (Tùy chọn)",
+  "actionLinkHint": "https://menu.link/specials",
+  "frequencyWarning": "Chiến dịch giới hạn 1 lần mỗi tuần để đảm bảo hiệu quả gửi tin tốt nhất.",
+  "preparing": "ĐANG CHUẨN BỊ...",
+  "sendCampaignNow": "GỬI CHIẾN DỊCH NGAY",
+  "campaignPerformance": "HIỆU QUẢ CHIẾN DỊCH",
+  "reachableGuests": "KHÁCH CÓ THỂ TIẾP CẬN",
+  "avgOpenRate": "TỶ LỆ MỞ TB",
+  "conversion": "CHUYỂN ĐỔI",
+  "recentHistory": "LỊCH SỬ GẦN ĐÂY",
+  "yourLoyalGuests": "KHÁCH HÀNG THÂN THIẾT",
+  "noGuestsFound": "Chưa tìm thấy khách hàng nào",
+  "noGuestsSub": "Khách hàng sẽ xuất hiện ở đây sau khi họ quét mã QR.",
+  "guestNameCol": "TÊN KHÁCH",
+  "contactInfoCol": "LIÊN HỆ",
+  "statusCol": "TRẠNG THÁI",
+  "joinedDateCol": "NGÀY THAM GIA",
+  "settingsTitle": "CÀI ĐẶT",
+  "settingsSub": "Quản lý tài khoản và sở thích nền tảng.",
+  "accountProfile": "HỒ SƠ TÀI KHOẢN",
+  "publicProfile": "Hồ sơ Công khai",
+  "emailAddress": "Địa chỉ Email",
+  "connectedVenue": "Địa điểm đã kết nối",
+  "notifications": "THÔNG BÁO",
+  "pushNotifications": "Thông báo Push",
+  "pushNotificationsSub": "Nhận cảnh báo khách ghé thăm theo thời gian thực.",
+  "emailReports": "Báo cáo qua Email",
+  "emailReportsSub": "Bản tóm tắt hiệu quả hàng tuần.",
+  "connectTelegram": "Kết nối Telegram",
+  "connectTelegramSub": "Nhận cảnh báo tức thì qua Telegram bot.",
+  "localizationLabel": "BẢN ĐỊA HÓA",
+  "languageLabel": "Ngôn ngữ",
+  "timezoneLabel": "Múi giờ",
+  "deleteAccount": "XÓA TÀI KHOẢN",
+  "venueAnalytics": "PHÂN TÍCH ĐỊA ĐIỂM",
+  "venueAnalyticsSub": "Hiệu quả chi tiết của chương trình khách hàng thân thiết.",
+  "totalActivations": "TỔNG LƯỢT KÍCH HOẠT",
+  "uniqueGuests": "KHÁCH DUY NHẤT",
+  "retentionRate": "TỶ LỆ GIỮ CHÂN",
+  "retentionTrend": "XU HƯỚNG GIỮ CHÂN",
+  "retentionTrendSub": "Thời gian quay lại trung bình tính bằng giờ.",
+  "rewardUsage": "SỬ DỤNG ƯU ĐÃI",
+  "rewardUsageSub": "Hạng nào được ưa chuộng nhất?",
+  "billingTitle": "THANH TOÁN & GÓI CƯỚC",
+  "billingSub": "Quản lý thanh toán và thông tin gói cước.",
+  "currentPlan": "GÓI HIỆN TẠI",
+  "proPlan": "GÓI PRO",
+  "nextBillingDate": "Ngày thanh toán tiếp theo: {date}",
+  "@nextBillingDate": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "unlimitedVenues": "Không giới hạn Địa điểm",
+  "prioritySupport": "Hỗ trợ Ưu tiên SMS/Email",
+  "advancedCrm": "Công cụ CRM nâng cao",
+  "rawDataExport": "Xuất dữ liệu thô",
+  "paymentMethod": "PHƯƠNG THỨC THANH TOÁN",
+  "visaEnding": "Visa kết thúc bằng {last4}",
+  "@visaEnding": {
+    "placeholders": {
+      "last4": {
+        "type": "String"
+      }
+    }
+  },
+  "expires": "Hết hạn {date}",
+  "@expires": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "editBtn": "SỬA",
+  "billingHistory": "LỊCH SỬ THANH TOÁN",
+  "newGuests": "Khách mới",
+  "loyalGuests": "Khách quen",
+  "lostGuests": "Khách đã mất",
+  "thankYouNextReward": "{percent}% sẽ mở khóa sau: {time}",
+  "@thankYouNextReward": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "thankYouValidFor": "Ưu đãi {percent}% hiệu lực trong: {time}",
+  "@thankYouValidFor": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "thankYouMaxReward": "Ưu đãi của bạn có hiệu lực trong {time}. Để duy trì ưu đãi tối đa, hãy ghé thăm chúng tôi vào ngày mai nữa!",
+  "@thankYouMaxReward": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "thankYouMaxRewardLabel": "Ưu đãi của bạn có hiệu lực trong",
+  "thankYouMaxRewardSubtext": "Để duy trì ưu đãi tối đa, hãy ghé thăm chúng tôi vào ngày mai nữa!",
+  "tomorrowMaxReward": "NGÀY MAI ƯU ĐÃI CỦA BẠN LÀ {percent}%!",
+  "navPricing": "Bảng giá",
+  "navLogin": "Đăng nhập",
+  "navGetStarted": "Bắt đầu miễn phí",
+  "joinPartnerFree": "🤝 Tham gia Friendly Code miễn phí",
+  "heroAttractExpensive": "Thu hút khách mới — tốn kém. Giữ chân — ",
+  "heroPriceless": "vô giá",
+  "casinoTitle": "Quảng cáo là một sòng bạc 🎰",
+  "casinoBody": "Bạn trả tiền trước, hy vọng vào các lượt nhấp và cầu nguyện họ quay lại. Tại sao phải trả tiền cho một cơ hội khi bạn có thể trả tiền cho kết quả?",
+  "table4Title": "Lợi nhuận của bạn nằm ở bàn số 4",
+  "table4Body": "Giữ một người bạn cũ rẻ hơn 7 lần so với việc tìm một người mới. Chúng tôi đảm bảo khách hàng hiện tại của bạn quay lại thường xuyên gấp đôi.",
+  "fairGameLabel": "TRÒ CHƠI CÔNG BẰNG",
+  "fairGameTitle": "Chi trả ít hơn cho khách quen",
+  "graphToday": "Hôm nay",
+  "graphTmrw": "Ngày mai",
+  "graph3Days": "3 ngày",
+  "graph7Days": "7 ngày",
+  "fairGameDesc": "Giảm giá tối đa khi quay lại sớm. Giảm giá thấp cho khách vãng lai. Bạn không bao giờ mất biên lợi nhuận một cách vô ích.",
+  "noAppDownload": "Không cần tải xuống ứng dụng",
+  "noAppDownloadSub": "Khách quét QR -> Nhận ưu đãi. Chỉ vậy thôi. Không form đăng ký. Không rào cản. Chuyển đổi 100%.",
+  "whatYouGet": "Những gì bạn nhận được",
+  "featureStatsTitle": "Thống kê người truy cập chi tiết",
+  "featureStatsBody": "Hiểu khách hàng của bạn. Theo dõi tần suất, chi tiêu và tỷ lệ giữ chân trong thời gian thực.",
+  "featureCrmTitle": "Giao tiếp thông minh",
+  "featureCrmBody": "Chúng tôi chia khách hàng của bạn thành Ngẫu nhiên, Thường xuyên và Thân thiết. Tự động gửi các đề nghị giữ chân mục tiêu.",
+  "readyToRaise": "Sẵn sàng tăng lợi nhuận?",
+  "startFreeTrial": "Bắt đầu dùng thử miễn phí",
+  "footerCopyright": "© 2026 Friendly Code. Được xây dựng với ❤️ dành cho ngành Dịch vụ.",
+  "flyerTitle": "Tạo Flyer Euro B2B",
+  "flyerCasinoBody": "Quảng cáo là một sòng bạc. Bạn trả tiền cho một cơ hội. Chúng tôi giúp bạn trả tiền cho kết quả.",
+  "flyerDiscountTitle": "Giảm giá khi quay lại",
+  "flyerYouGet": "BẠN NHẬN ĐƯỢC:",
+  "flyerFeatureStats": "Phân tích khách hàng thời gian thực",
+  "flyerFeatureCrm": "CRM & Giao tiếp thông minh",
+  "flyerFeatureLaunch": "Khởi động trong 5 phút",
+  "flyerTryFree": "Dùng thử 14 ngày miễn phí",
+  "flyerDownload": "Tải PNG sẵn dàng in",
+  "@tomorrowMaxReward": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  }
+}

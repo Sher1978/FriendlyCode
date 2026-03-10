@@ -10,7 +10,6 @@ const MarketingB2C = () => {
     const { t, i18n } = useTranslation();
 
     useEffect(() => {
-        // Ensure EN is default for B2C if no language is set
         if (!localStorage.getItem('i18nextLng')) {
             i18n.changeLanguage('en');
         }
@@ -25,10 +24,13 @@ const MarketingB2C = () => {
                 <div className="flex items-center gap-6">
                     {/* Language Switcher */}
                     <button
-                        onClick={() => i18n.changeLanguage(i18n.language === 'en' ? 'ru' : 'en')}
+                        onClick={() => {
+                            const cycle = { 'en': 'ru', 'ru': 'vi', 'vi': 'en' };
+                            i18n.changeLanguage(cycle[i18n.language] || 'en');
+                        }}
                         className="bg-brand-brown/5 hover:bg-brand-brown/10 px-3 py-1 rounded-full text-[10px] font-black text-brand-brown transition-all uppercase tracking-widest border border-brand-brown/5"
                     >
-                        {i18n.language === 'en' ? 'RU' : 'EN'}
+                        {i18n.language === 'en' ? 'RU' : i18n.language === 'ru' ? 'VI' : 'EN'}
                     </button>
 
                     <button

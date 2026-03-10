@@ -158,9 +158,9 @@ const UnifiedActivation = () => {
                 <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6 text-red-500">
                     <FontAwesomeIcon icon={faClock} size="2x" />
                 </div>
-                <h1 className="text-2xl font-black text-red-900 mb-2 uppercase">{t('reward_expired', 'Expired')}</h1>
+                <h1 className="text-2xl font-black text-red-900 mb-2 uppercase">{t('reward_expired')}</h1>
                 <p className="text-red-800/60 font-medium">
-                    {t('expired_instruction', 'This reward session has timed out. Please scan the QR code again if you missed it.')}
+                    {t('expired_instruction')}
                 </p>
                 <button
                     onClick={() => navigate('/qr')}
@@ -212,7 +212,7 @@ const UnifiedActivation = () => {
                     <div className="absolute top-0 right-0 w-32 h-32 bg-[#E8F5E9] rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
                     <span className="relative z-10 text-[12px] font-black uppercase tracking-[0.2em] text-[#81C784]">
-                        {t('current_discount', "Current Discount")}
+                        {t('current_discount')}
                     </span>
 
                     <div className="relative z-10 my-4">
@@ -247,7 +247,7 @@ const UnifiedActivation = () => {
                                         className="w-full h-full bg-[#2E7D32] text-white rounded-[20px] font-black text-[18px] uppercase tracking-wider flex items-center justify-center gap-3 shadow-lg shadow-[#2E7D32]/30 active:scale-95 transition-all hover:bg-[#1B5E20]"
                                     >
                                         <FontAwesomeIcon icon={faGift} />
-                                        {t('claim_gift', "Get My Gift")}
+                                        {t('claim_gift')}
                                     </motion.button>
                                 ) : (
                                     <motion.div
@@ -273,8 +273,8 @@ const UnifiedActivation = () => {
                     className="text-center text-sm font-bold opacity-50 mt-8 max-w-[260px] leading-relaxed"
                 >
                     {isClaimed
-                        ? t('show_counter_instruction', "Show this screen to the staff when paying to apply your discount.")
-                        : t('claim_instruction', "Tap the button above when you are ready to pay.")}
+                        ? t('show_counter_instruction')
+                        : t('claim_instruction')}
                 </motion.p>
 
             </div>

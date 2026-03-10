@@ -1,4 +1,5 @@
 
+import 'package:friendly_code/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/services/venue_service.dart';
@@ -153,7 +154,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
 
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("${AppLocalizations.of(context)!.errorLabel} $e")));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -163,13 +164,13 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
   Widget build(BuildContext context) {
      final roleProvider = Provider.of<RoleProvider>(context);
      final isSuperAdmin = roleProvider.isSuperAdmin;
-     final isAdmin = roleProvider.isAdmin;
+     final l10n = AppLocalizations.of(context)!;
 
      // ... existing UI structure ...
      // Re-implementing the body with the new fields
      return Scaffold(
-       appBar: AppBar(
-         title: Text(widget.venue == null ? "New Venue" : "Edit Venue"),
+       app_bar: AppBar(
+         title: Text(widget.venue == null ? l10n.newVenue : l10n.editVenue),
          backgroundColor: AppColors.surface,
          foregroundColor: AppColors.title,
          elevation: 0,
@@ -189,9 +190,9 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                unselectedLabelColor: AppColors.title,
                indicatorColor: AppColors.brandOrange,
                tabs: [
-                 Tab(text: "Venue Settings"),
-                 Tab(text: "Staff & RBAC"),
-                 Tab(text: "Discount Strategy"),
+                 Tab(text: l10n.tabVenueSettings),
+                 Tab(text: l10n.tabStaffRbac),
+                 Tab(text: l10n.tabDiscountStrategy),
                ],
              ),
              Expanded(
@@ -205,24 +206,24 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                        child: Column(
                          crossAxisAlignment: CrossAxisAlignment.start,
                          children: [
-                           _buildSectionHeader("Basic Info"),
-                           _buildTextField(_nameCtrl, "Venue Name", required: true),
+                           _buildSectionHeader(l10n.sectionBasicInfo),
+                           _buildTextField(_nameCtrl, l10n.labelVenueName, required: true),
                            const SizedBox(height: 16),
-                           _buildTextField(_categoryCtrl, "Category"),
+                           _buildTextField(_categoryCtrl, l10n.labelCategory),
                            const SizedBox(height: 16),
-                           _buildTextField(_addressCtrl, "Address"),
+                           _buildTextField(_addressCtrl, l10n.labelAddress),
                            const SizedBox(height: 24),
 
-                           _buildSectionHeader("Ownership"),
-                           _buildTextField(_ownerEmailCtrl, "Owner Email"),
+                           _buildSectionHeader(l10n.sectionOwnership),
+                           _buildTextField(_ownerEmailCtrl, l10n.labelOwnerEmail),
                            const SizedBox(height: 16),
-                           _buildTextField(_ownerIdCtrl, "Owner ID (Firebase UID)"),
+                           _buildTextField(_ownerIdCtrl, l10n.labelOwnerId),
                            const SizedBox(height: 24),
 
-                           _buildSectionHeader("Media"),
-                           _buildTextField(_logoUrlCtrl, "Logo URL"),
+                           _buildSectionHeader(l10n.sectionMedia),
+                           _buildTextField(_logoUrlCtrl, l10n.labelLogoUrl),
                            const SizedBox(height: 16),
-                           _buildTextField(_linkUrlCtrl, "External Link / Website"),
+                           _buildTextField(_linkUrlCtrl, l10n.labelExternalLink),
                          ],
                        ),
                      ),
@@ -233,30 +234,30 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                        child: Column(
                          crossAxisAlignment: CrossAxisAlignment.start,
                          children: [
-                           if (isSuperAdmin || isAdmin) ...[
-                             _buildSectionHeader("Staff Assignment"),
+                           if (isSuperAdmin || roleProvider.isAdmin) ...[
+                             _buildSectionHeader(l10n.sectionStaffAssignment),
                              if (isSuperAdmin) 
                                 DropdownButtonFormField<String>(
-                                  decoration: const InputDecoration(labelText: "Assigned Admin", border: OutlineInputBorder()),
+                                  decoration: InputDecoration(labelText: l10n.labelAssignedAdmin, border: const OutlineInputBorder()),
                                   initialValue: _selectedAdminId,
                                   items: [
-                                   const DropdownMenuItem(value: null, child: Text("None")),
+                                   DropdownMenuItem(value: null, child: Text(l10n.none)),
                                    ..._admins.map((a) => DropdownMenuItem(value: a['id'] as String, child: Text(a['email'] ?? 'Unknown'))),
                                  ],
                                  onChanged: (val) => setState(() => _selectedAdminId = val),
                                ),
                              const SizedBox(height: 16),
                               DropdownButtonFormField<String>(
-                                decoration: const InputDecoration(labelText: "Assigned Manager", border: OutlineInputBorder()),
+                                decoration: InputDecoration(labelText: l10n.labelAssignedManager, border: const OutlineInputBorder()),
                                 initialValue: _selectedManagerId,
                                 items: [
-                                  const DropdownMenuItem(value: null, child: Text("None")),
+                                  DropdownMenuItem(value: null, child: Text(l10n.none)),
                                   ..._managers.map((m) => DropdownMenuItem(value: m['id'] as String, child: Text(m['email'] ?? 'Unknown'))),
                                ],
                                onChanged: (val) => setState(() => _selectedManagerId = val),
                              ),
                            ] else ...[
-                             const Text("Only SuperAdmins and Admins can assign staff roles from this menu.", style: TextStyle(color: AppColors.body)),
+                             Text(l10n.rbacNotice, style: const TextStyle(color: AppColors.body)),
                            ]
                          ],
                        ),
@@ -268,8 +269,8 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                        child: Column(
                          crossAxisAlignment: CrossAxisAlignment.start,
                          children: [
-                           _buildSectionHeader("Loyalty Rules (Tiers)"),
-                           const Text("Configure the max hours a guest can be gone and the percentage they earn.", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                           _buildSectionHeader(l10n.sectionLoyaltyRules),
+                           Text(l10n.loyaltyRulesDesc, style: const TextStyle(color: Colors.grey, fontSize: 12)),
                            const SizedBox(height: 8),
                            ...List.generate(_tiers.length, (index) {
                              return Padding(
@@ -279,7 +280,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                                    Expanded(
                                      child: TextFormField(
                                        initialValue: _tiers[index].maxHours.toString(),
-                                       decoration: InputDecoration(labelText: "Max Hours", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Colors.white),
+                                       decoration: InputDecoration(labelText: l10n.labelMaxHours, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Colors.white),
                                        keyboardType: TextInputType.number,
                                        onChanged: (val) {
                                           _tiers[index] = VenueTier(maxHours: int.tryParse(val) ?? 0, percentage: _tiers[index].percentage);
@@ -290,7 +291,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                                    Expanded(
                                      child: TextFormField(
                                        initialValue: _tiers[index].percentage.toString(),
-                                       decoration: InputDecoration(labelText: "Percentage (%)", border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Colors.white),
+                                       decoration: InputDecoration(labelText: l10n.labelPercentage, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Colors.white),
                                        keyboardType: TextInputType.number,
                                        onChanged: (val) {
                                           _tiers[index] = VenueTier(maxHours: _tiers[index].maxHours, percentage: int.tryParse(val) ?? 0);
@@ -309,12 +310,12 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                              TextButton.icon(
                                onPressed: () => setState(() => _tiers.add(VenueTier(maxHours: 0, percentage: 0))),
                                icon: const Icon(Icons.add),
-                               label: const Text("Add Tier"),
+                               label: Text(l10n.addTier),
                              ),
                            const SizedBox(height: 24),
 
-                           _buildSectionHeader("Subscription & Status"),
-                           _buildSubscriptionInfo(isSuperAdmin),
+                           _buildSectionHeader(l10n.sectionSubscriptionStatus),
+                           _buildSubscriptionInfo(isSuperAdmin, l10n),
                          ],
                        ),
                      ),
@@ -344,11 +345,11 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         filled: true,
         fillColor: Colors.white,
       ),
-      validator: required ? (val) => val == null || val.isEmpty ? "Required" : null : null,
+      validator: required ? (val) => val == null || val.isEmpty ? AppLocalizations.of(context)!.required : null : null,
     );
   }
 
-  Widget _buildSubscriptionInfo(bool isSuperAdmin) {
+  Widget _buildSubscriptionInfo(bool isSuperAdmin, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -362,7 +363,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Plan:", style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(l10n.labelPlan, style: const TextStyle(fontWeight: FontWeight.bold)),
               if (!isSuperAdmin) Text(_subscription.plan.toUpperCase(), style: const TextStyle(color: AppColors.brandOrange, fontWeight: FontWeight.bold)),
               if (isSuperAdmin)
                 DropdownButton<String>(
@@ -376,8 +377,8 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Payment Status:", style: TextStyle(fontWeight: FontWeight.bold)),
-              if (!isSuperAdmin) Text(_subscription.isPaid ? "PAID" : "UNPAID", style: TextStyle(color: _subscription.isPaid ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
+              Text(l10n.labelPaymentStatus, style: const TextStyle(fontWeight: FontWeight.bold)),
+              if (!isSuperAdmin) Text(_subscription.isPaid ? l10n.planPaid : l10n.planUnpaid, style: TextStyle(color: _subscription.isPaid ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
               if (isSuperAdmin)
                 Switch(
                   value: _subscription.isPaid,
@@ -389,9 +390,9 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("Expiry Date:", style: TextStyle(fontWeight: FontWeight.bold)),
+              Text(l10n.labelExpiryDate, style: const TextStyle(fontWeight: FontWeight.bold)),
               Text(
-                _subscription.expiryDate != null ? "${_subscription.expiryDate!.day}/${_subscription.expiryDate!.month}/${_subscription.expiryDate!.year}" : "N/A",
+                _subscription.expiryDate != null ? "${_subscription.expiryDate!.day}/${_subscription.expiryDate!.month}/${_subscription.expiryDate!.year}" : l10n.notSet,
                 style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.body),
               ),
             ],

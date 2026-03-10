@@ -287,7 +287,8 @@ const LandingPage = () => {
 
     // --- Language Switcher Helper ---
     const toggleLanguage = () => {
-        const newLang = i18n.language === 'en' ? 'ru' : 'en';
+        const cycle = { 'en': 'ru', 'ru': 'vi', 'vi': 'en' };
+        const newLang = cycle[i18n.language] || 'en';
         i18n.changeLanguage(newLang);
     };
 
@@ -384,7 +385,7 @@ const LandingPage = () => {
                     onClick={toggleLanguage}
                     className="bg-white/50 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-[#4E342E] border border-[#4E342E]/10 hover:bg-white/80 transition-all uppercase"
                 >
-                    {i18n.language === 'en' ? 'RU' : 'EN'}
+                    {i18n.language === 'en' ? 'RU' : i18n.language === 'ru' ? 'VI' : 'EN'}
                 </button>
             </div>
 

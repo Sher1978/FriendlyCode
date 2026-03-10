@@ -83,6 +83,7 @@ class FriendlyCodeApp extends StatelessWidget {
       supportedLocales: const [
         Locale('en'),
         Locale('ru'),
+        Locale('vi'),
       ],
       // initialRoute: '/', // Removing to let Web URL drive navigation directly
       routes: {

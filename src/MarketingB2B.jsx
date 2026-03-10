@@ -7,7 +7,7 @@ import {
     faTrophy, faBrain, faStethoscope, faUtensils, faScissors, faTableTennisPaddleBall
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, Trans } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { collection, addDoc } from 'firebase/firestore';
 import { db } from './firebase';
@@ -19,7 +19,8 @@ const MarketingB2B = () => {
     const [isSubmitted, setIsSubmitted] = useState(false);
 
     const toggleLanguage = () => {
-        const newLang = i18n.language === 'en' ? 'ru' : 'en';
+        const cycle = { 'en': 'ru', 'ru': 'vi', 'vi': 'en' };
+        const newLang = cycle[i18n.language] || 'en';
         i18n.changeLanguage(newLang);
     };
 
@@ -65,7 +66,7 @@ const MarketingB2B = () => {
                         onClick={toggleLanguage}
                         className="w-12 h-12 flex items-center justify-center rounded-full bg-white/50 text-brand-brown font-black border border-brand-brown/5 hover:bg-white hover:shadow-md transition-all active:scale-90"
                     >
-                        {i18n.language.toUpperCase()}
+                        {i18n.language === 'en' ? 'RU' : i18n.language === 'ru' ? 'VI' : 'EN'}
                     </button>
                     <button
                         onClick={() => window.location.href = '#footer-form'}
@@ -90,11 +91,9 @@ const MarketingB2B = () => {
                             Retention-as-a-Service
                         </div>
                         <h1 className="text-5xl md:text-[5.5rem] font-black leading-[0.95] tracking-tighter mb-8 text-brand-brown">
-                            {i18n.language === 'ru' ? (
-                                <>Привлечь гостя — дорого. Удержать — <span className="text-brand-orange italic">бесценно</span>.</>
-                            ) : (
-                                <>Attract a guest — expensive. Retain — <span className="text-brand-orange italic">priceless</span>.</>
-                            )}
+                            <Trans i18nKey="b2b_hero_title_rich">
+                                Attract a guest — expensive. Retain — <span className="text-brand-orange italic">priceless</span>.
+                            </Trans>
                         </h1>
                         <p className="text-xl md:text-2xl font-medium opacity-70 leading-relaxed max-w-xl mb-12 text-brand-brown">
                             {t('b2b_hero_sub_new')}
@@ -158,19 +157,19 @@ const MarketingB2B = () => {
                                     icon={faMobileButton}
                                     title={t('b2b_problem_app_title')}
                                     desc={t('b2b_problem_app_desc')}
-                                    tag={i18n.language === 'ru' ? '80% Отказов' : '80% Drop-off'}
+                                    tag={t('b2b_tag_drop_off')}
                                 />
                                 <ProblemCard
                                     icon={faGlobe}
                                     title={t('b2b_problem_stanford_title')}
                                     desc={t('b2b_problem_stanford_desc')}
-                                    tag={i18n.language === 'ru' ? 'Наука' : 'Science'}
+                                    tag={t('b2b_tag_science')}
                                 />
                                 <ProblemCard
                                     icon={faIdCard}
                                     title={t('b2b_problem_blindspot_title')}
                                     desc={t('b2b_problem_blindspot_desc')}
-                                    tag={i18n.language === 'ru' ? 'Слепая зона' : 'Zero Data'}
+                                    tag={t('b2b_tag_zero_data')}
                                 />
                             </div>
 
@@ -310,7 +309,7 @@ const MarketingB2B = () => {
 
                 <div className="max-w-7xl mx-auto relative z-10">
                     <motion.h2 {...fadeInUp} className="text-4xl md:text-7xl font-black mb-24 text-center leading-tight tracking-tighter">
-                        {i18n.language === 'ru' ? 'Для кого это создано?' : 'Who is this for?'}
+                        {t('b2b_who_is_it_for')}
                     </motion.h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
@@ -377,15 +376,13 @@ const MarketingB2B = () => {
                                             <FontAwesomeIcon icon={faHandshake} />
                                         </div>
                                         <h3 className="text-3xl font-black text-brand-brown mb-4 tracking-tight">
-                                            {i18n.language === 'ru' ? 'Спасибо!' : 'Thank you!'}
+                                            {t('b2b_form_thanks')}
                                         </h3>
                                         <p className="text-lg opacity-70 mb-8 font-medium leading-relaxed max-w-sm mx-auto">
-                                            {i18n.language === 'ru'
-                                                ? 'Мы получили вашу заявку и свяжемся с вами в течение 24 часов.'
-                                                : 'We have received your request and will contact you within 24 hours.'}
+                                            {t('b2b_form_received')}
                                         </p>
                                         <div className="pt-8 border-t border-brand-brown/5">
-                                            <p className="text-sm opacity-50 mb-2">{i18n.language === 'ru' ? 'Срочный вопрос?' : 'Urgent question?'}</p>
+                                            <p className="text-sm opacity-50 mb-2">{t('b2b_urgent_question')}</p>
                                             <a href="mailto:friiendlycode@gmail.com" className="text-brand-orange font-bold hover:underline transition-all">
                                                 friiendlycode@gmail.com
                                             </a>

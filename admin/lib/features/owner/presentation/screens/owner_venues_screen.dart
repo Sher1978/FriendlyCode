@@ -7,6 +7,8 @@ import 'package:provider/provider.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/venue_search_screen.dart';
 
+import 'package:friendly_code/l10n/app_localizations.dart';
+
 class OwnerVenuesScreen extends StatefulWidget {
   const OwnerVenuesScreen({super.key});
 
@@ -21,6 +23,7 @@ class _OwnerVenuesScreenState extends State<OwnerVenuesScreen> {
   Widget build(BuildContext context) {
     final roleProvider = Provider.of<RoleProvider>(context);
     final userVenueIds = roleProvider.venueIds;
+    final l10n = AppLocalizations.of(context)!;
 
     return Container(
       padding: const EdgeInsets.all(32),
@@ -32,21 +35,21 @@ class _OwnerVenuesScreenState extends State<OwnerVenuesScreen> {
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text("MY VENUES", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title)),
-                  Text("Select a venue to manage or edit its profile.", style: TextStyle(color: AppColors.body)),
+                children: [
+                  Text(l10n.myVenues, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title)),
+                  Text(l10n.selectVenueToManage, style: const TextStyle(color: AppColors.body)),
                 ],
               ),
               ElevatedButton.icon(
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())),
                 icon: const Icon(Icons.add),
-                label: const Text("REGISTER NEW VENUE"),
+                label: Text(l10n.registerNewVenue),
               ),
               const SizedBox(width: 16),
               OutlinedButton.icon(
                 onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueSearchScreen())),
                 icon: const Icon(Icons.search),
-                label: const Text("JOIN EXISTING VENUE"),
+                label: Text(l10n.joinExistingVenue),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: AppColors.accentOrange),
                   foregroundColor: AppColors.accentOrange,
@@ -67,7 +70,7 @@ class _OwnerVenuesScreenState extends State<OwnerVenuesScreen> {
                 final venues = snapshot.data!.where((v) => userVenueIds.contains(v.id)).toList();
                 
                 if (venues.isEmpty) {
-                  return const Center(child: Text("No venues found. Register your first venue to get started!"));
+                  return Center(child: Text(l10n.noVenuesFound));
                 }
 
                 return ClipRRect(
@@ -94,11 +97,11 @@ class _OwnerVenuesScreenState extends State<OwnerVenuesScreen> {
                                 border: TableBorder(
                                   horizontalInside: BorderSide(color: AppColors.title.withOpacity(0.05), width: 1),
                                 ),
-                                columns: const [
-                                  DataColumn(label: Text("VENUE NAME")),
-                                  DataColumn(label: Text("STATUS")),
-                                  DataColumn(label: Text("SUBSCRIPTION")),
-                                  DataColumn(label: Text("ACTIONS")),
+                                columns: [
+                                  DataColumn(label: Text(l10n.venueNameCol)),
+                                  DataColumn(label: Text(l10n.statusColUpper)),
+                                  DataColumn(label: Text(l10n.subscriptionCol)),
+                                  DataColumn(label: Text(l10n.actionsCol)),
                                 ],
                                 rows: venues.map((v) {
                                   final isActiveVenue = roleProvider.venueId == v.id;
@@ -121,7 +124,7 @@ class _OwnerVenuesScreenState extends State<OwnerVenuesScreen> {
                                               children: [
                                                 Text(v.name, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.title)),
                                                 if (isActiveVenue)
-                                                  const Text("Currently Active", style: TextStyle(color: AppColors.accentOrange, fontSize: 10, fontWeight: FontWeight.bold)),
+                                                  Text(l10n.currentlyActive, style: const TextStyle(color: AppColors.accentOrange, fontSize: 10, fontWeight: FontWeight.bold)),
                                               ],
                                             ),
                                           ],
@@ -135,7 +138,7 @@ class _OwnerVenuesScreenState extends State<OwnerVenuesScreen> {
                                             borderRadius: BorderRadius.circular(20),
                                           ),
                                           child: Text(
-                                            v.isActive ? "ACTIVE" : "FROZEN",
+                                            v.isActive ? l10n.statusActive : l10n.statusFrozen,
                                             style: TextStyle(color: v.isActive ? Colors.green : Colors.red, fontWeight: FontWeight.w900, fontSize: 10),
                                           ),
                                         ),
@@ -146,7 +149,7 @@ class _OwnerVenuesScreenState extends State<OwnerVenuesScreen> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              v.subscription.isPaid ? "PAID (${v.subscription.plan.toUpperCase()})" : "UNPAID",
+                                              v.subscription.isPaid ? "${l10n.planPaid} (${v.subscription.plan.toUpperCase()})" : l10n.planUnpaid,
                                               style: TextStyle(
                                                 color: v.subscription.isPaid ? Colors.blue : Colors.orange, 
                                                 fontWeight: FontWeight.bold,
@@ -155,7 +158,7 @@ class _OwnerVenuesScreenState extends State<OwnerVenuesScreen> {
                                             ),
                                             if (v.subscription.expiryDate != null)
                                               Text(
-                                                "Expires: ${v.subscription.expiryDate!.day}/${v.subscription.expiryDate!.month}/${v.subscription.expiryDate!.year}",
+                                                l10n.expiresAt("${v.subscription.expiryDate!.day}/${v.subscription.expiryDate!.month}/${v.subscription.expiryDate!.year}"),
                                                 style: TextStyle(color: AppColors.body.withOpacity(0.5), fontSize: 10),
                                               ),
                                           ],
@@ -170,15 +173,15 @@ class _OwnerVenuesScreenState extends State<OwnerVenuesScreen> {
                                                 onPressed: () {
                                                   roleProvider.setActiveVenueId(v.id);
                                                   ScaffoldMessenger.of(context).showSnackBar(
-                                                    SnackBar(content: Text("Switched to ${v.name}")),
+                                                    SnackBar(content: Text(l10n.switchedTo(v.name))),
                                                   );
                                                 },
                                                 icon: const Icon(Icons.swap_horiz, size: 18),
-                                                label: const Text("SWITCH"),
+                                                label: Text(l10n.switchBtn),
                                                 style: TextButton.styleFrom(foregroundColor: AppColors.accentOrange),
                                               )
                                             else
-                                              const Text("ACTIVE", style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                                              Text(l10n.statusActive, style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
                                             const SizedBox(width: 8),
                                             IconButton(
                                               icon: const Icon(Icons.edit_outlined, color: AppColors.body),

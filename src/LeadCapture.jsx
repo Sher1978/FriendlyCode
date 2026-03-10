@@ -133,10 +133,10 @@ const LeadCapture = () => {
 
                 <div className="mt-16 text-left">
                     <h1 className="text-[32px] font-black leading-tight mb-2">
-                        {t('almost_there', "Almost there!")}
+                        {t('almost_there')}
                     </h1>
                     <p className="text-[18px] opacity-70">
-                        {t('introduce_yourself', "Please introduce yourself to claim your reward.")}
+                        {t('introduce_yourself')}
                     </p>
                 </div>
 
@@ -161,7 +161,7 @@ const LeadCapture = () => {
                     {/* Email Input */}
                     <div className="relative">
                         <label className="text-[12px] font-black uppercase tracking-widest text-[#4E342E]/40 mb-2 block pl-1">
-                            {t('your_email', "Your Email")}
+                            {t('your_email')}
                         </label>
                         <div className="relative">
                             <FontAwesomeIcon icon={faEnvelope} className="absolute left-5 top-1/2 -translate-y-1/2 text-[#E68A00]" />
@@ -187,7 +187,7 @@ const LeadCapture = () => {
                         : 'bg-[#4E342E]/10 text-[#4E342E]/40 cursor-not-allowed shadow-none'
                         }`}
                 >
-                    {t('continue_reward', "Get Reward")}
+                    {t('continue_reward')}
                 </button>
             </div>
         </div>

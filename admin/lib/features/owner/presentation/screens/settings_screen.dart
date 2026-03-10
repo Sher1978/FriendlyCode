@@ -189,7 +189,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                   return _buildSettingTile(
                     Icons.translate, 
                     l10n.languageLabel, 
-                    isEn ? "English" : "Русский",
+                    provider.locale.languageCode == 'en' ? "English" : (provider.locale.languageCode == 'ru' ? "Русский" : "Tiếng Việt"),
                     onTap: () => provider.toggleLocale(),
                   );
                 },

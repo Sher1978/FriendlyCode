@@ -7,6 +7,7 @@ import 'package:intl/intl.dart' as intl;
 
 import 'app_localizations_en.dart';
 import 'app_localizations_ru.dart';
+import 'app_localizations_vi.dart';
 
 // ignore_for_file: type=lint
 
@@ -96,6 +97,7 @@ abstract class AppLocalizations {
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
     Locale('ru'),
+    Locale('vi'),
   ];
 
   /// No description provided for @appName.
@@ -1184,11 +1186,479 @@ abstract class AppLocalizations {
   /// **'To maintain your max discount, visit us tomorrow too!'**
   String get thankYouMaxRewardSubtext;
 
-  /// No description provided for @tomorrowMaxReward.
+  /// No description provided for @statusColUpper.
   ///
   /// In en, this message translates to:
-  /// **'TOMORROW YOUR DISCOUNT {percent}%!'**
-  String tomorrowMaxReward(int percent);
+  /// **'STATUS'**
+  String get statusColUpper;
+
+  /// No description provided for @subscriptionCol.
+  ///
+  /// In en, this message translates to:
+  /// **'SUBSCRIPTION'**
+  String get subscriptionCol;
+
+  /// No description provided for @actionsCol.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTIONS'**
+  String get actionsCol;
+
+  /// No description provided for @currentlyActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Currently Active'**
+  String get currentlyActive;
+
+  /// No description provided for @statusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTIVE'**
+  String get statusActive;
+
+  /// No description provided for @statusFrozen.
+  ///
+  /// In en, this message translates to:
+  /// **'FROZEN'**
+  String get statusFrozen;
+
+  /// No description provided for @planPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'PAID'**
+  String get planPaid;
+
+  /// No description provided for @planUnpaid.
+  ///
+  /// In en, this message translates to:
+  /// **'UNPAID'**
+  String get planUnpaid;
+
+  /// No description provided for @expiresAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires: {date}'**
+  String expiresAt(Object date);
+
+  /// No description provided for @switchBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'SWITCH'**
+  String get switchBtn;
+
+  /// No description provided for @switchedTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Switched to {name}'**
+  String switchedTo(Object name);
+
+  /// No description provided for @newVenue.
+  ///
+  /// In en, this message translates to:
+  /// **'New Venue'**
+  String get newVenue;
+
+  /// No description provided for @editVenue.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Venue'**
+  String get editVenue;
+
+  /// No description provided for @tabVenueSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue Settings'**
+  String get tabVenueSettings;
+
+  /// No description provided for @tabStaffRbac.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff & RBAC'**
+  String get tabStaffRbac;
+
+  /// No description provided for @tabDiscountStrategy.
+  ///
+  /// In en, this message translates to:
+  /// **'Discount Strategy'**
+  String get tabDiscountStrategy;
+
+  /// No description provided for @sectionBasicInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Basic Info'**
+  String get sectionBasicInfo;
+
+  /// No description provided for @labelVenueName.
+  ///
+  /// In en, this message translates to:
+  /// **'Venue Name'**
+  String get labelVenueName;
+
+  /// No description provided for @labelCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get labelCategory;
+
+  /// No description provided for @labelAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get labelAddress;
+
+  /// No description provided for @sectionOwnership.
+  ///
+  /// In en, this message translates to:
+  /// **'Ownership'**
+  String get sectionOwnership;
+
+  /// No description provided for @labelOwnerEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner Email'**
+  String get labelOwnerEmail;
+
+  /// No description provided for @labelOwnerId.
+  ///
+  /// In en, this message translates to:
+  /// **'Owner ID (Firebase UID)'**
+  String get labelOwnerId;
+
+  /// No description provided for @sectionMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get sectionMedia;
+
+  /// No description provided for @labelLogoUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Logo URL'**
+  String get labelLogoUrl;
+
+  /// No description provided for @labelExternalLink.
+  ///
+  /// In en, this message translates to:
+  /// **'External Link / Website'**
+  String get labelExternalLink;
+
+  /// No description provided for @sectionStaffAssignment.
+  ///
+  /// In en, this message translates to:
+  /// **'Staff Assignment'**
+  String get sectionStaffAssignment;
+
+  /// No description provided for @labelAssignedAdmin.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned Admin'**
+  String get labelAssignedAdmin;
+
+  /// No description provided for @labelAssignedManager.
+  ///
+  /// In en, this message translates to:
+  /// **'Assigned Manager'**
+  String get labelAssignedManager;
+
+  /// No description provided for @none.
+  ///
+  /// In en, this message translates to:
+  /// **'None'**
+  String get none;
+
+  /// No description provided for @rbacNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Only SuperAdmins and Admins can assign staff roles from this menu.'**
+  String get rbacNotice;
+
+  /// No description provided for @sectionLoyaltyRules.
+  ///
+  /// In en, this message translates to:
+  /// **'Loyalty Rules (Tiers)'**
+  String get sectionLoyaltyRules;
+
+  /// No description provided for @loyaltyRulesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure the max hours a guest can be gone and the percentage they earn.'**
+  String get loyaltyRulesDesc;
+
+  /// No description provided for @labelMaxHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Hours'**
+  String get labelMaxHours;
+
+  /// No description provided for @labelPercentage.
+  ///
+  /// In en, this message translates to:
+  /// **'Percentage (%)'**
+  String get labelPercentage;
+
+  /// No description provided for @sectionSubscriptionStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription & Status'**
+  String get sectionSubscriptionStatus;
+
+  /// No description provided for @labelPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan:'**
+  String get labelPlan;
+
+  /// No description provided for @labelPaymentStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Status:'**
+  String get labelPaymentStatus;
+
+  /// No description provided for @labelExpiryDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Expiry Date:'**
+  String get labelExpiryDate;
+
+  /// No description provided for @required.
+  ///
+  /// In en, this message translates to:
+  /// **'Обязательно'**
+  String get required;
+
+  /// No description provided for @errorLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Error:'**
+  String get errorLabel;
+
+  /// No description provided for @notSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Set'**
+  String get notSet;
+
+  /// No description provided for @notAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'N/A'**
+  String get notAvailable;
+
+  /// No description provided for @navPricing.
+  ///
+  /// In en, this message translates to:
+  /// **'Pricing'**
+  String get navPricing;
+
+  /// No description provided for @navLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Login'**
+  String get navLogin;
+
+  /// No description provided for @navGetStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Get Started Free'**
+  String get navGetStarted;
+
+  /// No description provided for @joinPartnerFree.
+  ///
+  /// In en, this message translates to:
+  /// **'🤝 Join Friendly Code Free'**
+  String get joinPartnerFree;
+
+  /// No description provided for @heroAttractExpensive.
+  ///
+  /// In en, this message translates to:
+  /// **'Attract a guest — expensive. Retain — '**
+  String get heroAttractExpensive;
+
+  /// No description provided for @heroPriceless.
+  ///
+  /// In en, this message translates to:
+  /// **'priceless'**
+  String get heroPriceless;
+
+  /// No description provided for @casinoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Advertising is a Casino 🎰'**
+  String get casinoTitle;
+
+  /// No description provided for @casinoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You pay upfront, hope for clicks, and pray they return. Why pay for a chance when you can pay for results?'**
+  String get casinoBody;
+
+  /// No description provided for @table4Title.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Profit is at Table #4'**
+  String get table4Title;
+
+  /// No description provided for @table4Body.
+  ///
+  /// In en, this message translates to:
+  /// **'Keeping an old friend is 7x cheaper than finding a new one. We make sure your current guests come back twice as often.'**
+  String get table4Body;
+
+  /// No description provided for @fairGameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'THE FAIR GAME'**
+  String get fairGameLabel;
+
+  /// No description provided for @fairGameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay Less for Frequent Flyers'**
+  String get fairGameTitle;
+
+  /// No description provided for @graphToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get graphToday;
+
+  /// No description provided for @graphTmrw.
+  ///
+  /// In en, this message translates to:
+  /// **'Tmrw'**
+  String get graphTmrw;
+
+  /// No description provided for @graph3Days.
+  ///
+  /// In en, this message translates to:
+  /// **'3 Days'**
+  String get graph3Days;
+
+  /// No description provided for @graph7Days.
+  ///
+  /// In en, this message translates to:
+  /// **'7 Days'**
+  String get graph7Days;
+
+  /// No description provided for @fairGameDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Max discount for quick returns. Low discount for occasional visitors. You never lose margin unnecessarily.'**
+  String get fairGameDesc;
+
+  /// No description provided for @noAppDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'No App Download Required'**
+  String get noAppDownload;
+
+  /// No description provided for @noAppDownloadSub.
+  ///
+  /// In en, this message translates to:
+  /// **'Guests scan QR -> Get Discount. That\'s it. No registration forms. No friction. 100% Conversion.'**
+  String get noAppDownloadSub;
+
+  /// No description provided for @whatYouGet.
+  ///
+  /// In en, this message translates to:
+  /// **'What You Get'**
+  String get whatYouGet;
+
+  /// No description provided for @featureStatsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Detailed Visitor Statistics'**
+  String get featureStatsTitle;
+
+  /// No description provided for @featureStatsBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Understand your guests. Track frequency, spending, and retention rates in real-time.'**
+  String get featureStatsBody;
+
+  /// No description provided for @featureCrmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart Communication'**
+  String get featureCrmTitle;
+
+  /// No description provided for @featureCrmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'We divide your clients into Random, Regular, and Constant. Automatically send targeted retention offers.'**
+  String get featureCrmBody;
+
+  /// No description provided for @readyToRaise.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to raise your profit?'**
+  String get readyToRaise;
+
+  /// No description provided for @startFreeTrial.
+  ///
+  /// In en, this message translates to:
+  /// **'Start My Free Trial'**
+  String get startFreeTrial;
+
+  /// No description provided for @footerCopyright.
+  ///
+  /// In en, this message translates to:
+  /// **'© 2026 Friendly Code. Built with ❤️ for Hospitality.'**
+  String get footerCopyright;
+
+  /// No description provided for @flyerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'B2B Euro Flyer Generator'**
+  String get flyerTitle;
+
+  /// No description provided for @flyerCasinoBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Advertising is a Casino. You pay for a chance. We offer you to pay for results.'**
+  String get flyerCasinoBody;
+
+  /// No description provided for @flyerDiscountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discount for Return'**
+  String get flyerDiscountTitle;
+
+  /// No description provided for @flyerYouGet.
+  ///
+  /// In en, this message translates to:
+  /// **'YOU GET:'**
+  String get flyerYouGet;
+
+  /// No description provided for @flyerFeatureStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Real-time Guest Analytics'**
+  String get flyerFeatureStats;
+
+  /// No description provided for @flyerFeatureCrm.
+  ///
+  /// In en, this message translates to:
+  /// **'Smart CRM & Communications'**
+  String get flyerFeatureCrm;
+
+  /// No description provided for @flyerFeatureLaunch.
+  ///
+  /// In en, this message translates to:
+  /// **'Launch in 5 minutes'**
+  String get flyerFeatureLaunch;
+
+  /// No description provided for @flyerTryFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Try 14 Days Free'**
+  String get flyerTryFree;
+
+  /// No description provided for @flyerDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download Print-Ready PNG'**
+  String get flyerDownload;
 }
 
 class _AppLocalizationsDelegate
@@ -1202,7 +1672,7 @@ class _AppLocalizationsDelegate
 
   @override
   bool isSupported(Locale locale) =>
-      <String>['en', 'ru'].contains(locale.languageCode);
+      <String>['en', 'ru', 'vi'].contains(locale.languageCode);
 
   @override
   bool shouldReload(_AppLocalizationsDelegate old) => false;
@@ -1215,6 +1685,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
       return AppLocalizationsEn();
     case 'ru':
       return AppLocalizationsRu();
+    case 'vi':
+      return AppLocalizationsVi();
   }
 
   throw FlutterError(

@@ -14,6 +14,7 @@ class _VenueProfileEditScreenState extends State<VenueProfileEditScreen> {
   final _descCtrl = TextEditingController(text: "Best cocktails in town.");
   final _hoursCtrl = TextEditingController(text: "10:00 - 02:00");
   final _instaCtrl = TextEditingController(text: "@safari_lounge");
+  String _selectedLanguage = 'en';
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +60,20 @@ class _VenueProfileEditScreenState extends State<VenueProfileEditScreen> {
             _buildInput(l10n.workingHours, _hoursCtrl, Icons.access_time),
             const SizedBox(height: 16),
             _buildInput(l10n.instagram, _instaCtrl, Icons.link),
+            const SizedBox(height: 32),
+
+            // Language Selector
+            Text(
+              l10n.guestPortalLanguage,
+              style: const TextStyle(color: Colors.white, fontSize: 18, fontStyle: FontStyle.normal, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              l10n.guestPortalLanguageDescription,
+              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            _buildLanguageDropdown(),
 
             const SizedBox(height: 48),
 
@@ -80,6 +95,34 @@ class _VenueProfileEditScreenState extends State<VenueProfileEditScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildLanguageDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedLanguage,
+      dropdownColor: const Color(0xFF1A1A1A),
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        prefixIcon: const Icon(Icons.language, color: AppColors.lime),
+        filled: true,
+        fillColor: Colors.white.withOpacity(0.05),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Colors.white10),
+        ),
+      ),
+      items: const [
+        DropdownMenuItem(value: 'en', child: Text("English")),
+        DropdownMenuItem(value: 'ru', child: Text("Русский")),
+        DropdownMenuItem(value: 'vi', child: Text("Tiếng Việt")),
+      ],
+      onChanged: (val) {
+        if (val != null) {
+          setState(() => _selectedLanguage = val);
+        }
+      },
     );
   }
 

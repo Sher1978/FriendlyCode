@@ -249,8 +249,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> {
             tooltip: "Switch Language",
             onPressed: () {
                final provider = Provider.of<LocaleProvider>(context, listen: false);
-               final newLocale = provider.locale.languageCode == 'en' ? const Locale('ru') : const Locale('en');
-               provider.setLocale(newLocale);
+               // Cycle EN -> RU -> VI
+               final nextLocale = provider.locale.languageCode == 'en' 
+                   ? const Locale('ru') 
+                   : (provider.locale.languageCode == 'ru' ? const Locale('vi') : const Locale('en'));
+               provider.setLocale(nextLocale);
             },
           ),
           IconButton(

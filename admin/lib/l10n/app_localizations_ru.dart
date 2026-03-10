@@ -602,7 +602,253 @@ class AppLocalizationsRu extends AppLocalizations {
       'для максимальной скидки ждем Вас также завтра!';
 
   @override
-  String tomorrowMaxReward(int percent) {
-    return 'ЗАВТРА ВАША СКИДКА $percent%!';
+  String get statusColUpper => 'STATUS';
+
+  @override
+  String get subscriptionCol => 'SUBSCRIPTION';
+
+  @override
+  String get actionsCol => 'ACTIONS';
+
+  @override
+  String get currentlyActive => 'Currently Active';
+
+  @override
+  String get statusActive => 'ACTIVE';
+
+  @override
+  String get statusFrozen => 'FROZEN';
+
+  @override
+  String get planPaid => 'PAID';
+
+  @override
+  String get planUnpaid => 'UNPAID';
+
+  @override
+  String expiresAt(Object date) {
+    return 'Expires: $date';
   }
+
+  @override
+  String get switchBtn => 'SWITCH';
+
+  @override
+  String switchedTo(Object name) {
+    return 'Switched to $name';
+  }
+
+  @override
+  String get newVenue => 'New Venue';
+
+  @override
+  String get editVenue => 'Edit Venue';
+
+  @override
+  String get tabVenueSettings => 'Venue Settings';
+
+  @override
+  String get tabStaffRbac => 'Staff & RBAC';
+
+  @override
+  String get tabDiscountStrategy => 'Discount Strategy';
+
+  @override
+  String get sectionBasicInfo => 'Basic Info';
+
+  @override
+  String get labelVenueName => 'Venue Name';
+
+  @override
+  String get labelCategory => 'Category';
+
+  @override
+  String get labelAddress => 'Address';
+
+  @override
+  String get sectionOwnership => 'Ownership';
+
+  @override
+  String get labelOwnerEmail => 'Owner Email';
+
+  @override
+  String get labelOwnerId => 'Owner ID (Firebase UID)';
+
+  @override
+  String get sectionMedia => 'Media';
+
+  @override
+  String get labelLogoUrl => 'Logo URL';
+
+  @override
+  String get labelExternalLink => 'External Link / Website';
+
+  @override
+  String get sectionStaffAssignment => 'Staff Assignment';
+
+  @override
+  String get labelAssignedAdmin => 'Assigned Admin';
+
+  @override
+  String get labelAssignedManager => 'Assigned Manager';
+
+  @override
+  String get none => 'None';
+
+  @override
+  String get rbacNotice =>
+      'Only SuperAdmins and Admins can assign staff roles from this menu.';
+
+  @override
+  String get sectionLoyaltyRules => 'Loyalty Rules (Tiers)';
+
+  @override
+  String get loyaltyRulesDesc =>
+      'Configure the max hours a guest can be gone and the percentage they earn.';
+
+  @override
+  String get labelMaxHours => 'Max Hours';
+
+  @override
+  String get labelPercentage => 'Percentage (%)';
+
+  @override
+  String get sectionSubscriptionStatus => 'Subscription & Status';
+
+  @override
+  String get labelPlan => 'Plan:';
+
+  @override
+  String get labelPaymentStatus => 'Payment Status:';
+
+  @override
+  String get labelExpiryDate => 'Expiry Date:';
+
+  @override
+  String get required => 'Обязательно';
+
+  @override
+  String get errorLabel => 'Error:';
+
+  @override
+  String get notSet => 'Not Set';
+
+  @override
+  String get notAvailable => 'N/A';
+
+  @override
+  String get navPricing => 'Цены';
+
+  @override
+  String get navLogin => 'Войти';
+
+  @override
+  String get navGetStarted => 'Начать бесплатно';
+
+  @override
+  String get joinPartnerFree => '🤝 Присоединиться бесплатно';
+
+  @override
+  String get heroAttractExpensive => 'Привлечь гостя — дорого. Удержать — ';
+
+  @override
+  String get heroPriceless => 'бесценно';
+
+  @override
+  String get casinoTitle => 'Реклама — это Казино 🎰';
+
+  @override
+  String get casinoBody =>
+      'Вы платите заранее, надеетесь на клики и молитесь о возврате. Зачем платить за шанс, если можно платить за результат?';
+
+  @override
+  String get table4Title => 'Ваша прибыль — за столом №4';
+
+  @override
+  String get table4Body =>
+      'Удержать старого друга в 7 раз дешевле, чем найти нового. Мы сделаем так, чтобы ваши гости возвращались в два раза чаще.';
+
+  @override
+  String get fairGameLabel => 'ЧЕСТНАЯ ИГРА';
+
+  @override
+  String get fairGameTitle => 'Платите меньше за постоянных гостей';
+
+  @override
+  String get graphToday => 'Сегодня';
+
+  @override
+  String get graphTmrw => 'Завтра';
+
+  @override
+  String get graph3Days => '3 дня';
+
+  @override
+  String get graph7Days => '7 дней';
+
+  @override
+  String get fairGameDesc =>
+      'Максимальная скидка за быстрый возврат. Низкая скидка для случайных гостей. Вы никогда не теряете маржу зря.';
+
+  @override
+  String get noAppDownload => 'Загрузка приложения не требуется';
+
+  @override
+  String get noAppDownloadSub =>
+      'Гости сканируют QR -> Получают скидку. И всё. Никаких анкет. Никакого трения. 100% конверсия.';
+
+  @override
+  String get whatYouGet => 'Что вы получаете';
+
+  @override
+  String get featureStatsTitle => 'Подробная статистика посетителей';
+
+  @override
+  String get featureStatsBody =>
+      'Понимайте своих гостей. Отслеживайте частоту, расходы и уровень удержания в реальном времени.';
+
+  @override
+  String get featureCrmTitle => 'Умные коммуникации';
+
+  @override
+  String get featureCrmBody =>
+      'Мы делим ваших клиентов на Случайных, Постоянных и Лояльных. Автоматически отправляйте целевые предложения.';
+
+  @override
+  String get readyToRaise => 'Готовы увеличить прибыль?';
+
+  @override
+  String get startFreeTrial => 'Начать бесплатный период';
+
+  @override
+  String get footerCopyright =>
+      '© 2026 Friendly Code. Сделано с ❤️ для индустрии гостеприимства.';
+
+  @override
+  String get flyerTitle => 'Генератор евро-флаера B2B';
+
+  @override
+  String get flyerCasinoBody =>
+      'Реклама — это казино. Вы платите за шанс. Мы предлагаем платить за результат.';
+
+  @override
+  String get flyerDiscountTitle => 'Скидка за возврат';
+
+  @override
+  String get flyerYouGet => 'ВЫ ПОЛУЧАЕТЕ:';
+
+  @override
+  String get flyerFeatureStats => 'Аналитика гостей в реальном времени';
+
+  @override
+  String get flyerFeatureCrm => 'Умная CRM и рассылки';
+
+  @override
+  String get flyerFeatureLaunch => 'Запуск за 5 минут';
+
+  @override
+  String get flyerTryFree => 'Попробуйте 14 дней бесплатно';
+
+  @override
+  String get flyerDownload => 'Скачать PNG для печати';
 }

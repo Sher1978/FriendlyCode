@@ -50,7 +50,7 @@ class _FlyerGeneratorScreenState extends State<FlyerGeneratorScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[200],
       appBar: AppBar(
-        title: const Text("B2B Euro Flyer Generator"),
+        title: Text(l10n!.flyerTitle),
         actions: [
           IconButton(
             icon: const Icon(Icons.download_rounded),
@@ -104,19 +104,17 @@ class _FlyerGeneratorScreenState extends State<FlyerGeneratorScreen> {
                                     text: TextSpan(
                                       style: const TextStyle(fontFamily: 'Inter', fontSize: 26, fontWeight: FontWeight.bold, color: AppColors.brandBrown, height: 1.1),
                                       children: [
-                                        TextSpan(text: isRu ? 'Привлечь гостя — дорого.\nУдержать — ' : 'Attract a guest — expensive.\nRetain — '),
-                                        TextSpan(text: isRu ? 'бесценно' : 'priceless', style: const TextStyle(color: AppColors.brandOrange, fontStyle: FontStyle.italic)),
+                                        TextSpan(text: l10n!.heroAttractExpensive),
+                                        TextSpan(text: l10n.heroPriceless, style: const TextStyle(color: AppColors.brandOrange, fontStyle: FontStyle.italic)),
                                         const TextSpan(text: '.'),
                                       ],
                                     ),
                                   ),
                                   const SizedBox(height: 12),
-                                  Text(
-                                    isRu 
-                                      ? "Реклама — это казино. Вы платите за шанс. Мы предлагаем платить за результат."
-                                      : "Advertising is a Casino. You pay for a chance. We offer you to pay for results.",
-                                    style: TextStyle(fontSize: 12, color: AppColors.brandBrown.withOpacity(0.8), height: 1.3),
-                                  ),
+                                    Text(
+                                      l10n.flyerCasinoBody,
+                                      style: TextStyle(fontSize: 12, color: AppColors.brandBrown.withOpacity(0.8), height: 1.3),
+                                    ),
                                   const Spacer(),
                                   // Hero Image (Cropped/Fit)
                                   ClipRRect(
@@ -150,12 +148,12 @@ class _FlyerGeneratorScreenState extends State<FlyerGeneratorScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    isRu ? "ЧЕСТНАЯ ИГРА" : "THE FAIR GAME",
+                                    l10n.fairGameLabel,
                                     style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.brandOrange, letterSpacing: 1.5),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    isRu ? "Скидка за Возврат" : "Discount for Return",
+                                    l10n.flyerDiscountTitle,
                                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColors.brandBrown),
                                   ),
                                   const Spacer(),
@@ -179,11 +177,11 @@ class _FlyerGeneratorScreenState extends State<FlyerGeneratorScreen> {
                                     ),
                                   ),
                                   const Spacer(),
-                                  _buildBullet(isRu, Icons.no_cell, isRu ? "Не нужно скачивать приложение" : "No App Download Required"),
-                                  if (!isRu) ...[
+                                  _buildBullet(true, Icons.no_cell, l10n.noAppDownload),
+                                  if (Localizations.localeOf(context).languageCode == 'en') ...[
                                     const SizedBox(height: 4),
                                     Text(
-                                      "Guests scan QR -> Get Discount. 100% Conversion.",
+                                      l10n.noAppDownloadSub,
                                       style: TextStyle(fontSize: 10, color: AppColors.brandBrown.withOpacity(0.6), height: 1.2),
                                     )
                                   ]
@@ -202,13 +200,13 @@ class _FlyerGeneratorScreenState extends State<FlyerGeneratorScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                 Text(isRu ? "ВЫ ПОЛУЧАЕТЕ:" : "YOU GET:", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.brandOrange, letterSpacing: 1.0)),
+                                 Text(l10n.flyerYouGet, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.brandOrange, letterSpacing: 1.0)),
                                  const SizedBox(height: 12),
-                                 _buildCompactFeature(isRu, Icons.insights, isRu ? "Статистика в реальном времени" : "Real-time Guest Analytics"),
+                                 _buildCompactFeature(true, Icons.insights, l10n.flyerFeatureStats),
                                  const SizedBox(height: 8),
-                                 _buildCompactFeature(isRu, Icons.mark_chat_read, isRu ? "Умная CRM и Рассылки" : "Smart CRM & Communications"),
+                                 _buildCompactFeature(true, Icons.mark_chat_read, l10n.flyerFeatureCrm),
                                  const SizedBox(height: 8),
-                                 _buildCompactFeature(isRu, Icons.rocket_launch, isRu ? "Запуск за 5 минут" : "Launch in 5 minutes"),
+                                 _buildCompactFeature(true, Icons.rocket_launch, l10n.flyerFeatureLaunch),
                                  
                                  const Spacer(),
                                  
@@ -232,7 +230,7 @@ class _FlyerGeneratorScreenState extends State<FlyerGeneratorScreen> {
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
-                                          isRu ? "Попробуйте Бесплатно" : "Try 14 Days Free",
+                                          l10n.flyerTryFree,
                                           textAlign: TextAlign.center,
                                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.brandBrown),
                                         ),
@@ -263,7 +261,7 @@ class _FlyerGeneratorScreenState extends State<FlyerGeneratorScreen> {
                 icon: _isSaving 
                     ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                     : const Icon(Icons.download),
-                label: const Text("Download Print-Ready PNG"),
+                label: Text(l10n.flyerDownload),
               ),
             ],
           ),

@@ -43,6 +43,7 @@ class _GuestAppContent extends StatelessWidget {
       supportedLocales: const [
         Locale('en'),
         Locale('ru'),
+        Locale('vi'),
       ],
       // STRICT ROUTING: Only knows about QR and 404
       onGenerateRoute: (settings) {

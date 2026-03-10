@@ -122,7 +122,7 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
     final locale = Localizations.localeOf(context).languageCode;
     final imageAsset = locale == 'ru' 
         ? 'assets/images/pos_sticker_ru.png' 
-        : 'assets/images/pos_sticker_en.png';
+        : 'assets/images/pos_sticker_en.png'; // Fallback to EN for 'vi' as well
     
     // Determine QR Data
     final qrData = _useVenueQr 
