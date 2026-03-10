@@ -852,4 +852,27 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get flyerDownload => 'Tải PNG sẵn dàng in';
+
+  @override
+  String get myVenues => 'Địa điểm của tôi';
+
+  @override
+  String get selectVenueToManage => 'Chọn một địa điểm để quản lý';
+
+  @override
+  String get registerNewVenue => 'Đăng ký địa điểm mới';
+
+  @override
+  String get joinExistingVenue => 'Tham gia địa điểm có sẵn';
+
+  @override
+  String get noVenuesFound => 'Không tìm thấy địa điểm nào.';
+
+  @override
+  String get venueNameCol => 'TÊN ĐỊA ĐIỂM';
+
+  @override
+  String tomorrowMaxReward(int percent) {
+    return 'NGÀY MAI ƯU ĐÃI CỦA BẠN LÀ $percent%!';
+  }
 }

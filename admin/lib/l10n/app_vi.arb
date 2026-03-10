@@ -339,6 +339,12 @@
   "flyerFeatureLaunch": "Khởi động trong 5 phút",
   "flyerTryFree": "Dùng thử 14 ngày miễn phí",
   "flyerDownload": "Tải PNG sẵn dàng in",
+  "myVenues": "Địa điểm của tôi",
+  "selectVenueToManage": "Chọn một địa điểm để quản lý",
+  "registerNewVenue": "Đăng ký địa điểm mới",
+  "joinExistingVenue": "Tham gia địa điểm có sẵn",
+  "noVenuesFound": "Không tìm thấy địa điểm nào.",
+  "venueNameCol": "TÊN ĐỊA ĐIỂM",
   "@tomorrowMaxReward": {
     "placeholders": {
       "percent": {

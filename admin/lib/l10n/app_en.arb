@@ -387,6 +387,13 @@
   "flyerFeatureLaunch": "Launch in 5 minutes",
   "flyerTryFree": "Try 14 Days Free",
   "flyerDownload": "Download Print-Ready PNG",
+  "myVenues": "My Venues",
+  "selectVenueToManage": "Select a venue to manage",
+  "registerNewVenue": "Register New Venue",
+  "joinExistingVenue": "Join Existing Venue",
+  "noVenuesFound": "No venues found.",
+  "venueNameCol": "VENUE NAME",
+  "tomorrowMaxReward": "Come back tomorrow for {percent}% max reward!",
   "@tomorrowMaxReward": {
     "placeholders": {
       "percent": {

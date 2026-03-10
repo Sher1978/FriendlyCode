@@ -341,6 +341,12 @@
   "flyerFeatureLaunch": "Запуск за 5 минут",
   "flyerTryFree": "Попробуйте 14 дней бесплатно",
   "flyerDownload": "Скачать PNG для печати",
+  "myVenues": "Мои Заведения",
+  "selectVenueToManage": "Выберите заведение для управления",
+  "registerNewVenue": "Зарегистрировать новое",
+  "joinExistingVenue": "Присоединиться",
+  "noVenuesFound": "Заведения не найдены.",
+  "venueNameCol": "НАЗВАНИЕ",
   "@tomorrowMaxReward": {
     "placeholders": {
       "percent": {

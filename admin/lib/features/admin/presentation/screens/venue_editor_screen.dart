@@ -169,7 +169,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
      // ... existing UI structure ...
      // Re-implementing the body with the new fields
      return Scaffold(
-       app_bar: AppBar(
+       appBar: AppBar(
          title: Text(widget.venue == null ? l10n.newVenue : l10n.editVenue),
          backgroundColor: AppColors.surface,
          foregroundColor: AppColors.title,
@@ -185,7 +185,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
          length: 3,
          child: Column(
            children: [
-             const TabBar(
+             TabBar(
                labelColor: AppColors.brandOrange,
                unselectedLabelColor: AppColors.title,
                indicatorColor: AppColors.brandOrange,

@@ -51,6 +51,7 @@ class _NavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: isDesktop ? 64 : 24, vertical: 24),
       color: AppColors.backgroundCream,
@@ -234,6 +235,7 @@ class _ProblemSolutionSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: isDesktop ? 64 : 24, vertical: 80),
       color: Colors.white,
@@ -326,6 +328,7 @@ class _MechanicsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: isDesktop ? 64 : 24, vertical: 80),
       color: AppColors.backgroundCream,
@@ -418,6 +421,7 @@ class _ZeroFrictionSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: isDesktop ? 64 : 24, vertical: 80),
       color: Colors.white,
@@ -449,6 +453,7 @@ class _WhatYouGetSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         Text(
@@ -526,6 +531,7 @@ class _Footer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: isDesktop ? 64 : 24, vertical: 80),
       color: AppColors.brandBrown,

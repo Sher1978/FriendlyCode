@@ -1659,6 +1659,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Download Print-Ready PNG'**
   String get flyerDownload;
+
+  /// No description provided for @myVenues.
+  ///
+  /// In en, this message translates to:
+  /// **'My Venues'**
+  String get myVenues;
+
+  /// No description provided for @selectVenueToManage.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a venue to manage'**
+  String get selectVenueToManage;
+
+  /// No description provided for @registerNewVenue.
+  ///
+  /// In en, this message translates to:
+  /// **'Register New Venue'**
+  String get registerNewVenue;
+
+  /// No description provided for @joinExistingVenue.
+  ///
+  /// In en, this message translates to:
+  /// **'Join Existing Venue'**
+  String get joinExistingVenue;
+
+  /// No description provided for @noVenuesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No venues found.'**
+  String get noVenuesFound;
+
+  /// No description provided for @venueNameCol.
+  ///
+  /// In en, this message translates to:
+  /// **'VENUE NAME'**
+  String get venueNameCol;
+
+  /// No description provided for @tomorrowMaxReward.
+  ///
+  /// In en, this message translates to:
+  /// **'Come back tomorrow for {percent}% max reward!'**
+  String tomorrowMaxReward(int percent);
 }
 
 class _AppLocalizationsDelegate

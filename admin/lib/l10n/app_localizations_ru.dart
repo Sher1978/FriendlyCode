@@ -851,4 +851,27 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get flyerDownload => 'Скачать PNG для печати';
+
+  @override
+  String get myVenues => 'Мои Заведения';
+
+  @override
+  String get selectVenueToManage => 'Выберите заведение для управления';
+
+  @override
+  String get registerNewVenue => 'Зарегистрировать новое';
+
+  @override
+  String get joinExistingVenue => 'Присоединиться';
+
+  @override
+  String get noVenuesFound => 'Заведения не найдены.';
+
+  @override
+  String get venueNameCol => 'НАЗВАНИЕ';
+
+  @override
+  String tomorrowMaxReward(int percent) {
+    return 'ЗАВТРА ВАША СКИДКА $percent%!';
+  }
 }

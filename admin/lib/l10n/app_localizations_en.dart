@@ -849,4 +849,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get flyerDownload => 'Download Print-Ready PNG';
+
+  @override
+  String get myVenues => 'My Venues';
+
+  @override
+  String get selectVenueToManage => 'Select a venue to manage';
+
+  @override
+  String get registerNewVenue => 'Register New Venue';
+
+  @override
+  String get joinExistingVenue => 'Join Existing Venue';
+
+  @override
+  String get noVenuesFound => 'No venues found.';
+
+  @override
+  String get venueNameCol => 'VENUE NAME';
+
+  @override
+  String tomorrowMaxReward(int percent) {
+    return 'Come back tomorrow for $percent% max reward!';
+  }
 }
