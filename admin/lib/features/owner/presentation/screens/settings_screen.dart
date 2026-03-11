@@ -25,7 +25,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
   final VenueRepository _venueRepo = VenueRepository();
   
   User? _currentUser;
-  VenueModel? _venue;
+  List<VenueModel> _venues = [];
   bool _isLoading = true;
 
   @override
@@ -39,11 +39,15 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
     _currentUser = _auth.currentUser;
     
     if (_currentUser?.email != null) {
-      final userDoc = await _userService.getUserByEmail(_currentUser!.email!);
-      if (userDoc != null && userDoc['venueId'] != null) {
-        final venue = await _venueRepo.getVenueById(userDoc['venueId']);
-        _venue = venue;
+      final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+      final venueIds = roleProvider.venueIds;
+      
+      List<VenueModel> loadedVenues = [];
+      for (var vid in venueIds) {
+         final venue = await _venueRepo.getVenueById(vid);
+         if (venue != null) loadedVenues.add(venue);
       }
+      _venues = loadedVenues;
     }
     
     if (mounted) setState(() => _isLoading = false);
@@ -153,15 +157,16 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
             [
               _buildSettingTile(Icons.person_outline, l10n.publicProfile, _currentUser?.displayName ?? "Not Set", onTap: _updateName),
               _buildSettingTile(Icons.email_outlined, l10n.emailAddress, _currentUser?.email ?? "Not Set", onTap: _updateEmail),
-              _buildSettingTile(
+              if (_venues.isEmpty)
+                _buildSettingTile(Icons.store, l10n.connectedVenue, "None Assigned"),
+              ..._venues.map((venue) => _buildSettingTile(
                 Icons.store, 
                 l10n.connectedVenue, 
-                _venue?.name ?? "None Assigned",
-                onTap: _venue != null ? () {
-                  // Navigate to Venue Editor
-                   Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: _venue!)));
-                } : null,
-              ),
+                venue.name,
+                onTap: () {
+                   Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue))).then((_) => _loadProfile());
+                },
+              )),
             ],
           ),
           const SizedBox(height: 40),

@@ -337,10 +337,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
           child: FutureBuilder<VenueModel?>(
             future: _venueRepo.getVenueById(id),
             builder: (context, snapshot) {
+              if (snapshot.hasError) return const Text("Error", style: TextStyle(color: Colors.red));
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return Text("...${id.substring(max(0, id.length - 4))}");
               }
-              final name = snapshot.data?.name ?? "Unknown Venue";
+              final name = snapshot.data?.name ?? "Venue ($id)";
               return Text(name, style: const TextStyle(fontWeight: FontWeight.w600));
             }
           ),
@@ -842,9 +843,17 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                       const SizedBox(height: 24),
                       const Text("Subscription Check", style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title)),
                       const SizedBox(height: 12),
-                      const Text("Your venue activity is currently paused. Please review your subscription or contact support.", textAlign: TextAlign.center, style: TextStyle(color: AppColors.body)),
+                      const Text("Your venue activity is currently paused. Please review your subscription or contact support at friiendlycode@gmail.com.", textAlign: TextAlign.center, style: TextStyle(color: AppColors.body)),
                       const SizedBox(height: 32),
-                      ElevatedButton(onPressed: () {}, child: const Text("SUPPORT")),
+                      ElevatedButton(
+                        onPressed: () async {
+                          final uri = Uri.parse("mailto:friiendlycode@gmail.com?subject=Subscription Support Request");
+                          if (await url_launcher.canLaunchUrl(uri)) {
+                            await url_launcher.launchUrl(uri);
+                          }
+                        },
+                        child: const Text("CONTACT SUPPORT"),
+                      ),
                     ],
                   ),
                 ),

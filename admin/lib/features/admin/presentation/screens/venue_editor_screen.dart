@@ -182,7 +182,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
          ],
        ),
        body: DefaultTabController(
-         length: 3,
+         length: 2,
          child: Column(
            children: [
              TabBar(
@@ -192,7 +192,6 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                tabs: [
                  Tab(text: l10n.tabVenueSettings),
                  Tab(text: l10n.tabStaffRbac),
-                 Tab(text: l10n.tabDiscountStrategy),
                ],
              ),
              Expanded(
@@ -224,6 +223,10 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                            _buildTextField(_logoUrlCtrl, l10n.labelLogoUrl),
                            const SizedBox(height: 16),
                            _buildTextField(_linkUrlCtrl, l10n.labelExternalLink),
+                           const SizedBox(height: 24),
+
+                           _buildSectionHeader(l10n.sectionSubscriptionStatus),
+                           _buildSubscriptionInfo(isSuperAdmin, l10n),
                          ],
                        ),
                      ),
@@ -263,62 +266,6 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                        ),
                      ),
 
-                     // TAB 3: Discount Settings
-                     SingleChildScrollView(
-                       padding: const EdgeInsets.all(24),
-                       child: Column(
-                         crossAxisAlignment: CrossAxisAlignment.start,
-                         children: [
-                           _buildSectionHeader(l10n.sectionLoyaltyRules),
-                           Text(l10n.loyaltyRulesDesc, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                           const SizedBox(height: 8),
-                           ...List.generate(_tiers.length, (index) {
-                             return Padding(
-                               padding: const EdgeInsets.only(bottom: 8.0),
-                               child: Row(
-                                 children: [
-                                   Expanded(
-                                     child: TextFormField(
-                                       initialValue: _tiers[index].maxHours.toString(),
-                                       decoration: InputDecoration(labelText: l10n.labelMaxHours, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Colors.white),
-                                       keyboardType: TextInputType.number,
-                                       onChanged: (val) {
-                                          _tiers[index] = VenueTier(maxHours: int.tryParse(val) ?? 0, percentage: _tiers[index].percentage);
-                                       },
-                                     ),
-                                   ),
-                                   const SizedBox(width: 16),
-                                   Expanded(
-                                     child: TextFormField(
-                                       initialValue: _tiers[index].percentage.toString(),
-                                       decoration: InputDecoration(labelText: l10n.labelPercentage, border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), filled: true, fillColor: Colors.white),
-                                       keyboardType: TextInputType.number,
-                                       onChanged: (val) {
-                                          _tiers[index] = VenueTier(maxHours: _tiers[index].maxHours, percentage: int.tryParse(val) ?? 0);
-                                       },
-                                     ),
-                                   ),
-                                   IconButton(
-                                     icon: const Icon(Icons.delete, color: Colors.red),
-                                     onPressed: () => setState(() => _tiers.removeAt(index)),
-                                   )
-                                 ],
-                               ),
-                             );
-                           }),
-                           if (_tiers.length < 5)
-                             TextButton.icon(
-                               onPressed: () => setState(() => _tiers.add(VenueTier(maxHours: 0, percentage: 0))),
-                               icon: const Icon(Icons.add),
-                               label: Text(l10n.addTier),
-                             ),
-                           const SizedBox(height: 24),
-
-                           _buildSectionHeader(l10n.sectionSubscriptionStatus),
-                           _buildSubscriptionInfo(isSuperAdmin, l10n),
-                         ],
-                       ),
-                     ),
                    ],
                  ),
                ),
