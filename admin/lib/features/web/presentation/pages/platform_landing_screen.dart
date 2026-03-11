@@ -188,14 +188,13 @@ class PlatformLandingScreen extends StatelessWidget {
             right: 16,
             child: Consumer<LocaleProvider>(
               builder: (context, provider, child) {
-                final isEn = provider.locale.languageCode == 'en';
                 return TextButton(
                   onPressed: () => provider.toggleLocale(),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.brandBrown,
                     textStyle: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  child: Text(isEn ? "RU" : "EN"),
+                  child: Text(provider.locale.languageCode.toUpperCase()),
                 );
               },
             ),

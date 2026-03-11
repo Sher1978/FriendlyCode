@@ -25,15 +25,14 @@ class _VenueConfiguratorState extends State<VenueConfigurator> with SingleTicker
   late TextEditingController _addressCtrl;
 
   // Loyalty Controllers
-  late TextEditingController _safetyCooldownCtrl;
   late TextEditingController _vipWindowCtrl;
-  late TextEditingController _tier1DecayCtrl;
-  late TextEditingController _tier2DecayCtrl;
+  late TextEditingController _degradationIntervalCtrl;
+  late TextEditingController _resetIntervalCtrl;
   
   late TextEditingController _percBaseCtrl;
   late TextEditingController _percVipCtrl;
-  late TextEditingController _percDecay1Ctrl;
-  late TextEditingController _percDecay2Ctrl;
+  
+  List<LoyaltyDecayStage> _decayStages = [];
   
   bool _manualBlock = false;
   DateTime? _subEndDate;
@@ -47,15 +46,13 @@ class _VenueConfiguratorState extends State<VenueConfigurator> with SingleTicker
     _addressCtrl = TextEditingController(text: widget.venue.address);
     
     final l = widget.venue.loyaltyConfig;
-    _safetyCooldownCtrl = TextEditingController(text: l.safetyCooldownHours.toString());
-    _vipWindowCtrl = TextEditingController(text: l.vipWindowHours.toString());
-    _tier1DecayCtrl = TextEditingController(text: l.tier1DecayHours.toString());
-    _tier2DecayCtrl = TextEditingController(text: l.tier2DecayHours.toString());
+    _vipWindowCtrl = TextEditingController(text: l.vipWindowDays.toString());
+    _degradationIntervalCtrl = TextEditingController(text: l.degradationIntervalDays.toString());
+    _resetIntervalCtrl = TextEditingController(text: l.resetIntervalDays.toString());
     
     _percBaseCtrl = TextEditingController(text: l.percBase.toString());
     _percVipCtrl = TextEditingController(text: l.percVip.toString());
-    _percDecay1Ctrl = TextEditingController(text: l.percDecay1.toString());
-    _percDecay2Ctrl = TextEditingController(text: l.percDecay2.toString());
+    _decayStages = List.from(l.decayStages);
     _manualBlock = widget.venue.isManuallyBlocked;
     _subEndDate = widget.venue.subscription.expiryDate;
   }
@@ -67,15 +64,24 @@ class _VenueConfiguratorState extends State<VenueConfigurator> with SingleTicker
     _categoryCtrl.dispose();
     _addressCtrl.dispose();
 
-    _safetyCooldownCtrl.dispose();
     _vipWindowCtrl.dispose();
-    _tier1DecayCtrl.dispose();
-    _tier2DecayCtrl.dispose();
+    _degradationIntervalCtrl.dispose();
+    _resetIntervalCtrl.dispose();
     _percBaseCtrl.dispose();
     _percVipCtrl.dispose();
-    _percDecay1Ctrl.dispose();
-    _percDecay2Ctrl.dispose();
     super.dispose();
+  }
+
+  void _addDecayStage() {
+    setState(() {
+      _decayStages.add(const LoyaltyDecayStage(days: 7, discount: 10));
+    });
+  }
+
+  void _removeDecayStage(int index) {
+    setState(() {
+      _decayStages.removeAt(index);
+    });
   }
 
   @override
@@ -169,15 +175,14 @@ class _VenueConfiguratorState extends State<VenueConfigurator> with SingleTicker
   
   void _save() {
       // Create updated LoyaltyConfig
+      _decayStages.sort((a, b) => a.days.compareTo(b.days));
       final updatedLoyalty = LoyaltyConfig(
-        safetyCooldownHours: int.tryParse(_safetyCooldownCtrl.text) ?? 12,
-        vipWindowHours: int.tryParse(_vipWindowCtrl.text) ?? 48,
-        tier1DecayHours: int.tryParse(_tier1DecayCtrl.text) ?? 72,
-        tier2DecayHours: int.tryParse(_tier2DecayCtrl.text) ?? 168,
+        vipWindowDays: int.tryParse(_vipWindowCtrl.text) ?? 2,
+        degradationIntervalDays: int.tryParse(_degradationIntervalCtrl.text) ?? 7,
+        resetIntervalDays: int.tryParse(_resetIntervalCtrl.text) ?? 30,
         percBase: int.tryParse(_percBaseCtrl.text) ?? 5,
         percVip: int.tryParse(_percVipCtrl.text) ?? 20,
-        percDecay1: int.tryParse(_percDecay1Ctrl.text) ?? 15,
-        percDecay2: int.tryParse(_percDecay2Ctrl.text) ?? 10,
+        decayStages: _decayStages,
       );
 
       // In a real app, you'd call a BLoC/Provider to update Firestore here.
@@ -226,21 +231,21 @@ class _VenueConfiguratorState extends State<VenueConfigurator> with SingleTicker
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Time Windows (Hours)", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.title)),
+          const Text("Time Windows (Days)", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.title)),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildTextField("Safety Cooldown", _safetyCooldownCtrl, Icons.timer_off)),
+              Expanded(child: _buildTextField("VIP Window (Days)", _vipWindowCtrl, Icons.verified)),
               const SizedBox(width: 16),
-              Expanded(child: _buildTextField("VIP Window (Max Reward)", _vipWindowCtrl, Icons.verified)),
+              Expanded(child: _buildTextField("Base Degradation (Days)", _degradationIntervalCtrl, Icons.access_time)),
             ],
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(child: _buildTextField("Tier 1 Decay Start", _tier1DecayCtrl, Icons.trending_down)),
+              Expanded(child: _buildTextField("Full Reset (Days)", _resetIntervalCtrl, Icons.restart_alt)),
               const SizedBox(width: 16),
-              Expanded(child: _buildTextField("Tier 2 Decay Start", _tier2DecayCtrl, Icons.access_time)),
+              const Spacer(),
             ],
           ),
           
@@ -255,14 +260,60 @@ class _VenueConfiguratorState extends State<VenueConfigurator> with SingleTicker
               Expanded(child: _buildTextField("VIP (Max)", _percVipCtrl, Icons.star)),
             ],
           ),
-          const SizedBox(height: 16),
+          
+          const SizedBox(height: 32),
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(child: _buildTextField("Tier 1 (Decay)", _percDecay1Ctrl, Icons.remove_circle_outline)),
-              const SizedBox(width: 16),
-              Expanded(child: _buildTextField("Tier 2 (Decay)", _percDecay2Ctrl, Icons.battery_alert)),
+              const Text("Decay Stages", style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.title)),
+              TextButton.icon(
+                onPressed: _addDecayStage,
+                icon: const Icon(Icons.add, color: AppColors.accentTeal),
+                label: const Text("Add Stage", style: TextStyle(color: AppColors.accentTeal)),
+              ),
             ],
           ),
+          const SizedBox(height: 8),
+          
+          if (_decayStages.isEmpty)
+            const Text("No decay stages added.", style: TextStyle(color: Colors.grey)),
+            
+          ...List.generate(_decayStages.length, (index) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: TextEditingController(text: _decayStages[index].days.toString()),
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: "Days", isDense: true),
+                      onChanged: (val) {
+                        final parsed = int.tryParse(val);
+                        if (parsed != null) _decayStages[index] = LoyaltyDecayStage(days: parsed, discount: _decayStages[index].discount);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextField(
+                      controller: TextEditingController(text: _decayStages[index].discount.toString()),
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: "Discount %", isDense: true),
+                      onChanged: (val) {
+                        final parsed = int.tryParse(val);
+                        if (parsed != null) _decayStages[index] = LoyaltyDecayStage(days: _decayStages[index].days, discount: parsed);
+                      },
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _removeDecayStage(index),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );

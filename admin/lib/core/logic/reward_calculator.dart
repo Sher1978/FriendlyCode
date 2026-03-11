@@ -76,22 +76,11 @@ class RewardCalculator {
     final lastActiveDayStart = tz.TZDateTime(location, lastActiveTz.year, lastActiveTz.month, lastActiveTz.day);
 
     // 2. Check Degradation (Melting)
-    final diff = nowTz.difference(lastActiveTz);
-    final hoursPassed = diff.inHours;
+    final diff = nowDayStart.difference(lastActiveDayStart);
+    final daysPassed = diff.inDays;
     
-    // Choose decay window based on current tier
-    final int tierWindowHours = (currentTierValue >= config.percVip)
-        ? config.vipWindowHours
-        : (currentTierValue >= config.percDecay1
-            ? config.tier1DecayHours
-            : (currentTierValue >= config.percDecay2
-                ? config.tier2DecayHours
-                : config.degradationIntervalHours)); // Fallback for base or others
-
-    final hoursUntilDecay = tierWindowHours - hoursPassed;
-    
-    // If cycle expired (reset interval), back to Base
-    if (diff.inDays >= config.resetIntervalDays) {
+    // Check if cycle expired (reset interval), back to Base
+    if (daysPassed >= config.resetIntervalDays) {
        return RewardState(
         currentDiscount: baseTierValue,
         nextDiscount: baseTierValue, 
@@ -104,8 +93,8 @@ class RewardCalculator {
       );
     }
 
-    // If melted (degradation interval passed)
-    if (hoursPassed >= config.degradationIntervalHours) {
+    // If melted completely (degradation interval passed)
+    if (daysPassed >= config.degradationIntervalDays) {
       // Return to Base
       return RewardState(
         currentDiscount: baseTierValue, 
@@ -119,8 +108,28 @@ class RewardCalculator {
       );
     }
 
+    // Determine target tier based on days passed and current tier
+    // We only degrade IF daysPassed exceeds the allowed window for the CURRENT tier.
+    
+    // First, find the "window" for the current tier.
+    int allowedWindowDays = config.degradationIntervalDays; // default fallback
+    
+    if (currentTierValue >= config.percVip) {
+       allowedWindowDays = config.vipWindowDays;
+    } else {
+       // Find the tightest stage that matches the current discount or better
+       for (var stage in config.decayStages) {
+         if (currentTierValue >= stage.discount) {
+            allowedWindowDays = stage.days;
+            break;
+         }
+       }
+    }
+    
+    int daysUntilDecay = allowedWindowDays - daysPassed;
+
     // 3. Check Active Day Status
-    final bool isSameDay = nowDayStart.isAtSameMomentAs(lastActiveDayStart);
+    final bool isSameDay = daysPassed == 0;
 
     // 4. Time until midnight (Next Tier Unlock)
     final nextDayStart = tz.TZDateTime(location, nowTz.year, nowTz.month, nowTz.day + 1);
@@ -129,7 +138,8 @@ class RewardCalculator {
     return RewardState(
       currentDiscount: currentTierValue,
       nextDiscount: maxTierValue,
-      secondsUntilDecay: hoursUntilDecay > 0 ? hoursUntilDecay * 3600 : 0, 
+      // For legacy compatibility, return decay in seconds, assuming we have x full days + time till midnight today
+      secondsUntilDecay: daysUntilDecay > 0 ? (daysUntilDecay * 86400) : 0, 
       secondsUntilNextTier: secondsUntilNextTier,
       phase: RewardPhase.active,
       statusLabelKey: isSameDay ? 'active_for_today' : 'return_tomorrow',

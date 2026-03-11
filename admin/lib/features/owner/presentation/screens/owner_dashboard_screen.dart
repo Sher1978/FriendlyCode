@@ -420,7 +420,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
               // ─── J1: Guest Segments ────────────────────────────────────
               Text("Guest Segments", style: const TextStyle(color: AppColors.title, fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
-              _buildSegmentationRow(_realTimeStats, isMobile),
+              _buildSegmentationRow(_realTimeStats ?? venue.stats, isMobile),
 
               const SizedBox(height: 24),
 
@@ -649,15 +649,30 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
             ),
             const SizedBox(height: 16),
             // Tier preview
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildTierPill(l10n.baseTier, "${config.percBase}%", Colors.orange),
-                const Icon(Icons.arrow_forward, size: 14, color: AppColors.body),
-                _buildTierPill(l10n.decayTier(1), "${config.percDecay1}%", Colors.blue),
-                const Icon(Icons.arrow_forward, size: 14, color: AppColors.body),
-                _buildTierPill(l10n.vipTier, "${config.percVip}%", Colors.green),
-              ],
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildTierPill(l10n.baseTier, "${config.percBase}%", Colors.orange),
+                  ...config.decayStages.map((stage) {
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          child: Icon(Icons.arrow_forward, size: 14, color: AppColors.body),
+                        ),
+                        _buildTierPill("Decay (${stage.days}d)", "${stage.discount}%", Colors.blue),
+                      ],
+                    );
+                  }),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Icon(Icons.arrow_forward, size: 14, color: AppColors.body),
+                  ),
+                  _buildTierPill(l10n.vipTier, "${config.percVip}%", Colors.green),
+                ],
+              ),
             ),
           ],
         ),

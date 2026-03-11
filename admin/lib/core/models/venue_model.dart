@@ -41,57 +41,91 @@ class VenueSubscription {
   );
 }
 
+class LoyaltyDecayStage {
+  final int days;
+  final int discount;
+
+  const LoyaltyDecayStage({
+    required this.days,
+    required this.discount,
+  });
+
+  Map<String, dynamic> toMap() => {
+    'days': days,
+    'discount': discount,
+  };
+
+  factory LoyaltyDecayStage.fromMap(Map<String, dynamic> map) => LoyaltyDecayStage(
+    days: map['days'] ?? 0,
+    discount: map['discount'] ?? 0,
+  );
+}
+
 class LoyaltyConfig {
-  final int safetyCooldownHours;
-  final int vipWindowHours;
-  final int tier1DecayHours;
-  final int tier2DecayHours;
-  final int degradationIntervalHours;
+  final int vipWindowDays;
+  final int degradationIntervalDays;
   final int resetIntervalDays;
   
   final int percBase;
   final int percVip;
-  final int percDecay1;
-  final int percDecay2;
+  final List<LoyaltyDecayStage> decayStages;
 
   const LoyaltyConfig({
-    this.safetyCooldownHours = 12,
-    this.vipWindowHours = 48,
-    this.tier1DecayHours = 72,
-    this.tier2DecayHours = 240, // 10 days
+    this.vipWindowDays = 2,
     this.percBase = 5,
     this.percVip = 20,
-    this.percDecay1 = 15,
-    this.percDecay2 = 10,
-    this.degradationIntervalHours = 168, // 7 days default
-    this.resetIntervalDays = 30, // 30 days default
-  });
+    this.degradationIntervalDays = 7,
+    this.resetIntervalDays = 30,
+    List<LoyaltyDecayStage>? decayStages,
+  }) : decayStages = decayStages ?? const [
+         LoyaltyDecayStage(days: 3, discount: 15),
+         LoyaltyDecayStage(days: 10, discount: 10),
+       ];
 
   Map<String, dynamic> toMap() => {
-    'safetyCooldownHours': safetyCooldownHours,
-    'vipWindowHours': vipWindowHours,
-    'tier1DecayHours': tier1DecayHours,
-    'tier2DecayHours': tier2DecayHours,
+    'vipWindowDays': vipWindowDays,
     'percBase': percBase,
     'percVip': percVip,
-    'percDecay1': percDecay1,
-    'percDecay2': percDecay2,
-    'degradationIntervalHours': degradationIntervalHours,
+    'degradationIntervalDays': degradationIntervalDays,
     'resetIntervalDays': resetIntervalDays,
+    'decayStages': decayStages.map((s) => s.toMap()).toList(),
   };
 
-  factory LoyaltyConfig.fromMap(Map<String, dynamic> map) => LoyaltyConfig(
-    safetyCooldownHours: map['safetyCooldownHours'] ?? 12,
-    vipWindowHours: map['vipWindowHours'] ?? 48,
-    tier1DecayHours: map['tier1DecayHours'] ?? 72,
-    tier2DecayHours: map['tier2DecayHours'] ?? 240,
-    percBase: map['percBase'] ?? 5,
-    percVip: map['percVip'] ?? 20,
-    percDecay1: map['percDecay1'] ?? 15,
-    percDecay2: map['percDecay2'] ?? 10,
-    degradationIntervalHours: map['degradationIntervalHours'] ?? 168,
-    resetIntervalDays: map['resetIntervalDays'] ?? 30,
-  );
+  factory LoyaltyConfig.fromMap(Map<String, dynamic> map) {
+    // Handling backwards compatibility
+    List<LoyaltyDecayStage> loadedStages = [];
+    if (map['decayStages'] != null) {
+      loadedStages = (map['decayStages'] as List).map((s) => LoyaltyDecayStage.fromMap(s)).toList();
+    } else if (map['percDecay1'] != null || map['tier1DecayHours'] != null) {
+      // Legacy conversion
+      loadedStages.add(LoyaltyDecayStage(
+        days: (map['tier1DecayHours'] ?? 72) ~/ 24,
+        discount: map['percDecay1'] ?? 15,
+      ));
+      if (map['percDecay2'] != null || map['tier2DecayHours'] != null) {
+        loadedStages.add(LoyaltyDecayStage(
+          days: (map['tier2DecayHours'] ?? 240) ~/ 24,
+          discount: map['percDecay2'] ?? 10,
+        ));
+      }
+    }
+
+    if (loadedStages.isEmpty) {
+        loadedStages = const [
+         LoyaltyDecayStage(days: 3, discount: 15),
+         LoyaltyDecayStage(days: 10, discount: 10),
+       ];
+    }
+
+    return LoyaltyConfig(
+      vipWindowDays: map['vipWindowDays'] ?? (map['vipWindowHours'] != null ? (map['vipWindowHours'] as int) ~/ 24 : 2),
+      percBase: map['percBase'] ?? 5,
+      percVip: map['percVip'] ?? 20,
+      degradationIntervalDays: map['degradationIntervalDays'] ?? (map['degradationIntervalHours'] != null ? (map['degradationIntervalHours'] as int) ~/ 24 : 7),
+      resetIntervalDays: map['resetIntervalDays'] ?? 30,
+      decayStages: loadedStages,
+    );
+  }
 }
 
 class VenueModel {

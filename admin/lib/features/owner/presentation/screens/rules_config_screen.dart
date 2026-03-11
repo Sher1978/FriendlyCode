@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
 import '../../../../core/theme/colors.dart';
+import 'package:friendly_code/core/models/venue_model.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RulesConfigScreen extends StatefulWidget {
   final String? venueId;
@@ -11,29 +13,126 @@ class RulesConfigScreen extends StatefulWidget {
 }
 
 class _RulesConfigScreenState extends State<RulesConfigScreen> {
-  // Configurable Tiers (Max 5)
-  // For MVP, we are initializing with 3, but UI supports adding more if we expanded the logic.
-  // We'll stick to the Bible's 5-tier cap.
-  
-  final _safetyCooldownCtrl = TextEditingController(text: "12");
-  final _vipWindowCtrl = TextEditingController(text: "48");
-  final _tier1DecayCtrl = TextEditingController(text: "72");
-  final _tier2DecayCtrl = TextEditingController(text: "168");
-  
-  final _percBaseCtrl = TextEditingController(text: "5");
-  final _percVipCtrl = TextEditingController(text: "20");
-  final _percDecay1Ctrl = TextEditingController(text: "15");
-  final _percDecay2Ctrl = TextEditingController(text: "10");
+  bool _isLoading = true;
+  VenueModel? _venue;
+
+  final _vipWindowCtrl = TextEditingController();
+  final _degradationIntervalCtrl = TextEditingController();
+  final _resetIntervalCtrl = TextEditingController();
+  final _percBaseCtrl = TextEditingController();
+  final _percVipCtrl = TextEditingController();
+
+  List<LoyaltyDecayStage> _decayStages = [];
 
   @override
   void initState() {
     super.initState();
-    // In a real app, we'd fetch the current LoyaltyConfig from the venue.
+    _loadVenue();
+  }
+
+  Future<void> _loadVenue() async {
+    if (widget.venueId == null) {
+      if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
+    try {
+      final doc = await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).get();
+      if (doc.exists) {
+        _venue = VenueModel.fromMap(doc.id, doc.data()!);
+        final config = _venue!.loyaltyConfig;
+        
+        _vipWindowCtrl.text = config.vipWindowDays.toString();
+        _degradationIntervalCtrl.text = config.degradationIntervalDays.toString();
+        _resetIntervalCtrl.text = config.resetIntervalDays.toString();
+        _percBaseCtrl.text = config.percBase.toString();
+        _percVipCtrl.text = config.percVip.toString();
+        
+        _decayStages = List.from(config.decayStages);
+      }
+    } catch (e) {
+      debugPrint("Error loading rules: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _vipWindowCtrl.dispose();
+    _degradationIntervalCtrl.dispose();
+    _resetIntervalCtrl.dispose();
+    _percBaseCtrl.dispose();
+    _percVipCtrl.dispose();
+    super.dispose();
+  }
+
+  void _addDecayStage() {
+    setState(() {
+      _decayStages.add(const LoyaltyDecayStage(days: 7, discount: 10));
+    });
+  }
+
+  void _removeDecayStage(int index) {
+    setState(() {
+      _decayStages.removeAt(index);
+    });
+  }
+
+  void _updateStageDays(int index, String val) {
+    final newDays = int.tryParse(val) ?? _decayStages[index].days;
+    _decayStages[index] = LoyaltyDecayStage(days: newDays, discount: _decayStages[index].discount);
+  }
+
+  void _updateStageDiscount(int index, String val) {
+    final newDiscount = int.tryParse(val) ?? _decayStages[index].discount;
+    _decayStages[index] = LoyaltyDecayStage(days: _decayStages[index].days, discount: newDiscount);
+  }
+
+  Future<void> _saveConfig() async {
+    if (widget.venueId == null || _venue == null) return;
+    
+    // Sort decay stages by days descending so largest window is checked first if needed, 
+    // or keep them as defined by user (RewardCalculator iterates through them)
+    _decayStages.sort((a, b) => a.days.compareTo(b.days));
+
+    final updatedConfig = LoyaltyConfig(
+      vipWindowDays: int.tryParse(_vipWindowCtrl.text) ?? 2,
+      degradationIntervalDays: int.tryParse(_degradationIntervalCtrl.text) ?? 7,
+      resetIntervalDays: int.tryParse(_resetIntervalCtrl.text) ?? 30,
+      percBase: int.tryParse(_percBaseCtrl.text) ?? 5,
+      percVip: int.tryParse(_percVipCtrl.text) ?? 20,
+      decayStages: _decayStages,
+    );
+
+    try {
+      await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
+        'loyaltyConfig': updatedConfig.toMap(),
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)?.logicUpdated ?? "Loyalty rules updated"), backgroundColor: Colors.green),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      debugPrint("Error saving rules: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error saving rules: $e"), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       appBar: AppBar(title: Text(l10n.rewardLogicConfig)),
       body: SingleChildScrollView(
@@ -47,19 +146,101 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
             ),
             const SizedBox(height: 24),
 
-            _buildSectionHeader("TIME WINDOWS (HOURS)"),
-            _buildTierRow("Safety Cooldown", "Minimum hours before a new scan can count as a visit.", _safetyCooldownCtrl),
-            _buildTierRow("VIP Window", "Return within these hours for maximum reward.", _vipWindowCtrl),
-            _buildTierRow("Tier 1 Decay", "Reward drops after this many hours.", _tier1DecayCtrl),
-            _buildTierRow("Tier 2 Decay", "Reward drops further after this many hours.", _tier2DecayCtrl),
+            _buildSectionHeader("GLOBAL RULES"),
+            _buildTierRow("Base Reward (%)", "Default discount for new guests.", _percBaseCtrl),
+            _buildTierRow("VIP Reward (%)", "Maximum discount for frequent visitors.", _percVipCtrl),
+            _buildTierRow("VIP Window (Days)", "Return within these days for maximum reward.", _vipWindowCtrl),
+            _buildTierRow("Full Reset (Days)", "Guest loses all progress if absent for this long.", _resetIntervalCtrl),
+            _buildTierRow("Base Degradation (Days)", "Fallback threshold before dropping to base.", _degradationIntervalCtrl),
 
             const Divider(height: 48),
 
-            _buildSectionHeader("REWARD PERCENTAGES (%)"),
-            _buildTierRow("Base Reward", "Default discount for new or inactive guests.", _percBaseCtrl),
-            _buildTierRow("VIP Reward", "Maximum discount for frequent visitors.", _percVipCtrl),
-            _buildTierRow("Tier 1 Reward", "Intermediate discount tier.", _percDecay1Ctrl),
-            _buildTierRow("Tier 2 Reward", "Lower intermediate discount tier.", _percDecay2Ctrl),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildSectionHeader("DECAY STAGES"),
+                TextButton.icon(
+                  onPressed: _addDecayStage,
+                  icon: const Icon(Icons.add, color: AppColors.accentOrange),
+                  label: const Text("Add Stage", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+            
+            if (_decayStages.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text("No decay stages added. Guests will drop directly to base after the VIP window.", style: TextStyle(color: Colors.grey)),
+              ),
+              
+            ...List.generate(_decayStages.length, (index) {
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.title.withOpacity(0.1)),
+                  boxShadow: AppColors.softShadow,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Decay Stage ${index + 1}", style: const TextStyle(color: AppColors.title, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Text("Days:", style: TextStyle(color: AppColors.body, fontSize: 13)),
+                              const SizedBox(width: 8),
+                              SizedBox(
+                                width: 60,
+                                child: TextField(
+                                  controller: TextEditingController(text: _decayStages[index].days.toString()),
+                                  keyboardType: TextInputType.number,
+                                  textAlign: TextAlign.center,
+                                  onChanged: (val) => _updateStageDays(index, val),
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: AppColors.background.withOpacity(0.5),
+                                    contentPadding: const EdgeInsets.all(8),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              const Text("Discount %:", style: TextStyle(color: AppColors.body, fontSize: 13)),
+                              const SizedBox(width: 8),
+                              SizedBox(
+                                width: 60,
+                                child: TextField(
+                                  controller: TextEditingController(text: _decayStages[index].discount.toString()),
+                                  keyboardType: TextInputType.number,
+                                  textAlign: TextAlign.center,
+                                  onChanged: (val) => _updateStageDiscount(index, val),
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: AppColors.background.withOpacity(0.5),
+                                    contentPadding: const EdgeInsets.all(8),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      onPressed: () => _removeDecayStage(index),
+                    ),
+                  ],
+                ),
+              );
+            }),
 
             const SizedBox(height: 48),
 
@@ -132,16 +313,5 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
         ],
       ),
     );
-  }
-
-  void _saveConfig() {
-    // Note: This screen is currently a standalone UI. 
-    // Configuration is primarily handled via the VenueConfigurator in the Admin panel.
-    // In a fully wired-up system, this would update the specific venue's loyaltyConfig.
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocalizations.of(context)!.logicUpdated)),
-    );
-    Navigator.pop(context);
   }
 }

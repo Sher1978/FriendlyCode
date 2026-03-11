@@ -730,7 +730,6 @@ class _Header extends StatelessWidget {
             right: 0,
             child: Consumer<LocaleProvider>(
               builder: (context, provider, child) {
-                final isEn = provider.locale.languageCode == 'en';
                 return TextButton(
                   onPressed: () => provider.toggleLocale(),
                   style: TextButton.styleFrom(
@@ -739,7 +738,7 @@ class _Header extends StatelessWidget {
                     foregroundColor: AppColors.title,
                   ),
                   child: Text(
-                    isEn ? "RU" : "EN",
+                    provider.locale.languageCode.toUpperCase(),
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                   ),
                 );
