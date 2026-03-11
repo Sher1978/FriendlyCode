@@ -28,7 +28,7 @@ class VisitsService {
   Future<List<VisitModel>> getGuestHistoryAtVenue(String guestId, String venueId) async {
     final snapshot = await _firestore
         .collection(_collection)
-        .where('guestId', isEqualTo: guestId)
+        .where('uid', isEqualTo: guestId)
         .where('venueId', isEqualTo: venueId)
         .orderBy('timestamp', descending: true)
         .get();

@@ -26,7 +26,7 @@ class LeadsService {
     return _firestore
         .collection(_collection)
         .where('venueId', isEqualTo: venueId)
-        .orderBy('timestamp', descending: true) // Ensure index exists or remove orderBy if needed
+        .orderBy('createdAt', descending: true) // Ensure index exists
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) => LeadModel.fromMap(doc.id, doc.data())).toList();

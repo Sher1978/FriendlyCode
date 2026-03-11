@@ -43,7 +43,7 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
           children: [
             Text(
               "Configure your time-decay loyalty rules. These rules determine how much discount a guest receives based on their return frequency.",
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white70),
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: AppColors.body),
             ),
             const SizedBox(height: 24),
 
@@ -53,7 +53,7 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
             _buildTierRow("Tier 1 Decay", "Reward drops after this many hours.", _tier1DecayCtrl),
             _buildTierRow("Tier 2 Decay", "Reward drops further after this many hours.", _tier2DecayCtrl),
 
-            const Divider(color: Colors.white10, height: 48),
+            const Divider(height: 48),
 
             _buildSectionHeader("REWARD PERCENTAGES (%)"),
             _buildTierRow("Base Reward", "Default discount for new or inactive guests.", _percBaseCtrl),
@@ -69,8 +69,8 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
               child: ElevatedButton(
                 onPressed: _saveConfig,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.lime,
-                  foregroundColor: AppColors.deepSeaBlueDark,
+                  backgroundColor: AppColors.accentOrange,
+                  foregroundColor: Colors.white,
                 ),
                 child: Text(l10n.saveLogic),
               ),
@@ -86,7 +86,7 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
       padding: const EdgeInsets.only(bottom: 16),
       child: Text(
         title,
-        style: const TextStyle(color: AppColors.lime, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+        style: const TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.bold, letterSpacing: 1.2),
       ),
     );
   }
@@ -96,9 +96,10 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: AppColors.title.withOpacity(0.1)),
+        boxShadow: AppColors.softShadow,
       ),
       child: Row(
         children: [
@@ -106,9 +107,9 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                Text(label, style: const TextStyle(color: AppColors.title, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
-                Text(sub, style: const TextStyle(color: Colors.white38, fontSize: 11)),
+                Text(sub, style: TextStyle(color: AppColors.body.withOpacity(0.6), fontSize: 11)),
               ],
             ),
           ),
@@ -119,10 +120,10 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
               controller: controller,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: const TextStyle(color: AppColors.title, fontWeight: FontWeight.bold),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Colors.black26,
+                fillColor: AppColors.background.withOpacity(0.5),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               ),
