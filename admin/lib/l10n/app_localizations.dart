@@ -1701,6 +1701,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Come back tomorrow for {percent}% max reward!'**
   String tomorrowMaxReward(int percent);
+
+  /// No description provided for @hello.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello, {name}'**
+  String hello(String name);
+
+  /// No description provided for @subscriptionDaysLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days left'**
+  String subscriptionDaysLeft(int days);
+
+  /// No description provided for @guestWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'GUEST WAITING'**
+  String get guestWaiting;
+
+  /// No description provided for @loyaltyRules.
+  ///
+  /// In en, this message translates to:
+  /// **'Loyalty Rules'**
+  String get loyaltyRules;
+
+  /// No description provided for @timeDecayConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Time-Decay Configuration'**
+  String get timeDecayConfig;
+
+  /// No description provided for @baseTier.
+  ///
+  /// In en, this message translates to:
+  /// **'Base'**
+  String get baseTier;
+
+  /// No description provided for @decayTier.
+  ///
+  /// In en, this message translates to:
+  /// **'Decay {index}'**
+  String decayTier(int index);
+
+  /// No description provided for @vipTier.
+  ///
+  /// In en, this message translates to:
+  /// **'VIP'**
+  String get vipTier;
 }
 
 class _AppLocalizationsDelegate

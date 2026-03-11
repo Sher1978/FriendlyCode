@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
 import '../../../../core/theme/colors.dart';
-import '../../../../core/logic/reward_calculator.dart';
 
 class RulesConfigScreen extends StatefulWidget {
-  const RulesConfigScreen({super.key});
+  final String? venueId;
+  const RulesConfigScreen({super.key, this.venueId});
 
   @override
   State<RulesConfigScreen> createState() => _RulesConfigScreenState();

@@ -872,4 +872,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String tomorrowMaxReward(int percent) {
     return 'Come back tomorrow for $percent% max reward!';
   }
+
+  @override
+  String hello(String name) {
+    return 'Hello, $name';
+  }
+
+  @override
+  String subscriptionDaysLeft(int days) {
+    return '$days days left';
+  }
+
+  @override
+  String get guestWaiting => 'GUEST WAITING';
+
+  @override
+  String get loyaltyRules => 'Loyalty Rules';
+
+  @override
+  String get timeDecayConfig => 'Time-Decay Configuration';
+
+  @override
+  String get baseTier => 'Base';
+
+  @override
+  String decayTier(int index) {
+    return 'Decay $index';
+  }
+
+  @override
+  String get vipTier => 'VIP';
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:ui';
 import 'dart:math';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:friendly_code/core/theme/colors.dart';
@@ -150,23 +149,19 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
   }
 
   VenueStats? _realTimeStats;
-  bool _isLoadingStats = false;
   final StatisticsService _statsService = StatisticsService();
 
   Future<void> _fetchRealStats(String venueId) async {
     if (!mounted) return;
-    setState(() => _isLoadingStats = true);
     try {
       final stats = await _statsService.calculateVenueStats(venueId);
       if (mounted) {
         setState(() {
           _realTimeStats = stats;
-          _isLoadingStats = false;
         });
       }
     } catch (e) {
       debugPrint("Error fetching stats: $e");
-      if (mounted) setState(() => _isLoadingStats = false);
     }
   }
 
@@ -498,6 +493,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
 
   // ─── NEW: Subscription Badge ─────────────────────────────────────────────
   Widget _buildSubscriptionBadge(VenueModel venue) {
+    final l10n = AppLocalizations.of(context)!;
     final expiry = venue.subscription.expiryDate;
     final now = DateTime.now();
 
@@ -545,6 +541,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
 
   // ─── NEW: Live Redemption Banner ─────────────────────────────────────────
   Widget _buildLiveRedemptionBanner(List<VisitModel> pending) {
+    final l10n = AppLocalizations.of(context)!;
     final latest = pending.first;
     return AnimatedBuilder(
       animation: _pulseAnimation,
@@ -614,6 +611,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
 
   // ─── NEW: Loyalty Rules Quick Card ──────────────────────────────────────
   Widget _buildLoyaltyRulesCard(VenueModel venue) {
+    final l10n = AppLocalizations.of(context)!;
     final config = venue.loyaltyConfig;
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RulesConfigScreen(venueId: venue.id))),
@@ -653,11 +651,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildTierPill(l10n.baseTier, "${config?.percBase ?? 5}%", Colors.orange),
+                _buildTierPill(l10n.baseTier, "${config.percBase}%", Colors.orange),
                 const Icon(Icons.arrow_forward, size: 14, color: AppColors.body),
-                _buildTierPill(l10n.decayTier(1), "${config?.percDecay1 ?? 15}%", Colors.blue),
+                _buildTierPill(l10n.decayTier(1), "${config.percDecay1}%", Colors.blue),
                 const Icon(Icons.arrow_forward, size: 14, color: AppColors.body),
-                _buildTierPill(l10n.vipTier, "${config?.percVip ?? 20}%", Colors.green),
+                _buildTierPill(l10n.vipTier, "${config.percVip}%", Colors.green),
               ],
             ),
           ],

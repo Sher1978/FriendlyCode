@@ -875,4 +875,34 @@ class AppLocalizationsVi extends AppLocalizations {
   String tomorrowMaxReward(int percent) {
     return 'NGÀY MAI ƯU ĐÃI CỦA BẠN LÀ $percent%!';
   }
+
+  @override
+  String hello(String name) {
+    return 'Xin chào, $name';
+  }
+
+  @override
+  String subscriptionDaysLeft(int days) {
+    return 'Còn $days ngày';
+  }
+
+  @override
+  String get guestWaiting => 'KHÁCH ĐANG CHỜ';
+
+  @override
+  String get loyaltyRules => 'Quy tắc lòng trung thành';
+
+  @override
+  String get timeDecayConfig => 'Cấu hình Time-Decay';
+
+  @override
+  String get baseTier => 'Cơ bản';
+
+  @override
+  String decayTier(int index) {
+    return 'Giảm dần $index';
+  }
+
+  @override
+  String get vipTier => 'VIP';
 }

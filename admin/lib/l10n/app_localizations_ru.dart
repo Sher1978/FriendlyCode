@@ -874,4 +874,34 @@ class AppLocalizationsRu extends AppLocalizations {
   String tomorrowMaxReward(int percent) {
     return 'ЗАВТРА ВАША СКИДКА $percent%!';
   }
+
+  @override
+  String hello(String name) {
+    return 'Привет, $name';
+  }
+
+  @override
+  String subscriptionDaysLeft(int days) {
+    return 'Осталось $days дн.';
+  }
+
+  @override
+  String get guestWaiting => 'ГОСТЬ ЖДЕТ';
+
+  @override
+  String get loyaltyRules => 'Правила лояльности';
+
+  @override
+  String get timeDecayConfig => 'Конфигурация Time-Decay';
+
+  @override
+  String get baseTier => 'База';
+
+  @override
+  String decayTier(int index) {
+    return 'Уровень $index';
+  }
+
+  @override
+  String get vipTier => 'VIP';
 }
