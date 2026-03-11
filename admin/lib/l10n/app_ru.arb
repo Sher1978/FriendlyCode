@@ -239,6 +239,9 @@
   "currentPlan": "ТЕКУЩИЙ ТАРИФ",
   "proPlan": "ТАРИФ PRO",
   "nextBillingDate": "Следующий счет: {date}",
+  "fullActivationPeriod": "Полный период активации: {start} - {end}",
+  "expiryPeriod": "Период действия: до {end}",
+  "daysRemaining": "Осталось дней: {days}",
   "@nextBillingDate": {
     "placeholders": {
       "date": {

@@ -20,23 +20,27 @@ class VenueTier {
 class VenueSubscription {
   final String plan;
   final bool isPaid;
+  final DateTime? startDate;
   final DateTime? expiryDate;
 
   VenueSubscription({
     this.plan = 'free',
     this.isPaid = false,
+    this.startDate,
     this.expiryDate,
   });
 
   Map<String, dynamic> toMap() => {
     'plan': plan,
     'isPaid': isPaid,
+    'startDate': startDate != null ? Timestamp.fromDate(startDate!) : null,
     'expiryDate': expiryDate != null ? Timestamp.fromDate(expiryDate!) : null,
   };
 
   factory VenueSubscription.fromMap(Map<String, dynamic> map) => VenueSubscription(
     plan: map['plan'] ?? 'free',
     isPaid: map['isPaid'] ?? false,
+    startDate: map['startDate'] != null ? (map['startDate'] as Timestamp).toDate() : null,
     expiryDate: map['expiryDate'] != null ? (map['expiryDate'] as Timestamp).toDate() : null,
   );
 }
@@ -154,6 +158,7 @@ class VenueModel {
   final double? longitude;
   final String? assignedAdminId;
   final String? assignedManagerId;
+  final bool emailReportsActive;
 
   VenueModel({
     required this.id,
@@ -178,6 +183,7 @@ class VenueModel {
     this.longitude,
     this.assignedAdminId,
     this.assignedManagerId,
+    this.emailReportsActive = false,
   }) : 
     tiers = tiers ?? [],
     subscription = subscription ?? VenueSubscription(),
@@ -213,6 +219,7 @@ class VenueModel {
       'longitude': longitude,
       'assignedAdminId': assignedAdminId,
       'assignedManagerId': assignedManagerId,
+      'emailReportsActive': emailReportsActive,
     };
   }
 
@@ -240,6 +247,7 @@ class VenueModel {
       longitude: map['longitude']?.toDouble(),
       assignedAdminId: map['assignedAdminId'],
       assignedManagerId: map['assignedManagerId'],
+      emailReportsActive: map['emailReportsActive'] ?? false,
     );
   }
 }

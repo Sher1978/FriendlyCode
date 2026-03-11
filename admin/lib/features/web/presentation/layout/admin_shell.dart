@@ -15,6 +15,7 @@ import 'package:friendly_code/features/admin/presentation/widgets/notification_b
 import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/global_email_settings_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/my_team_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/billing_screen.dart';
 
 class AdminShell extends StatefulWidget {
   final Widget child; // Default/Initial screen
@@ -55,8 +56,8 @@ class _AdminShellState extends State<AdminShell> {
       // 3. Billing / Staff (Depends on Role)
       if (widget.role == UserRole.superAdmin)
          StaffManagementScreen() // Staff Management
-      else if (widget.role == UserRole.admin || widget.role == UserRole.manager)
-          MyTeamScreen()
+      else if (widget.role == UserRole.owner)
+          const OwnerBillingScreen()
       else 
           const Center(child: Text("No Billing Access", style: TextStyle(color: AppColors.title))),
 

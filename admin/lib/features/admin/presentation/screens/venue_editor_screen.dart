@@ -36,12 +36,6 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
   String _defaultLanguage = 'en';
   bool _isSaving = false;
 
-  // RBAC Fields
-  String? _selectedAdminId;
-  String? _selectedManagerId;
-  List<Map<String, dynamic>> _admins = [];
-  List<Map<String, dynamic>> _managers = [];
-
   @override
   void initState() {
     super.initState();
@@ -76,38 +70,10 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     _subscription = widget.venue?.subscription ?? VenueSubscription(
       plan: 'pro', 
       isPaid: true, 
+      startDate: DateTime.now(),
       expiryDate: DateTime.now().add(const Duration(days: 365))
     );
     _defaultLanguage = widget.venue?.defaultLanguage ?? 'en';
-
-    // Init RBAC selections
-    _selectedAdminId = widget.venue?.assignedAdminId;
-    _selectedManagerId = widget.venue?.assignedManagerId;
-
-    if (isSuperAdmin || roleProvider.isAdmin) {
-      _fetchStaff();
-    }
-  }
-
-  Future<void> _fetchStaff() async {
-    // Fetch Admins
-    final adminSnap = await FirebaseFirestore.instance
-        .collection('users')
-        .where('role', isEqualTo: 'admin')
-        .get();
-    
-    // Fetch Managers
-    final managerSnap = await FirebaseFirestore.instance
-        .collection('users')
-        .where('role', isEqualTo: 'manager')
-        .get();
-
-    if (mounted) {
-      setState(() {
-        _admins = adminSnap.docs.map((d) => {'id': d.id, 'email': d.data()['email']}).toList();
-        _managers = managerSnap.docs.map((d) => {'id': d.id, 'email': d.data()['email']}).toList();
-      });
-    }
   }
 
   @override
@@ -142,8 +108,8 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         tiers: _tiers,
         subscription: _subscription,
         defaultLanguage: _defaultLanguage,
-        assignedAdminId: _selectedAdminId,
-        assignedManagerId: _selectedManagerId,
+        assignedAdminId: widget.venue?.assignedAdminId,
+        assignedManagerId: widget.venue?.assignedManagerId,
       );
 
       if (widget.venue == null) {
@@ -181,96 +147,37 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
               IconButton(onPressed: _save, icon: const Icon(Icons.check)),
          ],
        ),
-       body: DefaultTabController(
-         length: 2,
-         child: Column(
-           children: [
-             TabBar(
-               labelColor: AppColors.brandOrange,
-               unselectedLabelColor: AppColors.title,
-               indicatorColor: AppColors.brandOrange,
-               tabs: [
-                 Tab(text: l10n.tabVenueSettings),
-                 Tab(text: l10n.tabStaffRbac),
-               ],
-             ),
-             Expanded(
-               child: Form(
-                 key: _formKey,
-                 child: TabBarView(
-                   children: [
-                     // TAB 1: Venue Settings
-                     SingleChildScrollView(
-                       padding: const EdgeInsets.all(24),
-                       child: Column(
-                         crossAxisAlignment: CrossAxisAlignment.start,
-                         children: [
-                           _buildSectionHeader(l10n.sectionBasicInfo),
-                           _buildTextField(_nameCtrl, l10n.labelVenueName, required: true),
-                           const SizedBox(height: 16),
-                           _buildTextField(_categoryCtrl, l10n.labelCategory),
-                           const SizedBox(height: 16),
-                           _buildTextField(_addressCtrl, l10n.labelAddress),
-                           const SizedBox(height: 24),
+       body: Form(
+         key: _formKey,
+         child: SingleChildScrollView(
+           padding: const EdgeInsets.all(24),
+           child: Column(
+             crossAxisAlignment: CrossAxisAlignment.start,
+             children: [
+               _buildSectionHeader(l10n.sectionBasicInfo),
+               _buildTextField(_nameCtrl, l10n.labelVenueName, required: true),
+               const SizedBox(height: 16),
+               _buildTextField(_categoryCtrl, l10n.labelCategory),
+               const SizedBox(height: 16),
+               _buildTextField(_addressCtrl, l10n.labelAddress),
+               const SizedBox(height: 24),
 
-                           _buildSectionHeader(l10n.sectionOwnership),
-                           _buildTextField(_ownerEmailCtrl, l10n.labelOwnerEmail),
-                           const SizedBox(height: 16),
-                           _buildTextField(_ownerIdCtrl, l10n.labelOwnerId),
-                           const SizedBox(height: 24),
+               _buildSectionHeader(l10n.sectionOwnership),
+               _buildTextField(_ownerEmailCtrl, l10n.labelOwnerEmail),
+               const SizedBox(height: 16),
+               _buildTextField(_ownerIdCtrl, l10n.labelOwnerId),
+               const SizedBox(height: 24),
 
-                           _buildSectionHeader(l10n.sectionMedia),
-                           _buildTextField(_logoUrlCtrl, l10n.labelLogoUrl),
-                           const SizedBox(height: 16),
-                           _buildTextField(_linkUrlCtrl, l10n.labelExternalLink),
-                           const SizedBox(height: 24),
+               _buildSectionHeader(l10n.sectionMedia),
+               _buildTextField(_logoUrlCtrl, l10n.labelLogoUrl),
+               const SizedBox(height: 16),
+               _buildTextField(_linkUrlCtrl, l10n.labelExternalLink),
+               const SizedBox(height: 24),
 
-                           _buildSectionHeader(l10n.sectionSubscriptionStatus),
-                           _buildSubscriptionInfo(isSuperAdmin, l10n),
-                         ],
-                       ),
-                     ),
-
-                     // TAB 2: Staff Settings
-                     SingleChildScrollView(
-                       padding: const EdgeInsets.all(24),
-                       child: Column(
-                         crossAxisAlignment: CrossAxisAlignment.start,
-                         children: [
-                           if (isSuperAdmin || roleProvider.isAdmin) ...[
-                             _buildSectionHeader(l10n.sectionStaffAssignment),
-                             if (isSuperAdmin) 
-                                DropdownButtonFormField<String>(
-                                  decoration: InputDecoration(labelText: l10n.labelAssignedAdmin, border: const OutlineInputBorder()),
-                                  initialValue: _selectedAdminId,
-                                  items: [
-                                   DropdownMenuItem(value: null, child: Text(l10n.none)),
-                                   ..._admins.map((a) => DropdownMenuItem(value: a['id'] as String, child: Text(a['email'] ?? 'Unknown'))),
-                                 ],
-                                 onChanged: (val) => setState(() => _selectedAdminId = val),
-                               ),
-                             const SizedBox(height: 16),
-                              DropdownButtonFormField<String>(
-                                decoration: InputDecoration(labelText: l10n.labelAssignedManager, border: const OutlineInputBorder()),
-                                initialValue: _selectedManagerId,
-                                items: [
-                                  DropdownMenuItem(value: null, child: Text(l10n.none)),
-                                  ..._managers.map((m) => DropdownMenuItem(value: m['id'] as String, child: Text(m['email'] ?? 'Unknown'))),
-                               ],
-                               onChanged: (val) => setState(() => _selectedManagerId = val),
-                             ),
-                           ] else ...[
-                             Text(l10n.rbacNotice, style: const TextStyle(color: AppColors.body)),
-                           ]
-                         ],
-                       ),
-                     ),
-
-                   ],
-                 ),
-               ),
-             ),
-           ],
+               _buildSectionHeader(l10n.sectionSubscriptionStatus),
+               _buildSubscriptionInfo(isSuperAdmin, l10n),
+             ],
+           ),
          ),
        ),
      );
@@ -316,7 +223,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                 DropdownButton<String>(
                   value: _subscription.plan,
                   items: ['free', 'pro', 'enterprise'].map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase()))).toList(),
-                  onChanged: (val) => setState(() => _subscription = VenueSubscription(plan: val ?? 'free', isPaid: _subscription.isPaid, expiryDate: _subscription.expiryDate)),
+                  onChanged: (val) => setState(() => _subscription = VenueSubscription(plan: val ?? 'free', isPaid: _subscription.isPaid, startDate: _subscription.startDate, expiryDate: _subscription.expiryDate)),
                 ),
             ],
           ),
@@ -329,7 +236,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
               if (isSuperAdmin)
                 Switch(
                   value: _subscription.isPaid,
-                  onChanged: (val) => setState(() => _subscription = VenueSubscription(plan: _subscription.plan, isPaid: val, expiryDate: _subscription.expiryDate)),
+                  onChanged: (val) => setState(() => _subscription = VenueSubscription(plan: _subscription.plan, isPaid: val, startDate: _subscription.startDate, expiryDate: _subscription.expiryDate)),
                 ),
             ],
           ),

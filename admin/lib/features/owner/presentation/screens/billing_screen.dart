@@ -1,13 +1,73 @@
 import 'package:flutter/material.dart';
+import 'package:friendly_code/core/auth/role_provider.dart';
+import 'package:friendly_code/core/models/venue_model.dart';
+import 'package:friendly_code/core/services/venue_service.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 
-class OwnerBillingScreen extends StatelessWidget {
+class OwnerBillingScreen extends StatefulWidget {
   const OwnerBillingScreen({super.key});
+
+  @override
+  State<OwnerBillingScreen> createState() => _OwnerBillingScreenState();
+}
+
+class _OwnerBillingScreenState extends State<OwnerBillingScreen> {
+  final VenuesService _venuesService = VenuesService();
+  VenueModel? _venue;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchVenueData();
+  }
+
+  Future<void> _fetchVenueData() async {
+    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+    final venueId = roleProvider.venueId;
+
+    if (venueId != null) {
+      final venue = await _venuesService.getVenueById(venueId);
+      if (mounted) {
+        setState(() {
+          _venue = venue;
+          _isLoading = false;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return "N/A";
+    return DateFormat.yMMMMd().format(date);
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_venue == null) {
+      return Center(child: Text(l10n.venueNotFound));
+    }
+
+    final sub = _venue!.subscription;
+    final startDateStr = _formatDate(sub.startDate);
+    final expiryDateStr = _formatDate(sub.expiryDate);
+    final daysLeft = sub.expiryDate != null ? sub.expiryDate!.difference(DateTime.now()).inDays : 0;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -30,11 +90,33 @@ class OwnerBillingScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         decoration: BoxDecoration(color: AppColors.accentOrange, borderRadius: BorderRadius.circular(20)),
-                        child: Text(l10n.proPlan, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
+                        child: Text(sub.plan.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 12)),
                       ),
                       const SizedBox(height: 24),
-                      const Text("\$49.00 / month", style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.title)),
-                      Text(l10n.nextBillingDate("March 12, 2026"), style: const TextStyle(color: AppColors.body)),
+                      Text(
+                        sub.plan == 'free' ? "FREE" : "\$49.00 / month", 
+                        style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.title)
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Detailed Period Information
+                      Text(
+                        "Full Activation Period: $startDateStr - $expiryDateStr",
+                        style: const TextStyle(color: AppColors.title, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        "Expiry Period: $expiryDateStr",
+                        style: const TextStyle(color: AppColors.body, fontSize: 13),
+                      ),
+                      if (daysLeft > 0) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          "$daysLeft days remaining",
+                          style: TextStyle(color: daysLeft < 7 ? Colors.red : Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                      ],
+                      
                       const SizedBox(height: 32),
                       const Divider(),
                       const SizedBox(height: 24),

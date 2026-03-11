@@ -25,14 +25,34 @@ class ImageUploadWidget extends StatefulWidget {
 class _ImageUploadWidgetState extends State<ImageUploadWidget> {
   String? _previewUrl;
   bool _isUploading = false;
+  double _uploadProgress = 0;
   final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _previewUrl = widget.initialUrl;
+  }
+
+  @override
+  void didUpdateWidget(ImageUploadWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialUrl != oldWidget.initialUrl) {
+      setState(() {
+        _previewUrl = widget.initialUrl;
+      });
+    }
+  }
 
   Future<void> _pickAndUpload() async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image == null) return;
 
-      setState(() => _isUploading = true);
+      setState(() {
+        _isUploading = true;
+        _uploadProgress = 0;
+      });
 
       // Read bytes for web/mobile compatibility
       Uint8List data = await image.readAsBytes();
@@ -47,38 +67,49 @@ class _ImageUploadWidgetState extends State<ImageUploadWidget> {
 
       // Metadata with fallback
       final metadata = SettableMetadata(
-        contentType: image.mimeType ?? 'image/jpeg', // Default to jpeg if unknown
+        contentType: image.mimeType ?? 'image/jpeg',
         customMetadata: {'picked-file-path': image.path},
       );
 
       // Upload
       final UploadTask uploadTask = ref.putData(data, metadata);
       
-      // Monitor Progress (Optional, could add stream listener here)
+      // Monitor Progress
+      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+        if (snapshot.totalBytes > 0) {
+          setState(() {
+            _uploadProgress = snapshot.bytesTransferred / snapshot.totalBytes;
+          });
+        }
+      });
       
       final TaskSnapshot snapshot = await uploadTask;
       final String downloadUrl = await snapshot.ref.getDownloadURL();
 
-      setState(() {
-        _previewUrl = downloadUrl;
-        _isUploading = false;
-      });
-
-      widget.onUploadComplete(downloadUrl);
+      if (mounted) {
+        setState(() {
+          _previewUrl = downloadUrl;
+          _isUploading = false;
+        });
+        widget.onUploadComplete(downloadUrl);
+      }
     } catch (e) {
       debugPrint("Image Upload Error: $e");
-      setState(() => _isUploading = false);
       if (mounted) {
-        String errorMsg = "Upload failed: $e";
+        setState(() => _isUploading = false);
+        String errorMsg = "Upload failed. Please check your connection.";
         if (e.toString().contains("xmlhttprequest")) {
-           errorMsg = "CORS Error: Please configure CORS on your Firebase Storage bucket via Google Cloud Console.";
+           errorMsg = "Browser CORS Error: Storage bucket needs CORS configuration.";
         } else if (e.toString().contains("unauthorized")) {
-           errorMsg = "Permission Denied: Check Firebase Storage Rules.";
+           errorMsg = "Permission Denied: Firebase Storage rules error.";
+        } else if (e.toString().contains("canceled")) {
+           errorMsg = "Upload canceled.";
         }
+        
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(errorMsg), 
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 5),
+          duration: const Duration(seconds: 4),
         ));
       }
     }
@@ -97,16 +128,37 @@ class _ImageUploadWidgetState extends State<ImageUploadWidget> {
           child: Container(
             height: 150,
             width: double.infinity,
+            clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               color: AppColors.background,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.title.withOpacity(0.1)),
-              image: _previewUrl != null 
+              image: _previewUrl != null && !_isUploading
                 ? DecorationImage(image: NetworkImage(_previewUrl!), fit: BoxFit.cover)
                 : null,
             ),
             child: _isUploading 
-              ? const Center(child: CircularProgressIndicator())
+              ? Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const CircularProgressIndicator(color: AppColors.accentOrange),
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: LinearProgressIndicator(
+                        value: _uploadProgress,
+                        backgroundColor: Colors.transparent,
+                        color: AppColors.accentOrange.withOpacity(0.5),
+                        minHeight: 4,
+                      ),
+                    ),
+                    Text(
+                      "${(_uploadProgress * 100).toInt()}%",
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.title),
+                    ),
+                  ],
+                )
               : _previewUrl == null 
                 ? Column(
                     mainAxisAlignment: MainAxisAlignment.center,

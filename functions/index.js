@@ -301,7 +301,7 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
         }
 
         // 4b. Owner Notification Email
-        if (ownerEmail && emailControls.enableOwnerNotifications !== false) {
+        if (ownerEmail && emailControls.enableOwnerNotifications !== false && venueData.emailReportsActive === true) {
             const { data, error } = await resend.emails.send({
                 from: "Friendly Code <no-reply@friendlycode.fun>",
                 to: [ownerEmail],

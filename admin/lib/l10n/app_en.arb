@@ -239,6 +239,9 @@
   "currentPlan": "CURRENT PLAN",
   "proPlan": "PRO PLAN",
   "nextBillingDate": "Next billing date: {date}",
+  "fullActivationPeriod": "Full Activation Period: {start} - {end}",
+  "expiryPeriod": "Expiry Period: {end}",
+  "daysRemaining": "{days} days remaining",
   "@nextBillingDate": {
     "placeholders": {
       "date": {

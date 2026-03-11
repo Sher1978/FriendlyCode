@@ -640,7 +640,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(l10n.loyaltyRules, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.title)),
-                      Text(l10n.timeDecayConfig, style: const TextStyle(color: AppColors.body, fontSize: 12)),
+                      const Text("Active Loyalty Tiers & Decay", style: TextStyle(color: AppColors.body, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -654,7 +654,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
               child: Row(
                 children: [
                   _buildTierPill(l10n.baseTier, "${config.percBase}%", Colors.orange),
-                  ...config.decayStages.map((stage) {
+                  ...config.decayStages.asMap().entries.map((entry) {
+                    final index = entry.key + 1;
+                    final stage = entry.value;
                     return Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -662,7 +664,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                           padding: EdgeInsets.symmetric(horizontal: 8),
                           child: Icon(Icons.arrow_forward, size: 14, color: AppColors.body),
                         ),
-                        _buildTierPill("Decay (${stage.days}d)", "${stage.discount}%", Colors.blue),
+                        _buildTierPill("Decay $index (${stage.days}d)", "${stage.discount}%", Colors.blue),
                       ],
                     );
                   }),
@@ -670,7 +672,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                     padding: EdgeInsets.symmetric(horizontal: 8),
                     child: Icon(Icons.arrow_forward, size: 14, color: AppColors.body),
                   ),
-                  _buildTierPill(l10n.vipTier, "${config.percVip}%", Colors.green),
+                  _buildTierPill("${l10n.vipTier} (${config.vipWindowDays}d)", "${config.percVip}%", Colors.green),
                 ],
               ),
             ),

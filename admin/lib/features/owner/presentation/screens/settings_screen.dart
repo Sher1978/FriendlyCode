@@ -55,6 +55,7 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
   }
 
   Future<void> _updateName() async {
+    final l10n = AppLocalizations.of(context)!;
     final controller = TextEditingController(text: _currentUser?.displayName);
     final shouldUpdate = await showDialog<bool>(
       context: context,
@@ -119,7 +120,6 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
   Future<void> _connectTelegram() async {
     try {
       setState(() => _isLoading = true);
-      // SPECIFY REGION: asia-south1
       final result = await FirebaseFunctions.instanceFor(region: 'asia-south1')
           .httpsCallable('generateTelegramLink')
           .call();
@@ -137,6 +137,72 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _toggleEmailReports(VenueModel venue, bool value) async {
+    try {
+      await _venueRepo.updateVenue(venue.id, {'emailReportsActive': value});
+      setState(() {
+        final index = _venues.indexWhere((v) => v.id == venue.id);
+        if (index != -1) {
+          _venues[index] = VenueModel.fromMap(venue.id, {
+            ...venue.toMap(),
+            'emailReportsActive': value,
+          });
+        }
+      });
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
+  }
+
+  void _showTimezonePicker(VenueModel venue) {
+    final List<String> commonTimezones = [
+      'Etc/GMT-12', 'Etc/GMT-11', 'Etc/GMT-10', 'Etc/GMT-9', 'Etc/GMT-8', 'Etc/GMT-7',
+      'Etc/GMT-6', 'Etc/GMT-5', 'Etc/GMT-4', 'Etc/GMT-3', 'Etc/GMT-2', 'Etc/GMT-1',
+      'Etc/GMT+0', 'Etc/GMT+1', 'Etc/GMT+2', 'Etc/GMT+3', 'Etc/GMT+4', 'Etc/GMT+5',
+      'Etc/GMT+6', 'Etc/GMT+7', 'Etc/GMT+8', 'Etc/GMT+9', 'Etc/GMT+10', 'Etc/GMT+11', 'Etc/GMT+12',
+      'Europe/London', 'Europe/Paris', 'Europe/Moscow', 'Asia/Dubai', 'Asia/Bangkok',
+      'Asia/Singapore', 'Asia/Tokyo', 'America/New_York', 'America/Chicago', 'America/Los_Angeles'
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Select Timezone"),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: commonTimezones.length,
+            itemBuilder: (context, index) {
+              final tz = commonTimezones[index];
+              return ListTile(
+                title: Text(tz),
+                selected: venue.timezone == tz,
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    await _venueRepo.updateVenue(venue.id, {'timezone': tz});
+                    setState(() {
+                      final vIdx = _venues.indexWhere((v) => v.id == venue.id);
+                      if (vIdx != -1) {
+                         _venues[vIdx] = VenueModel.fromMap(venue.id, {
+                           ...venue.toMap(),
+                           'timezone': tz,
+                         });
+                      }
+                    });
+                  } catch (e) {
+                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                  }
+                },
+              );
+            },
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -174,8 +240,21 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
           _buildSettingsSection(
             l10n.notifications,
             [
-              _buildSwitchTile(Icons.notifications_active_outlined, l10n.pushNotifications, l10n.pushNotificationsSub, true),
-              _buildSwitchTile(Icons.alternate_email, l10n.emailReports, l10n.emailReportsSub, false),
+              _buildSwitchTile(
+                Icons.notifications_active_outlined, 
+                l10n.pushNotifications, 
+                l10n.pushNotificationsSub, 
+                true, 
+                null
+              ),
+              if (_venues.isNotEmpty)
+                _buildSwitchTile(
+                  Icons.alternate_email, 
+                  l10n.emailReports, 
+                  l10n.emailReportsSub, 
+                  _venues.first.emailReportsActive, 
+                  (v) => _toggleEmailReports(_venues.first, v)
+                ),
               ListTile(
                 leading: const Icon(Icons.telegram, color: Colors.blue),
                 title: Text(l10n.connectTelegram, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.title)),
@@ -191,7 +270,6 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
             [
               Consumer<LocaleProvider>(
                 builder: (context, provider, child) {
-                  final isEn = provider.locale.languageCode == 'en';
                   return _buildSettingTile(
                     Icons.translate, 
                     l10n.languageLabel, 
@@ -200,7 +278,13 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
                   );
                 },
               ),
-              _buildSettingTile(Icons.schedule, l10n.timezoneLabel, "Dubai (GMT+4)"),
+              if (_venues.isNotEmpty)
+                _buildSettingTile(
+                  Icons.schedule, 
+                  l10n.timezoneLabel, 
+                  _venues.first.timezone,
+                  onTap: () => _showTimezonePicker(_venues.first),
+                ),
             ],
           ),
           const SizedBox(height: 40),
@@ -257,14 +341,14 @@ class _GeneralSettingsScreenState extends State<GeneralSettingsScreen> {
     );
   }
 
-  Widget _buildSwitchTile(IconData icon, String title, String sub, bool val) {
+  Widget _buildSwitchTile(IconData icon, String title, String sub, bool val, Function(bool)? onChanged) {
     return SwitchListTile(
       secondary: Icon(icon, color: AppColors.body),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.title)),
       subtitle: Text(sub, style: const TextStyle(fontSize: 12)),
       value: val,
       activeColor: AppColors.accentOrange,
-      onChanged: (v) {},
+      onChanged: onChanged,
     );
   }
 }
