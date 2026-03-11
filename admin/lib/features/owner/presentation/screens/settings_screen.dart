@@ -11,6 +11,7 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
 import 'package:friendly_code/core/localization/locale_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:friendly_code/core/auth/role_provider.dart';
 
 class GeneralSettingsScreen extends StatefulWidget {
   const GeneralSettingsScreen({super.key});
