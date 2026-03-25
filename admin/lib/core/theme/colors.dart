@@ -20,7 +20,14 @@ class AppColors {
   static const Color accentYellow = Color(0xFFFFD60A); // iOS Yellow
   static const Color accentTeal = Color(0xFF64D2FF); // iOS Teal/Cyan
   static const Color accentIndigo = Color(0xFF5E5CE6); // iOS Indigo
-  static const Color softShadow = Color(0x1A000000); // Soft Shadow for visibility
+  static const Color softShadowColor = Color(0x1A000000); 
+  static List<BoxShadow> softShadow = [
+    BoxShadow(
+      color: Colors.black.withOpacity(0.05),
+      blurRadius: 8,
+      offset: const Offset(0, 4),
+    ),
+  ];
   
   // Premium Redesign Palette (Kept for compatibility, darkened)
   static const Color premiumSand = Color(0xFF1C1C1E); 

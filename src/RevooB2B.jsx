@@ -11,7 +11,11 @@ import {
   faMicrochip,
   faShieldHalved,
   faCheck,
-  faXmark
+  faXmark,
+  faBolt,
+  faHandPointer,
+  faMagic,
+  faRobot
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -177,6 +181,74 @@ const RevooB2B = () => {
                 </div>
             </section>
 
+            {/* SECTION 2: THE ECONOMIC DIAGNOSIS (Экономика «Дырявого ведра») */}
+            <section className="py-24 px-6 relative z-10 border-b border-white/5">
+                <div className="max-w-7xl mx-auto text-center mb-16">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-[#FF3B30] text-[10px] font-bold uppercase tracking-widest mb-6"
+                    >
+                        Economic Analysis
+                    </motion.div>
+                    <motion.h2 
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="text-3xl md:text-6xl font-black uppercase tracking-tight mb-6 text-white leading-tight"
+                    >
+                        Диагноз: Хроническая утечка LTV
+                    </motion.h2>
+                    <p className="text-white/60 text-base md:text-xl max-w-3xl mx-auto font-medium leading-relaxed">
+                        Большинство заведений тратят огромные бюджеты (CAC) на привлечение, но клиенты «вытекают» к конкурентам после первого визита.
+                    </p>
+                </div>
+
+                <div className="max-w-6xl mx-auto mb-20 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                    <motion.div 
+                        initial={{ opacity: 0, x: -50 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        className="relative rounded-[48px] overflow-hidden bg-black aspect-square flex items-center justify-center p-2 border border-white/5 shadow-2xl group"
+                    >
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#D4AF37]/20 via-transparent to-transparent z-0 opacity-40 group-hover:opacity-60 transition-opacity" />
+                        <img 
+                            src="/leaky-bucket-black.png" 
+                            alt="Leaky Bucket Economic Diagnosis" 
+                            className="w-full h-full object-cover relative z-10 drop-shadow-[0_20px_60px_rgba(255,59,48,0.2)] scale-110 group-hover:scale-105 transition-transform duration-1000"
+                        />
+                        {/* Overlay labels */}
+                        <div className="absolute top-12 left-12 bg-white/5 backdrop-blur-md p-4 rounded-3xl border border-white/10 flex flex-col items-center z-20">
+                            <span className="text-[#D4AF37] font-black text-xl mb-1">CAC</span>
+                            <span className="text-[10px] text-white/40 uppercase font-bold tracking-widest leading-none">Inflow</span>
+                        </div>
+                        <div className="absolute bottom-12 right-12 bg-white/5 backdrop-blur-md p-4 rounded-3xl border border-white/10 flex flex-col items-center z-20">
+                            <span className="text-[#FF3B30] font-black text-xl mb-1">LOST</span>
+                            <span className="text-[10px] text-white/40 uppercase font-bold tracking-widest leading-none">Churn</span>
+                        </div>
+                    </motion.div>
+
+                    <div className="flex flex-col gap-8">
+                        <div className="p-8 rounded-[40px] bg-white/5 border border-[#00FF41]/20 backdrop-blur-xl relative group hover:bg-[#00FF41]/5 transition-all">
+                            <div className="absolute top-6 right-8 text-[#00FF41] font-black text-2xl animate-pulse">90%</div>
+                            <h4 className="text-[#00FF41] text-2xl font-black mb-1 leading-none uppercase">Retained</h4>
+                            <p className="text-white/40 text-[11px] uppercase font-bold tracking-[0.2em] mb-4 italic">Cost of Retention (LTV)</p>
+                            <p className="text-white/70 text-base leading-relaxed font-medium">90% frequency build-up through cognitive loops.</p>
+                        </div>
+
+                        <div className="p-8 rounded-[40px] bg-white/5 border border-red-500/20 backdrop-blur-xl relative group hover:bg-red-500/5 transition-all">
+                            <div className="absolute top-6 right-8 text-[#FF3B30] font-black text-2xl">83%</div>
+                            <h4 className="text-[#FF3B30] text-2xl font-black mb-1 leading-none uppercase">Lost</h4>
+                            <p className="text-white/40 text-[11px] uppercase font-bold tracking-[0.2em] mb-4 italic">Cost of Acquisition (CAC)</p>
+                            <p className="text-white/70 text-base leading-relaxed font-medium">83% of first-time guests never return without a hook.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="text-center mt-12 text-white/40 font-bold uppercase tracking-[0.3em] text-sm max-w-2xl mx-auto border-t border-white/5 pt-12">
+                    REVOO останавливает утечку, превращая разовых гостей в фанатов бренда.
+                </div>
+            </section>
+
             {/* SECTION 3: THE DISSERTATION (Научное обоснование - iOS 26 Detailed Style) */}
             <section className="py-32 px-6 relative z-10 border-b border-white/5 scroll-mt-20" id="science">
                 <div className="max-w-7xl mx-auto text-center mb-24">
@@ -205,25 +277,40 @@ const RevooB2B = () => {
                     <motion.div 
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8"
+                        className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8 group"
                     >
-                        <div>
+                        <div className="flex flex-col h-full">
                             <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">01. Loss Aversion</div>
                             <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Теория Даниэля Канемана</h3>
                             <p className="text-white/60 text-base leading-relaxed mb-6 italic border-l-2 border-[#D4AF37] pl-6">
                                 "Психологически потерять статус в 2 раза больнее, чем радость от бонуса."
                             </p>
-                            <p className="text-white/80 text-sm md:text-base leading-relaxed">
-                                Мы не предлагаем гостю «накопить на подарок». Мы даем ему актив (статус). Согласно теории нобелевского лауреата Даниэля Канемана, избегание потери является более мощным стимулом, чем получение эквивалентной выгоды. Ваша лояльность — это личный капитал гостя.
+                            <p className="text-white/80 text-sm md:text-base leading-relaxed mb-8">
+                                Согласно теории нобелевского лауреата Даниэля Канемана, избегание потери является более мощным стимулом, чем получение эквивалентной выгоды. Ваша лояльность — это личный капитал гостя.
                             </p>
-                        </div>
-                        <div className="rounded-[40px] overflow-hidden bg-black/40 border border-white/5 shadow-2xl p-4 mt-auto">
-                            <div className="aspect-video bg-gradient-to-br from-red-500/10 to-transparent flex items-center justify-center relative">
-                                <FontAwesomeIcon icon={faBrain} className="text-[80px] text-white/5 relative z-10" />
-                                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                    <div className="text-red-500 font-black text-4xl mb-1">Loss &gt; Gain</div>
-                                    <div className="text-white/20 font-bold uppercase tracking-[0.4em] text-[10px]">Asymmetry Principle</div>
-                                </div>
+                            
+                            {/* Schematic Balance visual */}
+                            <div className="mt-auto h-48 bg-black/40 rounded-[32px] border border-white/5 flex items-center justify-center relative overflow-hidden p-6 group-hover:border-[#D4AF37]/30 transition-colors">
+                                <svg viewBox="0 0 200 100" className="w-full h-full opacity-60">
+                                    <line x1="20" y1="80" x2="180" y2="80" stroke="white" strokeWidth="1" strokeDasharray="4 4" />
+                                    <motion.path 
+                                        d="M100,80 L60,30" 
+                                        stroke="#FF3B30" strokeWidth="3" 
+                                        initial={{ pathLength: 0 }}
+                                        whileInView={{ pathLength: 1 }}
+                                        transition={{ duration: 1.5 }}
+                                    />
+                                    <motion.path 
+                                        d="M100,80 L140,55" 
+                                        stroke="#D4AF37" strokeWidth="3" 
+                                        initial={{ pathLength: 0 }}
+                                        whileInView={{ pathLength: 1 }}
+                                        transition={{ duration: 1.5, delay: 0.5 }}
+                                    />
+                                    <circle cx="100" cy="80" r="4" fill="white" />
+                                    <text x="50" y="20" fill="#FF3B30" fontSize="10" fontWeight="black" className="uppercase tracking-widest">Loss (x2)</text>
+                                    <text x="135" y="45" fill="#D4AF37" fontSize="10" fontWeight="black" className="uppercase tracking-widest">Gain (x1)</text>
+                                </svg>
                             </div>
                         </div>
                     </motion.div>
@@ -233,58 +320,78 @@ const RevooB2B = () => {
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 }}
-                        className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8"
+                        className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8 group"
                     >
-                        <div>
+                        <div className="flex flex-col h-full">
                             <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">02. Hook Model</div>
                             <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Модель Хука Нира Эяля</h3>
-                            <p className="text-white/80 text-sm md:text-base leading-relaxed mb-4">
-                                Четыре этапа формирования привычки: 
-                            </p>
-                            <div className="space-y-2">
+                            <div className="space-y-4 mb-8">
                                 {[
                                     { label: 'Trigger', desc: 'NFC или QR метка на столе.' },
                                     { label: 'Action', desc: 'Мгновенное сканирование (0.5 сек).' },
                                     { label: 'Reward', desc: 'Заряд батареи и VIP статус.' },
                                     { label: 'Investment', desc: 'Возврат для сохранения статуса.' }
                                 ].map((step, i) => (
-                                    <div key={i} className="flex gap-4 items-center bg-white/5 p-3 rounded-2xl border border-white/5">
+                                    <div key={i} className="flex gap-4 items-center bg-white/5 p-3 rounded-2xl border border-white/5 group-hover:bg-white/10 transition-colors">
                                         <span className="text-[#D4AF37] font-black text-xs w-4">{i+1}</span>
                                         <div className="flex flex-col">
-                                            <span className="text-white font-bold text-xs">{step.label}</span>
-                                            <span className="text-white/40 text-[10px]">{step.desc}</span>
+                                            <span className="text-white font-bold text-xs uppercase tracking-wide">{step.label}</span>
+                                            <span className="text-white/40 text-[10px] uppercase font-bold tracking-tight">{step.desc}</span>
                                         </div>
                                     </div>
                                 ))}
                             </div>
-                        </div>
-                        <div className="rounded-[40px] overflow-hidden bg-black/40 border border-white/5 shadow-2xl p-4 mt-auto">
-                            <img src="/hook-model.png" alt="Hook Model Diagram" className="w-full h-auto rounded-[32px] opacity-90 transition-opacity" />
+                            
+                            {/* Schematic Circle visual */}
+                            <div className="mt-auto h-48 bg-black/40 rounded-[32px] border border-white/5 flex items-center justify-center relative p-4 group-hover:border-[#D4AF37]/30 transition-colors overflow-hidden">
+                                <svg viewBox="0 0 100 100" className="h-full">
+                                    <circle cx="50" cy="50" r="35" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+                                    <motion.circle 
+                                        cx="50" cy="50" r="35" 
+                                        fill="none" stroke="#D4AF37" strokeWidth="2" 
+                                        strokeDasharray="54.95 219.8"
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                                    />
+                                    <g className="text-[4px] font-black uppercase fill-white/20">
+                                        <text x="50" y="22" textAnchor="middle">Trigger</text>
+                                        <text x="78" y="50" textAnchor="middle" transform="rotate(90 78,50)">Action</text>
+                                        <text x="50" y="78" textAnchor="middle">Reward</text>
+                                        <text x="22" y="50" textAnchor="middle" transform="rotate(-90 22,50)">Invest</text>
+                                    </g>
+                                    <circle cx="50" cy="15" r="2" fill="#D4AF37" className="animate-pulse" />
+                                </svg>
+                            </div>
                         </div>
                     </motion.div>
 
-                    {/* 3. Variable Reward (Dopamine Response) */}
                     <motion.div 
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 }}
-                        className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8"
+                        className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8 group"
                     >
-                        <div>
+                        <div className="flex flex-col h-full">
                             <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">03. Dopamine Response</div>
                             <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Дофаминовый отклик (Variable Reward)</h3>
-                            <p className="text-white/80 text-sm md:text-base leading-relaxed">
+                            <p className="text-white/80 text-sm md:text-base leading-relaxed mb-8">
                                 Непредсказуемость вознаграждения вызывает мощный дофаминовый отклик. Система REVOO использует алгоритмы нелинейного поощрения, заставляя гостя проверять статус батареи как уведомления в соцсетях. Ожидание апдейта превращается в игру.
                             </p>
-                        </div>
-                        <div className="rounded-[40px] overflow-hidden bg-black/40 border border-white/5 shadow-2xl p-4 mt-auto">
-                            <div className="aspect-video bg-gradient-to-br from-[#D4AF37]/5 to-transparent flex items-center justify-center relative">
-                                <div className="absolute inset-0 bg-[#D4AF37]/5 animate-pulse rounded-full blur-[100px]" />
-                                <FontAwesomeIcon icon={faWaveSquare} className="text-[120px] text-[#D4AF37]/20 relative z-10" />
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-20">
-                                    <div className="text-[#D4AF37] font-black text-5xl">DOPAMINE</div>
-                                    <div className="text-white/40 font-bold uppercase tracking-[0.4em] text-[10px]">Response Flow</div>
-                                </div>
+                            
+                            {/* Schematic Spike visual */}
+                            <div className="mt-auto h-48 bg-black/40 rounded-[32px] border border-white/5 flex items-center justify-center p-8 group-hover:border-[#D4AF37]/30 transition-colors">
+                                <svg viewBox="0 0 200 60" className="w-full h-full overflow-visible">
+                                    <motion.path 
+                                        d="M0,45 L40,45 L50,10 L65,50 L85,45 L115,45 L125,5 L145,55 L170,45 L200,45" 
+                                        fill="none" stroke="#D4AF37" strokeWidth="2"
+                                        initial={{ pathLength: 0 }}
+                                        whileInView={{ pathLength: 1 }}
+                                        transition={{ duration: 2 }}
+                                    />
+                                    <circle cx="50" cy="10" r="3" fill="#00FF41" className="animate-ping" />
+                                    <circle cx="125" cy="5" r="3" fill="#00FF41" className="animate-ping" />
+                                    <text x="135" y="10" fill="#00FF41" fontSize="8" fontWeight="black" className="uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Reward Spike</text>
+                                </svg>
                             </div>
                         </div>
                     </motion.div>
@@ -294,34 +401,41 @@ const RevooB2B = () => {
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8"
+                        className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8 group"
                     >
-                        <div>
+                        <div className="flex flex-col h-full">
                             <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">04. Zero Friction</div>
                             <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Модель Стэнфорда (BJ Fogg)</h3>
-                            <p className="text-white/80 text-sm md:text-base leading-relaxed mb-6">
-                                Успех = Мотивация + Возможность + Триггер. Если действие требует усилий (трение), клиент его не совершит. Мы свели усилие к нулю: 0.5 секунды на Tap — это быстрее, чем просто подумать о скачивании приложения.
+                            <p className="text-white/80 text-sm md:text-base leading-relaxed mb-8">
+                                Успех = Мотивация + Возможность + Триггер. Если действие требует усилий (трение), клиент его не совершит. Мы свели усилие к нулю.
                             </p>
-                            <div className="grid grid-cols-3 gap-2">
-                                {['No App', 'No Form', 'Instant'].map((txt, i) => (
-                                    <div key={i} className="bg-white/5 p-3 rounded-2xl border border-white/5 flex flex-col items-center">
-                                        <span className="text-[#00FF41] font-black text-xs">0.0</span>
-                                        <span className="text-white/40 text-[9px] uppercase font-bold text-center">{txt}</span>
+                            
+                            {/* Schematic Bolt visual */}
+                            <div className="mt-auto h-48 bg-black/40 rounded-[32px] border border-white/5 flex items-center justify-center p-4 group-hover:border-[#00FF41]/30 transition-colors">
+                                <div className="relative">
+                                    <div className="w-20 h-20 rounded-full bg-[#00FF41]/10 flex items-center justify-center border border-[#00FF41]/30">
+                                        <FontAwesomeIcon icon={faBolt} className="text-[#00FF41] text-3xl animate-pulse" />
                                     </div>
-                                ))}
+                                    <div className="absolute inset-0 rounded-full border border-[#00FF41] scale-150 opacity-0 animate-[ping_3s_infinite]" />
+                                    <div className="absolute -top-4 -right-4 bg-white/5 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-[10px] text-white font-black uppercase">EFFORT: 0.0</div>
+                                </div>
                             </div>
-                        </div>
-                        <div className="rounded-[40px] overflow-hidden bg-black/40 border border-white/5 shadow-2xl p-4 mt-auto">
-                            <img src="/zero-friction.png" alt="Zero Friction NFC Tap" className="w-full h-auto rounded-[32px] opacity-90 transition-opacity" />
                         </div>
                     </motion.div>
                 </div>
             </section>
 
-            {/* SECTION 3.5: ZERO FRICTION FLOW (Zero Friction в действии) */}
-            <section className="py-24 px-6 relative z-10 border-b border-white/5 bg-black/40 overflow-hidden">
+            {/* SECTION 3.5: ZERO FRICTION FLOW (Customer Path Timeline) */}
+            <section className="py-32 px-6 relative z-10 border-b border-white/5 bg-black/40 overflow-hidden">
                 <div className="max-w-7xl mx-auto">
-                    <div className="text-center mb-16">
+                    <div className="text-center mb-24">
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#00FF41]/10 border border-[#00FF41]/20 text-[#00FF41] text-[10px] font-bold uppercase tracking-widest mb-6"
+                        >
+                            Customer Path
+                        </motion.div>
                         <motion.h2 
                             initial={{ opacity: 0, scale: 0.95 }}
                             whileInView={{ opacity: 1, scale: 1 }}
@@ -329,71 +443,70 @@ const RevooB2B = () => {
                         >
                             ZERO FRICTION В ДЕЙСТВИИ
                         </motion.h2>
-                        <div className="w-24 h-1 bg-[#00FF41] mx-auto rounded-full shadow-[0_0_20px_rgba(0,255,65,0.5)]" />
+                        <p className="text-white/40 text-sm md:text-lg font-bold uppercase tracking-[0.2em]">Путь гостя к вашей лояльности</p>
                     </div>
 
-                    {/* Desktop Visualization */}
-                    <div className="relative mb-20">
-                        <motion.div 
-                            initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            className="relative rounded-[64px] overflow-hidden border border-white/10 bg-[#1C1C1E]/50 backdrop-blur-3xl p-8"
-                        >
-                            <img 
-                                src="/zero-friction-flow.png" 
-                                alt="Zero Friction Roadmap" 
-                                className="w-full h-auto rounded-[48px] shadow-2xl mix-blend-lighten opacity-90 transition-opacity hover:opacity-100"
-                            />
-                        </motion.div>
-                    </div>
-
-                    {/* Step Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        {[
-                            {
-                                step: "Step 1",
-                                title: "Касание (0.5 сек)",
-                                subtitle: "Для гостя:",
-                                text: "Не нужно ничего скачивать. Узнавание смартфона (Device Fingerprinting) происходит мгновенно и анонимно.",
-                                accent: "#00FF41"
-                            },
-                            {
-                                step: "Step 2",
-                                title: "Узнавание и Магия",
-                                subtitle: "На экране:",
-                                text: "На экране вспыхивает «заряженная батарея» с максимальной наградой на сегодня.",
-                                accent: "#00FF41"
-                            },
-                            {
-                                step: "Step 3",
-                                title: "Автопилот для бизнеса",
-                                subtitle: "Для бизнеса:",
-                                text: "Никаких сложных IT-интеграций с кассой (POS). Не нужно обучать персонал. Установка за 15 минут.",
-                                accent: "#00FF41"
-                            }
-                        ].map((item, i) => (
-                            <motion.div 
-                                key={i}
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.1 }}
-                                className="bg-white/5 backdrop-blur-2xl border border-white/5 p-10 rounded-[48px] flex flex-col gap-6 group hover:border-[#00FF41]/30 transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
-                            >
-                                <div className="flex justify-between items-center mb-4">
-                                    <span className="text-[#00FF41] font-black uppercase text-[10px] tracking-widest">{item.step}</span>
-                                    <div className="w-4 h-4 rounded-full border-2 border-[#00FF41]/30 flex items-center justify-center p-[2px]">
-                                        <div className="w-full h-full rounded-full bg-[#00FF41] opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {/* Timeline Path Schematic */}
+                    <div className="relative max-w-4xl mx-auto">
+                        {/* Central Line */}
+                        <div className="absolute left-1/2 top-0 w-px h-full bg-gradient-to-b from-[#00FF41]/0 via-[#00FF41]/20 to-[#00FF41]/0 hidden md:block" />
+                        
+                        <div className="space-y-16">
+                            {[
+                                {
+                                    step: "01",
+                                    title: "Касание (0.5 сек)",
+                                    subtitle: "Для гостя:",
+                                    text: "Не нужно ничего скачивать. Узнавание смартфона (Device Fingerprinting) происходит мгновенно и анонимно.",
+                                    icon: faHandPointer,
+                                    side: "left"
+                                },
+                                {
+                                    step: "02",
+                                    title: "Узнавание и Магия",
+                                    subtitle: "На экране:",
+                                    text: "На экране вспыхивает «заряженная батарея» с максимальной наградой на сегодня.",
+                                    icon: faMagic,
+                                    side: "right"
+                                },
+                                {
+                                    step: "03",
+                                    title: "Автопилот для бизнеса",
+                                    subtitle: "Для бизнеса:",
+                                    text: "Никаких сложных IT-интеграций с кассой (POS). Не нужно обучать персонал. Установка за 15 минут.",
+                                    icon: faRobot,
+                                    side: "left"
+                                }
+                            ].map((item, i) => (
+                                <motion.div 
+                                    key={i}
+                                    initial={{ opacity: 0, x: item.side === "left" ? -50 : 50 }}
+                                    whileInView={{ opacity: 1, x: 0 }}
+                                    className={`relative flex flex-col md:flex-row items-center gap-8 ${item.side === "right" ? "md:flex-row-reverse" : ""}`}
+                                >
+                                    {/* Point on timeline */}
+                                    <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-black border-2 border-[#00FF41] z-20 hidden md:block shadow-[0_0_15px_rgba(0,255,65,0.5)]" />
+                                    
+                                    {/* Content Card */}
+                                    <div className="w-full md:w-[45%] bg-white/5 backdrop-blur-3xl border border-white/5 p-10 rounded-[48px] shadow-2xl relative group hover:border-[#00FF41]/20 transition-all overflow-hidden">
+                                        <div className="absolute top-0 right-0 p-8 opacity-5">
+                                            <FontAwesomeIcon icon={item.icon} className="text-8xl text-white" />
+                                        </div>
+                                        <div className="flex justify-between items-center mb-6">
+                                            <span className="text-[#00FF41] font-black uppercase text-[10px] tracking-widest bg-[#00FF41]/10 px-3 py-1 rounded-full">Step {item.step}</span>
+                                            <FontAwesomeIcon icon={item.icon} className="text-[#00FF41] text-xl" />
+                                        </div>
+                                        <h3 className="text-xl md:text-2xl font-black text-white uppercase leading-tight mb-4">{item.title}</h3>
+                                        <div className="space-y-1">
+                                            <span className="text-[#00FF41] font-bold text-xs uppercase tracking-wider">{item.subtitle}</span>
+                                            <p className="text-white/50 text-base leading-relaxed font-medium">
+                                                {item.text}
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
-                                <h3 className="text-xl md:text-2xl font-black text-white uppercase leading-tight">{item.title}</h3>
-                                <div className="space-y-2">
-                                    <span className="text-[#00FF41] font-bold text-xs uppercase tracking-wider">{item.subtitle}</span>
-                                    <p className="text-white/50 text-base md:text-lg leading-relaxed font-medium">
-                                        {item.text}
-                                    </p>
-                                </div>
-                            </motion.div>
-                        ))}
+                                </motion.div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </section>
