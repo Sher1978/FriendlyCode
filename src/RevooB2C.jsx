@@ -121,18 +121,6 @@ const RevooB2C = () => {
                             </div>
                         </motion.div>
 
-                        <button 
-                            onClick={() => {
-                                if (interceptedVenueId) {
-                                    navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
-                                } else {
-                                    navigate('/test?id=komKf0beSnsuuZ6p0Igh');
-                                }
-                            }}
-                            className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-4 md:px-6 py-1.5 md:py-2 rounded-full text-[10px] md:text-sm font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)] whitespace-nowrap"
-                        >
-                            {interceptedVenueId ? 'Start' : 'Demo'}
-                        </button>
                     </div>
                 </div>
             </nav>
