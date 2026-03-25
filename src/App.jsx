@@ -11,6 +11,7 @@ import Unsubscribe from './Unsubscribe';
 import NewQRPage from './NewQRPage';
 import TestQRPage from './TestQRPage';
 import RevooB2C from './RevooB2C';
+import RevooB2B from './RevooB2B';
 
 function App() {
   const isLegacyDomain = window.location.hostname.includes('friendlycode.fun');
@@ -28,7 +29,7 @@ function App() {
 
           {/* Multi-Brand Landing Logic */}
           <Route path="/" element={showRevoo ? <RevooB2C /> : <MarketingB2C />} />
-          <Route path="/business" element={showRevoo ? <MarketingB2B /> : <MarketingB2B />} /> {/* Add RevooB2B here when ready */}
+          <Route path="/business" element={showRevoo ? <RevooB2B /> : <MarketingB2B />} />
           <Route path="/map" element={<PartnerMap />} />
 
           {/* Guest QR Logic (Now REVOO) */}
