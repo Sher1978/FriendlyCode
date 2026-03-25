@@ -1,0 +1,497 @@
+import React, { useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+    faLeaf, faChartLine, faBell, faQrcode, faHandshake,
+    faComments, faGlobe, faArrowRight, faUsers, faBolt,
+    faDatabase, faPaperPlane, faMobileButton, faIdCard,
+    faTrophy, faBrain, faStethoscope, faUtensils, faScissors, faTableTennisPaddleBall
+} from '@fortawesome/free-solid-svg-icons';
+import { useNavigate } from 'react-router-dom';
+import { useTranslation, Trans } from 'react-i18next';
+import { motion, AnimatePresence } from 'framer-motion';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from './firebase';
+
+const MarketingB2B = () => {
+    const { t, i18n } = useTranslation();
+    const navigate = useNavigate();
+    const [formData, setFormData] = useState({ city: '', phone: '', email: '' });
+    const [isSubmitted, setIsSubmitted] = useState(false);
+
+    const toggleLanguage = () => {
+        const cycle = { 'en': 'ru', 'ru': 'vi', 'vi': 'en' };
+        const newLang = cycle[i18n.language] || 'en';
+        i18n.changeLanguage(newLang);
+    };
+
+    const fadeInUp = {
+        initial: { opacity: 0, y: 30 },
+        whileInView: { opacity: 1, y: 0 },
+        viewport: { once: true, margin: "-100px" },
+        transition: { duration: 0.8, ease: "easeOut" }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        try {
+            // Use addDoc to allow multiple submissions without hitting update restrictions
+            await addDoc(collection(db, 'leads'), {
+                ...formData,
+                createdAt: new Date(),
+                source: 'b2b_landing'
+            });
+
+            setIsSubmitted(true);
+            setFormData({ city: '', phone: '', email: '' });
+        } catch (error) {
+            console.error("Error adding document: ", error);
+            alert("Error submitting form. Please try again.");
+        }
+    };
+
+    return (
+        <div className="flex flex-col min-h-screen bg-background-cream font-sans text-brand-brown antialiased selection:bg-brand-orange/20 overflow-x-hidden">
+            {/* 1. Navigation */}
+            <nav className="px-6 py-4 flex justify-between items-center bg-background-cream/80 backdrop-blur-xl sticky top-0 z-50 border-b border-brand-brown/5">
+                <div className="flex items-center gap-2 cursor-pointer group" onClick={() => navigate('/')}>
+                    <div className="w-10 h-10 bg-brand-orange rounded-xl flex items-center justify-center text-white rotate-0 group-hover:rotate-12 transition-transform shadow-lg shadow-brand-orange/20">
+                        <FontAwesomeIcon icon={faLeaf} />
+                    </div>
+                    <span className="font-black text-xl leading-tight uppercase tracking-tighter text-brand-brown">FRIENDLY CODE</span>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={toggleLanguage}
+                        className="w-12 h-12 flex items-center justify-center rounded-full bg-white/50 text-brand-brown font-black border border-brand-brown/5 hover:bg-white hover:shadow-md transition-all active:scale-90"
+                    >
+                        {i18n.language === 'en' ? 'RU' : i18n.language === 'ru' ? 'VI' : 'EN'}
+                    </button>
+                    <button
+                        onClick={() => window.location.href = '#footer-form'}
+                        className="hidden md:block px-8 py-3 bg-brand-brown text-white rounded-full font-black text-sm tracking-wide hover:bg-black hover:shadow-xl transition-all active:scale-95"
+                    >
+                        {t('b2b_nav_join')}
+                    </button>
+                </div>
+            </nav>
+
+            {/* 2. Hero Section */}
+            <section className="relative px-6 py-12 md:py-32 overflow-hidden">
+                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+                    <motion.div
+                        initial={{ opacity: 0, x: -50 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 1 }}
+                        className="z-10 order-2 lg:order-1"
+                    >
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-orange/10 text-brand-orange text-[10px] font-black uppercase tracking-[0.2em] mb-8 border border-brand-orange/20">
+                            <span className="w-2 h-2 rounded-full bg-brand-orange animate-pulse"></span>
+                            Retention-as-a-Service
+                        </div>
+                        <h1 className="text-5xl md:text-[5.5rem] font-black leading-[0.95] tracking-tighter mb-8 text-brand-brown">
+                            <Trans i18nKey="b2b_hero_title_rich">
+                                Attract a guest — expensive. Retain — <span className="text-brand-orange italic">priceless</span>.
+                            </Trans>
+                        </h1>
+                        <p className="text-xl md:text-2xl font-medium opacity-70 leading-relaxed max-w-xl mb-12 text-brand-brown">
+                            {t('b2b_hero_sub_new')}
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-6">
+                            <button
+                                onClick={() => window.location.href = '#footer-form'}
+                                className="px-10 py-6 bg-brand-orange text-white rounded-[2rem] font-black text-xl tracking-tight shadow-[0_20px_60px_-15px_rgba(230,138,0,0.4)] hover:shadow-[0_25px_70px_-12px_rgba(230,138,0,0.6)] hover:-translate-y-2 transition-all active:scale-95 flex items-center justify-center gap-3"
+                            >
+                                {t('b2b_hero_cta_demo')}
+                                <FontAwesomeIcon icon={faArrowRight} className="text-sm opacity-50" />
+                            </button>
+                            <button
+                                onClick={() => window.location.href = '#footer-form'}
+                                className="px-10 py-6 bg-white text-brand-brown border-2 border-brand-brown/10 rounded-[2rem] font-black text-xl tracking-tight hover:border-brand-orange hover:text-brand-orange hover:-translate-y-2 transition-all active:scale-95 flex items-center justify-center"
+                            >
+                                {t('b2b_hero_cta_calc')}
+                            </button>
+                        </div>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.8, rotate: -3 }}
+                        animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                        transition={{ duration: 1.2, ease: "easeOut" }}
+                        className="relative block order-1 lg:order-2"
+                    >
+                        <div className="aspect-[4/5] bg-gradient-to-br from-brand-brown to-black rounded-[4rem] shadow-2xl relative overflow-hidden group border-8 border-white">
+                            <img
+                                src="/paying_with_iphone_v3.png"
+                                alt="Happy guest POV"
+                                className="absolute inset-0 w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-[2000ms]"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                            <div className="absolute bottom-12 left-12 right-12 p-8 bg-white/10 backdrop-blur-2xl rounded-[2.5rem] border border-white/20">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="w-12 h-12 bg-brand-orange rounded-full flex items-center justify-center text-white text-xl shadow-lg shadow-brand-orange/30">
+                                        <FontAwesomeIcon icon={faChartLine} />
+                                    </div>
+                                    <div>
+                                        <div className="text-white/60 text-[10px] font-black uppercase tracking-widest">Revenue Growth</div>
+                                        <div className="text-white text-3xl font-black tracking-tighter">+25%</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* 3. Leaky Bucket Block */}
+            <section className="px-6 py-32 bg-white relative overflow-hidden">
+                <div className="max-w-7xl mx-auto relative z-10">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
+                        <motion.div {...fadeInUp} className="lg:col-span-6 text-left">
+                            <h2 className="text-4xl md:text-7xl font-black mb-8 leading-[0.95] tracking-tighter text-brand-brown">{t('b2b_leaky_bucket_h2')}</h2>
+                            <p className="text-xl md:text-2xl opacity-70 leading-relaxed mb-12 font-medium">{t('b2b_leaky_bucket_intro')}</p>
+
+                            <div className="grid grid-cols-1 gap-6 mb-12">
+                                <ProblemCard
+                                    icon={faMobileButton}
+                                    title={t('b2b_problem_app_title')}
+                                    desc={t('b2b_problem_app_desc')}
+                                    tag={t('b2b_tag_drop_off')}
+                                />
+                                <ProblemCard
+                                    icon={faGlobe}
+                                    title={t('b2b_problem_stanford_title')}
+                                    desc={t('b2b_problem_stanford_desc')}
+                                    tag={t('b2b_tag_science')}
+                                />
+                                <ProblemCard
+                                    icon={faIdCard}
+                                    title={t('b2b_problem_blindspot_title')}
+                                    desc={t('b2b_problem_blindspot_desc')}
+                                    tag={t('b2b_tag_zero_data')}
+                                />
+                            </div>
+
+                            <div className="inline-flex items-center gap-6 p-8 bg-red-50 rounded-[2.5rem] border border-red-100 text-left w-full">
+                                <div className="w-16 h-16 shrink-0 bg-red-500 rounded-full flex items-center justify-center text-white text-2xl font-black shadow-lg shadow-red-500/30">!</div>
+                                <p className="text-red-900 font-black text-lg leading-tight">{t('b2b_leaky_bucket_fact')}</p>
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, x: 50 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 1 }}
+                            className="lg:col-span-6 relative"
+                        >
+                            <div className="aspect-[4/5] rounded-[4rem] overflow-hidden border-8 border-background-cream shadow-2xl relative">
+                                <img
+                                    src="/leaky_bucket_money_v2.png"
+                                    alt="Leaky bucket metaphor"
+                                    className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-brand-brown/10 mix-blend-multiply"></div>
+                            </div>
+                        </motion.div>
+                    </div>
+                </div>
+            </section>
+
+            {/* 4. One-touch loyalty Block & Science of Retention */}
+            <section className="px-6 py-32 bg-background-cream">
+                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-32 items-center">
+                    <motion.div {...fadeInUp}>
+                        <h2 className="text-4xl md:text-6xl font-black mb-12 leading-[1.05] tracking-tighter text-brand-brown">
+                            {t('b2b_simplicity_h2')}
+                        </h2>
+                        <div className="space-y-10">
+                            <div className="p-10 bg-white rounded-[3rem] shadow-xl shadow-brand-brown/5 border border-brand-brown/5">
+                                <p className="text-2xl font-bold opacity-80 leading-relaxed italic mb-10 text-brand-brown">"{t('b2b_simplicity_intro')}"</p>
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-6 group">
+                                        <div className="w-16 h-16 rounded-[1.5rem] bg-orange-400/10 flex items-center justify-center text-orange-400 text-2xl group-hover:bg-orange-400 group-hover:text-white transition-all">
+                                            <FontAwesomeIcon icon={faMobileButton} />
+                                        </div>
+                                        <div>
+                                            <p className="font-black text-lg tracking-tight">{t('b2b_simplicity_tap')}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-6 group">
+                                        <div className="w-16 h-16 rounded-[1.5rem] bg-indigo-600/10 flex items-center justify-center text-indigo-600 text-2xl group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                                            <FontAwesomeIcon icon={faQrcode} />
+                                        </div>
+                                        <div>
+                                            <p className="font-black text-lg tracking-tight">{t('b2b_simplicity_recognize')}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-6 group">
+                                        <div className="w-16 h-16 rounded-[1.5rem] bg-green-500/10 flex items-center justify-center text-green-500 text-2xl group-hover:bg-green-500 group-hover:text-white transition-all">
+                                            <FontAwesomeIcon icon={faDatabase} />
+                                        </div>
+                                        <div>
+                                            <p className="font-black text-lg tracking-tight">{t('b2b_simplicity_done')}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    <motion.div {...fadeInUp} className="relative h-full">
+                        <div className="bg-[#1a1a1a] p-12 sm:p-16 rounded-[5rem] shadow-2xl relative overflow-hidden h-full flex flex-col justify-center border-4 border-white/5 text-white">
+                            <div className="absolute inset-0 z-0 opacity-20 bg-[url('/vip_pov_celebration_final.jpg')] bg-cover bg-center mix-blend-overlay"></div>
+                            <div className="relative z-10">
+                                <h3 className="text-3xl sm:text-4xl font-black mb-6 leading-tight">{t('b2b_science_h2')}</h3>
+                                <p className="text-lg opacity-80 mb-10 text-white/80">{t('b2b_science_intro')}</p>
+
+                                <div className="space-y-6">
+                                    <div className="flex items-start gap-4">
+                                        <div className="text-brand-orange text-2xl mt-1"><FontAwesomeIcon icon={faTrophy} /></div>
+                                        <div>
+                                            <h4 className="font-bold text-xl mb-2">{t('b2b_science_nobel_title')}</h4>
+                                            <p className="text-sm opacity-70 leading-relaxed">{t('b2b_science_nobel_desc')}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-4">
+                                        <div className="text-blue-400 text-2xl mt-1"><FontAwesomeIcon icon={faChartLine} /></div>
+                                        <div>
+                                            <h4 className="font-bold text-xl mb-2">{t('b2b_science_melting_title')}</h4>
+                                            <p className="text-sm opacity-70 leading-relaxed">{t('b2b_science_melting_desc')}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-4">
+                                        <div className="text-green-400 text-2xl mt-1"><FontAwesomeIcon icon={faHandshake} /></div>
+                                        <div>
+                                            <h4 className="font-bold text-xl mb-2">{t('b2b_science_result_title')}</h4>
+                                            <p className="text-sm opacity-70 leading-relaxed">{t('b2b_science_result_desc')}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* 5. AI Block */}
+            <section className="px-6 py-32 bg-white">
+                <div className="max-w-7xl mx-auto">
+                    <motion.div {...fadeInUp} className="text-center mb-24">
+                        <h2 className="text-4xl md:text-7xl font-black mb-8 tracking-tighter text-brand-brown">{t('b2b_ai_h2')}</h2>
+                        <p className="text-xl md:text-2xl opacity-60 max-w-3xl mx-auto leading-relaxed font-medium">{t('b2b_ai_intro')}</p>
+                    </motion.div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                        <LargePillarCard
+                            icon={faBrain}
+                            number="AI"
+                            title={t('b2b_ai_cocktail_title')}
+                            desc={t('b2b_ai_cocktail_desc')}
+                            color="bg-indigo-600"
+                        />
+                        <LargePillarCard
+                            icon={faChartLine}
+                            number="80/20"
+                            title={t('b2b_ai_pareto_title')}
+                            desc={t('b2b_ai_pareto_desc')}
+                            color="bg-brand-orange"
+                        />
+                    </div>
+                </div>
+            </section>
+
+            {/* 6. Use Cases */}
+            <section className="px-6 py-40 bg-brand-brown text-white mx-0 sm:mx-6 sm:rounded-[4rem] my-12 overflow-hidden relative shadow-2xl">
+                <div className="absolute inset-0 z-0 opacity-20 bg-[url('/vip_pov_celebration_final.jpg')] bg-cover bg-center mix-blend-overlay grayscale"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-brand-brown via-brand-brown/90 to-brand-brown/80 z-0"></div>
+
+                <div className="max-w-7xl mx-auto relative z-10">
+                    <motion.h2 {...fadeInUp} className="text-4xl md:text-7xl font-black mb-24 text-center leading-tight tracking-tighter">
+                        {t('b2b_who_is_it_for')}
+                    </motion.h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+                        <BigBenefitItem
+                            icon={faTableTennisPaddleBall}
+                            title={t('b2b_usecase_sports_title')}
+                            desc={t('b2b_usecase_sports_desc')}
+                        />
+                        <BigBenefitItem
+                            icon={faStethoscope}
+                            title={t('b2b_usecase_clinic_title')}
+                            desc={t('b2b_usecase_clinic_desc')}
+                        />
+                        <BigBenefitItem
+                            icon={faUtensils}
+                            title={t('b2b_usecase_resto_title')}
+                            desc={t('b2b_usecase_resto_desc')}
+                        />
+                        <BigBenefitItem
+                            icon={faScissors}
+                            title={t('b2b_usecase_beauty_title')}
+                            desc={t('b2b_usecase_beauty_desc')}
+                        />
+                    </div>
+                </div>
+            </section>
+
+            {/* 7. Final CTA & Lead Form */}
+            <section id="footer-form" className="px-6 py-32 md:py-48 bg-background-cream">
+                <div className="max-w-5xl mx-auto">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
+                        <motion.div {...fadeInUp}>
+                            <h2 className="text-4xl md:text-7xl font-black mb-8 leading-[1] tracking-tighter text-brand-brown">
+                                {t('b2b_final_h2')}
+                            </h2>
+                            <p className="text-xl opacity-60 mb-8 leading-relaxed font-medium">
+                                {t('b2b_final_sub')}
+                            </p>
+                            <div className="p-6 bg-red-50 rounded-3xl border border-red-100 flex gap-4 text-left">
+                                <div className="text-red-500 text-2xl mt-1"><FontAwesomeIcon icon={faHandshake} /></div>
+                                <div>
+                                    <h4 className="font-bold text-xl mb-2 text-red-900">{t('b2b_final_guarantee_title')}</h4>
+                                    <p className="text-sm opacity-80 leading-relaxed text-red-900">{t('b2b_final_guarantee')}</p>
+                                </div>
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            viewport={{ once: true }}
+                            className="bg-white p-12 rounded-[4rem] shadow-2xl shadow-brand-brown/10 border border-white relative overflow-hidden"
+                        >
+                            <AnimatePresence mode="wait">
+                                {isSubmitted ? (
+                                    <motion.div
+                                        key="thank-you"
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -20 }}
+                                        className="text-center py-12"
+                                    >
+                                        <div className="w-24 h-24 bg-green-50 text-green-500 rounded-full flex items-center justify-center text-4xl mx-auto mb-8 shadow-inner">
+                                            <FontAwesomeIcon icon={faHandshake} />
+                                        </div>
+                                        <h3 className="text-3xl font-black text-brand-brown mb-4 tracking-tight">
+                                            {t('b2b_form_thanks')}
+                                        </h3>
+                                        <p className="text-lg opacity-70 mb-8 font-medium leading-relaxed max-w-sm mx-auto">
+                                            {t('b2b_form_received')}
+                                        </p>
+                                        <div className="pt-8 border-t border-brand-brown/5">
+                                            <p className="text-sm opacity-50 mb-2">{t('b2b_urgent_question')}</p>
+                                            <a href="mailto:friiendlycode@gmail.com" className="text-brand-orange font-bold hover:underline transition-all">
+                                                friiendlycode@gmail.com
+                                            </a>
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <motion.form
+                                        key="lead-form"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="space-y-6"
+                                        onSubmit={handleSubmit}
+                                    >
+                                        <div className="space-y-4">
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder={t('b2b_form_city')}
+                                                className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
+                                                value={formData.city}
+                                                onChange={e => setFormData({ ...formData, city: e.target.value })}
+                                            />
+                                            <input
+                                                type="tel"
+                                                required
+                                                placeholder={t('b2b_form_phone')}
+                                                className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
+                                                value={formData.phone}
+                                                onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                                            />
+                                            <input
+                                                type="email"
+                                                required
+                                                placeholder={t('b2b_form_email')}
+                                                className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
+                                                value={formData.email}
+                                                onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                            />
+                                        </div>
+                                        <button className="w-full py-6 bg-brand-orange text-white rounded-[2rem] font-black text-xl tracking-wide hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-brand-orange/20">
+                                            {t('b2b_final_cta')}
+                                        </button>
+                                    </motion.form>
+                                )}
+                            </AnimatePresence>
+                        </motion.div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    );
+};
+
+const ProblemCard = ({ icon, title, desc, tag }) => (
+    <div className="p-8 bg-red-50 rounded-[2.5rem] border border-red-100 flex flex-col sm:flex-row items-start sm:items-center gap-6 relative group hover:bg-red-100 hover:border-red-200 hover:shadow-xl hover:shadow-red-900/10 transition-all">
+        <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-2xl shadow-sm text-red-500 shrink-0 group-hover:scale-110 group-hover:bg-red-500 group-hover:text-white transition-all border border-red-100">
+            <FontAwesomeIcon icon={icon} />
+        </div>
+        <div className="flex-1">
+            <div className="flex flex-wrap items-center gap-3 mb-2">
+                <h3 className="text-xl font-black leading-tight tracking-tight text-brand-brown group-hover:text-red-900 transition-colors">{title}</h3>
+                <div className="px-3 py-1 bg-white/50 rounded-full text-[10px] font-black uppercase tracking-widest text-red-400 border border-red-100 group-hover:bg-red-500 group-hover:text-white group-hover:border-transparent transition-all">
+                    {tag}
+                </div>
+            </div>
+            <p className="opacity-70 text-sm leading-relaxed font-bold text-red-900/60 group-hover:text-red-900/80 transition-colors">{desc}</p>
+        </div>
+    </div>
+);
+
+const LargePillarCard = ({ icon, number, title, desc, color }) => (
+    <div className="p-12 bg-background-cream rounded-[4rem] border border-brand-brown/5 flex flex-col gap-10 hover:shadow-2xl transition-all group relative overflow-hidden">
+        <div className={`absolute top-0 right-0 w-32 h-32 ${color} opacity-5 rounded-bl-[4rem] -mr-8 -mt-8 transition-transform group-hover:scale-150 duration-700`}></div>
+        <div className="flex justify-between items-start z-10">
+            <div className={`w-24 h-24 ${color} rounded-[2rem] flex items-center justify-center text-white text-4xl shadow-xl transition-transform group-hover:rotate-6`}>
+                <FontAwesomeIcon icon={icon} />
+            </div>
+            <span className="text-6xl font-black text-slate-100">{number}</span>
+        </div>
+        <div className="z-10">
+            <h3 className="text-3xl font-black mb-6 leading-tight tracking-tight text-brand-brown">{title}</h3>
+            <p className="text-lg opacity-60 leading-relaxed font-medium">{desc}</p>
+        </div>
+    </div>
+);
+
+const BigBenefitItem = ({ icon, title, desc }) => (
+    <div className="flex flex-col items-center text-center group">
+        <div className="w-24 h-24 rounded-[2rem] bg-white/10 border border-white/10 flex items-center justify-center text-4xl mb-12 text-brand-orange group-hover:bg-brand-orange group-hover:text-white transition-all shadow-2xl">
+            <FontAwesomeIcon icon={icon} />
+        </div>
+        <h3 className="text-3xl font-black mb-6 tracking-tight">{title}</h3>
+        <p className="opacity-50 text-lg leading-relaxed max-w-xs font-medium">{desc}</p>
+    </div>
+);
+
+const DetailedBar = ({ height, label, val, active, color }) => (
+    <div className="h-full flex flex-col items-center justify-end flex-1 max-w-[80px]">
+        <div className={`text-sm font-black mb-4 ${active ? 'text-brand-orange text-2xl' : 'text-white/20'}`}>{val}</div>
+        <motion.div
+            initial={{ height: 0 }}
+            whileInView={{ height }}
+            transition={{ duration: 1.5 }}
+            style={{ backgroundColor: color }}
+            className={`w-full rounded-2xl ${active ? 'shadow-[0_0_80px_rgba(230,138,0,0.5)]' : ''}`}
+        />
+        <div className={`mt-6 text-[10px] font-black uppercase tracking-[0.2em] w-full text-center ${active ? 'text-white' : 'text-white/20'}`}>{label}</div>
+    </div>
+);
+
+export default MarketingB2B;

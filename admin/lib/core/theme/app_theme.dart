@@ -3,53 +3,25 @@ import 'package:google_fonts/google_fonts.dart';
 import 'colors.dart';
 
 class AppTheme {
-  static ThemeData get darkTheme {
-    return ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.dark,
-      primaryColor: AppColors.deepSeaBlue,
-      scaffoldBackgroundColor: AppColors.backgroundDark,
-      
-      colorScheme: const ColorScheme.dark(
-        primary: AppColors.deepSeaBlue,
-        secondary: AppColors.lime,
-        onSecondary: AppColors.textOnLime,
-        surface: AppColors.surfaceDark,
-      ),
-
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.deepSeaBlue,
-        elevation: 0,
-        centerTitle: true,
-        titleTextStyle: TextStyle(
-          fontFamily: 'Inter',
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
-      ),
-      
-      // ... keep existing dark theme buttons if needed, or update similarly
-    );
-  }
-
+  // We overwrite the "lightTheme" because the legacy app defaults to it,
+  // effectively forcing the entire application into our new OLED Dark Mode.
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.light,
+      brightness: Brightness.dark, // Force Dark Brightness for text contrast
       primaryColor: AppColors.accentOrange,
-      scaffoldBackgroundColor: AppColors.background, // Cream
+      scaffoldBackgroundColor: Colors.transparent, // Allow admin_shell's Stack colors to bleed through
       
-      colorScheme: const ColorScheme.light(
+      colorScheme: const ColorScheme.dark(
         primary: AppColors.accentOrange,
-        secondary: AppColors.accentOrange, // Removed Mint
-        surface: AppColors.surface,
-        onSurface: AppColors.title,
-        onPrimary: Colors.white,
+        secondary: AppColors.accentOrange, 
+        surface: AppColors.surface, // frosted glass color
+        onSurface: AppColors.title, // White
+        onPrimary: Colors.black, // Text on orange buttons
       ),
 
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: false,
         iconTheme: IconThemeData(color: AppColors.title),
@@ -62,9 +34,9 @@ class AppTheme {
       ),
 
       textTheme: GoogleFonts.interTextTheme(
-        ThemeData.light().textTheme,
+        ThemeData.dark().textTheme,
       ).apply(
-        bodyColor: AppColors.title, // Changed from AppColors.body to Brown
+        bodyColor: AppColors.title, // White
         displayColor: AppColors.title,
       ).copyWith(
         displayLarge: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.w900, color: AppColors.title, letterSpacing: -1.0),
@@ -76,44 +48,46 @@ class AppTheme {
       
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.accentOrange,
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black, // Apple style buttons
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           textStyle: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.5),
         ),
       ),
 
       cardTheme: CardThemeData(
-        color: AppColors.surface,
+        color: AppColors.surface, // Semi-transparent grey
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: AppColors.title.withOpacity(0.1)),
+          borderRadius: BorderRadius.circular(32),
+          side: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
       ),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: Color(0x661C1C1E), // Frosted inputs
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.title.withOpacity(0.15)),
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: AppColors.title.withOpacity(0.15)),
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: AppColors.accentOrange, width: 2),
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: Colors.white, width: 2),
         ),
-        labelStyle: const TextStyle(color: AppColors.title, fontWeight: FontWeight.bold),
-        hintStyle: GoogleFonts.inter(color: AppColors.body.withOpacity(0.5), fontSize: 15),
-        prefixIconColor: AppColors.accentOrange,
+        labelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        hintStyle: GoogleFonts.inter(color: Colors.white.withOpacity(0.4), fontSize: 15),
+        prefixIconColor: Colors.white.withOpacity(0.7),
       ),
     );
   }
+
+  static ThemeData get darkTheme => lightTheme; // Ensure it behaves identically just in case
 }

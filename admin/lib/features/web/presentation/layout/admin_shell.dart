@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/features/admin/presentation/widgets/analytics_module.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
@@ -118,7 +119,7 @@ class _AdminShellState extends State<AdminShell> {
                     ),
                   ],
                 ),
-                backgroundColor: AppColors.brandOrange,
+                backgroundColor: AppColors.accentOrange,
                 behavior: SnackBarBehavior.floating,
                 margin: const EdgeInsets.only(bottom: 24, right: 24, left: 24),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -143,110 +144,156 @@ class _AdminShellState extends State<AdminShell> {
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth >= 800;
         
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          appBar: !isDesktop 
-            ? AppBar(
-                backgroundColor: AppColors.surface,
-                iconTheme: const IconThemeData(color: AppColors.title),
-                elevation: 0,
-                title: const Text("FRIENDLY CODE", style: TextStyle(color: AppColors.title, fontWeight: FontWeight.w900, fontSize: 16)),
-              )
-            : null,
-          drawer: !isDesktop ? Drawer(child: _buildSidebar(isMobile: true)) : null,
-          body: Row(
-            children: [
-              // Permanent Side Navigation (Desktop only)
-              if (isDesktop) _buildSidebar(),
-              
-              // Main Content Area
-              Expanded(
-                child: Column(
-                  children: [
-                    // Header Search & User Info
-                    _buildHeader(isDesktop: isDesktop),
-                    
-                    // Actual Screen Content
-                    Expanded(
-                      child: Container(
-                        margin: const EdgeInsets.fromLTRB(0, 0, 24, 24),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: AppColors.softShadow,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: _screens[_selectedIndex < _screens.length ? _selectedIndex : 0],
-                        ),
-                      ),
-                    ),
-                  ],
+        return Stack(
+          children: [
+            // Deep OLED Base Background
+            Container(color: Colors.black),
+            // Glowing Ambient Orbs for iOS 26 Aesthetic
+            Positioned(
+              top: -100,
+              left: -100,
+              child: Container(
+                width: 400,
+                height: 400,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.deepSeaBlue.withOpacity(0.4),
+                  boxShadow: [
+                    BoxShadow(color: AppColors.deepSeaBlue.withOpacity(0.4), blurRadius: 150, spreadRadius: 100)
+                  ]
                 ),
               ),
-            ],
-          ),
+            ),
+            Positioned(
+              bottom: -100,
+              right: -100,
+              child: Container(
+                width: 500,
+                height: 500,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.accentOrange.withOpacity(0.3),
+                  boxShadow: [
+                    BoxShadow(color: AppColors.accentOrange.withOpacity(0.3), blurRadius: 200, spreadRadius: 100)
+                  ]
+                ),
+              ),
+            ),
+
+            Scaffold(
+              backgroundColor: Colors.transparent, // Critical: let the glows show through
+              appBar: !isDesktop 
+                ? AppBar(
+                    backgroundColor: Color(0x661C1C1E),
+                    iconTheme: const IconThemeData(color: Colors.white),
+                    elevation: 0,
+                    title: const Text("FRIENDLY CODE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
+                  )
+                : null,
+              drawer: !isDesktop ? Drawer(child: _buildSidebar(isMobile: true)) : null,
+              body: Row(
+                children: [
+                  // Permanent Side Navigation (Desktop only)
+                  if (isDesktop) _buildSidebar(),
+                  
+                  // Main Content Area
+                  Expanded(
+                    child: Column(
+                      children: [
+                        // Header Search & User Info
+                        _buildHeader(isDesktop: isDesktop),
+                        
+                        // Actual Screen Content (Wrapped in blur if requested)
+                        Expanded(
+                          child: Container(
+                            margin: const EdgeInsets.fromLTRB(0, 0, 24, 24),
+                            decoration: BoxDecoration(
+                              color: Colors.transparent, // Screens handles their own cards now
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: _screens[_selectedIndex < _screens.length ? _selectedIndex : 0],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         );
       },
     );
   }
 
   Widget _buildSidebar({bool isMobile = false}) {
-    return Container(
-      width: 260,
-      color: isMobile ? AppColors.surface : null, // Ensure background on drawer
-      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Logo
-          if (!isMobile) // Hide logo in mobile drawer if also in AppBar
-            Padding(
-              padding: const EdgeInsets.only(left: 12, bottom: 48),
-              child: Image.asset(
-                'assets/images/logo.png',
-                height: 48,
-                fit: BoxFit.contain,
-              ),
-            ),
-          
-          // Navigation Items
-          _buildNavItem(0, Icons.grid_view_outlined, "Overview", isMobile: isMobile),
-          _buildNavItem(1, Icons.storefront_outlined, "Venues", isMobile: isMobile),
-          
-          if (widget.role != UserRole.manager)
-             _buildNavItem(2, Icons.bar_chart_outlined, "Analytics", isMobile: isMobile),
-          
-          if (widget.role == UserRole.superAdmin)
-             _buildNavItem(3, Icons.people_outline, "Staff", isMobile: isMobile)
-          else if (widget.role == UserRole.admin || widget.role == UserRole.manager)
-             _buildNavItem(3, Icons.people_outline, "My Team", isMobile: isMobile)
-          else if (widget.role == UserRole.owner)
-             _buildNavItem(3, Icons.payments_outlined, "Billing", isMobile: isMobile),
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          width: 260,
+          decoration: BoxDecoration(
+            color: isMobile ? Color(0xCC111111) : Color(0x331C1C1E),
+            border: Border(right: BorderSide(color: Colors.white.withOpacity(0.1))),
+          ),
+          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Logo
+              if (!isMobile)
+                Padding(
+                  padding: const EdgeInsets.only(left: 12, bottom: 48),
+                  child: Image.asset(
+                    'assets/images/logo.png',
+                    height: 48,
+                    fit: BoxFit.contain,
+                    color: Colors.white, // Tint logo white for dark mode if it's transparent PNG
+                  ),
+                ),
+              
+              // Navigation Items
+              _buildNavItem(0, Icons.grid_view_outlined, "Overview", isMobile: isMobile),
+              _buildNavItem(1, Icons.storefront_outlined, "Venues", isMobile: isMobile),
+              
+              if (widget.role != UserRole.manager)
+                 _buildNavItem(2, Icons.bar_chart_outlined, "Analytics", isMobile: isMobile),
+              
+              if (widget.role == UserRole.superAdmin)
+                 _buildNavItem(3, Icons.people_outline, "Staff", isMobile: isMobile)
+              else if (widget.role == UserRole.admin || widget.role == UserRole.manager)
+                 _buildNavItem(3, Icons.people_outline, "My Team", isMobile: isMobile)
+              else if (widget.role == UserRole.owner)
+                 _buildNavItem(3, Icons.payments_outlined, "Billing", isMobile: isMobile),
 
-          if (widget.role == UserRole.superAdmin)
-             _buildNavItem(4, Icons.email_outlined, "Email Setup", isMobile: isMobile),
+              if (widget.role == UserRole.superAdmin)
+                 _buildNavItem(4, Icons.email_outlined, "Email Setup", isMobile: isMobile),
 
-          const Spacer(),
-          _buildNavItem(widget.role == UserRole.superAdmin ? 5 : 4, Icons.settings_outlined, "Settings", isMobile: isMobile),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: InkWell(
-              onTap: () => Navigator.pushReplacementNamed(context, '/'),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                child: Row(
-                  children: const [
-                    Icon(Icons.logout_outlined, color: AppColors.body, size: 22),
-                    SizedBox(width: 16),
-                    Text("Logout", style: TextStyle(color: AppColors.body, fontWeight: FontWeight.w500, fontSize: 15)),
-                  ],
+              const Spacer(),
+              _buildNavItem(widget.role == UserRole.superAdmin ? 5 : 4, Icons.settings_outlined, "Settings", isMobile: isMobile),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: InkWell(
+                  onTap: () => Navigator.pushReplacementNamed(context, '/'),
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    child: Row(
+                      children: const [
+                        Icon(Icons.logout_outlined, color: Colors.white70, size: 22),
+                        SizedBox(width: 16),
+                        Text("Logout", style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w600, fontSize: 15)),
+                      ],
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -260,27 +307,29 @@ class _AdminShellState extends State<AdminShell> {
           setState(() => _selectedIndex = index);
           if (isMobile) Navigator.pop(context); // Close drawer
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.accentOrange.withOpacity(0.1) : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            color: isSelected ? Colors.white.withOpacity(0.1) : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: isSelected ? Border.all(color: Colors.white.withOpacity(0.2)) : null,
           ),
           child: Row(
             children: [
               Icon(
                 icon,
-                color: isSelected ? AppColors.accentOrange : AppColors.body,
+                color: isSelected ? Colors.white : Colors.white70,
                 size: 22,
               ),
               const SizedBox(width: 16),
               Text(
                 label,
                 style: TextStyle(
-                  color: isSelected ? AppColors.title : AppColors.body,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  color: isSelected ? Colors.white : Colors.white70,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
                   fontSize: 15,
+                  letterSpacing: isSelected ? 0.2 : 0,
                 ),
               ),
             ],
@@ -294,124 +343,141 @@ class _AdminShellState extends State<AdminShell> {
     final currentUser = AuthService().currentUser;
     final userEmail = currentUser?.email ?? 'Venue Owner';
 
-    return Container(
-      height: 80,
-      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16),
-      child: Row(
-        children: [
-          // Search Bar
-          if (isDesktop) 
-            Expanded(
-              child: Container(
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.black.withOpacity(0.05)),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: [
-                    const Icon(Icons.search, color: AppColors.body, size: 20),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        decoration: InputDecoration(
-                          hintText: widget.role == UserRole.superAdmin 
-                            ? "Search venues..."
-                            : "Search in your venue...",
-                          hintStyle: const TextStyle(color: Colors.black38, fontSize: 14),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.only(bottom: 12), // Align text vertically
-                        ),
-                      ),
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(
+          height: 80,
+          color: Color(0x1A1C1C1E), // Barely visible glass header
+          padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16),
+          child: Row(
+            children: [
+              // Search Bar
+              if (isDesktop) 
+                Expanded(
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
                     ),
-                  ],
-                ),
-              ),
-            )
-          else 
-            Expanded(
-              child: Text(
-                userEmail.split('@').first, 
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.title)
-              ),
-            ),
-          
-          if (isDesktop) const SizedBox(width: 24),
-
-          // Notification Badge
-          const NotificationBadge(),
-          const SizedBox(width: 16),
-
-          // Language Switcher
-          Consumer<LocaleProvider>(
-            builder: (context, localeProvider, _) => Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.title.withOpacity(0.1)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.language, size: 16, color: AppColors.body),
-                  const SizedBox(width: 8),
-                  DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: localeProvider.locale.languageCode.toUpperCase(),
-                      items: ['EN', 'RU'].map((lang) => DropdownMenuItem(
-                        value: lang,
-                        child: Text(lang, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                      )).toList(),
-                      onChanged: (val) {
-                        if (val != null) {
-                          localeProvider.setLocale(Locale(val.toLowerCase()));
-                        }
-                      },
-                      isDense: true,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      children: [
+                        Icon(Icons.search, color: Colors.white.withOpacity(0.5), size: 20),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              hintText: widget.role == UserRole.superAdmin 
+                                ? "Search venues..."
+                                : "Search in your venue...",
+                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 14),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              fillColor: Colors.transparent, // Override theme
+                              filled: false,
+                              contentPadding: const EdgeInsets.only(bottom: 0),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ],
+                )
+              else 
+                Expanded(
+                  child: Text(
+                    userEmail.split('@').first, 
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)
+                  ),
+                ),
+              
+              if (isDesktop) const SizedBox(width: 24),
+
+              // Notification Badge
+              const NotificationBadge(),
+              const SizedBox(width: 16),
+
+              // Language Switcher
+              Consumer<LocaleProvider>(
+                builder: (context, localeProvider, _) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.language, size: 16, color: Colors.white.withOpacity(0.7)),
+                      const SizedBox(width: 8),
+                      Theme(
+                        data: Theme.of(context).copyWith(
+                          canvasColor: Color(0xFF1C1C1E)
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: localeProvider.locale.languageCode.toUpperCase(),
+                            iconEnabledColor: Colors.white70,
+                            items: ['EN', 'RU'].map((lang) => DropdownMenuItem(
+                              value: lang,
+                              child: Text(lang, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
+                            )).toList(),
+                            onChanged: (val) {
+                              if (val != null) {
+                                localeProvider.setLocale(Locale(val.toLowerCase()));
+                              }
+                            },
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
-          
-          if (isDesktop) ...[
-            const SizedBox(width: 24),
-            Row(
-              children: [
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
+              
+              if (isDesktop) ...[
+                const SizedBox(width: 24),
+                Row(
                   children: [
-                    Text(
-                      userEmail,
-                      style: const TextStyle(
-                        color: AppColors.title,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          userEmail,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Text(
+                          widget.role == UserRole.superAdmin ? "System Access" : "Venue Owner",
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.5),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      widget.role == UserRole.superAdmin ? "System Access" : "Venue Owner",
-                      style: const TextStyle(
-                        color: AppColors.body,
-                        fontSize: 12,
-                      ),
+                    const SizedBox(width: 16),
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.white.withOpacity(0.1),
+                      child: const Icon(Icons.person_outline, color: Colors.white),
                     ),
                   ],
                 ),
-                const SizedBox(width: 16),
-                const CircleAvatar(
-                  radius: 20,
-                  backgroundColor: AppColors.background,
-                  child: Icon(Icons.person_outline, color: AppColors.accentOrange),
-                ),
               ],
-            ),
-          ],
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

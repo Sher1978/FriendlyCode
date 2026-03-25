@@ -1084,6 +1084,24 @@ abstract class AppLocalizations {
   /// **'Next billing date: {date}'**
   String nextBillingDate(String date);
 
+  /// No description provided for @fullActivationPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Activation Period: {start} - {end}'**
+  String fullActivationPeriod(Object end, Object start);
+
+  /// No description provided for @expiryPeriod.
+  ///
+  /// In en, this message translates to:
+  /// **'Expiry Period: {end}'**
+  String expiryPeriod(Object end);
+
+  /// No description provided for @daysRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days remaining'**
+  String daysRemaining(Object days);
+
   /// No description provided for @unlimitedVenues.
   ///
   /// In en, this message translates to:

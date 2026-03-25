@@ -541,6 +541,21 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
+  String fullActivationPeriod(Object end, Object start) {
+    return 'Full Activation Period: $start - $end';
+  }
+
+  @override
+  String expiryPeriod(Object end) {
+    return 'Expiry Period: $end';
+  }
+
+  @override
+  String daysRemaining(Object days) {
+    return '$days days remaining';
+  }
+
+  @override
   String get unlimitedVenues => 'Không giới hạn Địa điểm';
 
   @override

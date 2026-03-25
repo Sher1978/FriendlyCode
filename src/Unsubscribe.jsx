@@ -49,41 +49,57 @@ const Unsubscribe = () => {
         performUnsubscribe();
     }, [location]);
 
-    const containerStyle = "flex flex-col min-h-screen bg-[#FFF8E1] font-sans text-[#4E342E] items-center justify-center p-8 text-center";
+    // Base layout with Ambient background
+    const renderLayout = (content) => (
+        <div className="flex flex-col min-h-screen bg-black font-sans text-white items-center justify-center p-8 text-center relative overflow-hidden antialiased" style={{ WebkitFontSmoothing: 'antialiased' }}>
+            {/* Ambient Background Glow Arrays */}
+            <div className="absolute top-[-10%] left-[-20vw] w-[140vw] h-[60vh] rounded-[100%] blur-[100px] pointer-events-none opacity-[0.20] mix-blend-screen bg-blue-500" />
+            <div className="absolute bottom-[0%] right-[-20vw] w-[140vw] h-[50vh] rounded-[100%] blur-[120px] pointer-events-none opacity-[0.10]" />
+            
+            <div className="relative z-10 flex flex-col items-center">
+                {content}
+            </div>
+        </div>
+    );
 
     if (status === 'processing') {
-        return (
-            <div className={containerStyle}>
-                <div className="animate-spin text-[#E68A00] text-3xl mb-4">
+        return renderLayout(
+            <>
+                <div className="animate-spin text-white/50 text-[32px] mb-6">
                     <FontAwesomeIcon icon={faEnvelopeOpenText} />
                 </div>
-                <h1 className="text-xl font-black uppercase">Processing...</h1>
-            </div>
+                <h1 className="text-[20px] font-semibold text-white tracking-wide">Processing...</h1>
+            </>
         );
     }
 
     if (status === 'success') {
-        return (
-            <div className={containerStyle}>
-                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-green-600 text-3xl mb-6">
+        return renderLayout(
+            <div className="bg-[#1C1C1E]/60 backdrop-blur-3xl border border-white/10 rounded-[36px] p-8 shadow-2xl flex flex-col items-center max-w-sm w-full mx-auto relative overflow-hidden">
+                <div className="absolute inset-0 border border-white/5 rounded-[36px] pointer-events-none mix-blend-overlay"></div>
+                <div className="w-16 h-16 bg-[#00FF41]/10 border border-[#00FF41]/20 rounded-full flex items-center justify-center text-[#00FF41] text-[32px] mb-6 shadow-lg">
                     <FontAwesomeIcon icon={faCheckCircle} />
                 </div>
-                <h1 className="text-2xl font-black mb-2 uppercase tracking-tight">You're Unsubscribed</h1>
-                <p className="text-[#4E342E]/70 font-medium max-w-[280px] mb-8">
+                <h1 className="text-[26px] font-bold mb-3 tracking-tight leading-tight">Unsubscribed</h1>
+                <p className="text-white/50 font-medium text-[15px] mb-8 leading-relaxed">
                     We've removed <b>{email}</b> from our mailing list. You won't receive marketing emails from Friendly Code partners anymore.
                 </p>
-                <div className="opacity-30 font-black text-xs tracking-[0.3em] flex items-center gap-2">
-                    <FontAwesomeIcon icon={faLeaf} className="text-[#81C784]" /> FRIENDLY CODE
+                <div className="opacity-30 font-semibold text-[11px] tracking-widest flex items-center gap-2 uppercase">
+                    <FontAwesomeIcon icon={faLeaf} className="text-[#00FF41]" /> FRIENDLY CODE
                 </div>
             </div>
         );
     }
 
-    return (
-        <div className={containerStyle}>
-            <h1 className="text-xl font-black mb-2 uppercase">Something went wrong</h1>
-            <p className="opacity-60 text-sm mb-8">We couldn't process your unsubscription automatically.</p>
-            <p className="text-sm font-bold">Please contact support@friendlycode.fun</p>
+    return renderLayout(
+        <div className="bg-[#1C1C1E]/60 backdrop-blur-3xl border border-white/10 rounded-[36px] p-8 shadow-2xl flex flex-col items-center max-w-sm w-full mx-auto relative overflow-hidden">
+            <h1 className="text-[24px] font-bold mb-3 tracking-tight text-white leading-tight">Something went wrong</h1>
+            <p className="opacity-50 text-[15px] mb-6 font-medium leading-relaxed">
+                We couldn't process your unsubscription automatically.
+            </p>
+            <p className="text-[14px] font-semibold text-white/80">
+                Please contact support@friendlycode.fun
+            </p>
         </div>
     );
 };

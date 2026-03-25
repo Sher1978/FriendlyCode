@@ -1,0 +1,197 @@
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faUser, faEnvelope, faArrowLeft } from '@fortawesome/free-solid-svg-icons';
+import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
+import { db, auth } from './firebase';
+import { collection, addDoc, serverTimestamp, query, where, getDocs, limit, doc, setDoc, getDoc, orderBy } from 'firebase/firestore';
+import { RewardCalculator } from './logic/RewardCalculator';
+
+const LeadCapture = () => {
+    const { t } = useTranslation();
+    const navigate = useNavigate();
+    const location = useLocation();
+    const { discount } = location.state || { discount: 5 }; // Default to 5% if direct access
+
+    const [name, setName] = useState('');
+    const [email, setEmail] = useState('');
+
+    const handleContinue = async () => {
+        if (!name.trim() || !email.trim()) return;
+
+        const lowerEmail = email.trim().toLowerCase();
+
+        try {
+            const venueId = localStorage.getItem('currentVenueId') || 'unknown';
+            const user = auth.currentUser;
+
+            let effectiveUid = user?.uid;
+            let finalDiscount = discount;
+
+            if (user) {
+                // 0. Check if this email already exists in 'users' collection
+                const q = query(collection(db, 'users'), where('email', '==', lowerEmail), limit(1));
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    // FOUND EXISTING USER -> Link to this ID instead of the new anonymous one
+                    const existingUserDoc = querySnapshot.docs[0];
+                    effectiveUid = existingUserDoc.id;
+                    console.log(`Found existing user for ${lowerEmail}: ${effectiveUid}. Linking session...`);
+
+                    // Update existing user with latest name/timestamp
+                    await setDoc(doc(db, 'users', effectiveUid), {
+                        displayName: name.trim(),
+                        updatedAt: serverTimestamp(),
+                    }, { merge: true });
+
+                    // Recalculate discount based on actual history
+                    try {
+                        const vDoc = await getDoc(doc(db, 'venues', venueId));
+                        if (vDoc.exists()) {
+                            const venueData = vDoc.data();
+                            console.log("Recalculating discount for existing user using tiers:", venueData.tiers);
+
+                            const qVisits = query(
+                                collection(db, 'visits'),
+                                where('guestEmail', '==', lowerEmail),
+                                where('venueId', '==', venueId),
+                                orderBy('timestamp', 'desc'),
+                                limit(1)
+                            );
+                            const visitsSnap = await getDocs(qVisits);
+                            if (!visitsSnap.empty) {
+                                const lastVisitDate = visitsSnap.docs[0].data().timestamp.toDate();
+                                const now = new Date();
+                                const calcResult = RewardCalculator.calculate(lastVisitDate, now, venueData.tiers);
+                                finalDiscount = calcResult.discount;
+                                console.log(`New discount calculated for ${lowerEmail}: ${finalDiscount}%`);
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Error recalculating discount on email match:", err);
+                    }
+                } else {
+                    // NEW USER -> Create new doc with current auth UID
+                    await setDoc(doc(db, 'users', user.uid), {
+                        displayName: name.trim(),
+                        email: lowerEmail,
+                        role: 'guest',
+                        updatedAt: serverTimestamp(),
+                        createdAt: serverTimestamp(), // Add creation time for new users
+                    }, { merge: true });
+                }
+
+                // 2. Also keep the lead entry for marketing tracking (using effectiveUid)
+                await addDoc(collection(db, 'leads'), {
+                    uid: effectiveUid,
+                    name: name.trim(),
+                    email: lowerEmail,
+                    venueId: venueId,
+                    timestamp: serverTimestamp(),
+                    source: 'lead_capture'
+                });
+            }
+
+            // Save guest data locally for instant recognition
+            localStorage.setItem('guestName', name.trim());
+            localStorage.setItem('guestEmail', lowerEmail);
+            if (effectiveUid) {
+                localStorage.setItem('effectiveUid', effectiveUid);
+            }
+
+            // Navigate to UnifiedActivation (Reward Screen)
+            navigate('/thank-you', {
+                state: {
+                    guestName: name,
+                    guestEmail: lowerEmail,
+                    discountValue: finalDiscount,
+                    venueId: venueId,
+                    userRole: 'guest',
+                    effectiveUid: effectiveUid // PASS THIS TO NEXT SCREEN
+                }
+            });
+        } catch (e) {
+            console.error("Error saving lead/user:", e);
+            localStorage.setItem('guestName', name.trim());
+            localStorage.setItem('guestEmail', lowerEmail);
+            navigate('/thank-you', { state: { guestName: name, discountValue: discount } });
+        }
+    };
+
+    return (
+        <div className="flex flex-col min-h-screen bg-[#FFF8E1] font-sans text-[#4E342E] antialiased">
+            <div className="flex-grow flex flex-col px-6 py-12 relative">
+                {/* Back Button */}
+                <button
+                    onClick={() => navigate(-1)}
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-white text-[#4E342E] shadow-sm border border-[#4E342E]/5 absolute top-8 left-6 z-10"
+                >
+                    <FontAwesomeIcon icon={faArrowLeft} />
+                </button>
+
+                <div className="mt-16 text-left">
+                    <h1 className="text-[32px] font-black leading-tight mb-2">
+                        {t('almost_there')}
+                    </h1>
+                    <p className="text-[18px] opacity-70">
+                        {t('introduce_yourself')}
+                    </p>
+                </div>
+
+                <div className="mt-12 space-y-6">
+                    {/* Name Input */}
+                    <div className="relative">
+                        <label className="text-[12px] font-black uppercase tracking-widest text-[#4E342E]/40 mb-2 block pl-1">
+                            {t('your_name')}
+                        </label>
+                        <div className="relative">
+                            <FontAwesomeIcon icon={faUser} className="absolute left-5 top-1/2 -translate-y-1/2 text-[#E68A00]" />
+                            <input
+                                type="text"
+                                placeholder="e.g., Alex"
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                className="w-full h-[64px] pl-12 pr-6 bg-white border-2 border-transparent focus:border-[#E68A00] rounded-[24px] font-bold text-[18px] outline-none shadow-sm transition-all"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Email Input */}
+                    <div className="relative">
+                        <label className="text-[12px] font-black uppercase tracking-widest text-[#4E342E]/40 mb-2 block pl-1">
+                            {t('your_email')}
+                        </label>
+                        <div className="relative">
+                            <FontAwesomeIcon icon={faEnvelope} className="absolute left-5 top-1/2 -translate-y-1/2 text-[#E68A00]" />
+                            <input
+                                type="email"
+                                placeholder="name@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full h-[64px] pl-12 pr-6 bg-white border-2 border-transparent focus:border-[#E68A00] rounded-[24px] font-bold text-[18px] outline-none shadow-sm transition-all"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="flex-grow"></div>
+
+                {/* Submit */}
+                <button
+                    onClick={handleContinue}
+                    disabled={!name.trim() || !email.trim()}
+                    className={`w-full h-[64px] rounded-[24px] font-black text-[20px] uppercase transition-all flex items-center justify-center shadow-xl ${name.trim() && email.trim()
+                        ? 'bg-[#E68A00] text-white active:scale-95 shadow-[#E68A00]/30'
+                        : 'bg-[#4E342E]/10 text-[#4E342E]/40 cursor-not-allowed shadow-none'
+                        }`}
+                >
+                    {t('continue_reward')}
+                </button>
+            </div>
+        </div>
+    );
+};
+
+export default LeadCapture;

@@ -27,7 +27,7 @@ const mockVenues = [
         link: 'https://instagram.com/coffee_friends'
     },
     {
-        id: '1',
+        id: '2', // Fixed duplicate ID
         name: 'Burger Heroes',
         address: 'Kuznetsky Most, 12',
         category: 'Restaurant',
@@ -63,23 +63,24 @@ const PartnerMap = () => {
 
     if (!apiKey) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-background-cream text-brand-brown">
-                <div className="w-24 h-24 bg-brand-brown/5 rounded-full flex items-center justify-center mb-6">
-                    <FontAwesomeIcon icon={faMapMarkerAlt} className="text-4xl text-brand-orange" />
+            <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-black text-white font-sans antialiased relative overflow-hidden">
+                <div className="absolute top-[-20%] left-[-20%] w-[140%] h-[140%] bg-[radial-gradient(circle_at_center,_#FFFFFF_0%,_transparent_70%)] opacity-5 pointer-events-none" />
+                <div className="w-24 h-24 bg-white/10 rounded-[32px] border border-white/5 backdrop-blur-3xl flex items-center justify-center mb-6 shadow-2xl">
+                    <FontAwesomeIcon icon={faMapMarkerAlt} className="text-4xl text-white" />
                 </div>
-                <h2 className="text-3xl font-black mb-2">{t('partner_map_title')}</h2>
-                <p className="text-brand-brown/60 mb-8 max-w-sm font-medium">
+                <h2 className="text-[32px] font-bold tracking-tight mb-2 leading-tight">{t('partner_map_title')}</h2>
+                <p className="text-white/50 mb-8 max-w-sm font-medium text-[15px] leading-relaxed">
                     {t('map_dev_mode')}
                     <br />
-                    (API Key Missing)
+                    <span className="text-[12px] uppercase tracking-widest opacity-50">(API Key Missing)</span>
                 </p>
-                <div className="w-full max-w-md h-96 bg-surface-cream border-2 border-brand-brown/10 rounded-[32px] flex items-center justify-center text-brand-brown/40 font-bold tracking-widest relative overflow-hidden">
-                    <div className="absolute inset-0 bg-brand-brown/5 animate-pulse"></div>
+                <div className="w-full max-w-md h-96 bg-[#1C1C1E]/80 backdrop-blur-3xl border border-white/10 rounded-[36px] flex items-center justify-center text-white/30 font-semibold tracking-wider relative overflow-hidden shadow-2xl">
+                    <div className="absolute inset-0 bg-white/5 animate-pulse"></div>
                     <span className="relative z-10">{t('map_placeholder')}</span>
                 </div>
                 <button
                     onClick={() => navigate('/')}
-                    className="mt-8 text-sm font-bold text-brand-brown/80 hover:text-brand-brown transition-colors uppercase tracking-wider"
+                    className="mt-12 text-[14px] font-semibold text-white/60 hover:text-white transition-colors uppercase tracking-widest px-6 py-3 border border-white/10 rounded-full hover:bg-white/5"
                 >
                     Back to Home
                 </button>
@@ -87,92 +88,103 @@ const PartnerMap = () => {
         );
     }
 
+    // Google Maps iOS Dark Mode Style Array
+    const darkMapStyles = [
+        { elementType: "geometry", stylers: [{ color: "#1C1C1E" }] },
+        { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+        { elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+        { elementType: "labels.text.stroke", stylers: [{ color: "#1C1C1E" }] },
+        { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
+        { featureType: "administrative.country", elementType: "labels.text.fill", stylers: [{ color: "#9e9e9e" }] },
+        { featureType: "administrative.land_parcel", stylers: [{ visibility: "off" }] },
+        { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#bdbdbd" }] },
+        { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+        { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#181818" }] },
+        { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+        { featureType: "poi.park", elementType: "labels.text.stroke", stylers: [{ color: "#1b1b1b" }] },
+        { featureType: "road", elementType: "geometry.fill", stylers: [{ color: "#2c2c2c" }] },
+        { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#8a8a8a" }] },
+        { featureType: "road.arterial", elementType: "geometry", stylers: [{ color: "#373737" }] },
+        { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#3c3c3c" }] },
+        { featureType: "road.highway.controlled_access", elementType: "geometry", stylers: [{ color: "#4e4e4e" }] },
+        { featureType: "road.local", elementType: "labels.text.fill", stylers: [{ color: "#616161" }] },
+        { featureType: "transit", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+        { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] },
+        { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3d3d3d" }] }
+    ];
+
     return (
         <LoadScript googleMapsApiKey={apiKey}>
-            <GoogleMap
-                mapContainerStyle={containerStyle}
-                center={currentPosition}
-                zoom={14}
-                options={{
-                    disableDefaultUI: true,
-                    zoomControl: false,
-                    styles: [
-                        {
-                            "featureType": "all",
-                            "elementType": "geometry",
-                            "stylers": [{ "color": "#FFF8E1" }] // Cream background
-                        },
-                        {
-                            "featureType": "all",
-                            "elementType": "labels.text.fill",
-                            "stylers": [{ "color": "#4E342E" }] // Brown text
-                        },
-                        {
-                            "featureType": "road",
-                            "elementType": "geometry",
-                            "stylers": [{ "color": "#ffffff" }] // White roads
-                        }
-                    ]
-                }}
-            >
-                {mockVenues.map(venue => (
-                    <Marker
-                        key={venue.id}
-                        position={{ lat: venue.lat, lng: venue.lng }}
-                        onClick={() => setSelectedVenue(venue)}
-                        icon={{
-                            path: faMapMarkerAlt.icon[4],
-                            fillColor: "#E68A00",
-                            fillOpacity: 1,
-                            strokeWeight: 0,
-                            scale: 0.07,
-                        }}
-                    />
-                ))}
-
-                {selectedVenue && (
-                    <InfoWindow
-                        position={{ lat: selectedVenue.lat, lng: selectedVenue.lng }}
-                        onCloseClick={() => setSelectedVenue(null)}
-                    >
-                        <div className="p-2 min-w-[200px] font-sans">
-                            <h3 className="font-bold text-lg mb-1 text-brand-brown">{selectedVenue.name}</h3>
-                            <p className="text-sm text-brand-brown/60 mb-3">{selectedVenue.address}</p>
-                            <div className="flex gap-2">
-                                <a
-                                    href={selectedVenue.link}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="flex-1 bg-brand-orange text-white text-xs font-bold py-2 px-3 rounded-lg text-center shadow-lg shadow-brand-orange/20"
-                                >
-                                    Open Link
-                                </a>
-                                <a
-                                    href={`https://www.google.com/maps/dir/?api=1&destination=${selectedVenue.lat},${selectedVenue.lng}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="flex-shrink-0 bg-brand-brown/5 text-brand-brown p-2 rounded-lg hover:bg-brand-brown/10"
-                                >
-                                    <FontAwesomeIcon icon={faDirections} />
-                                </a>
-                            </div>
-                        </div>
-                    </InfoWindow>
-                )}
-            </GoogleMap>
-
-            {/* Floating UI Elements */}
-            <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none">
-                <button
-                    onClick={() => navigate('/')}
-                    className="pointer-events-auto bg-background-cream/90 backdrop-blur-md p-3 px-4 rounded-xl shadow-xl border border-brand-brown/5 text-brand-brown font-bold text-sm hover:scale-105 transition-transform"
+            <div className="relative font-sans antialiased text-white bg-black">
+                <GoogleMap
+                    mapContainerStyle={containerStyle}
+                    center={currentPosition}
+                    zoom={14}
+                    options={{
+                        disableDefaultUI: true,
+                        zoomControl: false,
+                        styles: darkMapStyles
+                    }}
                 >
-                    ← Back
-                </button>
+                    {mockVenues.map(venue => (
+                        <Marker
+                            key={venue.id}
+                            position={{ lat: venue.lat, lng: venue.lng }}
+                            onClick={() => setSelectedVenue(venue)}
+                            icon={{
+                                path: faMapMarkerAlt.icon[4],
+                                fillColor: "#FFFFFF",
+                                fillOpacity: 1,
+                                strokeWeight: 0,
+                                scale: 0.08,
+                            }}
+                        />
+                    ))}
 
-                <div className="bg-background-cream/90 backdrop-blur-md p-2 rounded-xl shadow-xl border border-brand-brown/5 text-brand-brown font-bold text-xs flex items-center gap-2">
-                    <FontAwesomeIcon icon={faLeaf} className="text-brand-green" />
-                    <span>Friendly Map</span>
+                    {selectedVenue && (
+                        <InfoWindow
+                            position={{ lat: selectedVenue.lat, lng: selectedVenue.lng }}
+                            onCloseClick={() => setSelectedVenue(null)}
+                        >
+                            <div className="p-3 min-w-[220px] font-sans bg-black text-white rounded-[20px] border border-white/10 shadow-2xl">
+                                <h3 className="font-bold text-[18px] mb-1 tracking-tight">{selectedVenue.name}</h3>
+                                <p className="text-[13px] text-white/50 mb-4">{selectedVenue.address}</p>
+                                <div className="flex gap-2">
+                                    <a
+                                        href={selectedVenue.link}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex-1 bg-white text-black text-[12px] font-semibold py-2.5 px-3 rounded-[12px] text-center active:scale-95 transition-transform"
+                                    >
+                                        Open Link
+                                    </a>
+                                    <a
+                                        href={`https://www.google.com/maps/dir/?api=1&destination=${selectedVenue.lat},${selectedVenue.lng}`}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex-shrink-0 bg-white/10 text-white p-2.5 px-3.5 rounded-[12px] hover:bg-white/20 active:scale-95 transition-transform"
+                                    >
+                                        <FontAwesomeIcon icon={faDirections} />
+                                    </a>
+                                </div>
+                            </div>
+                        </InfoWindow>
+                    )}
+                </GoogleMap>
+
+                {/* Floating UI Elements (iOS Glass Style) */}
+                <div className="absolute top-6 left-6 right-6 flex justify-between items-start pointer-events-none z-10">
+                    <button
+                        onClick={() => navigate('/')}
+                        className="pointer-events-auto bg-[#1C1C1E]/80 backdrop-blur-2xl p-3 px-5 rounded-[18px] shadow-2xl border border-white/10 text-white font-semibold text-[15px] active:scale-[0.97] transition-all flex items-center justify-center"
+                    >
+                        ← Back
+                    </button>
+
+                    <div className="bg-[#1C1C1E]/80 backdrop-blur-2xl p-2.5 px-4 rounded-[18px] shadow-2xl border border-white/10 text-white font-semibold text-[13px] flex items-center gap-2">
+                        <FontAwesomeIcon icon={faLeaf} className="text-[#00FF41]" />
+                        <span className="opacity-90">Locations</span>
+                    </div>
                 </div>
             </div>
         </LoadScript>

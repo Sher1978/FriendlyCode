@@ -540,6 +540,21 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String fullActivationPeriod(Object end, Object start) {
+    return 'Полный период активации: $start - $end';
+  }
+
+  @override
+  String expiryPeriod(Object end) {
+    return 'Период действия: до $end';
+  }
+
+  @override
+  String daysRemaining(Object days) {
+    return 'Осталось дней: $days';
+  }
+
+  @override
   String get unlimitedVenues => 'Безлимитные заведения';
 
   @override

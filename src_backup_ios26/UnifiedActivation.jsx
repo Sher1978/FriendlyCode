@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db, auth } from './firebase';
-import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const UnifiedActivation = () => {
     const { t } = useTranslation();
@@ -22,12 +22,11 @@ const UnifiedActivation = () => {
     const [timeLeft, setTimeLeft] = useState(300); // 300 seconds (5 minutes) for the claim itself
 
     // Smart Prediction Timer State
+    const [secondsPassed, setSecondsPassed] = useState(0);
     const [predictionState, setPredictionState] = useState({
         percent: 20,
         secondsLeft: 86400,
-        label: 'max_discount_ends',
-        isBase: false,
-        isMax: false
+        label: 'max_discount_ends'
     });
 
     useEffect(() => {
@@ -47,12 +46,23 @@ const UnifiedActivation = () => {
     useEffect(() => {
         const venueId = localStorage.getItem('currentVenueId') || 'unknown';
 
+        // We need the venue config for accurate windows
         const fetchConfig = async () => {
             try {
                 const docSnap = await getDoc(doc(db, 'venues', venueId));
                 if (docSnap.exists()) {
                     const config = docSnap.data().loyaltyConfig;
+
                     const interval = setInterval(() => {
+                        const now = new Date();
+                        // Simulating based on a generic "last visit" if we don't have one 
+                        // Or better: just use the discount logic passed in.
+                        // But let's assume we want to show the timer properly.
+                        // For simplicity in this "Thank You" screen, we'll use the predictionState calculated in LandingPage 
+                        // OR recalculate here.
+
+                        // For the "Thank You" screen specifically, we care about the CURRENT discount state.
+                        let label = 'valid_for_label';
                         let isBase = discountValue <= 5;
                         let isMax = discountValue >= 20;
 
@@ -78,6 +88,13 @@ const UnifiedActivation = () => {
         return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
     };
 
+    const formatHours = (seconds) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+    };
+
     const handleClaim = async () => {
         try {
             const venueId = location.state?.venueId || localStorage.getItem('currentVenueId') || 'unknown';
@@ -85,12 +102,14 @@ const UnifiedActivation = () => {
             const user = auth.currentUser;
             const role = location.state?.userRole || 'guest';
 
+            // Use duplicated-resolved ID if available, otherwise auth ID
             const effectiveUid = location.state?.effectiveUid || localStorage.getItem('effectiveUid') || user?.uid || 'anonymous';
 
+            // Check if user already claimed today
             const startOfToday = new Date();
             startOfToday.setHours(0, 0, 0, 0);
 
-            const { getDocs, query, collection, where } = await import('firebase/firestore');
+            const { getDocs, query, collection, where, addDoc, serverTimestamp } = await import('firebase/firestore');
 
             const qRecent = query(
                 collection(db, 'visits'),
@@ -101,6 +120,7 @@ const UnifiedActivation = () => {
             const recentSnaps = await getDocs(qRecent);
 
             if (recentSnaps.empty) {
+                // 1. Create visit record (Core Logic)
                 await addDoc(collection(db, 'visits'), {
                     uid: effectiveUid,
                     venueId: venueId,
@@ -115,6 +135,7 @@ const UnifiedActivation = () => {
                 console.log("Visit already recorded for today, skipping duplicate insert.");
             }
 
+            // 2. Also keep legacy request for compatibility (we let this run to not break legacy admin UI)
             await addDoc(collection(db, 'discount_requests'), {
                 venueId: venueId,
                 guestEmail: guestEmail,
@@ -133,17 +154,17 @@ const UnifiedActivation = () => {
 
     if (isExpired) {
         return (
-            <div className="flex flex-col min-h-screen bg-black font-sans text-white items-center justify-center p-6 text-center">
-                <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 backdrop-blur-md rounded-full flex items-center justify-center mb-6 text-red-500">
-                    <FontAwesomeIcon icon={faClock} className="text-2xl" />
+            <div className="flex flex-col min-h-screen bg-red-50 items-center justify-center p-6 text-center">
+                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mb-6 text-red-500">
+                    <FontAwesomeIcon icon={faClock} size="2x" />
                 </div>
-                <h1 className="text-xl font-bold text-white mb-2 tracking-wide uppercase">{t('reward_expired')}</h1>
-                <p className="text-white/50 font-medium text-sm max-w-[260px] leading-relaxed">
+                <h1 className="text-2xl font-black text-red-900 mb-2 uppercase">{t('reward_expired')}</h1>
+                <p className="text-red-800/60 font-medium">
                     {t('expired_instruction')}
                 </p>
                 <button
                     onClick={() => navigate('/qr')}
-                    className="mt-8 px-8 py-3 bg-white text-black font-semibold rounded-[18px] w-full max-w-[200px]"
+                    className="mt-8 px-8 py-3 bg-red-600 text-white font-black rounded-xl uppercase tracking-wider"
                 >
                     Back to Start
                 </button>
@@ -151,84 +172,70 @@ const UnifiedActivation = () => {
         );
     }
 
-    // Determine glow color based on discount
-    let ambientColor = 'rgba(255,255,255,0.8)';
-    if (discountValue >= 20) ambientColor = '#00FF41'; // Green
-    else if (discountValue >= 15) ambientColor = '#FFD700'; // Yellow
-    else if (discountValue >= 10) ambientColor = '#FF8800'; // Orange
-    else if (discountValue >= 5) ambientColor = '#FF3131'; // Red
-
     return (
-        <div className="flex flex-col min-h-screen bg-black font-sans text-white antialiased overflow-hidden relative" style={{ WebkitFontSmoothing: 'antialiased' }}>
-            
-            {/* Ambient Ambient Glow */}
-            <div className="absolute top-[-10%] left-[-20vw] w-[140vw] h-[60vh] rounded-[100%] blur-[100px] pointer-events-none opacity-[0.25] mix-blend-screen" style={{ backgroundColor: ambientColor }} />
-            <div className="absolute bottom-[10%] right-[-20vw] w-[140vw] h-[50vh] rounded-[100%] blur-[120px] pointer-events-none opacity-[0.15]" style={{ backgroundColor: ambientColor }} />
-
+        <div className="flex flex-col min-h-screen bg-[#E8F5E9] font-sans text-[#1B5E20] antialiased overflow-hidden relative">
             {/* Header / Nav */}
-            <div className="pt-6 px-6 flex justify-between items-center z-10 w-full">
-                <div className="flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/5 mx-auto">
-                    <FontAwesomeIcon icon={faUser} className="text-[10px] text-white/50" />
-                    <span className="text-[11px] font-semibold tracking-wide text-white">{guestName}</span>
+            <div className="pt-8 px-6 flex justify-between items-center z-10">
+                <div className="flex items-center gap-2 bg-white/60 px-3 py-1.5 rounded-full backdrop-blur-sm">
+                    <FontAwesomeIcon icon={faUser} className="text-xs" />
+                    <span className="text-xs font-bold uppercase tracking-wide">{guestName}</span>
                 </div>
             </div>
 
-            <div className="flex-grow flex flex-col items-center justify-center px-6 relative z-10 w-full max-w-md mx-auto -mt-4">
+            <div className="flex-grow flex flex-col items-center justify-center px-6 relative z-10 w-full max-w-md mx-auto">
 
                 {/* Greeting */}
                 <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="text-center mb-8"
                 >
-                    <div className="w-16 h-16 bg-[#1C1C1E] border border-white/10 rounded-full flex items-center justify-center text-xl mb-4 mx-auto shadow-2xl text-white">
+                    <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl mb-4 mx-auto shadow-lg shadow-[#1B5E20]/10 text-[#4CAF50]">
                         <FontAwesomeIcon icon={faStar} />
                     </div>
-                    <h1 className="text-[26px] font-bold tracking-tight leading-tight mb-1 text-white">
+                    <h1 className="text-[28px] font-black leading-tight mb-2">
                         {t('thanks_for_visiting', { name: guestName, defaultValue: `Thanks for visiting,\n${guestName}!` })}
                     </h1>
-                    <p className="text-white/60 font-medium text-[13px]">
+                    <p className="text-[#1B5E20]/60 font-medium text-lg">
                         {t('reward_sub', "Here is your special treat.")}
                     </p>
                 </motion.div>
 
                 {/* Discount Card */}
                 <motion.div
-                    initial={{ scale: 0.95, opacity: 0 }}
+                    initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="w-full bg-[#1C1C1E]/60 backdrop-blur-[40px] rounded-[32px] p-8 text-center shadow-2xl border border-white/10 relative overflow-hidden"
+                    transition={{ delay: 0.2 }}
+                    className="w-full bg-white rounded-[32px] p-8 text-center shadow-xl shadow-[#1B5E20]/5 border-2 border-[#A5D6A7] relative overflow-hidden"
                 >
-                    <div className="absolute inset-0 border border-white/5 rounded-[32px] pointer-events-none mix-blend-overlay"></div>
-
                     {/* Decorative Blob */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#E8F5E9] rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
-                    <span className="relative z-10 text-[11px] font-semibold uppercase tracking-widest text-white/40">
+                    <span className="relative z-10 text-[12px] font-black uppercase tracking-[0.2em] text-[#81C784]">
                         {t('current_discount')}
                     </span>
 
                     <div className="relative z-10 my-4">
-                        <span className="text-[72px] font-bold leading-none text-white tracking-tighter" style={{ textShadow: `0 0 40px ${ambientColor}` }}>
+                        <span className="text-[80px] font-black leading-none text-[#2E7D32]">
                             {discountValue}%
                         </span>
-                        <span className="block text-[12px] font-bold text-white/40 uppercase tracking-widest mt-1">
+                        <span className="block text-[14px] font-bold text-[#1B5E20]/40 uppercase tracking-widest mt-[-5px]">
                             OFF Total Bill
                         </span>
                     </div>
 
                     {/* Dynamic Action Area */}
-                    <div className="mt-8 relative z-10">
+                    <div className="mt-8 relative">
                         {/* Next Visit Info */}
                         <div className="mb-4 flex flex-col items-center gap-2">
                             {predictionState.isBase ? (
-                                <span className="text-[13px] font-semibold text-white/80 animate-pulse">
+                                <span className="text-lg font-black text-[#2E7D32] animate-pulse">
                                     {t('tomorrow_20_percent')}
                                 </span>
                             ) : null}
                         </div>
 
-                        <div className="h-[52px] relative flex justify-center">
+                        <div className="h-[64px] relative">
                             <AnimatePresence mode="wait">
                                 {!isClaimed ? (
                                     <motion.button
@@ -237,7 +244,7 @@ const UnifiedActivation = () => {
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -10 }}
                                         onClick={handleClaim}
-                                        className="w-[92%] max-w-[400px] h-full bg-white text-black rounded-[18px] font-semibold text-[16px] flex items-center justify-center gap-2 shadow-xl active:scale-[0.97] transition-all"
+                                        className="w-full h-full bg-[#2E7D32] text-white rounded-[20px] font-black text-[18px] uppercase tracking-wider flex items-center justify-center gap-3 shadow-lg shadow-[#2E7D32]/30 active:scale-95 transition-all hover:bg-[#1B5E20]"
                                     >
                                         <FontAwesomeIcon icon={faGift} />
                                         {t('claim_gift')}
@@ -245,12 +252,12 @@ const UnifiedActivation = () => {
                                 ) : (
                                     <motion.div
                                         key="timer"
-                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
-                                        className="w-[92%] max-w-[400px] h-full bg-white/10 border border-white/20 text-white rounded-[18px] flex items-center justify-center gap-3 font-bold text-[20px] shadow-inner backdrop-blur-md"
+                                        className="w-full h-full bg-[#E8F5E9] border-2 border-[#2E7D32] text-[#2E7D32] rounded-[20px] flex items-center justify-center gap-4 font-black text-[24px] shadow-inner"
                                     >
-                                        <FontAwesomeIcon icon={faHeart} className="text-red-500 animate-ping text-[14px]" />
-                                        <span className="tabular-nums tracking-wider font-mono">{formatTime(timeLeft)}</span>
+                                        <FontAwesomeIcon icon={faHeart} className="text-red-500 animate-ping text-sm" />
+                                        <span className="tabular-nums tracking-widest font-mono">{formatTime(timeLeft)}</span>
                                     </motion.div>
                                 )}
                             </AnimatePresence>
@@ -262,13 +269,14 @@ const UnifiedActivation = () => {
                 <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-center text-[12px] font-medium text-white/50 mt-6 max-w-[260px] leading-relaxed"
+                    transition={{ delay: 0.4 }}
+                    className="text-center text-sm font-bold opacity-50 mt-8 max-w-[260px] leading-relaxed"
                 >
                     {isClaimed
                         ? t('show_counter_instruction')
                         : t('claim_instruction')}
                 </motion.p>
+
             </div>
         </div>
     );
