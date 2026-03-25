@@ -42,6 +42,7 @@ const RevooB2C = () => {
     );
     
     const smoothBatteryLevel = useSpring(batteryLevel, { stiffness: 100, damping: 30 });
+    const batteryWidth = useTransform(smoothBatteryLevel, (v) => `${v}%`);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -98,10 +99,11 @@ const RevooB2C = () => {
                 <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 text-white">Status</div>
                 <div className="w-14 h-7 border-2 border-white/20 rounded-md p-[2px] relative bg-white/5 backdrop-blur-xl">
                     <motion.div 
-                        className="h-full rounded-[2px] shadow-[0_0_10px_rgba(0,255,65,0.4)]"
+                        className="h-full rounded-[2px]"
                         style={{ 
-                            width: `${smoothBatteryLevel.get()}%`,
-                            backgroundColor: batteryColor
+                            width: batteryWidth,
+                            backgroundColor: batteryColor,
+                            boxShadow: "0 0 10px rgba(0,255,65,0.4)"
                         }}
                     />
                     <div className="absolute -right-[4px] top-1/2 -translate-y-1/2 w-[2px] h-2 bg-white/20 rounded-r-full" />
