@@ -82,10 +82,10 @@ const Unsubscribe = () => {
                 </div>
                 <h1 className="text-[26px] font-bold mb-3 tracking-tight leading-tight">Unsubscribed</h1>
                 <p className="text-white/50 font-medium text-[15px] mb-8 leading-relaxed">
-                    We've removed <b>{email}</b> from our mailing list. You won't receive marketing emails from Friendly Code partners anymore.
+                    We've removed <b>{email}</b> from our mailing list. You won't receive marketing emails from REVOO partners anymore.
                 </p>
                 <div className="opacity-30 font-semibold text-[11px] tracking-widest flex items-center gap-2 uppercase">
-                    <FontAwesomeIcon icon={faLeaf} className="text-[#00FF41]" /> FRIENDLY CODE
+                    <img src="/revoo-logo.png" className="h-3 mix-blend-screen opacity-50" alt="REVOO Logo" /> REVOO
                 </div>
             </div>
         );

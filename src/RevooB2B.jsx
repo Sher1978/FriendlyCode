@@ -21,22 +21,27 @@ const RevooB2B = () => {
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
     const [scrolled, setScrolled] = useState(false);
-    
-    // Smooth scroll progress
-    const { scrollYProgress } = useScroll();
-    
-    // Map scroll progress to energy level (100% to 10%)
-    const energyLevel = useTransform(scrollYProgress, [0, 0.5], [100, 10]);
+    // Battery Simulation Showcase (Cycles 100 -> 50 -> 25 -> 10)
     const [batteryDiscount, setBatteryDiscount] = useState(20);
     const [displayEnergy, setDisplayEnergy] = useState(100);
 
-    useMotionValueEvent(energyLevel, "change", (latest) => {
-        setDisplayEnergy(Math.round(latest));
-        if (latest > 50) setBatteryDiscount(20);
-        else if (latest > 25) setBatteryDiscount(15);
-        else if (latest > 15) setBatteryDiscount(10);
-        else setBatteryDiscount(5);
-    });
+    useEffect(() => {
+        const cycle = [
+            { energy: 100, discount: 20 },
+            { energy: 50, discount: 15 },
+            { energy: 25, discount: 10 },
+            { energy: 10, discount: 5 }
+        ];
+        let index = 0;
+        
+        const interval = setInterval(() => {
+            index = (index + 1) % cycle.length;
+            setDisplayEnergy(cycle[index].energy);
+            setBatteryDiscount(cycle[index].discount);
+        }, 3500); // 3.5 seconds per state gives enough time to see the animation
+
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -143,16 +148,30 @@ const RevooB2B = () => {
                             animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
                         >
                             <span className="text-[#D4AF37] text-[10px] uppercase font-mono tracking-widest">Energy Flow</span>
-                            <span className="text-3xl font-black font-mono tracking-tighter" style={{ color: displayEnergy > 50 ? '#D4AF37' : displayEnergy > 20 ? '#FFCC00' : '#FF3B30' }}>{displayEnergy}%</span>
+                            <motion.span 
+                                key={displayEnergy} 
+                                initial={{ opacity: 0, scale: 0.8 }} 
+                                animate={{ opacity: 1, scale: 1 }} 
+                                className="text-3xl font-black font-mono tracking-tighter" 
+                                style={{ color: displayEnergy === 100 ? '#00FF41' : displayEnergy === 50 ? '#FFD700' : displayEnergy === 25 ? '#FF8800' : '#FF3131' }}
+                            >
+                                {displayEnergy}%
+                            </motion.span>
                         </motion.div>
                         <motion.div 
-                            className="absolute left-0 md:-left-20 bottom-10 md:bottom-24 bg-[#1C1C1E]/80 backdrop-blur-md border border-white/10 p-4 rounded-xl shadow-2xl z-30"
+                            className="absolute left-0 md:-left-20 bottom-10 md:bottom-24 bg-[#1C1C1E]/80 backdrop-blur-md border border-white/10 p-4 rounded-xl shadow-2xl z-30 min-w-[140px]"
                             animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
                         >
                             <span className="text-white/40 text-[10px] uppercase font-mono tracking-widest block mb-1">Status</span>
-                            <span className="text-sm font-bold text-white uppercase tracking-wider">
-                                {displayEnergy > 50 ? 'Max Retention' : displayEnergy > 20 ? 'Warning: Decay' : 'Critical Loss'}
-                            </span>
+                            <motion.span 
+                                key={displayEnergy} 
+                                initial={{ opacity: 0, x: -10 }} 
+                                animate={{ opacity: 1, x: 0 }} 
+                                className="text-sm font-bold uppercase tracking-wider block"
+                                style={{ color: displayEnergy === 100 ? '#00FF41' : displayEnergy === 50 ? '#FFD700' : displayEnergy === 25 ? '#FF8800' : '#FF3131' }}
+                            >
+                                {displayEnergy === 100 ? 'Max Retention' : displayEnergy === 50 ? 'Warning: Decay' : displayEnergy === 25 ? 'High Risk' : 'Critical Loss'}
+                            </motion.span>
                         </motion.div>
                     </motion.div>
                 </div>
