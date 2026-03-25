@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, useScroll, useTransform, useMotionValueEvent } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faBrain, 
@@ -14,23 +14,29 @@ import {
   faXmark
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import PngBattery from './PngBattery';
 
 const RevooB2B = () => {
     const navigate = useNavigate();
+    const { t, i18n } = useTranslation();
     const [scrolled, setScrolled] = useState(false);
     
     // Smooth scroll progress
     const { scrollYProgress } = useScroll();
-    const smoothProgress = useSpring(scrollYProgress, { stiffness: 100, damping: 30 });
     
-    // Battery Animation logic for Hero (Energy Flow)
-    const [energyLevel, setEnergyLevel] = useState(100);
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setEnergyLevel(prev => (prev <= 10 ? 100 : prev - 1));
-        }, 100);
-        return () => clearInterval(interval);
-    }, []);
+    // Map scroll progress to energy level (100% to 10%)
+    const energyLevel = useTransform(scrollYProgress, [0, 0.5], [100, 10]);
+    const [batteryDiscount, setBatteryDiscount] = useState(20);
+    const [displayEnergy, setDisplayEnergy] = useState(100);
+
+    useMotionValueEvent(energyLevel, "change", (latest) => {
+        setDisplayEnergy(Math.round(latest));
+        if (latest > 50) setBatteryDiscount(20);
+        else if (latest > 25) setBatteryDiscount(15);
+        else if (latest > 15) setBatteryDiscount(10);
+        else setBatteryDiscount(5);
+    });
 
     useEffect(() => {
         const handleScroll = () => {
@@ -47,25 +53,35 @@ const RevooB2B = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#000000] text-white font-sans selection:bg-[#00FF41]/30 overflow-x-hidden">
+        <div className="min-h-screen bg-[#000000] text-white font-sans selection:bg-[#D4AF37]/30 overflow-x-hidden">
             
-            {/* Ambient OLED Blurs */}
+            {/* Ambient OLED Blurs (Dubai Premium Gold/Slate) */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-900/10 blur-[130px] rounded-full" />
-                <div className="absolute top-[40%] right-[-10%] w-[600px] h-[600px] bg-[#00FF41]/5 blur-[150px] rounded-full" />
-                <div className="absolute bottom-[-10%] left-[20%] w-[700px] h-[700px] bg-[#FF9933]/5 blur-[120px] rounded-full" />
+                <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-amber-900/10 blur-[130px] rounded-full" />
+                <div className="absolute top-[40%] right-[-10%] w-[600px] h-[600px] bg-[#D4AF37]/10 blur-[150px] rounded-full" />
+                <div className="absolute bottom-[-10%] left-[20%] w-[700px] h-[700px] bg-[#FFDF00]/5 blur-[120px] rounded-full" />
             </div>
 
             {/* Navigation */}
-            <nav className={`fixed top-0 left-0 w-full z-50 px-6 py-6 transition-all duration-500 ${scrolled ? 'bg-black/60 backdrop-blur-2xl border-b border-white/5 py-4' : ''}`}>
-                <div className="max-w-7xl mx-auto flex justify-between items-center">
-                    <div className="text-xl md:text-2xl font-black tracking-tighter uppercase italic text-[#00FF41]">REVOO <span className="text-white/40 text-sm ml-2 font-bold tracking-widest not-italic">FOR BUSINESS</span></div>
-                    <button 
-                        onClick={() => window.open('https://t.me/REVOO_bot', '_blank')}
-                        className="bg-white text-black px-6 py-2 rounded-full text-sm font-bold uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)]"
-                    >
-                        Book Demo
-                    </button>
+            <nav className={`fixed top-0 left-0 w-full z-50 px-6 py-4 transition-all duration-500 ${scrolled ? 'bg-black/90 backdrop-blur-3xl border-b border-white/5 py-3 shadow-[0_4px_30px_rgba(0,0,0,0.5)]' : ''}`}>
+                <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
+                    <div className="flex-shrink-0 cursor-pointer flex items-center gap-4" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                        <img src="/revoo-logo.png" className={`transition-all duration-500 ${scrolled ? 'h-8' : 'h-10'} md:h-12 object-contain mix-blend-screen opacity-90 drop-shadow-[0_0_10px_rgba(212,175,55,0.3)]`} alt="REVOO Logo" />
+                        <span className="hidden md:block text-white/40 text-xs md:text-sm font-bold tracking-widest uppercase border-l border-white/20 pl-4">FOR BUSINESS</span>
+                    </div>
+                    <div className="flex items-center gap-3 md:gap-6">
+                        <div className="hidden sm:flex bg-white/5 backdrop-blur-md rounded-full border border-white/10 px-3 py-1.5 shadow-[inset_0_1px_4px_rgba(255,255,255,0.05)]">
+                            <button onClick={() => i18n.changeLanguage('en')} className={`text-base transition-all ${i18n.language === 'en' ? 'scale-110 drop-shadow-[0_0_8px_rgba(212,175,55,0.5)] grayscale-0' : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0 hover:scale-105'}`}>🇺🇸</button>
+                            <button onClick={() => i18n.changeLanguage('ar')} className={`text-base mx-3 transition-all ${i18n.language === 'ar' ? 'scale-110 drop-shadow-[0_0_8px_rgba(212,175,55,0.5)] grayscale-0' : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0 hover:scale-105'}`}>🇦🇪</button>
+                            <button onClick={() => i18n.changeLanguage('ru')} className={`text-base transition-all ${i18n.language === 'ru' ? 'scale-110 drop-shadow-[0_0_8px_rgba(212,175,55,0.5)] grayscale-0' : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0 hover:scale-105'}`}>🇷🇺</button>
+                        </div>
+                        <button 
+                            onClick={() => window.open('https://t.me/REVOO_bot', '_blank')}
+                            className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-6 py-2 rounded-full text-xs md:text-sm font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)] whitespace-nowrap"
+                        >
+                            Book Demo
+                        </button>
+                    </div>
                 </div>
             </nav>
 
@@ -73,30 +89,30 @@ const RevooB2B = () => {
             <section className="relative min-h-[90vh] flex items-center pt-32 pb-20 px-6 z-10 border-b border-white/5">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                     <motion.div initial="hidden" animate="visible" variants={fadeInUp} className="text-left">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-[#00FF41] mb-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] backdrop-blur-md">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-[#D4AF37] mb-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] backdrop-blur-md">
                             <FontAwesomeIcon icon={faMicrochip} />
                             The Architecture of Profitability
                         </div>
                         <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 tracking-tight leading-snug uppercase">
                             Лояльность — <br/>
                             <span className="text-white/40">это не маркетинг.</span> <br/>
-                            Это когнитивная инженерия.
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37]">Это когнитивная инженерия.</span>
                         </h1>
                         <p className="text-base md:text-lg text-white/70 font-medium mb-10 max-w-xl leading-relaxed">
                             Как удерживать 90% гостей, используя Нобелевскую теорию боязни потери и технологию Zero Friction.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4">
                             <motion.button
-                                whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(0, 255, 65, 0.4)" }}
+                                whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(212, 175, 55, 0.4)" }}
                                 whileTap={{ scale: 0.95 }}
-                                className="bg-[#00FF41] text-black px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
+                                className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-8 py-4 rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)]"
                             >
                                 СКАЧАТЬ WHITE PAPER
                             </motion.button>
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className="bg-white/5 backdrop-blur-xl border border-white/10 text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
+                                className="bg-white/5 backdrop-blur-xl border border-white/10 text-white px-8 py-4 rounded-full font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
                             >
                                 ТЕСТ-ДРАЙВ
                             </motion.button>
@@ -110,82 +126,33 @@ const RevooB2B = () => {
                         transition={{ duration: 1.2, ease: "easeOut" }}
                         className="relative h-[400px] w-full flex items-center justify-center perspective-[1000px]"
                     >
-                        {/* Battery Container */}
-                        <div className="relative w-48 h-[340px] flex flex-col items-center transform-gpu rotate-y-[-20deg] rotate-x-[15deg] drop-shadow-[0_30px_50px_rgba(0,0,0,0.6)]">
-                            
-                            {/* Top Cap (Positive) - Square & Engraved */}
-                            <div className="relative w-full h-8 bg-gradient-to-r from-[#1a1a1a] via-[#e5e5e5] to-[#1a1a1a] border-y-[3px] border-t-white/40 border-b-black/80 shadow-[0_5px_15px_rgba(0,0,0,0.8)] z-20 flex items-center justify-center rounded-sm">
-                                {/* Metallic Sheen & Brushed Effect */}
-                                <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-black/50 pointer-events-none" />
-                                <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMCAwbDR2NE00IDBMMCA0IiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMC41Ii8+PC9zdmc+')] mix-blend-overlay pointer-events-none" />
-                                {/* Engraved Huge + */}
-                                <div 
-                                    className="relative z-10 text-5xl font-black text-black/60 translate-y-[-2px] select-none" 
-                                    style={{ textShadow: "0px 1px 1px rgba(255,255,255,0.7), 0px -1px 1px rgba(0,0,0,0.8)" }}
-                                >
-                                    +
-                                </div>
-                            </div>
+                        {/* Ambient Glow */}
+                        <motion.div 
+                            className="absolute inset-[20%] rounded-full blur-[100px] z-0 transition-colors duration-300"
+                            style={{ backgroundColor: displayEnergy > 50 ? 'rgba(212,175,55,0.3)' : displayEnergy > 20 ? 'rgba(255,204,0,0.3)' : 'rgba(255,59,48,0.3)' }}
+                        />
 
-                            {/* Main Glass Body */}
-                            <div className="w-[94%] flex-1 relative bg-black/40 backdrop-blur-sm border-x border-white/20 flex flex-col justify-end py-1 z-10 shadow-[inset_0_0_30px_rgba(255,255,255,0.05),0_0_20px_rgba(0,255,65,0.1)]">
-                                {/* Volumetric Glass Reflection / Glare */}
-                                <div className="absolute inset-y-0 left-[15%] w-[10%] bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none z-30" />
-                                <div className="absolute inset-y-0 right-[5%] w-[5%] bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-30" />
-                                
-                                {/* 14 Glass Segments */}
-                                {Array.from({ length: 14 }).map((_, idx) => {
-                                    const reversedIdx = 13 - idx; // 0 is bottom
-                                    const activeSegments = Math.ceil((energyLevel / 100) * 14);
-                                    const isActive = reversedIdx < activeSegments;
-                                    
-                                    const activeColor = energyLevel > 50 ? '#00FF41' : energyLevel > 20 ? '#FFCC00' : '#FF3B30';
-                                    const glowShadow = isActive ? `inset 0 0 15px ${activeColor}, 0 0 25px ${activeColor}` : 'none';
-
-                                    return (
-                                        <div key={idx} className="flex-1 w-full relative group">
-                                            {/* Metallic Separator Ring */}
-                                            <div className="absolute -left-1 -right-1 h-[3px] top-0 bg-gradient-to-r from-gray-600 via-gray-300 to-gray-600 z-20 shadow-[0_1px_3px_rgba(0,0,0,0.8),inset_0_1px_1px_white]" />
-                                            {idx === 13 && (
-                                                <div className="absolute -left-1 -right-1 h-[3px] bottom-0 bg-gradient-to-r from-gray-600 via-gray-300 to-gray-600 z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.8),inset_0_-1px_1px_white]" />
-                                            )}
-                                            
-                                            {/* Glowing Liquid Inner Chamber */}
-                                            <motion.div 
-                                                className="absolute inset-[3px] rounded-sm transition-all duration-300"
-                                                style={{ 
-                                                    backgroundColor: isActive ? activeColor : 'rgba(255,255,255,0.01)',
-                                                    boxShadow: glowShadow,
-                                                    opacity: isActive ? 0.85 : 1
-                                                }}
-                                            />
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            {/* Bottom Cap (Negative) - Square & No Sign */}
-                            <div className="relative w-full h-8 bg-gradient-to-r from-[#1a1a1a] via-[#e5e5e5] to-[#1a1a1a] border-y-[3px] border-t-black/80 border-b-white/20 shadow-[0_-5px_15px_rgba(0,0,0,0.8)] z-20 rounded-sm">
-                                {/* Metallic Sheen & Brushed Effect */}
-                                <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80 pointer-events-none" />
-                                <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMCAwbDR2NE00IDBMMCA0IiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMC41Ii8+PC9zdmc+')] mix-blend-overlay pointer-events-none" />
-                            </div>
+                        {/* PngBattery Container (Horizontal) */}
+                        <div className="relative w-full max-w-sm flex flex-col items-center drop-shadow-[0_20px_40px_rgba(0,0,0,0.6)] z-20">
+                            <PngBattery discount={batteryDiscount} />
                         </div>
 
                         {/* HUD Elements */}
                         <motion.div 
-                            className="absolute -right-10 top-20 bg-[#1C1C1E]/80 backdrop-blur-md border border-[#00FF41]/30 p-4 rounded-xl shadow-2xl flex flex-col gap-1 z-30"
+                            className="absolute -right-4 md:-right-10 top-20 bg-[#1C1C1E]/80 backdrop-blur-md border border-[#D4AF37]/30 p-4 rounded-xl shadow-2xl flex flex-col gap-1 z-30"
                             animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
                         >
-                            <span className="text-[#00FF41] text-[10px] uppercase font-mono tracking-widest">Energy Flow</span>
-                            <span className="text-3xl font-black font-mono tracking-tighter" style={{ color: energyLevel > 50 ? '#00FF41' : energyLevel > 20 ? '#FFCC00' : '#FF3B30' }}>{energyLevel}%</span>
+                            <span className="text-[#D4AF37] text-[10px] uppercase font-mono tracking-widest">Energy Flow</span>
+                            <span className="text-3xl font-black font-mono tracking-tighter" style={{ color: displayEnergy > 50 ? '#D4AF37' : displayEnergy > 20 ? '#FFCC00' : '#FF3B30' }}>{displayEnergy}%</span>
                         </motion.div>
                         <motion.div 
-                            className="absolute left-0 lg:-left-20 bottom-24 bg-[#1C1C1E]/80 backdrop-blur-md border border-white/10 p-4 rounded-xl shadow-2xl z-30"
-                            animate={{ y: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
+                            className="absolute left-0 md:-left-20 bottom-10 md:bottom-24 bg-[#1C1C1E]/80 backdrop-blur-md border border-white/10 p-4 rounded-xl shadow-2xl z-30"
+                            animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
                         >
-                            <span className="text-white/50 text-[10px] uppercase font-mono tracking-widest block mb-1">State Logic</span>
-                            <span className="text-sm font-bold uppercase text-white tracking-widest">Active Retention</span>
+                            <span className="text-white/40 text-[10px] uppercase font-mono tracking-widest block mb-1">Status</span>
+                            <span className="text-sm font-bold text-white uppercase tracking-wider">
+                                {displayEnergy > 50 ? 'Max Retention' : displayEnergy > 20 ? 'Warning: Decay' : 'Critical Loss'}
+                            </span>
                         </motion.div>
                     </motion.div>
                 </div>
@@ -236,21 +203,21 @@ const RevooB2B = () => {
                         initial={{ opacity: 0, x: 50 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
-                        className="bg-white/5 backdrop-blur-2xl border border-[#00FF41]/30 p-8 rounded-[30px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_0_30px_rgba(0,255,65,0.05)] relative overflow-hidden"
+                        className="bg-white/5 backdrop-blur-2xl border border-[#D4AF37]/30 p-8 rounded-[30px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_0_30px_rgba(212,175,55,0.05)] relative overflow-hidden"
                     >
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#00FF41]/10 blur-[50px] rounded-full" />
-                        <h3 className="text-xl md:text-2xl font-black uppercase mb-4 text-[#00FF41] border-b border-white/10 pb-4">Архитектура REVOO</h3>
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/10 blur-[50px] rounded-full" />
+                        <h3 className="text-xl md:text-2xl font-black uppercase mb-4 text-[#D4AF37] border-b border-white/10 pb-4">Архитектура REVOO</h3>
                         <ul className="space-y-4">
                             <li className="flex items-start gap-4 text-white/80 font-medium text-sm md:text-base">
-                                <FontAwesomeIcon icon={faCheck} className="text-[#00FF41] mt-1" />
+                                <FontAwesomeIcon icon={faCheck} className="text-[#D4AF37] mt-1" />
                                 <span>Максимизация Lifetime Value (LTV).</span>
                             </li>
                             <li className="flex items-start gap-4 text-white/80 font-medium text-sm md:text-base">
-                                <FontAwesomeIcon icon={faCheck} className="text-[#00FF41] mt-1" />
+                                <FontAwesomeIcon icon={faCheck} className="text-[#D4AF37] mt-1" />
                                 <span>Технология Zero Friction: NFC + Apple Wallet.</span>
                             </li>
                             <li className="flex items-start gap-4 text-white/80 font-medium text-sm md:text-base">
-                                <FontAwesomeIcon icon={faCheck} className="text-[#00FF41] mt-1" />
+                                <FontAwesomeIcon icon={faCheck} className="text-[#D4AF37] mt-1" />
                                 <span>Дофаминовая петля возвратов.</span>
                             </li>
                         </ul>
@@ -289,15 +256,15 @@ const RevooB2B = () => {
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: idx * 0.2 }}
-                            className="bg-white/5 backdrop-blur-2xl border border-white/10 p-8 rounded-3xl group hover:border-[#00FF41]/40 transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] relative overflow-hidden"
+                            className="bg-white/5 backdrop-blur-2xl border border-white/10 p-8 rounded-3xl group hover:border-[#D4AF37]/40 transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] relative overflow-hidden"
                         >
                             {/* Glass Orb Icon Container */}
-                            <div className="w-16 h-16 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center mb-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] group-hover:bg-[#00FF41]/10 transition-colors relative">
+                            <div className="w-16 h-16 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center mb-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] group-hover:bg-[#D4AF37]/10 transition-colors relative">
                                 <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50 rounded-2xl pointer-events-none" />
-                                <FontAwesomeIcon icon={item.icon} className="text-3xl text-white/50 group-hover:text-[#00FF41] transition-colors relative z-10" />
+                                <FontAwesomeIcon icon={item.icon} className="text-3xl text-white/50 group-hover:text-[#D4AF37] transition-colors relative z-10" />
                             </div>
                             <h4 className="text-lg font-black uppercase text-white mb-1 tracking-tight">{item.title}</h4>
-                            <div className="text-[10px] font-bold text-[#00FF41] tracking-[0.2em] uppercase mb-4">{item.subtitle}</div>
+                            <div className="text-[10px] font-bold text-[#D4AF37] tracking-[0.2em] uppercase mb-4">{item.subtitle}</div>
                             <p className="text-white/60 text-sm leading-relaxed">{item.text}</p>
                         </motion.div>
                     ))}
@@ -441,22 +408,22 @@ const RevooB2B = () => {
                         initial={{ opacity: 0, scale: 0.95 }}
                         whileInView={{ opacity: 1, scale: 1 }}
                         viewport={{ once: true }}
-                        className="bg-white/5 backdrop-blur-3xl border border-[rgba(0,255,65,0.4)] p-8 md:p-16 lg:p-20 rounded-[40px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),0_20px_60px_rgba(0,255,65,0.15)] relative overflow-hidden"
+                        className="bg-white/5 backdrop-blur-3xl border border-[rgba(212,175,55,0.4)] p-8 md:p-16 lg:p-20 rounded-[40px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),0_20px_60px_rgba(212,175,55,0.15)] relative overflow-hidden"
                     >
-                        <div className="absolute inset-0 bg-[#00FF41]/5 animate-pulse" />
+                        <div className="absolute inset-0 bg-[#D4AF37]/5 animate-pulse" />
                         
                         <h2 className="text-2xl md:text-4xl lg:text-5xl font-black uppercase tracking-tight mb-6 text-white relative z-10 leading-tight">
                             30-дневный тест-драйв <br/>
-                            <span className="text-[#00FF41]">с гарантией 100% ROI.</span>
+                            <span className="text-[#D4AF37]">с гарантией 100% ROI.</span>
                         </h2>
                         <p className="text-white/70 text-base md:text-lg font-medium mb-10 max-w-2xl mx-auto relative z-10 leading-relaxed">
                             Мы настолько уверены в научной базе, что берем все риски на себя. Если через месяц вы не увидите измеримого роста частоты визитов — мы возвращаем инвестиции и забираем оборудование.
                         </p>
                         <motion.button
-                            whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(0, 255, 65, 0.4)" }}
+                            whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(212, 175, 55, 0.4)" }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => window.open('https://t.me/REVOO_bot', '_blank')}
-                            className="bg-[#00FF41] text-black px-10 py-5 rounded-2xl font-black text-sm md:text-base uppercase tracking-[0.2em] relative z-10 w-full md:w-auto shadow-[inset_0_1px_1px_rgba(255,255,255,0.5)]"
+                            className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-10 py-5 rounded-full font-black text-sm md:text-base uppercase tracking-[0.2em] relative z-10 w-full md:w-auto shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:shadow-[0_0_40px_rgba(212,175,55,0.4)]"
                         >
                             ВНЕДРИТЬ СИСТЕМУ ЗА 15 МИНУТ
                         </motion.button>
@@ -467,7 +434,8 @@ const RevooB2B = () => {
             {/* Footer */}
             <footer className="py-12 border-t border-white/5 bg-black relative z-10">
                 <div className="max-w-7xl mx-auto px-6 text-center">
-                    <div className="text-2xl font-black uppercase tracking-tighter italic text-white/20 mb-2">REVOO B2B</div>
+                    <img src="/revoo-logo.png" className="h-6 mx-auto mix-blend-screen opacity-50 mb-4" alt="REVOO Logo" />
+                    <div className="text-xs font-black uppercase tracking-tighter italic text-[#D4AF37]/40 mb-2">FOR BUSINESS</div>
                     <div className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/30">The Architecture of Profitability © 2026</div>
                 </div>
             </footer>

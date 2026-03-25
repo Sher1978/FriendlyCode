@@ -83,3 +83,9 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* RTL Support */
+[dir='rtl'] {
+  direction: rtl;
+  font-family: 'Cairo', 'SF Pro Display', sans-serif;
+}

@@ -4,26 +4,32 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FriendlyCode</title>
+    <title>REVOO Ecosystem</title>
   </head>
   <body>
     <div id="root">
       <style>
-        body { background-color: #FFF8E1; margin: 0; }
+        body { background-color: #000000; margin: 0; }
         .initial-loader {
           display: flex;
+          flex-direction: column;
           justify-content: center;
           align-items: center;
           height: 100vh;
-          color: #E68A00;
-          font-family: system-ui, -apple-system, sans-serif;
-          font-weight: 900;
-          font-size: 24px;
-          animation: pulse 1s infinite alternate;
+          background-color: #000000;
+          animation: pulse 1.5s ease-in-out infinite alternate;
         }
-        @keyframes pulse { from { opacity: 0.6; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        .initial-loader img {
+          max-width: 140px;
+          height: auto;
+          mix-blend-mode: screen;
+          filter: drop-shadow(0 0 10px rgba(212,175,55,0.3));
+        }
+        @keyframes pulse { 0% { opacity: 0.4; transform: scale(0.95); filter: brightness(0.8); } 100% { opacity: 1; transform: scale(1); filter: brightness(1.2); } }
       </style>
-      <div class="initial-loader">FRIENDLY CODE...</div>
+      <div class="initial-loader">
+        <img src="/revoo-logo.png" alt="REVOO" />
+      </div>
     </div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

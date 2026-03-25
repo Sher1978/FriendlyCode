@@ -21,7 +21,11 @@ function App() {
 
   return (
     <BrowserRouter>
-      <React.Suspense fallback={<div className="min-h-screen bg-background-cream flex items-center justify-center font-black text-brand-orange animate-pulse">LOADING...</div>}>
+      <React.Suspense fallback={
+        <div className="min-h-screen bg-[#000000] flex flex-col items-center justify-center animate-pulse">
+          <img src="/revoo-logo.png" alt="Loading REVOO" className="w-32 opacity-80 mix-blend-screen drop-shadow-[0_0_10px_rgba(212,175,55,0.3)]" />
+        </div>
+      }>
         <Routes>
           {/* Legacy Marketing (Friendly Code 2.0) */}
           <Route path="/legacy/b2c" element={<MarketingB2C />} />
@@ -57,14 +61,14 @@ const NavigateToAdmin = ({ path }) => {
   React.useEffect(() => {
     window.location.href = `/admin/#/${path}`;
   }, [path]);
-  return <div className="min-h-screen bg-[#FFF2E2]"></div>;
+  return <div className="min-h-screen bg-[#000000]"></div>;
 };
 
 const AdminRedirect = () => {
   React.useEffect(() => {
     window.location.href = '/admin/';
   }, []);
-  return <div className="min-h-screen bg-background-cream"></div>;
+  return <div className="min-h-screen bg-[#000000]"></div>;
 };
 
 export default App;
