@@ -46,14 +46,17 @@
 *   **Component:** `NotificationBadge` (Bell icon) in the header.
 *   **Logic:** Real-time stream from `notifications` collection. Marks as `read: true` on interaction.
 
-## 4. BUSINESS LOGIC: TIME-DECAY 2.0
-*   **Active Streak:** 24h window to maintain 20%. 
-*   **Calendar Day Logic:** Status expires at midnight of the day *after* the last visit.
-*   **Decay Stages:**
-    *   15% (Stage 1 Decay)
-    *   10% (Stage 2 Decay)
-    *   5% (Base/Reset)
-*   **Verification:** Staff receives instant Email/Telegram/Browser notification upon guest activation.
+## 4. BUSINESS LOGIC: TIME-DECAY 2.0 (CALENDAR DAYS)
+*   **Timezone Enforcement:** All visit dates are calculated and matched strictly against the venue's configured timezone (e.g., `Asia/Dubai`). The primary identifier is a structured DateString (`YYYY-MM-DD`).
+*   **Single Daily Visit:** If a guest scans the QR code multiple times within the same *calendar day* (based on the venue timezone), only the first scan is recorded. Subsequent scans update the UI but do not alter the database timestamp.
+*   **Active Streak (VIP):** `vipWindowDays` (default 1 Day). Maintains a 20% discount if visited strictly on consecutive calendar days.
+*   **Decay Stages (Configurable via Admin):**
+    *   Stage 1: `tier1DecayDays` -> 15%
+    *   Stage 2: `tier2DecayDays` -> 10%
+    *   Stage 3: Base -> 5%
+*   **Debug & Verification:** 
+    * 5x Taps on the Guest Name in the QR page opens the Debug Overlay showing the last 5 exact visit dates.
+    * Staff receives an instant Email/Telegram notification upon successful activation validation.
 
 ## 5. DATABASE SCHEMA
 **Collection: `users`**

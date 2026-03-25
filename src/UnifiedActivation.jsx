@@ -87,20 +87,41 @@ const UnifiedActivation = () => {
 
             const effectiveUid = location.state?.effectiveUid || localStorage.getItem('effectiveUid') || user?.uid || 'anonymous';
 
-            const startOfToday = new Date();
-            startOfToday.setHours(0, 0, 0, 0);
+            const { getDocs, query, collection, where, orderBy, limit } = await import('firebase/firestore');
+            const { RewardCalculator } = await import('./logic/RewardCalculator');
 
-            const { getDocs, query, collection, where } = await import('firebase/firestore');
+            // Fetch venue timezone for precise duplicate checking
+            let tz = 'Asia/Dubai';
+            try {
+                const venueSnap = await getDoc(doc(db, 'venues', venueId));
+                if (venueSnap.exists()) tz = venueSnap.data().timezone || 'Asia/Dubai';
+            } catch (err) {
+                console.warn("Failed to get venue timezone, using default", err);
+            }
 
             const qRecent = query(
                 collection(db, 'visits'),
                 where('guestEmail', '==', guestEmail),
                 where('venueId', '==', venueId),
-                where('timestamp', '>=', startOfToday)
+                orderBy('timestamp', 'desc'),
+                limit(1)
             );
             const recentSnaps = await getDocs(qRecent);
+            
+            let alreadyVisitedToday = false;
+            if (!recentSnaps.empty) {
+                const latestDoc = recentSnaps.docs[0];
+                const ts = latestDoc.data().timestamp;
+                if (ts) {
+                    const latestDateStr = RewardCalculator.getVenueDateString(ts.toDate(), tz);
+                    const todayStr = RewardCalculator.getVenueDateString(new Date(), tz);
+                    if (latestDateStr === todayStr) {
+                        alreadyVisitedToday = true;
+                    }
+                }
+            }
 
-            if (recentSnaps.empty) {
+            if (!alreadyVisitedToday) {
                 await addDoc(collection(db, 'visits'), {
                     uid: effectiveUid,
                     venueId: venueId,
@@ -112,7 +133,7 @@ const UnifiedActivation = () => {
                     is_test: ['staff', 'owner', 'superadmin'].includes(role)
                 });
             } else {
-                console.log("Visit already recorded for today, skipping duplicate insert.");
+                console.log("Visit already recorded for today (calendar day in venue timezone), skipping duplicate insert.");
             }
 
             await addDoc(collection(db, 'discount_requests'), {

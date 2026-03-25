@@ -29,15 +29,16 @@
     *   One-click `[CONFIRM & ACTIVATE]`.
     *   Instant Notification to Venue Staff (Email, Telegram, Browser).
 
-## 4. DYNAMIC DISCOUNT LOGIC (STAY ACTIVE)
+## 4. DYNAMIC DISCOUNT LOGIC (CALENDAR DAYS)
 *   **Base (New/Cold):** 5%
 *   **Max (VIP):** 20%
-*   **Active Window:** 24 hours from the last visit.
-*   **Streak Protection:** Users typically hold their 20% status until midnight of the day *after* their last visit ("Come back tomorrow").
-*   **Decay Tiers:**
-    *   Stage 1: 15% (After 72 hours)
-    *   Stage 2: 10% (After 168 hours)
-*   **Reset:** Back to 5% after the final decay window.
+*   **Timeframe Mechanics:** Decay operates via strict Calendar Days difference (`Current Date` vs `Last Visit Date`) based on the selected venue Timezone.
+*   **Daily Logins:** Multiple scans in the same calendar day count as one visit.
+*   **Decay Tiers (Configurable):**
+    *   Max VIP: Achieved via consecutive visiting (e.g. 1 Day interval).
+    *   Stage 1: e.g. 15% 
+    *   Stage 2: e.g. 10%
+*   **Reset:** Back to 5% automatically when the maximum permitted decay interval is exceeded.
 
 ## 5. RBAC & ADMIN HIERARCHY (FLUTTER)
 The system supports four distinct operational roles within the Admin Panel:

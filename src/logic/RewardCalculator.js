@@ -1,66 +1,75 @@
 export class RewardCalculator {
     /**
-     * Calculates the reward based on visit history.
-     * @param {Date} lastVisit - The most recent visit BEFORE today.
-     * @param {Date} currentTime - Now.
-     * @param {Object} config - Venue config.
-     * @param {Date} visitToday - (Optional) If the user already visited today.
+     * Helper to get a date string in a specific timezone
      */
-    static calculate(lastVisit, currentTime, config, visitToday = null) {
+    static getVenueDateString(date, timezone = 'Asia/Dubai') {
+        try {
+            return new Intl.DateTimeFormat('en-CA', {
+                timeZone: timezone,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            }).format(date);
+        } catch (e) {
+            console.error("Invalid timezone, falling back to UTC:", e);
+            return new Date(date).toISOString().split('T')[0];
+        }
+    }
+
+    /**
+     * Calculates the reward based strictly on Calendar Days difference.
+     * @param {string|null} lastVisitDateStr - The "YYYY-MM-DD" of the last active visit.
+     * @param {Date} currentTime - Now.
+     * @param {Object} config - Venue config (contains percBase, percVip, vipWindowDays, etc.)
+     * @param {string} venueTimezone - e.g. "Asia/Dubai"
+     * @param {boolean} isDayActive - true if the user already activated a visit TODAY.
+     */
+    static calculate(lastVisitDateStr, currentTime, config, venueTimezone = 'Asia/Dubai', isDayActive = false) {
         const safeConfig = {
             percBase: config?.percBase || 5,
             percVip: config?.percVip || 20,
             percDecay1: config?.percDecay1 || 15,
             percDecay2: config?.percDecay2 || 10,
+            vipWindowDays: config?.vipWindowDays || 1, // default 1 day (daily visit)
+            tier1DecayDays: config?.tier1DecayDays || 2, // default 2 days
+            tier2DecayDays: config?.tier2DecayDays || 6, // default 6 days
         };
 
-        const today = new Date(currentTime);
-        today.setHours(0, 0, 0, 0);
-
-        const tomorrow = new Date(today);
-        tomorrow.setDate(today.getDate() + 1);
-
-        const secondsUntilNextTier = Math.max(0, Math.floor((tomorrow - currentTime) / 1000));
+        const todayStr = this.getVenueDateString(currentTime, venueTimezone);
 
         // If no previous visit, user is new -> Base
-        if (!lastVisit) {
+        if (!lastVisitDateStr) {
             return {
                 discount: safeConfig.percBase,
                 status: 'new',
                 phase: 'initial',
-                isDayActive: !!visitToday,
-                secondsUntilDecay: 0,
-                secondsUntilNextTier,
+                isDayActive,
                 currentDiscount: safeConfig.percBase,
-                nextDiscount: safeConfig.percVip
+                nextDiscount: safeConfig.percVip,
+                diffDays: 'N/A'
             };
         }
 
-        const refVisitDate = new Date(lastVisit);
-        refVisitDate.setHours(0, 0, 0, 0);
-
-        // Difference in calendar days
-        const diffDays = Math.round((today - refVisitDate) / (1000 * 60 * 60 * 24));
-
-        // --- CORE LOGIC: DETERMINING TODAY'S DISCOUNT ---
-        // Today's discount is based on the LAST visit BEFORE today.
+        // Calculate days difference
+        // Parse 'YYYY-MM-DD' as UTC to find difference in full 24h intervals safely
+        const msPerDay = 1000 * 60 * 60 * 24;
+        const todayUtc = Date.parse(todayStr + "T00:00:00Z");
+        const lastVisitUtc = Date.parse(lastVisitDateStr + "T00:00:00Z");
+        
+        let diffDays = Math.round((todayUtc - lastVisitUtc) / msPerDay);
+        
+        if (diffDays < 0) diffDays = 0; // Sanity check if timezones act weird
 
         let todayDiscount = safeConfig.percBase;
         let status = 'reset';
 
-        const vipWindow = config?.vipWindowHours || 24;
-        const tier1Decay = config?.tier1DecayHours || 48;
-        const tier2Decay = config?.tier2DecayHours || 168;
-
-        const diffHours = Math.round((currentTime - lastVisit) / (1000 * 60 * 60));
-
-        if (diffHours <= vipWindow) {
+        if (diffDays <= safeConfig.vipWindowDays) {
             todayDiscount = safeConfig.percVip;
             status = 'vip';
-        } else if (diffHours <= tier1Decay) {
+        } else if (diffDays <= safeConfig.tier1DecayDays) {
             todayDiscount = safeConfig.percDecay1;
             status = 'decay1';
-        } else if (diffHours <= tier2Decay) {
+        } else if (diffDays <= safeConfig.tier2DecayDays) {
             todayDiscount = safeConfig.percDecay2;
             status = 'decay2';
         } else {
@@ -68,21 +77,11 @@ export class RewardCalculator {
             status = 'reset';
         }
 
-        // Calculation for decay timer
-        // If at 20%, it decays at the end of tomorrow (Day 1).
-        // Since today is Day 0 (visited yesterday), they have today AND tomorrow.
-        // Penalty hits at Day 2 00:00.
-        const expiryDate = new Date(refVisitDate);
-        expiryDate.setDate(expiryDate.getDate() + 2); // Mon -> Wed 00:00
-        const secondsUntilDecay = Math.max(0, Math.floor((expiryDate - currentTime) / 1000));
-
         return {
             discount: todayDiscount,
             status: status,
-            phase: diffDays <= 1 ? 'maintenance' : 'decay',
-            isDayActive: !!visitToday,
-            secondsUntilDecay: secondsUntilDecay,
-            secondsUntilNextTier: secondsUntilNextTier,
+            phase: diffDays <= safeConfig.vipWindowDays ? 'maintenance' : 'decay',
+            isDayActive,
             currentDiscount: todayDiscount,
             nextDiscount: safeConfig.percVip,
             diffDays

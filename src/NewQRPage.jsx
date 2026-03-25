@@ -96,62 +96,57 @@ const NewQRPage = () => {
                     const email = rawEmail.toLowerCase();
                     let calculatedDiscount = 5;
                     let result = null;
-                    let debugInfo = { email: email || 'No Email', uid: user.uid, venueId, daysAgoStr: 'Никогда', prevDaysAgoStr: 'Никогда', discountToday: 5, diffDays: 'N/A' };
+                    let debugInfo = { email: email || 'No Email', uid: user.uid, venueId, daysAgoStr: 'Никогда', history: 'Нет', discountToday: 5, diffDays: 'N/A' };
 
                     if (email) {
-                        const qVisits = query(collection(db, 'visits'), where('guestEmail', '==', email), where('venueId', '==', venueId), orderBy('timestamp', 'desc'), limit(50));
+                        const qVisits = query(collection(db, 'visits'), where('guestEmail', '==', email), where('venueId', '==', venueId), orderBy('timestamp', 'desc'), limit(10));
                         const querySnapshot = await getDocs(qVisits);
 
                         if (!querySnapshot.empty) {
                             const docs = querySnapshot.docs;
                             const uniqueDays = [];
-                            const tzOffset = now.getTimezoneOffset() * 60000;
+                            const tz = venueData.timezone || 'Asia/Dubai';
+
                             docs.forEach(docSnap => {
                                 const timestamp = docSnap.data().timestamp;
                                 if (!timestamp) return;
                                 const dateObj = timestamp.toDate();
-                                const localISOTime = (new Date(dateObj - tzOffset)).toISOString().split('T')[0];
-                                if (!uniqueDays.find(d => d.dateStr === localISOTime)) uniqueDays.push({ dateStr: localISOTime, date: dateObj });
+                                const dateStr = RewardCalculator.getVenueDateString(dateObj, tz);
+                                if (!uniqueDays.find(d => d.dateStr === dateStr)) uniqueDays.push({ dateStr, date: dateObj });
                             });
 
-                            const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
-                            const todayStr = (new Date(now - tzOffset)).toISOString().split('T')[0];
-                            let lastVisitBeforeToday = null, visitToday = null;
+                            const todayStr = RewardCalculator.getVenueDateString(now, tz);
+                            let lastVisitDateStr = null;
+                            let isDayActive = false;
 
                             if (uniqueDays.length > 0 && uniqueDays[0].dateStr === todayStr) {
-                                visitToday = uniqueDays[0].date;
-                                if (uniqueDays.length > 1) lastVisitBeforeToday = uniqueDays[1].date;
+                                isDayActive = true;
+                                if (uniqueDays.length > 1) lastVisitDateStr = uniqueDays[1].dateStr;
                             } else if (uniqueDays.length > 0) {
-                                lastVisitBeforeToday = uniqueDays[0].date;
+                                lastVisitDateStr = uniqueDays[0].dateStr;
                             }
 
-                            result = RewardCalculator.calculate(lastVisitBeforeToday, now, venueData.loyaltyConfig, visitToday);
+                            result = RewardCalculator.calculate(lastVisitDateStr, now, venueData.loyaltyConfig, tz, isDayActive);
                             calculatedDiscount = result.discount;
 
-                            let daysAgoStr = 'Никогда';
-                            if (lastVisitBeforeToday) {
-                                const refDate = new Date(lastVisitBeforeToday); refDate.setHours(0, 0, 0, 0);
-                                const diffDays = Math.round((todayStart - refDate) / (1000 * 60 * 60 * 24));
-                                daysAgoStr = `${diffDays} дн. назад`;
-                            }
+                            const debugDays = uniqueDays.slice(0, 5).map(d => d.dateStr);
 
-                            let prevDaysAgoStr = 'Никогда';
-                            if (uniqueDays.length > 1) {
-                                const d = new Date(uniqueDays[1].date); d.setHours(0, 0, 0, 0);
-                                const diff = Math.round((todayStart - d) / (1000 * 60 * 60 * 24));
-                                prevDaysAgoStr = `${diff} дн. назад`;
-                            }
-
-                            debugInfo = { ...debugInfo, daysAgoStr: visitToday ? 'Сегодня (0)' : daysAgoStr, prevDaysAgoStr, discountToday: calculatedDiscount, diffDays: result.diffDays ?? 'N/A' };
+                            debugInfo = { 
+                                ...debugInfo, 
+                                daysAgoStr: isDayActive ? `Сегодня (${todayStr})` : (lastVisitDateStr || 'Никогда'), 
+                                history: debugDays.length ? debugDays.join(', ') : 'Нет', 
+                                discountToday: calculatedDiscount, 
+                                diffDays: result.diffDays ?? 'N/A' 
+                            };
 
                             if (result.status === 'cooldown') setCooldown({ hoursPassed: result.hoursPassed, required: venueData.loyaltyConfig?.safetyCooldownHours || 12 });
                         } else {
-                            result = RewardCalculator.calculate(null, now, venueData.loyaltyConfig, null);
+                        result = RewardCalculator.calculate(null, now, venueData.loyaltyConfig, venueData.timezone || 'Asia/Dubai', false);
                             calculatedDiscount = result.discount;
                             debugInfo.diffDays = result.diffDays ?? 'N/A';
                         }
                     } else {
-                        result = RewardCalculator.calculate(null, now, venueData.loyaltyConfig, null);
+                        result = RewardCalculator.calculate(null, now, venueData.loyaltyConfig, venueData.timezone || 'Asia/Dubai', false);
                         calculatedDiscount = result.discount;
                         debugInfo.diffDays = result.diffDays ?? 'N/A';
                     }
@@ -263,7 +258,7 @@ const NewQRPage = () => {
             <div className="pt-6 px-6 text-center z-10 w-full">
                 <p className="text-[11px] font-semibold text-white/40 tracking-widest uppercase mb-1">Welcome To</p>
                 <h2 className="text-[28px] font-bold tracking-tight text-white leading-tight">{venueName}</h2>
-                <div className="flex items-center justify-center gap-1 opacity-20 mt-1 cursor-pointer" onClick={() => setDebugClicks(c => c + 1)}>
+                <div className="flex items-center justify-center gap-1 opacity-20 mt-1 cursor-pointer">
                     <span className="text-[9px] font-semibold uppercase tracking-widest">Powered by FriendlyCode</span>
                 </div>
             </div>
@@ -276,7 +271,10 @@ const NewQRPage = () => {
                     {guestName ? (
                         <>
                             <p className="text-[12px] font-medium text-white/50 mb-0.5">{t('hero_welcome_back')}</p>
-                            <div className="text-[24px] font-semibold tracking-tight text-white/90">
+                            <div 
+                                className="text-[24px] font-semibold tracking-tight text-white/90"
+                                onClick={() => setDebugClicks(c => c + 1)}
+                            >
                                 {guestName}
                             </div>
                         </>
@@ -394,8 +392,8 @@ const NewQRPage = () => {
                                         { label: 'UID', value: lastVisitDebug.uid },
                                         { label: 'Email', value: lastVisitDebug.email },
                                         { label: 'Venue', value: lastVisitDebug.venueId },
-                                        { label: 'Last active', value: lastVisitDebug.daysAgoStr },
-                                        { label: 'Prev active', value: lastVisitDebug.prevDaysAgoStr },
+                                        { label: 'Current State', value: lastVisitDebug.daysAgoStr },
+                                        { label: 'History (5 days)', value: lastVisitDebug.history },
                                         { label: 'Calculated Rate', value: `${lastVisitDebug.discountToday}%`, color: 'text-[#00FF41]' }
                                     ].map((item, idx) => (
                                         <div key={idx} className="flex flex-col gap-0.5 border-b border-white/5 pb-2 last:border-0">
