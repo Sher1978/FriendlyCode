@@ -238,9 +238,9 @@ const RevooB2B = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
                     {[
-                        { icon: faBrain, title: "Теория Канемана", subtitle: "(Loss Aversion)", text: "Мы не предлагаем гостю «накопить». Мы даем ему актив. Потерять 100% заряда батареи в 2 раза больнее, чем радость от бесплатного кофе." },
-                        { icon: faBan, title: "Zero Friction", subtitle: "Удаление барьеров", text: "Никаких регистраций. 0.5 секунды на «Tap» — это быстрее, чем достать кошелек или открыть приложение." },
-                        { icon: faWaveSquare, title: "Variable Reward", subtitle: "Дофаминовый отклик", text: "Как переменное вознаграждение вызывает отклик, заставляя гостя проверять статус батареи снова и снова." }
+                        { icon: faBrain, title: "Теория Канемана", subtitle: "(Loss Aversion)", text: "Мы не предлагаем гостю «накопить на подарок». Мы даем ему актив (статус). Психологически потерять 100% заряда батареи в 2 раза больнее, чем радость от бесплатного кофе." },
+                        { icon: faBan, title: "Zero Friction", subtitle: "Удаление барьеров", text: "Удаление барьера входа. 0.5 секунды на «Тар» — это быстрее, чем достать кошелек." },
+                        { icon: faWaveSquare, title: "Variable Reward", subtitle: "Дофаминовый отклик", text: "Как переменное вознаграждение вызывает дофаминовый отклик, заставляя гостя проверять статус батареи снова и снова." }
                     ].map((item, idx) => (
                         <motion.div 
                             key={idx}
@@ -259,7 +259,65 @@ const RevooB2B = () => {
                 </div>
             </section>
 
-            {/* SECTION 4 & 5: THE MATRIX (Сравнительный анализ) */}
+            {/* SECTION 4: THE TECHNOLOGY (Архитектура REVOO) */}
+            <section className="py-24 px-6 relative z-10 border-b border-white/5">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-16 items-center">
+                    <motion.div 
+                        initial={{ opacity: 0, x: -50 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        className="flex-1 text-left"
+                    >
+                        <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight mb-6">Технологический стек <span className="text-[#00FF41]">2026 года</span></h2>
+                        <p className="text-white/70 text-lg font-medium mb-8 leading-relaxed max-w-xl">
+                            Никаких POS-интеграций. Никакого обучения персонала. Полная автономность.
+                        </p>
+                        <ul className="space-y-6">
+                            <li className="flex items-start gap-4">
+                                <div className="w-8 h-8 rounded-full bg-[#1C1C1E] border border-[#00FF41]/30 flex items-center justify-center text-[#00FF41] font-black text-sm shrink-0">1</div>
+                                <div>
+                                    <h4 className="text-white font-bold uppercase mb-1 tracking-widest text-sm">Разбор 14-сегментной структуры визуализации</h4>
+                                    <p className="text-white/50 text-sm">Продвинутый PngBattery.jsx контроллер, который мгновенно визуализирует статус гостя.</p>
+                                </div>
+                            </li>
+                            <li className="flex items-start gap-4">
+                                <div className="w-8 h-8 rounded-full bg-[#1C1C1E] border border-[#ff3b30]/30 flex items-center justify-center text-[#ff3b30] font-black text-sm shrink-0">2</div>
+                                <div>
+                                    <h4 className="text-white font-bold uppercase mb-1 tracking-widest text-sm">Тающая механика (Melting Logic)</h4>
+                                    <p className="text-white/50 text-sm">Чем дольше пауза между визитами, тем ниже заряд. Алгоритм 자동으로 сжигает энергию неактивных гостей.</p>
+                                </div>
+                            </li>
+                            <li className="flex items-start gap-4">
+                                <div className="w-8 h-8 rounded-full bg-[#1C1C1E] border border-blue-500/30 flex items-center justify-center text-blue-500 font-black text-sm shrink-0">3</div>
+                                <div>
+                                    <h4 className="text-white font-bold uppercase mb-1 tracking-widest text-sm">Apple Wallet & Google Pay</h4>
+                                    <p className="text-white/50 text-sm">Использование нативных инструментов смартфона вместо сторонних приложений.</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </motion.div>
+                    
+                    <motion.div 
+                        initial={{ opacity: 0, x: 50 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        className="flex-1 relative w-full h-[400px] bg-[#1C1C1E] rounded-3xl border border-white/10 overflow-hidden flex items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.5)]"
+                    >
+                         {/* Abstract Code/HUD Visual */}
+                         <div className="absolute inset-0 bg-black/50" />
+                         <div className="absolute top-4 left-4 flex gap-2">
+                             <div className="w-3 h-3 rounded-full bg-red-500/50" />
+                             <div className="w-3 h-3 rounded-full bg-yellow-500/50" />
+                             <div className="w-3 h-3 rounded-full bg-green-500/50" />
+                         </div>
+                         <div className="text-[#00FF41] font-mono text-xs opacity-70 p-8 w-full">
+                             {`const batteryState = useSync();\nif (daysSinceLastVisit > threshold) {\n  applyMeltingLogic();\n  triggerLossAversionHook();\n}\nreturn <WalletPass state={active} />;`}
+                         </div>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* SECTION 5: THE MATRIX (Сравнительный анализ) */}
             <section className="py-24 px-6 relative z-10 border-b border-white/5">
                 <div className="max-w-5xl mx-auto">
                     <motion.div 
