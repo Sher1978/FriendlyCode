@@ -177,165 +177,144 @@ const RevooB2B = () => {
                 </div>
             </section>
 
-            {/* SECTION 2: THE ECONOMIC DIAGNOSIS (Экономика «Дырявого ведра») */}
-            <section className="py-24 px-6 relative z-10 border-b border-white/5">
-                <div className="max-w-7xl mx-auto text-center mb-16">
+            {/* SECTION 3: THE DISSERTATION (Научное обоснование - iOS 26 Detailed Style) */}
+            <section className="py-32 px-6 relative z-10 border-b border-white/5 scroll-mt-20" id="science">
+                <div className="max-w-7xl mx-auto text-center mb-24">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/20 text-[#D4AF37] text-[10px] font-bold uppercase tracking-widest mb-6"
+                    >
+                        Scientific Core
+                    </motion.div>
                     <motion.h2 
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-3xl md:text-5xl font-black uppercase tracking-tight mb-4 text-[#FF3B30]"
+                        className="text-3xl md:text-6xl font-black uppercase tracking-tight mb-8 text-white"
                     >
-                        {t('b2b_diagnosis_h2')}
+                        Наш успех основан на научных исследованиях
                     </motion.h2>
-                    <p className="text-white/60 text-base md:text-lg max-w-2xl mx-auto font-medium leading-relaxed">
-                        {t('b2b_diagnosis_intro')}
+                    <p className="text-white/50 text-base md:text-xl max-w-4xl mx-auto font-medium leading-relaxed">
+                        Почему традиционные системы лояльности (приложения и карточки) мертвы? Потому что они создают Neural Friction (нейронное трение). Мы используем когнитивную инженерию для взлома привычек.
                     </p>
                 </div>
 
-                {/* Leaky Bucket Infographic */}
-                <div className="max-w-6xl mx-auto mb-20 grid grid-cols-1 md:grid-cols-3 gap-8 items-center bg-white/5 rounded-[40px] p-8 md:p-12 border border-white/10 relative overflow-hidden backdrop-blur-xl">
-                    <div className="text-center md:text-left z-10">
-                        <div className="text-[#00FF41] text-3xl md:text-5xl font-black mb-2 sm:mb-4">Retained</div>
-                        <div className="text-white/40 text-[10px] md:text-xs uppercase font-bold tracking-[0.3em] mb-4">Cost of Retention (LTV)</div>
-                        <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden">
-                            <motion.div initial={{ width: 0 }} whileInView={{ width: "90%" }} className="bg-[#00FF41] h-full shadow-[0_0_10px_#00FF41]" />
-                        </div>
-                        <p className="mt-4 text-white/60 text-xs md:text-sm font-medium">90% frequency build-up through cognitive loops.</p>
-                    </div>
-
-                    {/* The "Bucket" Visual */}
-                    <div className="relative h-[300px] flex items-center justify-center">
-                        <div className="absolute inset-0 bg-[#D4AF37]/5 animate-pulse rounded-full blur-[80px]" />
-                        <div className="relative w-48 h-64 border-x-2 border-b-2 border-white/20 rounded-b-[40px] overflow-hidden flex flex-col justify-end">
-                            <motion.div 
-                                animate={{ height: ["0%", "80%", "30%"] }} 
-                                transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
-                                className="w-full bg-gradient-to-t from-[#D4AF37]/40 to-[#F3E5AB]/60 relative"
-                            >
-                                <div className="absolute top-0 left-0 w-full h-[2px] bg-white/30" />
-                                {/* Leak Particles */}
-                                {[...Array(5)].map((_, i) => (
-                                    <motion.div 
-                                        key={i}
-                                        animate={{ y: [0, 100], opacity: [0, 1, 0] }}
-                                        transition={{ repeat: Infinity, duration: 2, delay: i * 0.4 }}
-                                        className="absolute bottom-0 bg-[#D4AF37] w-1 h-3 rounded-full"
-                                        style={{ left: `${20 + i * 15}%` }}
-                                    />
-                                ))}
-                            </motion.div>
-                        </div>
-                        <div className="absolute -top-10 flex flex-col items-center">
-                            <div className="text-red-500 font-black text-xl mb-1 animate-bounce">CAC</div>
-                            <div className="w-1 h-20 bg-gradient-to-b from-red-500 to-transparent" />
-                        </div>
-                    </div>
-
-                    <div className="text-center md:text-right z-10">
-                        <div className="text-[#FF3B30] text-3xl md:text-5xl font-black mb-2 sm:mb-4">Lost</div>
-                        <div className="text-white/40 text-[10px] md:text-xs uppercase font-bold tracking-[0.3em] mb-4">Cost of Acquisition (CAC)</div>
-                        <div className="w-full bg-white/10 h-2 rounded-full overflow-hidden flex justify-end">
-                            <motion.div initial={{ width: 0 }} whileInView={{ width: "80%" }} className="bg-[#FF3B30] h-full shadow-[0_0_10px_#FF3B30]" />
-                        </div>
-                        <p className="mt-4 text-white/60 text-xs md:text-sm font-medium">83% of first-time guests never return without a hook.</p>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12">
+                    {/* 1. Loss Aversion (Kahneman) */}
                     <motion.div 
-                        initial={{ opacity: 0, x: -50 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        className="bg-white/5 backdrop-blur-2xl border border-red-500/20 p-8 rounded-[30px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_0_30px_rgba(255,59,48,0.05)] relative overflow-hidden"
-                    >
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 blur-[50px] rounded-full" />
-                        <h3 className="text-xl md:text-2xl font-black uppercase mb-4 opacity-80 decoration-slate-900 border-b border-white/10 pb-4">Статус Кво</h3>
-                        <ul className="space-y-4">
-                            <li className="flex items-start gap-4 text-white/70 text-sm md:text-base">
-                                <FontAwesomeIcon icon={faXmark} className="text-red-500 mt-1" />
-                                <span>Высокая стоимость привлечения (High CAC).</span>
-                            </li>
-                            <li className="flex items-start gap-4 text-white/70 text-sm md:text-base">
-                                <FontAwesomeIcon icon={faXmark} className="text-red-500 mt-1" />
-                                <span>Неудобные карточки и мертвые приложения (Neural Friction).</span>
-                            </li>
-                            <li className="flex items-start gap-4 text-white/70 text-sm md:text-base">
-                                <FontAwesomeIcon icon={faXmark} className="text-red-500 mt-1" />
-                                <span>Гости забывают о вас через неделю.</span>
-                            </li>
-                        </ul>
-                    </motion.div>
-
-                    <motion.div 
-                        initial={{ opacity: 0, x: 50 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        className="bg-white/5 backdrop-blur-2xl border border-[#D4AF37]/30 p-8 rounded-[30px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_0_30px_rgba(212,175,55,0.05)] relative overflow-hidden"
-                    >
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/10 blur-[50px] rounded-full" />
-                        <h3 className="text-xl md:text-2xl font-black uppercase mb-4 text-[#D4AF37] border-b border-white/10 pb-4">Архитектура REVOO</h3>
-                        <ul className="space-y-4">
-                            <li className="flex items-start gap-4 text-white/80 font-medium text-sm md:text-base">
-                                <FontAwesomeIcon icon={faCheck} className="text-[#D4AF37] mt-1" />
-                                <span>Максимизация Lifetime Value (LTV).</span>
-                            </li>
-                            <li className="flex items-start gap-4 text-white/80 font-medium text-sm md:text-base">
-                                <FontAwesomeIcon icon={faCheck} className="text-[#D4AF37] mt-1" />
-                                <span>Технология Zero Friction: NFC + Apple Wallet.</span>
-                            </li>
-                            <li className="flex items-start gap-4 text-white/80 font-medium text-sm md:text-base">
-                                <FontAwesomeIcon icon={faCheck} className="text-[#D4AF37] mt-1" />
-                                <span>Дофаминовая петля возвратов.</span>
-                            </li>
-                        </ul>
-                    </motion.div>
-                </div>
-                <div className="text-center mt-12 text-white/40 font-bold uppercase tracking-[0.2em] text-sm">
-                    {t('b2b_diagnosis_conclusion')}
-                </div>
-            </section>
-
-            {/* SECTION 3: THE DISSERTATION (Научное обоснование) */}
-            <section className="py-24 px-6 relative z-10 border-b border-white/5 bg-[#1C1C1E]/30">
-                <div className="max-w-7xl mx-auto text-center mb-16">
-                    <motion.h2 
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        className="text-3xl md:text-5xl font-black uppercase tracking-tight mb-4 text-white"
+                        className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8"
                     >
-                        {t('b2b_science_h2')}
-                    </motion.h2>
-                    <p className="text-white/60 text-base md:text-lg max-w-3xl mx-auto font-medium">
-                        {t('b2b_science_sub')}
-                    </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-7xl mx-auto">
-                    {[
-                        { icon: faBrain, title: t('b2b_science_kahneman_title'), subtitle: "(Loss Aversion)", text: t('b2b_science_kahneman_text') },
-                        { icon: faBan, title: t('b2b_science_friction_title'), subtitle: "Zero Friction", text: t('b2b_science_friction_text') },
-                        { icon: faWaveSquare, title: t('b2b_science_reward_title'), subtitle: "Dopamine Response", text: t('b2b_science_reward_text') }
-                    ].map((item, idx) => (
-                        <motion.div 
-                            key={idx}
-                            initial={{ opacity: 0, y: 30 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: idx * 0.2 }}
-                            className="bg-white/5 backdrop-blur-2xl border border-white/10 p-8 rounded-3xl group hover:border-[#D4AF37]/40 transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] relative overflow-hidden"
-                        >
-                            {/* Glass Orb Icon Container */}
-                            <div className="w-16 h-16 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center mb-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] group-hover:bg-[#D4AF37]/10 transition-colors relative">
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50 rounded-2xl pointer-events-none" />
-                                <FontAwesomeIcon icon={item.icon} className="text-3xl text-white/50 group-hover:text-[#D4AF37] transition-colors relative z-10" />
+                        <div>
+                            <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">01. Loss Aversion</div>
+                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Теория Даниэля Канемана</h3>
+                            <p className="text-white/60 text-base leading-relaxed mb-6 italic border-l-2 border-[#D4AF37] pl-6">
+                                "Психологически потерять статус в 2 раза больнее, чем радость от бонуса."
+                            </p>
+                            <p className="text-white/80 text-sm md:text-base leading-relaxed">
+                                Мы не предлагаем гостю «накопить на подарок». Мы даем ему актив (статус). Согласно теории нобелевского лауреата Даниэля Канемана, избегание потери является более мощным стимулом, чем получение эквивалентной выгоды. Ваша лояльность — это личный капитал гостя.
+                            </p>
+                        </div>
+                        <div className="rounded-[40px] overflow-hidden bg-black/40 border border-white/5 shadow-2xl p-4 mt-auto">
+                            <div className="aspect-video bg-gradient-to-br from-red-500/10 to-transparent flex items-center justify-center relative">
+                                <FontAwesomeIcon icon={faBrain} className="text-[80px] text-white/5 relative z-10" />
+                                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                    <div className="text-red-500 font-black text-4xl mb-1">Loss &gt; Gain</div>
+                                    <div className="text-white/20 font-bold uppercase tracking-[0.4em] text-[10px]">Asymmetry Principle</div>
+                                </div>
                             </div>
-                            <h4 className="text-lg font-black uppercase text-white mb-1 tracking-tight">{item.title}</h4>
-                            <div className="text-[10px] font-bold text-[#D4AF37] tracking-[0.2em] uppercase mb-4">{item.subtitle}</div>
-                            <p className="text-white/60 text-sm leading-relaxed">{item.text}</p>
-                        </motion.div>
-                    ))}
+                        </div>
+                    </motion.div>
+
+                    {/* 2. The Hook Model (Nir Eyal) */}
+                    <motion.div 
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8"
+                    >
+                        <div>
+                            <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">02. Hook Model</div>
+                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Модель "Hook" Нира Эяля</h3>
+                            <p className="text-white/80 text-sm md:text-base leading-relaxed mb-4">
+                                Четыре этапа формирования привычки: 
+                            </p>
+                            <div className="space-y-2">
+                                {[
+                                    { label: 'Trigger', desc: 'NFC или QR метка на столе.' },
+                                    { label: 'Action', desc: 'Мгновенное сканирование (0.5 сек).' },
+                                    { label: 'Reward', desc: 'Заряд батареи и VIP статус.' },
+                                    { label: 'Investment', desc: 'Возврат для сохранения статуса.' }
+                                ].map((step, i) => (
+                                    <div key={i} className="flex gap-4 items-center bg-white/5 p-3 rounded-2xl border border-white/5">
+                                        <span className="text-[#D4AF37] font-black text-xs w-4">{i+1}</span>
+                                        <div className="flex flex-col">
+                                            <span className="text-white font-bold text-xs">{step.label}</span>
+                                            <span className="text-white/40 text-[10px]">{step.desc}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="rounded-[40px] overflow-hidden bg-black/40 border border-white/5 shadow-2xl p-4 mt-auto">
+                            <img src="/hook-model.png" alt="Hook Model Diagram" className="w-full h-auto rounded-[32px] opacity-90 transition-opacity" />
+                        </div>
+                    </motion.div>
+
+                    {/* 3. Variable Reward (Dopamine Response) */}
+                    <motion.div 
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8"
+                    >
+                        <div>
+                            <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">03. Dopamine Response</div>
+                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Variable Reward Schedule</h3>
+                            <p className="text-white/80 text-sm md:text-base leading-relaxed">
+                                Непредсказуемость вознаграждения вызывает мощный дофаминовый отклик. Система REVOO использует алгоритмы нелинейного поощрения, заставляя гостя проверять статус батареи как уведомления в соцсетях. Ожидание апдейта превращается в игру.
+                            </p>
+                        </div>
+                        <div className="rounded-[40px] overflow-hidden bg-black/40 border border-white/5 shadow-2xl p-4 mt-auto">
+                            <div className="aspect-video bg-gradient-to-br from-[#D4AF37]/5 to-transparent flex items-center justify-center relative">
+                                <div className="absolute inset-0 bg-[#D4AF37]/5 animate-pulse rounded-full blur-[100px]" />
+                                <FontAwesomeIcon icon={faWaveSquare} className="text-[120px] text-[#D4AF37]/20 relative z-10" />
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-20">
+                                    <div className="text-[#D4AF37] font-black text-5xl">DOPAMINE</div>
+                                    <div className="text-white/40 font-bold uppercase tracking-[0.4em] text-[10px]">Response Flow</div>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* 4. Zero Friction (Fogg Model) */}
+                    <motion.div 
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8"
+                    >
+                        <div>
+                            <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">04. Zero Friction</div>
+                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Модель Стэнфорда (BJ Fogg)</h3>
+                            <p className="text-white/80 text-sm md:text-base leading-relaxed mb-6">
+                                Успех = Мотивация + Возможность + Триггер. Если действие требует усилий (трение), клиент его не совершит. Мы свели усилие к нулю: 0.5 секунды на Tap — это быстрее, чем просто подумать о скачивании приложения.
+                            </p>
+                            <div className="grid grid-cols-3 gap-2">
+                                {['No App', 'No Form', 'Instant'].map((txt, i) => (
+                                    <div key={i} className="bg-white/5 p-3 rounded-2xl border border-white/5 flex flex-col items-center">
+                                        <span className="text-[#00FF41] font-black text-xs">0.0</span>
+                                        <span className="text-white/40 text-[9px] uppercase font-bold text-center">{txt}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="rounded-[40px] overflow-hidden bg-black/40 border border-white/5 shadow-2xl p-4 mt-auto">
+                            <img src="/zero-friction.png" alt="Zero Friction NFC Tap" className="w-full h-auto rounded-[32px] opacity-90 transition-opacity" />
+                        </div>
+                    </motion.div>
                 </div>
             </section>
 
