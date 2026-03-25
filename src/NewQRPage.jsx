@@ -29,6 +29,7 @@ const NewQRPage = () => {
 
     const [guestName, setGuestName] = useState('');
     const [userRole, setUserRole] = useState('guest');
+    const [loyaltyConfig, setLoyaltyConfig] = useState(null);
     const [predictionState, setPredictionState] = useState({
         percent: 5, secondsLeft: 0, label: 'reset', isBase: true, isMax: false
     });
@@ -68,6 +69,7 @@ const NewQRPage = () => {
 
                     const venueData = venueSnap.data();
                     setVenueName(venueData.name || '');
+                    if (venueData.loyaltyConfig) setLoyaltyConfig(venueData.loyaltyConfig);
 
                     const venueLang = venueData.defaultLanguage || 'en';
                     if (i18n.language !== venueLang) i18n.changeLanguage(venueLang);
@@ -221,11 +223,17 @@ const NewQRPage = () => {
     
     const batCfg = getBatteryConfig(mappedCapacity);
 
-    const timelineItems = [
-        { label: 'Today', maxDiscount: '10% Max', isActive: true, color: '#FF3131' },
-        { label: 'Tomorrow', maxDiscount: '15% Max', isActive: true, color: '#00FF41' },
-        { label: 'in 3 days', maxDiscount: '20% Max', isActive: true, color: '#FFD700' },
-        { label: 'in 7 days', maxDiscount: '25% Max', isActive: true, color: '#FF8800' },
+    const timelineItems = loyaltyConfig ? [
+        { label: 'VIP Status', value: `${loyaltyConfig.percVip || 20}%`, sub: `Visit within ${loyaltyConfig.vipWindowHours || 24}h`, color: '#00FF41', perc: loyaltyConfig.percVip || 20 },
+        { label: 'Level 1', value: `${loyaltyConfig.percDecay1 || 15}%`, sub: `Within ${loyaltyConfig.tier1DecayHours || 48}h`, color: '#FFD700', perc: loyaltyConfig.percDecay1 || 15 },
+        { label: 'Level 2', value: `${loyaltyConfig.percDecay2 || 10}%`, sub: `Within ${loyaltyConfig.tier2DecayHours || 168}h`, color: '#FF8800', perc: loyaltyConfig.percDecay2 || 10 },
+        { label: 'Base Rate', value: `${loyaltyConfig.percBase || 5}%`, sub: 'New or reset users', color: '#FF3131', perc: loyaltyConfig.percBase || 5 },
+    ].filter(item => item.perc > (loyaltyConfig.percBase || 0) || item.label === 'Base Rate')
+    : [
+        { label: 'Today', value: '10% Max', sub: 'Active', color: '#FF3131' },
+        { label: 'Tomorrow', value: '15% Max', sub: 'Maintaining', color: '#00FF41' },
+        { label: '3 Days', value: '20% Max', sub: 'Streak', color: '#FFD700' },
+        { label: '7 Days', value: '25% Max', sub: 'VIP Unlock', color: '#FF8800' },
     ];
 
     // ── MAIN (iOS 26 Style Dark Mode) ──
@@ -331,11 +339,16 @@ const NewQRPage = () => {
                             
                             {/* Text labels */}
                             <div className="flex items-center w-full justify-between">
-                                <span className="font-semibold text-[15px] text-white">
-                                    {item.label}
-                                </span>
-                                <span className="text-[15px] text-white/50 font-medium">
-                                    {item.maxDiscount}
+                                <div className="flex flex-col">
+                                    <span className="font-semibold text-[15px] text-white">
+                                        {item.label}
+                                    </span>
+                                    <span className="text-[10px] text-white/30 font-medium uppercase tracking-wider">
+                                        {item.sub}
+                                    </span>
+                                </div>
+                                <span className="text-[15px] text-white/50 font-bold">
+                                    {item.value}
                                 </span>
                             </div>
                         </div>

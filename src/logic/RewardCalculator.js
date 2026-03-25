@@ -48,26 +48,22 @@ export class RewardCalculator {
         let todayDiscount = safeConfig.percBase;
         let status = 'reset';
 
-        if (diffDays === 0) {
-            // This case shouldn't happen if we pass "lastVisit BEFORE today" correctly,
-            // but if it does, it means we already have a visit today.
-            // We should use the visit BEFORE that one to determine the discount.
-            // For now, let's assume the caller handles this.
-            status = 'active';
-        } else if (diffDays === 1) {
-            // Yesterday was active! Max Discount.
+        const vipWindow = config?.vipWindowHours || 24;
+        const tier1Decay = config?.tier1DecayHours || 48;
+        const tier2Decay = config?.tier2DecayHours || 168;
+
+        const diffHours = Math.round((currentTime - lastVisit) / (1000 * 60 * 60));
+
+        if (diffHours <= vipWindow) {
             todayDiscount = safeConfig.percVip;
             status = 'vip';
-        } else if (diffDays === 2) {
-            // Day before yesterday -> 15%
+        } else if (diffHours <= tier1Decay) {
             todayDiscount = safeConfig.percDecay1;
             status = 'decay1';
-        } else if (diffDays >= 3 && diffDays <= 6) {
-            // 3 to 6 days ago -> 10%
+        } else if (diffHours <= tier2Decay) {
             todayDiscount = safeConfig.percDecay2;
             status = 'decay2';
         } else {
-            // 7+ days ago -> 5%
             todayDiscount = safeConfig.percBase;
             status = 'reset';
         }
