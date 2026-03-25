@@ -146,7 +146,6 @@ const RevooB2C = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
                     >
-                        <img src="/revoo-logo.png" className="w-[90%] max-w-[500px] mx-auto mb-12 mix-blend-screen opacity-95 drop-shadow-[0_0_40px_rgba(212,175,55,0.15)]" alt="REVOO Logo" />
                         <h1 className="text-2xl md:text-3xl font-black text-white/50 mb-6 tracking-[0.2em] uppercase border-t border-white/10 pt-8 inline-block">
                             <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37]">ENERGY</span> THAT MATTERS
                         </h1>
