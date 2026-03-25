@@ -16,11 +16,11 @@ const RevooB2C = () => {
     
     // Scroll tracking for the Sticky Battery
     const { scrollYProgress } = useScroll();
-    const batteryLevel = useTransform(scrollYProgress, [0, 0.8], [20, 100]);
+    const batteryLevel = useTransform(scrollYProgress, [0, 0.8], [100, 20]);
     const batteryColor = useTransform(
         scrollYProgress, 
         [0, 0.4, 0.8], 
-        ["#FF3B30", "#FFCC00", "#00FF41"]
+        ["#00FF41", "#FFCC00", "#FF3B30"]
     );
     
     const smoothBatteryLevel = useSpring(batteryLevel, { stiffness: 100, damping: 30 });
@@ -63,11 +63,11 @@ const RevooB2C = () => {
     return (
         <div className="min-h-screen bg-[#000000] text-white font-sans selection:bg-[#00FF41]/30 overflow-x-hidden">
             
-            {/* Ambient Background Blurs */}
+            {/* Ambient Background Blurs (REVOO Deep Sea Blue & Friendly Orange) */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#00FF41]/10 blur-[120px] rounded-full" />
-                <div className="absolute bottom-[20%] left-[-10%] w-[400px] h-[400px] bg-blue-600/10 blur-[100px] rounded-full" />
-                <div className="absolute top-[40%] left-[30%] w-[600px] h-[600px] bg-orange-600/5 blur-[150px] rounded-full" />
+                <div className="absolute bottom-[20%] left-[-10%] w-[400px] h-[400px] bg-blue-900/20 blur-[100px] rounded-full" /> {/* Deep Sea Blue */}
+                <div className="absolute top-[40%] left-[30%] w-[600px] h-[600px] bg-[#FF9933]/10 blur-[150px] rounded-full" /> {/* Friendly Orange */}
             </div>
 
             {/* Sticky Battery Widget */}
