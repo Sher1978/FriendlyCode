@@ -318,6 +318,86 @@ const RevooB2B = () => {
                 </div>
             </section>
 
+            {/* SECTION 3.5: ZERO FRICTION FLOW (Zero Friction в действии) */}
+            <section className="py-24 px-6 relative z-10 border-b border-white/5 bg-black/40 overflow-hidden">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-16">
+                        <motion.h2 
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            className="text-4xl md:text-7xl font-black uppercase tracking-tighter mb-4 text-white"
+                        >
+                            ZERO FRICTION В ДЕЙСТВИИ
+                        </motion.h2>
+                        <div className="w-24 h-1 bg-[#00FF41] mx-auto rounded-full shadow-[0_0_20px_rgba(0,255,65,0.5)]" />
+                    </div>
+
+                    {/* Desktop Visualization */}
+                    <div className="relative mb-20">
+                        <motion.div 
+                            initial={{ opacity: 0, y: 30 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            className="relative rounded-[64px] overflow-hidden border border-white/10 bg-[#1C1C1E]/50 backdrop-blur-3xl p-8"
+                        >
+                            <img 
+                                src="/zero-friction-flow.png" 
+                                alt="Zero Friction Roadmap" 
+                                className="w-full h-auto rounded-[48px] shadow-2xl mix-blend-lighten opacity-90 transition-opacity hover:opacity-100"
+                            />
+                        </motion.div>
+                    </div>
+
+                    {/* Step Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {[
+                            {
+                                step: "Step 1",
+                                title: "Касание (0.5 сек)",
+                                subtitle: "Для гостя:",
+                                text: "Не нужно ничего скачивать. Узнавание смартфона (Device Fingerprinting) происходит мгновенно и анонимно.",
+                                accent: "#00FF41"
+                            },
+                            {
+                                step: "Step 2",
+                                title: "Узнавание и Магия",
+                                subtitle: "На экране:",
+                                text: "На экране вспыхивает «заряженная батарея» с максимальной наградой на сегодня.",
+                                accent: "#00FF41"
+                            },
+                            {
+                                step: "Step 3",
+                                title: "Автопилот для бизнеса",
+                                subtitle: "Для бизнеса:",
+                                text: "Никаких сложных IT-интеграций с кассой (POS). Не нужно обучать персонал. Установка за 15 минут.",
+                                accent: "#00FF41"
+                            }
+                        ].map((item, i) => (
+                            <motion.div 
+                                key={i}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                transition={{ delay: i * 0.1 }}
+                                className="bg-white/5 backdrop-blur-2xl border border-white/5 p-10 rounded-[48px] flex flex-col gap-6 group hover:border-[#00FF41]/30 transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]"
+                            >
+                                <div className="flex justify-between items-center mb-4">
+                                    <span className="text-[#00FF41] font-black uppercase text-[10px] tracking-widest">{item.step}</span>
+                                    <div className="w-4 h-4 rounded-full border-2 border-[#00FF41]/30 flex items-center justify-center p-[2px]">
+                                        <div className="w-full h-full rounded-full bg-[#00FF41] opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </div>
+                                </div>
+                                <h3 className="text-xl md:text-2xl font-black text-white uppercase leading-tight">{item.title}</h3>
+                                <div className="space-y-2">
+                                    <span className="text-[#00FF41] font-bold text-xs uppercase tracking-wider">{item.subtitle}</span>
+                                    <p className="text-white/50 text-base md:text-lg leading-relaxed font-medium">
+                                        {item.text}
+                                    </p>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
             {/* SECTION 4: THE TECHNOLOGY (Архитектура REVOO) */}
             <section className="py-24 px-6 relative z-10 border-b border-white/5">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-16 items-center">
