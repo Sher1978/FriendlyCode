@@ -17,12 +17,14 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import PngBattery from './PngBattery';
 import LanguageSelector from './LanguageSelector';
+import B2BContactModal from './B2BContactModal';
 
 
 const RevooB2B = () => {
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
     const [scrolled, setScrolled] = useState(false);
+    const [isContactModalOpen, setIsContactModalOpen] = useState(false);
     // Battery Simulation Showcase (Cycles 100 -> 50 -> 25 -> 10)
     const [batteryDiscount, setBatteryDiscount] = useState(20);
     const [displayEnergy, setDisplayEnergy] = useState(100);
@@ -79,7 +81,7 @@ const RevooB2B = () => {
                     <div className="flex items-center gap-3 md:gap-6">
                         <LanguageSelector />
                         <button 
-                            onClick={() => window.open('https://wa.me/971588044688', '_blank')}
+                            onClick={() => setIsContactModalOpen(true)}
                             className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-6 py-2 rounded-full text-xs md:text-sm font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)] whitespace-nowrap"
                         >
                             WhatsApp
@@ -108,7 +110,7 @@ const RevooB2B = () => {
                             <motion.button
                                 whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(212, 175, 55, 0.4)" }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => window.open('https://wa.me/971588044688', '_blank')}
+                                onClick={() => setIsContactModalOpen(true)}
                                 className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-8 py-4 rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)]"
                             >
                                 WhatsApp
@@ -441,7 +443,7 @@ const RevooB2B = () => {
                         <motion.button
                             whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(212, 175, 55, 0.4)" }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => window.open('https://wa.me/971588044688', '_blank')}
+                            onClick={() => setIsContactModalOpen(true)}
                             className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-10 py-5 rounded-full font-black text-sm md:text-base uppercase tracking-[0.2em] relative z-10 w-full md:w-auto shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:shadow-[0_0_40px_rgba(212,175,55,0.4)]"
                         >
                             WhatsApp
@@ -458,6 +460,11 @@ const RevooB2B = () => {
                     <div className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/30">The Architecture of Profitability © 2026</div>
                 </div>
             </footer>
+
+            <B2BContactModal 
+                isOpen={isContactModalOpen} 
+                onClose={() => setIsContactModalOpen(false)} 
+            />
 
         </div>
     );
