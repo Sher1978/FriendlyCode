@@ -103,47 +103,79 @@ const RevooB2B = () => {
                         </div>
                     </motion.div>
 
-                    {/* 2.5D Animated Battery Simulation Layer */}
+                    {/* 3D Realistic Segmented Glass Battery Layer */}
                     <motion.div 
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
                         transition={{ duration: 1.2, ease: "easeOut" }}
                         className="relative h-[400px] w-full flex items-center justify-center perspective-[1000px]"
                     >
-                        <div className="relative w-48 h-80 rounded-[40px] border-4 border-[#1C1C1E] bg-black/40 backdrop-blur-xl p-3 shadow-[0_0_100px_rgba(0,255,65,0.15)] transform-gpu rotate-y-[-15deg] rotate-x-[10deg]">
-                            {/* Inner Glow */}
-                            <div className="absolute inset-0 rounded-[35px] shadow-[inset_0_0_50px_rgba(0,0,0,0.8)] z-20 pointer-events-none" />
-                            {/* Energy Level */}
-                            <div className="absolute left-3 right-3 bottom-3 rounded-[28px] overflow-hidden flex flex-col justify-end" style={{ top: '12px' }}>
-                                <motion.div 
-                                    className="w-full relative"
-                                    animate={{ height: `${energyLevel}%` }}
-                                    transition={{ ease: "linear", duration: 0.1 }}
-                                    style={{ 
-                                        backgroundColor: energyLevel > 50 ? '#00FF41' : energyLevel > 20 ? '#FFCC00' : '#FF3B30',
-                                        boxShadow: `0 -10px 40px ${energyLevel > 50 ? 'rgba(0,255,65,0.8)' : energyLevel > 20 ? 'rgba(255,204,0,0.8)' : 'rgba(255,59,48,0.8)'}`
-                                    }}
-                                >
-                                    {/* Data Stream effect */}
-                                    <div className="absolute inset-0 opacity-30 bg-[linear-gradient(rgba(255,255,255,0.2)_1px,transparent_1px)] bg-[size:100%_4px] animate-pulse" />
-                                </motion.div>
+                        {/* Battery Container */}
+                        <div className="relative w-48 h-[340px] flex flex-col items-center transform-gpu rotate-y-[-20deg] rotate-x-[15deg] drop-shadow-[0_30px_50px_rgba(0,0,0,0.6)]">
+                            
+                            {/* Top Cap (Positive) */}
+                            <div className="w-full h-10 relative rounded-t-2xl bg-gradient-to-b from-gray-300 via-gray-100 to-gray-400 border-b border-gray-600 overflow-hidden shadow-[inset_0_-2px_10px_rgba(0,0,0,0.5),0_5px_15px_rgba(0,0,0,0.5)] z-20">
+                                <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-black/70" />
+                                <div className="absolute inset-0 flex items-center justify-center text-black/50 font-black text-2xl z-10 translate-y-1 drop-shadow-sm">+</div>
                             </div>
-                            {/* Terminal Top */}
-                            <div className="absolute top-[-16px] left-1/2 -translate-x-1/2 w-16 h-4 bg-[#1C1C1E] rounded-t-lg" />
+
+                            {/* Main Glass Body */}
+                            <div className="w-[94%] flex-1 relative bg-black/40 backdrop-blur-sm border-x border-white/20 flex flex-col justify-end py-1 z-10 shadow-[inset_0_0_30px_rgba(255,255,255,0.05),0_0_20px_rgba(0,255,65,0.1)]">
+                                {/* Volumetric Glass Reflection / Glare */}
+                                <div className="absolute inset-y-0 left-[15%] w-[10%] bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none z-30" />
+                                <div className="absolute inset-y-0 right-[5%] w-[5%] bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-30" />
+                                
+                                {/* 14 Glass Segments */}
+                                {Array.from({ length: 14 }).map((_, idx) => {
+                                    const reversedIdx = 13 - idx; // 0 is bottom
+                                    const activeSegments = Math.ceil((energyLevel / 100) * 14);
+                                    const isActive = reversedIdx < activeSegments;
+                                    
+                                    const activeColor = energyLevel > 50 ? '#00FF41' : energyLevel > 20 ? '#FFCC00' : '#FF3B30';
+                                    const glowShadow = isActive ? `inset 0 0 15px ${activeColor}, 0 0 25px ${activeColor}` : 'none';
+
+                                    return (
+                                        <div key={idx} className="flex-1 w-full relative group">
+                                            {/* Metallic Separator Ring (Like the reference image) */}
+                                            <div className="absolute -left-1 -right-1 h-[3px] top-0 bg-gradient-to-r from-gray-600 via-gray-300 to-gray-600 z-20 shadow-[0_1px_3px_rgba(0,0,0,0.8),inset_0_1px_1px_white]" />
+                                            {idx === 13 && (
+                                                <div className="absolute -left-1 -right-1 h-[3px] bottom-0 bg-gradient-to-r from-gray-600 via-gray-300 to-gray-600 z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.8),inset_0_-1px_1px_white]" />
+                                            )}
+                                            
+                                            {/* Glowing Liquid Inner Chamber */}
+                                            <motion.div 
+                                                className="absolute inset-[3px] rounded-sm transition-all duration-300"
+                                                style={{ 
+                                                    backgroundColor: isActive ? activeColor : 'rgba(255,255,255,0.01)',
+                                                    boxShadow: glowShadow,
+                                                    opacity: isActive ? 0.85 : 1
+                                                }}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Bottom Cap (Negative) */}
+                            <div className="w-full h-10 relative rounded-b-2xl bg-gradient-to-b from-gray-400 via-gray-100 to-gray-300 border-t border-gray-600 overflow-hidden shadow-[inset_0_2px_10px_rgba(0,0,0,0.5),0_-5px_15px_rgba(0,0,0,0.5)] z-20">
+                                <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-black/70" />
+                                <div className="absolute inset-0 flex items-center justify-center text-black/50 font-black text-3xl leading-none z-10 -translate-y-1 drop-shadow-sm">-</div>
+                            </div>
                         </div>
+
                         {/* HUD Elements */}
                         <motion.div 
-                            className="absolute -right-10 top-20 bg-[#1C1C1E]/80 backdrop-blur-md border border-[#00FF41]/30 p-4 rounded-lg flex flex-col gap-1"
+                            className="absolute -right-10 top-20 bg-[#1C1C1E]/80 backdrop-blur-md border border-[#00FF41]/30 p-4 rounded-xl shadow-2xl flex flex-col gap-1 z-30"
                             animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
                         >
                             <span className="text-[#00FF41] text-[10px] uppercase font-mono tracking-widest">Energy Flow</span>
-                            <span className="text-2xl font-black font-mono">{energyLevel}%</span>
+                            <span className="text-3xl font-black font-mono tracking-tighter" style={{ color: energyLevel > 50 ? '#00FF41' : energyLevel > 20 ? '#FFCC00' : '#FF3B30' }}>{energyLevel}%</span>
                         </motion.div>
                         <motion.div 
-                            className="absolute -left-10 bottom-20 bg-[#1C1C1E]/80 backdrop-blur-md border border-white/10 p-4 rounded-lg"
+                            className="absolute left-0 lg:-left-20 bottom-24 bg-[#1C1C1E]/80 backdrop-blur-md border border-white/10 p-4 rounded-xl shadow-2xl z-30"
                             animate={{ y: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
                         >
-                            <span className="text-white/50 text-[10px] uppercase font-mono tracking-widest block mb-1">State</span>
+                            <span className="text-white/50 text-[10px] uppercase font-mono tracking-widest block mb-1">State Logic</span>
                             <span className="text-sm font-bold uppercase text-white tracking-widest">Active Retention</span>
                         </motion.div>
                     </motion.div>
