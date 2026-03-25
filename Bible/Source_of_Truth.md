@@ -1,9 +1,10 @@
-# SOURCE OF TRUTH: PROJECT "FRIENDLY CODE"
+# SOURCE OF TRUTH: PROJECT "REVOO"
 **Version:** 3.5 (RBAC & ADVANCED NOTIFICATIONS)
 **Status:** IMPLEMENTED/PRODUCTION
+**Domains:** `www.revoo.win` (Primary REVOO), `www.friendlycode.fun` (Legacy Friendly Code)
 
 ## 1. PROJECT OVERVIEW
-"Friendly Code" is a **Global Loyalty Platform (SaaS)** connecting Guests with HoReCa venues via a unified "Time-Decay" reward system.
+"REVOO" is a **Global Loyalty Platform (SaaS)** connecting Guests with HoReCa venues via a unified "Time-Decay" reward system.
 *   **Core Value:** "Visit often, pay less."
 *   **Strategic Pivot:** "Zero Friction" onboarding for Guests and "Retention > Operations" focus for Business Owners.
 *   **B2B Onboarding Model:** Paid Setup with 30-Day Money-Back Guarantee (Retention-based).
@@ -61,7 +62,7 @@ The system supports four distinct operational roles within the Admin Panel:
 
 ## 7. DESIGN SYSTEM (iOS 26 OLED)
 *   **Theme:** "iOS 26 Dark Mode" (Pure OLED Black).
-*   **Aesthetics:** 
+*   **Aesthetics:**
     *   **Glassmorphism**: 60% opacity panels with `backdrop-blur-[40px]`.
     *   **Ambient Lighting**: Neon blurs (`Deep Sea Blue`, `Friendly Orange`) rendered behind UI cards.
 *   **Colors:**

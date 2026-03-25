@@ -59,7 +59,9 @@ const NewQRPage = () => {
 
             const checkUserAndVenue = async () => {
                 const searchParams = new URLSearchParams(location.search);
-                const venueId = searchParams.get('id') || searchParams.get('v') || 'default_venue';
+                const rawId = searchParams.get('id') || searchParams.get('v') || 'default_venue';
+                // Robustness: strip potential encoding artifacts like '3D' at the start
+                const venueId = rawId.startsWith('3D') && rawId.length > 10 ? rawId.substring(2) : rawId;
                 safeStorage.setItem('currentVenueId', venueId);
 
                 try {
@@ -182,7 +184,7 @@ const NewQRPage = () => {
             <div className="flex flex-col h-[100dvh] bg-black items-center justify-center p-6 text-white relative overflow-hidden">
                 <div className="z-10 flex flex-col items-center text-center">
                     <div className="w-20 h-20 bg-[#1C1C1E] rounded-3xl flex items-center justify-center mb-6 shadow-2xl animate-pulse">
-                        <img src="/logo.png" alt="Friendly Code Logo" className="w-[80%] h-[80%] object-contain" />
+                        <img src="/logo.png" alt="REVOO Logo" className="w-[80%] h-[80%] object-contain" />
                     </div>
                     <p className="text-white/50 font-medium text-sm animate-pulse">{t('calculating_discount')}</p>
                 </div>
@@ -218,11 +220,13 @@ const NewQRPage = () => {
     
     const batCfg = getBatteryConfig(mappedCapacity);
 
+    const formatDays = (d) => parseInt(d) === 1 ? '1 day' : `${d} days`;
+
     const timelineItems = loyaltyConfig ? [
-        { label: 'VIP Status', value: `${loyaltyConfig.percVip || 20}%`, sub: `Visit within ${loyaltyConfig.vipWindowHours || 24}h`, color: '#00FF41', perc: loyaltyConfig.percVip || 20 },
-        { label: 'Level 1', value: `${loyaltyConfig.percDecay1 || 15}%`, sub: `Within ${loyaltyConfig.tier1DecayHours || 48}h`, color: '#FFD700', perc: loyaltyConfig.percDecay1 || 15 },
-        { label: 'Level 2', value: `${loyaltyConfig.percDecay2 || 10}%`, sub: `Within ${loyaltyConfig.tier2DecayHours || 168}h`, color: '#FF8800', perc: loyaltyConfig.percDecay2 || 10 },
-        { label: 'Base Rate', value: `${loyaltyConfig.percBase || 5}%`, sub: 'New or reset users', color: '#FF3131', perc: loyaltyConfig.percBase || 5 },
+        { label: 'VIP Status', value: `${loyaltyConfig.percVip || 20}%`, sub: `Within ${formatDays(loyaltyConfig.vipWindowDays || 1)}`, color: '#00FF41', perc: loyaltyConfig.percVip || 20 },
+        { label: 'Level 1', value: `${loyaltyConfig.percDecay1 || 15}%`, sub: `Within ${formatDays(loyaltyConfig.tier1DecayDays || 2)}`, color: '#FFD700', perc: loyaltyConfig.percDecay1 || 15 },
+        { label: 'Level 2', value: `${loyaltyConfig.percDecay2 || 10}%`, sub: `Within ${formatDays(loyaltyConfig.tier2DecayDays || 6)}`, color: '#FF8800', perc: loyaltyConfig.percDecay2 || 10 },
+        { label: 'Base Rate', value: `${loyaltyConfig.percBase || 5}%`, sub: 'Any other time', color: '#FF3131', perc: loyaltyConfig.percBase || 5 },
     ].filter(item => item.perc > (loyaltyConfig.percBase || 0) || item.label === 'Base Rate')
     : [
         { label: 'Today', value: '10% Max', sub: 'Active', color: '#FF3131' },
@@ -259,12 +263,12 @@ const NewQRPage = () => {
                 <p className="text-[11px] font-semibold text-white/40 tracking-widest uppercase mb-1">Welcome To</p>
                 <h2 className="text-[28px] font-bold tracking-tight text-white leading-tight">{venueName}</h2>
                 <div className="flex items-center justify-center gap-1 opacity-20 mt-1 cursor-pointer">
-                    <span className="text-[9px] font-semibold uppercase tracking-widest">Powered by FriendlyCode</span>
+                    <span className="text-[9px] font-semibold uppercase tracking-widest">Powered by REVOO</span>
                 </div>
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-grow flex flex-col items-center justify-center -mt-2 px-6 pb-20 w-full max-w-md mx-auto z-10 gap-4">
+            <div className="flex-grow flex flex-col items-center justify-start mt-2 px-6 pb-[140px] w-full max-w-md mx-auto z-10 gap-4 overflow-y-auto" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
 
                 {/* Hero / Guest Name */}
                 <div className="text-center flex flex-col items-center -mt-4">
@@ -352,6 +356,10 @@ const NewQRPage = () => {
                         </div>
                     ))}
                 </div>
+
+                <p className="mt-4 text-[11px] font-medium text-white/40 text-center px-4 leading-relaxed tracking-wider">
+                    {i18n.language === 'ru' ? 'Чем чаще ты посещаешь, тем выше ВИП статус и награда!' : 'The more often you visit, the higher your VIP status and reward!'}
+                </p>
 
             </div>
 

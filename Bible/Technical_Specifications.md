@@ -4,6 +4,10 @@
 
 ## 1. TECHNOLOGY STACK
 * **Guest Flow (B2C):** React (Vite) Web PWA. Optimized for mobile browser speed and low-friction entry.
+    | Primary Domain | `www.revoo.win` (New) |
+    |---|---|
+    | Legacy Domain | `www.friendlycode.fun` |
+    | Admin Panel | `/admin` |
 * **Admin/Owner Panels:** Flutter Web (Desktop/Tablet optimized).
 * **Backend:** Firebase (Auth, Firestore, Cloud Functions).
 * **Email:** Resend API (Triggered via Cloud Functions).
@@ -11,7 +15,7 @@
 
 *   **REACT (Vite/React)**:
     *   **Scope**: Marketing Landing Pages & Guest QR Funnel.
-    *   **Primary Files**: `src/NewQRPage.jsx` (Production), `src/TestQRPage.jsx` (Demo), `src/UnifiedActivation.jsx`, `src/PngBattery.jsx`.
+    *   **Primary Files**: `src/NewQRPage.jsx` (Production), `src/TestQRPage.jsx` (Demo/Test), `src/UnifiedActivation.jsx`, `src/PngBattery.jsx`.
 *   **FLUTTER (Web)**:
     *   **Scope**: Admin/Owner Dashboard, Staff Management, Global Venue Management.
     *   **Primary Files**: `admin/lib/features/web/presentation/layout/admin_shell.dart`, `admin/lib/features/admin/presentation/screens/`.
@@ -29,7 +33,7 @@
     *   **Animation:** Two-layer hybrid. Layer 1: Persistent continuous glow wave. Layer 2: 14 individually lit structure blocks.
     *   **Sparkles:** 25 deterministic floating glow particles for active energy visual.
 *   **Visuals:** iOS 26 Glassmorphism. `backdrop-blur-3xl` panels sitting over ambient glowing blurs (`mix-blend-screen`).
-*   **Colors:** Neon Blue (Deep Sea), Neon Green (iOS 26), Neon Orange.
+*   **Colors:** Neon Blue (Deep Sea), Neon Green (iOS 26), Neon Orange (REVOO Energy).
 
 ## 3. INTERFACE B: ADMIN PANEL (FLUTTER)
 **Goal:** Multi-tenant hierarchy management.

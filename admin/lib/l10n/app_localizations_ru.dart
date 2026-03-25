@@ -9,7 +9,7 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
-  String get appName => 'Friendly Code';
+  String get appName => 'REVOO';
 
   @override
   String get loginTitle => 'С возвращением';
@@ -285,7 +285,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get b2bHeadline => 'Лояльность без трения';
 
   @override
-  String get getTheApp => 'Скачать приложение Friendly Code';
+  String get getTheApp => 'Скачать приложение REVOO';
 
   @override
   String get downloadOn => 'Скачать в';
@@ -837,7 +837,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get footerCopyright =>
-      '© 2026 Friendly Code. Сделано с ❤️ для индустрии гостеприимства.';
+      '© 2026 REVOO. Сделано с ❤️ для индустрии гостеприимства.';
 
   @override
   String get flyerTitle => 'Генератор евро-флаера B2B';

@@ -103,7 +103,7 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In en, this message translates to:
-  /// **'Friendly Code'**
+  /// **'REVOO'**
   String get appName;
 
   /// No description provided for @loginTitle.
@@ -619,7 +619,7 @@ abstract class AppLocalizations {
   /// No description provided for @getTheApp.
   ///
   /// In en, this message translates to:
-  /// **'Get the Friendly Code App'**
+  /// **'Get the REVOO App'**
   String get getTheApp;
 
   /// No description provided for @downloadOn.
@@ -1483,7 +1483,7 @@ abstract class AppLocalizations {
   /// No description provided for @joinPartnerFree.
   ///
   /// In en, this message translates to:
-  /// **'🤝 Join Friendly Code Free'**
+  /// **'🤝 Join REVOO Free'**
   String get joinPartnerFree;
 
   /// No description provided for @heroAttractExpensive.
@@ -1621,7 +1621,7 @@ abstract class AppLocalizations {
   /// No description provided for @footerCopyright.
   ///
   /// In en, this message translates to:
-  /// **'© 2026 Friendly Code. Built with ❤️ for Hospitality.'**
+  /// **'© 2026 REVOO. Built with ❤️ for Hospitality.'**
   String get footerCopyright;
 
   /// No description provided for @flyerTitle.

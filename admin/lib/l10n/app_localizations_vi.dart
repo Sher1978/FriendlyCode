@@ -9,7 +9,7 @@ class AppLocalizationsVi extends AppLocalizations {
   AppLocalizationsVi([String locale = 'vi']) : super(locale);
 
   @override
-  String get appName => 'Friendly Code';
+  String get appName => 'REVOO';
 
   @override
   String get loginTitle => 'Chào mừng quay lại';
@@ -285,7 +285,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get b2bHeadline => 'Khách hàng thân thiết không rào cản';
 
   @override
-  String get getTheApp => 'Tải ứng dụng Friendly Code';
+  String get getTheApp => 'Tải ứng dụng REVOO';
 
   @override
   String get downloadOn => 'Tải trên';
@@ -762,7 +762,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get navGetStarted => 'Bắt đầu miễn phí';
 
   @override
-  String get joinPartnerFree => '🤝 Tham gia Friendly Code miễn phí';
+  String get joinPartnerFree => '🤝 Tham gia REVOO miễn phí';
 
   @override
   String get heroAttractExpensive => 'Thu hút khách mới — tốn kém. Giữ chân — ';
@@ -838,7 +838,7 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get footerCopyright =>
-      '© 2026 Friendly Code. Được xây dựng với ❤️ dành cho ngành Dịch vụ.';
+      '© 2026 REVOO. Được xây dựng với ❤️ dành cho ngành Dịch vụ.';
 
   @override
   String get flyerTitle => 'Tạo Flyer Euro B2B';

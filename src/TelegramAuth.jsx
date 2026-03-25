@@ -12,7 +12,7 @@ const TelegramAuth = () => {
 
     const messengerLinks = {
         whatsapp: 'https://wa.me/1234567890', // placeholder for AppConfig.whatsappBotUrl
-        telegram: 'https://t.me/FriendlyCodeBot' // placeholder for AppConfig.telegramBotUrl
+        telegram: 'https://t.me/REVOO_bot' // placeholder for AppConfig.telegramBotUrl
     };
 
     const handleContinue = () => {

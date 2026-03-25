@@ -9,7 +9,7 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appName => 'Friendly Code';
+  String get appName => 'REVOO';
 
   @override
   String get loginTitle => 'Welcome Back';
@@ -286,7 +286,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get b2bHeadline => 'Zero Friction Loyalty';
 
   @override
-  String get getTheApp => 'Get the Friendly Code App';
+  String get getTheApp => 'Get the REVOO App';
 
   @override
   String get downloadOn => 'Download on';
@@ -759,7 +759,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navGetStarted => 'Get Started Free';
 
   @override
-  String get joinPartnerFree => '🤝 Join Friendly Code Free';
+  String get joinPartnerFree => '🤝 Join REVOO Free';
 
   @override
   String get heroAttractExpensive => 'Attract a guest — expensive. Retain — ';
@@ -834,8 +834,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get startFreeTrial => 'Start My Free Trial';
 
   @override
-  String get footerCopyright =>
-      '© 2026 Friendly Code. Built with ❤️ for Hospitality.';
+  String get footerCopyright => '© 2026 REVOO. Built with ❤️ for Hospitality.';
 
   @override
   String get flyerTitle => 'B2B Euro Flyer Generator';

@@ -10,18 +10,28 @@ import MarketingB2B from './MarketingB2B';
 import Unsubscribe from './Unsubscribe';
 import NewQRPage from './NewQRPage';
 import TestQRPage from './TestQRPage';
+import RevooB2C from './RevooB2C';
 
 function App() {
+  const isLegacyDomain = window.location.hostname.includes('friendlycode.fun');
+  const queryParams = new URLSearchParams(window.location.search);
+  const brandOverride = queryParams.get('brand');
+  const showRevoo = brandOverride === 'revoo' || (!isLegacyDomain && window.location.hostname !== 'localhost');
+
   return (
     <BrowserRouter>
       <React.Suspense fallback={<div className="min-h-screen bg-background-cream flex items-center justify-center font-black text-brand-orange animate-pulse">LOADING...</div>}>
         <Routes>
-          {/* Marketing Logic (Friendly Code 2.0) */}
-          <Route path="/" element={<MarketingB2C />} />
-          <Route path="/map" element={<PartnerMap />} />
-          <Route path="/business" element={<MarketingB2B />} />
+          {/* Legacy Marketing (Friendly Code 2.0) */}
+          <Route path="/legacy/b2c" element={<MarketingB2C />} />
+          <Route path="/legacy/b2b" element={<MarketingB2B />} />
 
-          {/* Guest QR Logic */}
+          {/* Multi-Brand Landing Logic */}
+          <Route path="/" element={showRevoo ? <RevooB2C /> : <MarketingB2C />} />
+          <Route path="/business" element={showRevoo ? <MarketingB2B /> : <MarketingB2B />} /> {/* Add RevooB2B here when ready */}
+          <Route path="/map" element={<PartnerMap />} />
+
+          {/* Guest QR Logic (Now REVOO) */}
           <Route path="/qr" element={<NewQRPage />} />
           <Route path="/test" element={<TestQRPage />} />
           <Route path="/newqr" element={<NewQRPage />} />

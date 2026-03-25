@@ -302,14 +302,14 @@ const LandingPage = () => {
                     {/* Bouncing Logo */}
                     <div className="mb-8 relative">
                         <div className="w-24 h-24 flex items-center justify-center p-2 rounded-2xl bg-white shadow-xl animate-bounce overflow-hidden">
-                            <img src="/logo.png" alt="Friendly Code Logo" className="w-full h-full object-contain" />
+                            <img src="/logo.png" alt="REVOO Logo" className="w-full h-full object-contain" />
                         </div>
                         {/* Ripple Effect */}
                         <div className="absolute top-0 left-0 w-full h-full bg-[#E68A00] rounded-2xl animate-ping opacity-20"></div>
                     </div>
 
                     <h2 className="text-2xl font-black text-[#4E342E] mb-2 uppercase tracking-wide">
-                        Friendly Code
+                        REVOO
                     </h2>
 
                     <p className="text-[#4E342E]/70 font-medium text-lg animate-pulse">
@@ -394,7 +394,7 @@ const LandingPage = () => {
                 <p className="text-sm font-bold opacity-60 uppercase tracking-widest">Welcome to</p>
                 <h2 className="text-2xl font-black leading-tight text-[#E68A00] mb-1">{venueName}</h2>
                 <div className="flex items-center justify-center gap-1 opacity-40 p-10 -m-10 cursor-pointer" onClick={() => setDebugClicks(c => c + 1)}>
-                    <span className="text-[12px] font-bold uppercase tracking-wider">powered by FriendlyCode</span>
+                    <span className="text-[12px] font-bold uppercase tracking-wider">powered by REVOO</span>
                     <FontAwesomeIcon icon={faLeaf} className="text-[12px]" />
                 </div>
             </div>
