@@ -20,9 +20,17 @@ const RevooB2C = () => {
     const { t, i18n } = useTranslation();
     const [scrolled, setScrolled] = useState(false);
     
-    // Check if user came from a QR scan intercept
     const searchParams = new URLSearchParams(location.search);
     const interceptedVenueId = searchParams.get('qr_venue_id');
+
+    // Return Guest Logic: If user is already known, bypass landing and go to QR page
+    useEffect(() => {
+        const guestName = localStorage.getItem('guestName');
+        const guestEmail = localStorage.getItem('guestEmail');
+        if ((guestName || guestEmail) && interceptedVenueId) {
+            navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
+        }
+    }, [interceptedVenueId, navigate]);
     
     // Scroll tracking for the Sticky Battery
     const { scrollYProgress } = useScroll();
@@ -149,12 +157,12 @@ const RevooB2C = () => {
                                 if (interceptedVenueId) {
                                     navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
                                 } else {
-                                    window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+                                    navigate('/test');
                                 }
                             }}
                             className="bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37] text-black px-12 py-5 rounded-full font-black text-sm md:text-base uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:shadow-[0_0_40px_rgba(212,175,55,0.5)] mx-auto flex items-center gap-4"
                         >
-                            {interceptedVenueId ? 'ПРОДОЛЖИТЬ К НАГРАДЕ' : 'ПОСМОТРЕТЬ ДЕМО'}
+                            {interceptedVenueId ? 'ПОЛУЧИТЬ НАГРАДУ' : 'ПОСМОТРЕТЬ ДЕМО'}
                             <FontAwesomeIcon icon={faArrowRight} />
                         </motion.button>
                     </motion.div>
@@ -253,12 +261,12 @@ const RevooB2C = () => {
                             if (interceptedVenueId) {
                                 navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
                             } else {
-                                navigate('/qr?id=demo');
+                                navigate('/test');
                             }
                         }}
                         className="w-full bg-[#00FF41] text-black py-4 rounded-full font-black text-sm md:text-base uppercase tracking-[0.1em] shadow-[0_10px_30px_rgba(0,255,65,0.4)] hover:scale-105 active:scale-95 transition-all text-center flex items-center justify-center gap-3 backdrop-blur-md"
                     >
-                        {interceptedVenueId ? 'ПОЛУЧИТЬ КАРТУ ЛОЯЛЬНОСТИ' : 'ПОЛУЧИТЬ ДЕМО'}
+                        {interceptedVenueId ? 'ПОЛУЧИТЬ НАГРАДУ' : 'СТАТЬ ВИП'}
                         <FontAwesomeIcon icon={faCrown} className="text-black" />
                     </button>
                 </div>
