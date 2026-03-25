@@ -10,7 +10,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark, // Force Dark Brightness for text contrast
       primaryColor: AppColors.accentOrange,
-      scaffoldBackgroundColor: Colors.transparent, // Allow admin_shell's Stack colors to bleed through
+      scaffoldBackgroundColor: Colors.black, // Ensure the base is always black
       
       colorScheme: const ColorScheme.dark(
         primary: AppColors.accentOrange,

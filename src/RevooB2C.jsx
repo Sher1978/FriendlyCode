@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import PngBattery from './PngBattery';
+import LanguageSelector from './LanguageSelector';
+
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -99,15 +102,12 @@ const RevooB2C = () => {
             {/* Navigation */}
             <nav className={`fixed top-0 left-0 w-full z-40 px-6 py-4 transition-all duration-500 ${scrolled ? 'bg-black/90 backdrop-blur-3xl border-b border-white/5 py-3 shadow-[0_4px_30px_rgba(0,0,0,0.5)]' : ''}`}>
                 <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
-                    <div className="flex-shrink-0 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-                        <img src="/revoo-logo.png" className={`transition-all duration-500 ${scrolled ? 'h-8' : 'h-10'} md:h-12 object-contain mix-blend-screen opacity-90 drop-shadow-[0_0_10px_rgba(212,175,55,0.3)]`} alt="REVOO Logo" />
+                    <div className="flex-shrink-0 cursor-pointer flex items-center gap-4" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                        <img src="/revoo-logo.png" className={`transition-all duration-500 ${scrolled ? 'h-8' : 'h-10'} md:h-12 object-contain mix-blend-screen opacity-90 drop-shadow-[0_0_10px_rgba(212,175,55,0.3)]]`} alt="REVOO Logo" />
+                        <span className="hidden md:block text-white/40 text-xs md:text-sm font-bold tracking-widest uppercase border-l border-white/20 pl-4">REVOO</span>
                     </div>
                     <div className="flex items-center gap-3 md:gap-6">
-                        <div className="hidden sm:flex bg-white/5 backdrop-blur-md rounded-full border border-white/10 px-3 py-1.5 shadow-[inset_0_1px_4px_rgba(255,255,255,0.05)]">
-                            <button onClick={() => i18n.changeLanguage('en')} className={`text-base transition-all ${i18n.language === 'en' ? 'scale-110 drop-shadow-[0_0_8px_rgba(212,175,55,0.5)] grayscale-0' : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0 hover:scale-105'}`}>🇺🇸</button>
-                            <button onClick={() => i18n.changeLanguage('ar')} className={`text-base mx-3 transition-all ${i18n.language === 'ar' ? 'scale-110 drop-shadow-[0_0_8px_rgba(212,175,55,0.5)] grayscale-0' : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0 hover:scale-105'}`}>🇦🇪</button>
-                            <button onClick={() => i18n.changeLanguage('ru')} className={`text-base transition-all ${i18n.language === 'ru' ? 'scale-110 drop-shadow-[0_0_8px_rgba(212,175,55,0.5)] grayscale-0' : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0 hover:scale-105'}`}>🇷🇺</button>
-                        </div>
+                        <LanguageSelector />
                         <button 
                             onClick={() => navigate('/qr?id=demo')}
                             className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-6 py-2 rounded-full text-xs md:text-sm font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)] whitespace-nowrap"

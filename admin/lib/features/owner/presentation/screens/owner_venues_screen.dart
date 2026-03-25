@@ -90,7 +90,7 @@ class _OwnerVenuesScreenState extends State<OwnerVenuesScreen> {
                               constraints: BoxConstraints(minWidth: constraints.maxWidth),
                               child: DataTable(
                                 headingRowColor: MaterialStateProperty.all(AppColors.background),
-                                dataRowColor: MaterialStateProperty.all(Colors.white),
+                                dataRowColor: MaterialStateProperty.all(AppColors.background),
                                 headingTextStyle: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.title, letterSpacing: 0.5),
                                 dataRowMinHeight: 70,
                                 dataRowMaxHeight: 80,
