@@ -9,28 +9,27 @@
 * **Email:** Resend API (Triggered via Cloud Functions).
 * **Telegram:** Bot integration for venue staff notifications.
 
-## 1.1 HYBRID ARCHITECTURE RULES
 *   **REACT (Vite/React)**:
     *   **Scope**: Marketing Landing Pages & Guest QR Funnel.
-    *   **Primary Files**: `src/LandingPage.jsx`, `src/UnifiedActivation.jsx`, `src/logic/RewardCalculator.js`.
+    *   **Primary Files**: `src/NewQRPage.jsx` (Production), `src/TestQRPage.jsx` (Demo), `src/UnifiedActivation.jsx`, `src/PngBattery.jsx`.
 *   **FLUTTER (Web)**:
     *   **Scope**: Admin/Owner Dashboard, Staff Management, Global Venue Management.
     *   **Primary Files**: `admin/lib/features/web/presentation/layout/admin_shell.dart`, `admin/lib/features/admin/presentation/screens/`.
 
 ## 2. INTERFACE A: GUEST WEB APP (REACT)
-**Goal:** Zero-friction reward activation.
+**Goal:** Zero-friction reward activation in iOS 26 OLED style.
 
 ### Screen A1: Discovery & Calculating (Splash)
 * **Logic:** Authenticates user via `signInAnonymously`. Fetches `guestName` from localStorage. Performs discount calculation based on `isDayActive` and decay stages.
+* **Aesthetic:** Pure OLED Black (`#000000`) with pulse animations.
 
-### Screen A2: Reward Gauge (Home)
-* **Needle Logic:**
-    *   Angle Calculation: `((discount - 5) / 15) * 180`.
-    *   Binary State:
-        *   If **5%**: Needle sits at 0° with `animate: { rotate: [0, -1, 1, 0] }` (Tremble effect).
-        *   If **> 5%**: Needle sweeps to 180° (usually for 20% streaks).
-*   **Visuals:** Speedometer design with a grey track. Central value shows the numeric discount (e.g., "20%").
-*   **Colors:** Green (Active Streak), Orange (Base/Reset), Red (Warning).
+### Screen A2: Reward Gauge / Battery (Home)
+* **Battery Logic (PngBattery):**
+    *   **Architecture:** 14-disk 3D geometry mapped to 10%, 25%, 50%, and 100% capacity states.
+    *   **Animation:** Two-layer hybrid. Layer 1: Persistent continuous glow wave. Layer 2: 14 individually lit structure blocks.
+    *   **Sparkles:** 25 deterministic floating glow particles for active energy visual.
+*   **Visuals:** iOS 26 Glassmorphism. `backdrop-blur-3xl` panels sitting over ambient glowing blurs (`mix-blend-screen`).
+*   **Colors:** Neon Blue (Deep Sea), Neon Green (iOS 26), Neon Orange.
 
 ## 3. INTERFACE B: ADMIN PANEL (FLUTTER)
 **Goal:** Multi-tenant hierarchy management.

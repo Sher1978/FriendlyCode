@@ -17,15 +17,13 @@
 
 ### User Journey (QR Scan or NFC Tap):
 1.  **Splash Screen:** Dynamic "Calculating Reward..." state while fetching venue/user data.
-2.  **Landing Page (The Gauge):**
+2.  **Landing Page (Battery Home):**
     *   **Activation:** Tap NFC tag or scan QR code. No app required.
-    *   **Visual:** A Speedometer-style Gauge.
-    *   **Logic (Binary Needle):** 
-        *   If Reward = **5%**, needle is at 0 degrees (Left) with a "Tremble" animation (Indicates "Cold" state).
-        *   If Reward > **5%** (10, 15, or 20%), needle sweeps to 180 degrees (Right) (Indicates "Active" state).
-    *   **Dynamic Instructions:** 
-        *   If 20%: "Visit today to keep your Max Discount!"
-        *   If <20%: "Visit today to get your Max Discount!"
+    *   **Visual:** Photorealistic 3D Battery with high-fidelity glassmorphism.
+    *   **Logic (OLED Glow):** 
+        *   Ambient glows matching battery state (Blue for cold/base, Green for VIP).
+        *   Frosted glass panels (`#1C1C1E/60`) for timeline and stats.
+    *   **Route:** `/qr` (Production), `/test` (Design Demo/Debug).
 3.  **Activation:**
     *   User enters Name/Email (if not saved).
     *   One-click `[CONFIRM & ACTIVATE]`.
@@ -60,12 +58,16 @@ The system supports four distinct operational roles within the Admin Panel:
     * Triggered by `onVisitCreated` Firebase Cloud Function.
     * Subscription Expiry Warning: Automated email sent 7 days before subscription end date to owners.
 
-## 7. DESIGN SYSTEM (AESTHETIC)
-*   **Theme:** "Premium Dark/Light" with Glassmorphism.
+## 7. DESIGN SYSTEM (iOS 26 OLED)
+*   **Theme:** "iOS 26 Dark Mode" (Pure OLED Black).
+*   **Aesthetics:** 
+    *   **Glassmorphism**: 60% opacity panels with `backdrop-blur-[40px]`.
+    *   **Ambient Lighting**: Neon blurs (`Deep Sea Blue`, `Friendly Orange`) rendered behind UI cards.
 *   **Colors:**
-    *   **Accent:** Brand Orange (`#FF9933`).
-    *   **Hierarchy:** Green (20% - Profit), Orange (5%/15% - Base/Warning), Red (10% - Danger of Loss).
-*   **Typography:** `Plus Jakarta Sans` / `Outfit`.
+    *   **Background**: OLED Black (`#000000`).
+    *   **Cards**: Frosted Grey (`#1C1C1E`).
+    *   **Accent**: Neon Green (`#00FF41`), Neon Orange (`#FF9933`).
+*   **Typography:** `Inter` (Production Default).
 
 ## 8. DATABASE (FIRESTORE)
 *   `users`: Stores `role`, `email`, `name`.

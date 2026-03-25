@@ -9,6 +9,7 @@ import PartnerMap from './PartnerMap';
 import MarketingB2B from './MarketingB2B';
 import Unsubscribe from './Unsubscribe';
 import NewQRPage from './NewQRPage';
+import TestQRPage from './TestQRPage';
 
 function App() {
   return (
@@ -21,7 +22,8 @@ function App() {
           <Route path="/business" element={<MarketingB2B />} />
 
           {/* Guest QR Logic */}
-          <Route path="/qr" element={<LandingPage />} />
+          <Route path="/qr" element={<NewQRPage />} />
+          <Route path="/test" element={<TestQRPage />} />
           <Route path="/newqr" element={<NewQRPage />} />
           <Route path="/activate" element={<LeadCapture />} />
           <Route path="/thank-you" element={<UnifiedActivation />} />

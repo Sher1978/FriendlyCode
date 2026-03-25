@@ -15,7 +15,7 @@ const safeStorage = {
     setItem: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { console.warn('Storage blocked'); } }
 };
 
-const NewQRPage = () => {
+const TestQRPage = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const [status, setStatus] = useState('loading');
@@ -356,6 +356,14 @@ const NewQRPage = () => {
                 </button>
             </div>
 
+            {/* Temporary Debug Panel for Battery States - positioned so it's out of the way vertically on right edge */}
+            <div className="fixed top-1/2 -translate-y-1/2 right-[2px] flex flex-col gap-2 justify-center z-[100] opacity-20 hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                <button onClick={() => setDiscount(5)} className="px-1 py-3 bg-[#FF3131] text-white text-[10px] rounded-l-md font-bold writing-vertical-rl rotate-180">10%</button>
+                <button onClick={() => setDiscount(10)} className="px-1 py-3 bg-[#FF8800] text-white text-[10px] rounded-l-md font-bold writing-vertical-rl rotate-180">25%</button>
+                <button onClick={() => setDiscount(15)} className="px-1 py-3 bg-[#FFD700] text-black text-[10px] rounded-l-md font-bold writing-vertical-rl rotate-180">50%</button>
+                <button onClick={() => setDiscount(20)} className="px-1 py-3 bg-[#00FF41] text-black text-[10px] rounded-l-md font-bold writing-vertical-rl rotate-180">100%</button>
+            </div>
+
             {/* Debug Overlay */}
             {debugClicks >= 5 && (
                 <div className="fixed inset-0 z-[1000] bg-black/90 flex items-center justify-center p-6 backdrop-blur-3xl" onClick={() => setDebugClicks(0)}>
@@ -397,4 +405,4 @@ const NewQRPage = () => {
     );
 };
 
-export default NewQRPage;
+export default TestQRPage;
