@@ -67,8 +67,8 @@ const RevooB2C = () => {
             subtitle: 'Увидишь награду',
             icon: faBolt,
             description: 'Твой VIP-статус и личная привилегия появятся мгновенно. Система узнает тебя в лицо.',
-            showBattery: true,
-            image: '/assets/vibe.png'
+            showBattery: false,
+            image: '/assets/reveal_vip_status_over_shoulder.png'
         },
         {
             id: 'status',
