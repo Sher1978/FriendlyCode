@@ -8,6 +8,8 @@ export function getBatteryConfig(capacity) {
         glowColorSoft: 'rgba(255,49,49,0.5)',
         direction: 'ltr',
         activeCount: 2, 
+        pulseDuration: '3s',   // slowed down 2x
+        flowDuration: '2.4s',  // slowed down 2x
     };
     if (capacity === 25) return {
         label: '25_PERCENT',
@@ -16,6 +18,8 @@ export function getBatteryConfig(capacity) {
         glowColorSoft: 'rgba(255,136,0,0.5)',
         direction: 'ltr',
         activeCount: 4, 
+        pulseDuration: '1.5s',
+        flowDuration: '1.2s',
     };
     if (capacity === 50) return {
         label: '50_PERCENT',
@@ -24,6 +28,8 @@ export function getBatteryConfig(capacity) {
         glowColorSoft: 'rgba(255,215,0,0.5)',
         direction: 'rtl',
         activeCount: 7, 
+        pulseDuration: '1.5s',
+        flowDuration: '1.5s',
     };
     if (capacity === 100) return {
         label: '100_PERCENT',
@@ -32,6 +38,8 @@ export function getBatteryConfig(capacity) {
         glowColorSoft: 'rgba(0,255,65,0.5)',
         direction: 'ltr',
         activeCount: 14, 
+        pulseDuration: '1.5s',
+        flowDuration: '1.2s',
     };
     
     if (capacity < 15) return getBatteryConfig(10);
@@ -112,8 +120,8 @@ export default function PngBattery({ discount }) {
                         opacity: 0.85,
                         mixBlendMode: 'screen',
                         animation: cfg.direction === 'ltr' 
-                            ? `energyFlowLTR-${uid} 1.2s linear infinite` 
-                            : `energyFlowRTL-${uid} 1.5s linear infinite`,
+                            ? `energyFlowLTR-${uid} ${cfg.flowDuration} linear infinite` 
+                            : `energyFlowRTL-${uid} ${cfg.flowDuration} linear infinite`,
                     }} />
 
                     {/* Glowing Energy Sparkles / Bubbles */}
@@ -186,7 +194,7 @@ export default function PngBattery({ discount }) {
                                 mixBlendMode: 'hard-light', // using hard-light makes the colors pop and removes transparency washout
                                 boxShadow: isActive ? `0 0 15px ${cfg.glowColorSoft}, inset 0 0 15px rgba(255,255,255,0.7)` : 'none',
                                 transition: 'opacity 0.5s ease-in-out, background 0.5s ease-in-out, box-shadow 0.5s',
-                                animation: isActive ? `segmentPulse-${uid} 1.5s infinite ease-in-out` : 'none',
+                                animation: isActive ? `segmentPulse-${uid} ${cfg.pulseDuration} infinite ease-in-out` : 'none',
                                 animationDelay: `${animDelay}s`
                             }} />
                         );
