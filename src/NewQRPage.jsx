@@ -288,6 +288,11 @@ const NewQRPage = () => {
                     {/* Inner highlight ring */}
                     <div className="absolute inset-0 border border-white/5 rounded-[28px] pointer-events-none mix-blend-overlay"></div>
 
+                    {/* VIP Status Label */}
+                    <p className="text-[12px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">
+                        Your VIP Status is
+                    </p>
+
                     {/* Massive Accent Number */}
                     <div
                         className="text-[64px] font-bold leading-none tracking-tighter"
