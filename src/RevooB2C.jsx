@@ -165,7 +165,7 @@ const RevooB2C = () => {
                             }}
                             className="bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37] text-black px-12 py-5 rounded-full font-black text-sm md:text-base uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:shadow-[0_0_40px_rgba(212,175,55,0.5)] mx-auto flex items-center gap-4"
                         >
-                            {interceptedVenueId ? 'ПОЛУЧИТЬ НАГРАДУ' : 'ПОСМОТРЕТЬ ДЕМО'}
+                            {interceptedVenueId ? 'ПОЛУЧИТЬ НАГРАДУ' : 'СТАТЬ ВИП'}
                             <FontAwesomeIcon icon={faArrowRight} />
                         </motion.button>
                     </motion.div>
