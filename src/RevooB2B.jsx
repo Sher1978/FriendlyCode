@@ -79,10 +79,10 @@ const RevooB2B = () => {
                     <div className="flex items-center gap-3 md:gap-6">
                         <LanguageSelector />
                         <button 
-                            onClick={() => window.open('https://t.me/REVOO_bot', '_blank')}
+                            onClick={() => window.open('https://wa.me/971588044688', '_blank')}
                             className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-6 py-2 rounded-full text-xs md:text-sm font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)] whitespace-nowrap"
                         >
-                            Book Demo
+                            WhatsApp
                         </button>
                     </div>
                 </div>
@@ -108,13 +108,15 @@ const RevooB2B = () => {
                             <motion.button
                                 whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(212, 175, 55, 0.4)" }}
                                 whileTap={{ scale: 0.95 }}
+                                onClick={() => window.open('https://wa.me/971588044688', '_blank')}
                                 className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-8 py-4 rounded-full font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)]"
                             >
-                                СКАЧАТЬ WHITE PAPER
+                                WhatsApp
                             </motion.button>
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
+                                onClick={() => navigate('/qr?id=demo')}
                                 className="bg-white/5 backdrop-blur-xl border border-white/10 text-white px-8 py-4 rounded-full font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
                             >
                                 ТЕСТ-ДРАЙВ
@@ -439,10 +441,10 @@ const RevooB2B = () => {
                         <motion.button
                             whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(212, 175, 55, 0.4)" }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => window.open('https://t.me/REVOO_bot', '_blank')}
+                            onClick={() => window.open('https://wa.me/971588044688', '_blank')}
                             className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-10 py-5 rounded-full font-black text-sm md:text-base uppercase tracking-[0.2em] relative z-10 w-full md:w-auto shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:shadow-[0_0_40px_rgba(212,175,55,0.4)]"
                         >
-                            ВНЕДРИТЬ СИСТЕМУ ЗА 15 МИНУТ
+                            WhatsApp
                         </motion.button>
                     </motion.div>
                 </div>
