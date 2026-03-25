@@ -258,12 +258,14 @@ const NewQRPage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8 }}
-            className="flex flex-col h-[100dvh] bg-black font-sans text-white antialiased overflow-hidden relative"
+            className="flex flex-col min-h-[100svh] bg-black font-sans text-white antialiased relative"
             style={{ WebkitFontSmoothing: 'antialiased' }}
         >
-            {/* Ambient Background Glow Arrays (optimized for vivid mobile visibility) */}
-            <div className="absolute top-[-10%] left-[-20vw] w-[140vw] h-[60vh] rounded-[100%] blur-[100px] pointer-events-none opacity-[0.25] mix-blend-screen" style={{ backgroundColor: batCfg.fillColor }} />
-            <div className="absolute bottom-[10%] right-[-20vw] w-[140vw] h-[50vh] rounded-[100%] blur-[120px] pointer-events-none opacity-[0.15]" style={{ backgroundColor: batCfg.fillColor }} />
+            {/* Ambient Background Glow Arrays */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+                <div className="absolute top-[-10%] left-[-20vw] w-[140vw] h-[60vh] rounded-[100%] blur-[100px] opacity-[0.25] mix-blend-screen" style={{ backgroundColor: batCfg.fillColor }} />
+                <div className="absolute bottom-[10%] right-[-20vw] w-[140vw] h-[50vh] rounded-[100%] blur-[120px] opacity-[0.15]" style={{ backgroundColor: batCfg.fillColor }} />
+            </div>
 
             {/* Language Switcher */}
             <div className="absolute top-4 right-4 z-50">
@@ -275,20 +277,19 @@ const NewQRPage = () => {
                 </button>
             </div>
 
-            {/* Header (Minimal, San Francisco Style) */}
-            <div className="pt-6 px-6 text-center z-10 w-full">
-                <p className="text-[11px] font-semibold text-white/40 tracking-widest uppercase mb-1">Welcome To</p>
-                <h2 className="text-[28px] font-bold tracking-tight text-white leading-tight">{venueName}</h2>
-                <div className="flex items-center justify-center gap-1 opacity-20 mt-1 cursor-pointer">
-                    <span className="text-[9px] font-semibold uppercase tracking-widest">Powered by REVOO</span>
+            {/* Content Wrapper */}
+            <div className="flex-grow flex flex-col z-10">
+                {/* Header (Minimal) */}
+                <div className="pt-8 pb-4 px-6 text-center flex-shrink-0">
+                    <p className="text-[11px] font-semibold text-white/40 tracking-widest uppercase mb-1">Welcome To</p>
+                    <h2 className="text-[28px] font-bold tracking-tight text-white leading-tight">{venueName}</h2>
+                    <div className="flex items-center justify-center gap-1 opacity-20 mt-1 cursor-pointer">
+                        <span className="text-[9px] font-semibold uppercase tracking-widest">Powered by REVOO</span>
+                    </div>
                 </div>
-            </div>
-
-            {/* Main Content Area */}
-            <div className="flex-grow flex flex-col items-center justify-start mt-1 px-4 pb-[120px] w-full max-w-md mx-auto z-10 gap-3 overflow-y-auto" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
 
                 {/* Hero / Guest Name */}
-                <div className="text-center flex flex-col items-center -mt-4">
+                <div className="text-center flex flex-col items-center flex-shrink-0 px-6 py-2">
                     {guestName ? (
                         <>
                             <p className="text-[12px] font-medium text-white/50 mb-0.5">{t('hero_welcome_back')}</p>
@@ -296,7 +297,7 @@ const NewQRPage = () => {
                                 className="text-[24px] font-semibold tracking-tight text-white/90"
                                 onClick={() => setDebugClicks(c => c + 1)}
                             >
-                                {guestName}
+                                {guestName || 'Friend'}
                             </div>
                         </>
                     ) : (
@@ -309,79 +310,58 @@ const NewQRPage = () => {
                     )}
                 </div>
 
-                {/* ── GLASS BATTERY CONTAINER (Modern Floating Card) ── */}
-                <div className="flex flex-col items-center w-full bg-[#1C1C1E]/60 backdrop-blur-[40px] border border-white/10 rounded-[28px] p-5 shadow-2xl relative overflow-hidden">
+                {/* Scrollable Container for elements (naturally scrolls on root) */}
+                <div className="flex-grow flex flex-col items-center px-4 w-full max-w-md mx-auto gap-4 py-2">
                     
-                    {/* Inner highlight ring */}
-                    <div className="absolute inset-0 border border-white/5 rounded-[28px] pointer-events-none mix-blend-overlay"></div>
-
-                    {/* VIP Status Label */}
-                    <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-1">
-                        Your VIP Status is
-                    </p>
-
-                    {/* Massive Accent Number */}
-                    <div
-                        className="text-[64px] font-bold leading-none tracking-tighter"
-                        style={{
-                            color: '#FFFFFF',
-                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
-                            textShadow: `
-                                0 0 10px ${batCfg.fillColor},
-                                0 0 20px ${batCfg.fillColor},
-                                0 0 40px ${batCfg.glowColorSoft},
-                                0 0 80px ${batCfg.glowColorSoft}
-                            `
-                        }}
-                    >
-                        {discount}%
-                    </div>
-                    {/* The "Discount limits" subline */}
-                    <p className="text-[10px] font-medium tracking-wider opacity-60 uppercase mb-2" style={{ color: batCfg.fillColor }}>
-                        Current Rate
-                    </p>
-
-                    {/* Horizontal battery component */}
-                    <div className="w-full relative z-10 pointer-events-none">
-                        <PngBattery discount={discount} />
-                    </div>
-                </div>
-
-                {/* iOS Settings-style Timeline Widget */}
-                <div className="w-full bg-[#1C1C1E] rounded-[24px] overflow-hidden flex flex-col border border-white/5 shadow-xl mt-0">
-                    {timelineItems.map((item, index) => (
-                        <div key={index} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0 relative px-4 hover:bg-white/5 transition-colors">
-                            {/* Icon Box */}
-                            <div className="w-6 h-6 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: item.color, boxShadow: `0 0 10px ${item.color}30` }}>
-                                <FontAwesomeIcon icon={faGift} className="text-[9px]" />
-                            </div>
-                            
-                            {/* Text labels */}
-                            <div className="flex items-center w-full justify-between">
-                                <div className="flex flex-col">
-                                    <span className="font-semibold text-[15px] text-white">
-                                        {item.label}
-                                    </span>
-                                    <span className="text-[10px] text-white/30 font-medium uppercase tracking-wider">
-                                        {item.sub}
-                                    </span>
-                                </div>
-                                <span className="text-[15px] text-white/50 font-bold">
-                                    {item.value}
-                                </span>
-                            </div>
+                    {/* ── GLASS BATTERY CONTAINER ── */}
+                    <div className="flex flex-col items-center w-full bg-[#1C1C1E]/60 backdrop-blur-[40px] border border-white/10 rounded-[28px] p-6 shadow-2xl relative overflow-hidden flex-shrink-0">
+                        <div className="absolute inset-0 border border-white/5 rounded-[28px] pointer-events-none mix-blend-overlay" />
+                        <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-1">
+                            Your VIP Status is
+                        </p>
+                        <div
+                            className="text-[64px] font-bold leading-none tracking-tighter mb-1"
+                            style={{
+                                color: '#FFFFFF',
+                                textShadow: `0 0 10px ${batCfg.fillColor}, 0 0 20px ${batCfg.fillColor}, 0 0 40px ${batCfg.glowColorSoft}`
+                            }}
+                        >
+                            {discount}%
                         </div>
-                    ))}
+                        <p className="text-[10px] font-medium tracking-wider opacity-60 uppercase mb-4" style={{ color: batCfg.fillColor }}>
+                            Current Rate
+                        </p>
+                        <div className="w-full relative z-10 pointer-events-none scale-110 mb-2">
+                            <PngBattery discount={discount} />
+                        </div>
+                    </div>
+
+                    {/* iOS Settings-style Timeline Widget */}
+                    <div className="w-full bg-[#1C1C1E] rounded-[24px] overflow-hidden flex flex-col border border-white/5 shadow-xl flex-shrink-0">
+                        {timelineItems.map((item, index) => (
+                            <div key={index} className="flex items-center gap-3 py-3 border-b border-white/5 last:border-0 relative px-4 hover:bg-white/5 transition-colors">
+                                <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: item.color, boxShadow: `0 0 10px ${item.color}30` }}>
+                                    <FontAwesomeIcon icon={faGift} className="text-[11px]" />
+                                </div>
+                                <div className="flex items-center w-full justify-between">
+                                    <div className="flex flex-col">
+                                        <span className="font-semibold text-[15px] text-white">{item.label}</span>
+                                        <span className="text-[11px] text-white/30 font-medium uppercase tracking-wider">{item.sub}</span>
+                                    </div>
+                                    <span className="text-[15px] text-white/50 font-bold">{item.value}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    <p className="text-[11px] font-medium text-white/40 text-center px-4 leading-relaxed tracking-wider py-2">
+                        {i18n.language === 'ru' ? 'Чем чаще ты посещаешь, тем выше ВИП статус и награда!' : 'The more often you visit, the higher your VIP status and reward!'}
+                    </p>
                 </div>
-
-                <p className="mt-4 text-[11px] font-medium text-white/40 text-center px-4 leading-relaxed tracking-wider">
-                    {i18n.language === 'ru' ? 'Чем чаще ты посещаешь, тем выше ВИП статус и награда!' : 'The more often you visit, the higher your VIP status and reward!'}
-                </p>
-
             </div>
 
             {/* Sticky CTA (iOS Prominent Modal Button) */}
-            <div className="fixed bottom-0 left-0 w-full p-4 pt-10 bg-gradient-to-t from-black via-black/90 to-transparent pb-6 z-50 flex justify-center">
+            <div className="sticky bottom-0 left-0 w-full p-6 pt-10 bg-gradient-to-t from-black via-black/95 to-transparent z-40 flex justify-center mt-auto">
                 <button
                     onClick={() => {
                         const guestEmail = safeStorage.getItem('guestEmail');
@@ -391,7 +371,7 @@ const NewQRPage = () => {
                             navigate('/activate', { state: { discount, guestName, userRole } });
                         }
                     }}
-                    className="w-[92%] max-w-[400px] h-[52px] text-black bg-white rounded-[18px] font-semibold text-[16px] active:scale-[0.97] transition-all shadow-xl flex items-center justify-center gap-2"
+                    className="w-full max-w-[400px] h-[56px] text-black bg-white rounded-[20px] font-bold text-[17px] active:scale-[0.97] transition-all shadow-[0_10px_30px_rgba(255,255,255,0.1)] flex items-center justify-center gap-2"
                 >
                     {(guestName || safeStorage.getItem('guestEmail')) ? t('get_my_reward', 'Get My Reward') : t('get_my_discount')}
                 </button>

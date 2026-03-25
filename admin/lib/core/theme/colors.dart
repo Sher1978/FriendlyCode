@@ -17,6 +17,10 @@ class AppColors {
   static const Color accentGreen = Color(0xFF30D158); // iOS Green
   static const Color accentBlue = Color(0xFF0A84FF); // iOS Blue
   static const Color accentRed = Color(0xFFFF453A); // iOS Red
+  static const Color accentYellow = Color(0xFFFFD60A); // iOS Yellow
+  static const Color accentTeal = Color(0xFF64D2FF); // iOS Teal/Cyan
+  static const Color accentIndigo = Color(0xFF5E5CE6); // iOS Indigo
+  static const Color softShadow = Color(0x1A000000); // Soft Shadow for visibility
   
   // Premium Redesign Palette (Kept for compatibility, darkened)
   static const Color premiumSand = Color(0xFF1C1C1E); 
