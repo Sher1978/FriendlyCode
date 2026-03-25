@@ -160,7 +160,7 @@ const RevooB2C = () => {
                                 if (interceptedVenueId) {
                                     navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
                                 } else {
-                                    navigate('/test');
+                                    navigate('/test?id=komKf0beSnsuuZ6p0Igh');
                                 }
                             }}
                             className="bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37] text-black px-12 py-5 rounded-full font-black text-sm md:text-base uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:shadow-[0_0_40px_rgba(212,175,55,0.5)] mx-auto flex items-center gap-4"
@@ -270,7 +270,7 @@ const RevooB2C = () => {
                             if (interceptedVenueId) {
                                 navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
                             } else {
-                                navigate('/test');
+                                navigate('/test?id=komKf0beSnsuuZ6p0Igh');
                             }
                         }}
                         className="w-full bg-[#00FF41] text-black py-4 rounded-full font-black text-sm md:text-base uppercase tracking-[0.1em] shadow-[0_10px_30px_rgba(0,255,65,0.4)] hover:scale-105 active:scale-95 transition-all text-center flex items-center justify-center gap-3 backdrop-blur-md"
