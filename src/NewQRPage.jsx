@@ -60,6 +60,7 @@ const NewQRPage = () => {
             const checkUserAndVenue = async () => {
                 const searchParams = new URLSearchParams(location.search);
                 const rawId = searchParams.get('id') || searchParams.get('v') || 'default_venue';
+                const bypassLanding = searchParams.get('bypass_landing') === 'true';
                 // Robustness: strip potential encoding artifacts like '3D' at the start
                 const venueId = rawId.startsWith('3D') && rawId.length > 10 ? rawId.substring(2) : rawId;
                 safeStorage.setItem('currentVenueId', venueId);
@@ -84,15 +85,31 @@ const NewQRPage = () => {
                     const userSnap = await getDoc(userRef);
                     let userData = userSnap.exists() ? userSnap.data() : null;
 
+                    let resolvedName = '';
                     if (userData) {
                         setUserRole(userData.role || 'guest');
                         const displayName = userData.displayName || userData.name;
-                        if (displayName) { setGuestName(displayName); safeStorage.setItem('guestName', displayName); }
+                        if (displayName) { 
+                            resolvedName = displayName;
+                            setGuestName(displayName); 
+                            safeStorage.setItem('guestName', displayName); 
+                        }
                         if (userData.email) safeStorage.setItem('guestEmail', userData.email);
                     } else {
                         const savedName = safeStorage.getItem('guestName');
-                        if (savedName) setGuestName(savedName);
+                        if (savedName) {
+                            resolvedName = savedName;
+                            setGuestName(savedName);
+                        }
                     }
+
+                    // --- B2C INTERCEPT LOGIC ---
+                    if (!resolvedName && !bypassLanding) {
+                        // User is completely new, and hasn't been funneled through the landing page yet
+                        window.location.href = `/?qr_venue_id=${venueId}`;
+                        return;
+                    }
+                    // ---------------------------
 
                     const rawEmail = userData?.email || safeStorage.getItem('guestEmail') || '';
                     const email = rawEmail.toLowerCase();

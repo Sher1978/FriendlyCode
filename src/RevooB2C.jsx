@@ -9,12 +9,17 @@ import {
   faCrown,
   faArrowRight
 } from '@fortawesome/free-solid-svg-icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const RevooB2C = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { t, i18n } = useTranslation();
     const [scrolled, setScrolled] = useState(false);
+    
+    // Check if user came from a QR scan intercept
+    const searchParams = new URLSearchParams(location.search);
+    const interceptedVenueId = searchParams.get('qr_venue_id');
     
     // Scroll tracking for the Sticky Battery
     const { scrollYProgress } = useScroll();
@@ -140,10 +145,16 @@ const RevooB2C = () => {
                         <motion.button
                             whileHover={{ scale: 1.05, boxShadow: "0 0 50px rgba(212, 175, 55, 0.4)" }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
+                            onClick={() => {
+                                if (interceptedVenueId) {
+                                    navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
+                                } else {
+                                    window.scrollTo({ top: window.innerHeight, behavior: 'smooth' });
+                                }
+                            }}
                             className="bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37] text-black px-12 py-5 rounded-full font-black text-sm md:text-base uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:shadow-[0_0_40px_rgba(212,175,55,0.5)] mx-auto flex items-center gap-4"
                         >
-                            Посмотреть демо
+                            {interceptedVenueId ? 'ПРОДОЛЖИТЬ К НАГРАДЕ' : 'ПОСМОТРЕТЬ ДЕМО'}
                             <FontAwesomeIcon icon={faArrowRight} />
                         </motion.button>
                     </motion.div>
@@ -228,6 +239,30 @@ const RevooB2C = () => {
                     </motion.div>
                 </div>
             </section>
+
+            {/* Floating Sticky CTA */}
+            <motion.div 
+                className="fixed bottom-6 left-0 right-0 z-50 flex justify-center px-6 pointer-events-none"
+                initial={{ y: 100, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ delay: 1, type: "spring", stiffness: 100 }}
+            >
+                <div className="pointer-events-auto w-full max-w-sm">
+                    <button 
+                        onClick={() => {
+                            if (interceptedVenueId) {
+                                navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
+                            } else {
+                                navigate('/qr?id=demo');
+                            }
+                        }}
+                        className="w-full bg-[#00FF41] text-black py-4 rounded-full font-black text-sm md:text-base uppercase tracking-[0.1em] shadow-[0_10px_30px_rgba(0,255,65,0.4)] hover:scale-105 active:scale-95 transition-all text-center flex items-center justify-center gap-3 backdrop-blur-md"
+                    >
+                        {interceptedVenueId ? 'ПОЛУЧИТЬ КАРТУ ЛОЯЛЬНОСТИ' : 'ПОЛУЧИТЬ ДЕМО'}
+                        <FontAwesomeIcon icon={faCrown} className="text-black" />
+                    </button>
+                </div>
+            </motion.div>
 
             {/* Footer */}
             <footer className="py-20 border-t border-white/5 bg-black">
