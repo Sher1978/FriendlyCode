@@ -257,29 +257,6 @@ const RevooB2C = () => {
                 </div>
             </section>
 
-            {/* Floating Sticky CTA */}
-            <motion.div 
-                className="fixed bottom-6 left-0 right-0 z-50 flex justify-center px-6 pointer-events-none"
-                initial={{ y: 100, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 1, type: "spring", stiffness: 100 }}
-            >
-                <div className="pointer-events-auto w-full max-w-sm">
-                    <button 
-                        onClick={() => {
-                            if (interceptedVenueId) {
-                                navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
-                            } else {
-                                navigate('/test?id=komKf0beSnsuuZ6p0Igh');
-                            }
-                        }}
-                        className="w-full bg-[#00FF41] text-black py-4 rounded-full font-black text-sm md:text-base uppercase tracking-[0.1em] shadow-[0_10px_30px_rgba(0,255,65,0.4)] hover:scale-105 active:scale-95 transition-all text-center flex items-center justify-center gap-3 backdrop-blur-md"
-                    >
-                        {interceptedVenueId ? 'ПОЛУЧИТЬ НАГРАДУ' : 'СТАТЬ ВИП'}
-                        <FontAwesomeIcon icon={faCrown} className="text-black" />
-                    </button>
-                </div>
-            </motion.div>
 
             {/* Footer */}
             <footer className="py-20 border-t border-white/5 bg-black">
