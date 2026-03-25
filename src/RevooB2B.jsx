@@ -113,10 +113,18 @@ const RevooB2B = () => {
                         {/* Battery Container */}
                         <div className="relative w-48 h-[340px] flex flex-col items-center transform-gpu rotate-y-[-20deg] rotate-x-[15deg] drop-shadow-[0_30px_50px_rgba(0,0,0,0.6)]">
                             
-                            {/* Top Cap (Positive) */}
-                            <div className="w-full h-10 relative rounded-t-2xl bg-gradient-to-b from-gray-300 via-gray-100 to-gray-400 border-b border-gray-600 overflow-hidden shadow-[inset_0_-2px_10px_rgba(0,0,0,0.5),0_5px_15px_rgba(0,0,0,0.5)] z-20">
-                                <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-black/70" />
-                                <div className="absolute inset-0 flex items-center justify-center text-black/50 font-black text-2xl z-10 translate-y-1 drop-shadow-sm">+</div>
+                            {/* Top Cap (Positive) - Square & Engraved */}
+                            <div className="relative w-full h-8 bg-gradient-to-r from-[#1a1a1a] via-[#e5e5e5] to-[#1a1a1a] border-y-[3px] border-t-white/40 border-b-black/80 shadow-[0_5px_15px_rgba(0,0,0,0.8)] z-20 flex items-center justify-center rounded-sm">
+                                {/* Metallic Sheen & Brushed Effect */}
+                                <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-black/50 pointer-events-none" />
+                                <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMCAwbDR2NE00IDBMMCA0IiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMC41Ii8+PC9zdmc+')] mix-blend-overlay pointer-events-none" />
+                                {/* Engraved Huge + */}
+                                <div 
+                                    className="relative z-10 text-5xl font-black text-black/60 translate-y-[-2px] select-none" 
+                                    style={{ textShadow: "0px 1px 1px rgba(255,255,255,0.7), 0px -1px 1px rgba(0,0,0,0.8)" }}
+                                >
+                                    +
+                                </div>
                             </div>
 
                             {/* Main Glass Body */}
@@ -136,7 +144,7 @@ const RevooB2B = () => {
 
                                     return (
                                         <div key={idx} className="flex-1 w-full relative group">
-                                            {/* Metallic Separator Ring (Like the reference image) */}
+                                            {/* Metallic Separator Ring */}
                                             <div className="absolute -left-1 -right-1 h-[3px] top-0 bg-gradient-to-r from-gray-600 via-gray-300 to-gray-600 z-20 shadow-[0_1px_3px_rgba(0,0,0,0.8),inset_0_1px_1px_white]" />
                                             {idx === 13 && (
                                                 <div className="absolute -left-1 -right-1 h-[3px] bottom-0 bg-gradient-to-r from-gray-600 via-gray-300 to-gray-600 z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.8),inset_0_-1px_1px_white]" />
@@ -156,10 +164,11 @@ const RevooB2B = () => {
                                 })}
                             </div>
 
-                            {/* Bottom Cap (Negative) */}
-                            <div className="w-full h-10 relative rounded-b-2xl bg-gradient-to-b from-gray-400 via-gray-100 to-gray-300 border-t border-gray-600 overflow-hidden shadow-[inset_0_2px_10px_rgba(0,0,0,0.5),0_-5px_15px_rgba(0,0,0,0.5)] z-20">
-                                <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-transparent to-black/70" />
-                                <div className="absolute inset-0 flex items-center justify-center text-black/50 font-black text-3xl leading-none z-10 -translate-y-1 drop-shadow-sm">-</div>
+                            {/* Bottom Cap (Negative) - Square & No Sign */}
+                            <div className="relative w-full h-8 bg-gradient-to-r from-[#1a1a1a] via-[#e5e5e5] to-[#1a1a1a] border-y-[3px] border-t-black/80 border-b-white/20 shadow-[0_-5px_15px_rgba(0,0,0,0.8)] z-20 rounded-sm">
+                                {/* Metallic Sheen & Brushed Effect */}
+                                <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/80 pointer-events-none" />
+                                <div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPjxyZWN0IHdpZHRoPSI0IiBoZWlnaHQ9IjQiIGZpbGw9IiNmZmYiLz48cGF0aCBkPSJNMCAwbDR2NE00IDBMMCA0IiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMC41Ii8+PC9zdmc+')] mix-blend-overlay pointer-events-none" />
                             </div>
                         </div>
 
