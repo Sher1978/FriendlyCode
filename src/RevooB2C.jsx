@@ -90,40 +90,48 @@ const RevooB2C = () => {
                 <div className="absolute top-[40%] left-[30%] w-[600px] h-[600px] bg-[#FFDF00]/5 blur-[150px] rounded-full" />
             </div>
 
-            {/* Sticky Battery Widget */}
-            <motion.div 
-                className="fixed top-6 right-6 z-50 flex flex-col items-center gap-2"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-            >
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 text-white">Status</div>
-                <div className="w-14 h-7 border-2 border-white/20 rounded-md p-[2px] relative bg-white/5 backdrop-blur-xl">
-                    <motion.div 
-                        className="h-full rounded-[2px]"
-                        style={{ 
-                            width: batteryWidth,
-                            backgroundColor: batteryColor,
-                            boxShadow: "0 0 10px rgba(0,255,65,0.4)"
-                        }}
-                    />
-                    <div className="absolute -right-[4px] top-1/2 -translate-y-1/2 w-[2px] h-2 bg-white/20 rounded-r-full" />
-                </div>
-            </motion.div>
 
             {/* Navigation */}
-            <nav className={`fixed top-0 left-0 w-full z-40 px-6 py-4 transition-all duration-500 ${scrolled ? 'bg-black/90 backdrop-blur-3xl border-b border-white/5 py-3 shadow-[0_4px_30px_rgba(0,0,0,0.5)]' : ''}`}>
-                <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
-                    <div className="flex-shrink-0 cursor-pointer flex items-center gap-4" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-                        <img src="/revoo-logo.png" className={`transition-all duration-500 ${scrolled ? 'h-8' : 'h-10'} md:h-12 object-contain mix-blend-screen opacity-90 drop-shadow-[0_0_10px_rgba(212,175,55,0.3)]]`} alt="REVOO Logo" />
-                        <span className="hidden md:block text-white/40 text-xs md:text-sm font-bold tracking-widest uppercase border-l border-white/20 pl-4">REVOO</span>
+            <nav className={`fixed top-0 left-0 w-full z-40 px-4 md:px-6 py-3 md:py-4 transition-all duration-500 ${scrolled ? 'bg-black/90 backdrop-blur-3xl border-b border-white/5 py-2 md:py-3 shadow-[0_4px_30px_rgba(0,0,0,0.5)]' : ''}`}>
+                <div className="max-w-7xl mx-auto flex justify-between items-center gap-2 md:gap-4">
+                    <div className="flex-shrink-0 cursor-pointer flex items-center gap-3 md:gap-4" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                        <img src="/revoo-logo.png" className={`transition-all duration-500 ${scrolled ? 'h-6' : 'h-8'} md:h-12 object-contain mix-blend-screen opacity-90 drop-shadow-[0_0_10px_rgba(212,175,55,0.3)]]`} alt="REVOO Logo" />
+                        <span className="hidden sm:block text-white/40 text-[10px] md:text-sm font-bold tracking-widest uppercase border-l border-white/20 pl-4">REVOO</span>
                     </div>
-                    <div className="flex items-center gap-3 md:gap-6">
+                    <div className="flex items-center gap-2 md:gap-6">
                         <LanguageSelector />
-                        <button 
-                            onClick={() => navigate('/qr?id=demo')}
-                            className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-6 py-2 rounded-full text-xs md:text-sm font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)] whitespace-nowrap"
+                        
+                        {/* Integrated Battery Widget */}
+                        <motion.div 
+                            className="flex flex-col items-center gap-0.5 md:gap-1"
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
                         >
-                            Demo
+                            <span className="text-[7px] md:text-[10px] font-black uppercase tracking-widest opacity-40 text-white leading-none">Status</span>
+                            <div className="w-10 h-5 md:w-14 md:h-7 border-[1.5px] md:border-2 border-white/20 rounded-[3px] md:rounded-md p-[1px] md:p-[2px] relative bg-white/5 backdrop-blur-xl">
+                                <motion.div 
+                                    className="h-full rounded-[1px] md:rounded-[2px]"
+                                    style={{ 
+                                        width: batteryWidth,
+                                        backgroundColor: batteryColor,
+                                        boxShadow: "0 0 10px rgba(0,255,65,0.4)"
+                                    }}
+                                />
+                                <div className="absolute -right-[3px] md:-right-[4px] top-1/2 -translate-y-1/2 w-[1.5px] md:w-[2px] h-1.5 md:h-2 bg-white/20 rounded-r-full" />
+                            </div>
+                        </motion.div>
+
+                        <button 
+                            onClick={() => {
+                                if (interceptedVenueId) {
+                                    navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
+                                } else {
+                                    navigate('/test?id=komKf0beSnsuuZ6p0Igh');
+                                }
+                            }}
+                            className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-4 md:px-6 py-1.5 md:py-2 rounded-full text-[10px] md:text-sm font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)] whitespace-nowrap"
+                        >
+                            {interceptedVenueId ? 'Start' : 'Demo'}
                         </button>
                     </div>
                 </div>
@@ -146,10 +154,10 @@ const RevooB2C = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
                     >
-                        <h1 className="text-2xl md:text-3xl font-black text-white/50 mb-6 tracking-[0.2em] uppercase border-t border-white/10 pt-8 inline-block">
+                        <h1 className="text-xl md:text-3xl font-black text-white/50 mb-4 md:mb-6 tracking-[0.2em] uppercase border-t border-white/10 pt-6 md:pt-8 inline-block">
                             <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37]">ENERGY</span> THAT MATTERS
                         </h1>
-                        <p className="text-lg md:text-xl text-white/60 font-medium mb-12 max-w-2xl mx-auto leading-relaxed">
+                        <p className="text-sm md:text-xl text-white/60 font-medium mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed px-4">
                             Забудь про пластик и анкеты. Получай статус и награды мгновенно. Ваше время стоит большего.
                         </p>
                         <motion.button
