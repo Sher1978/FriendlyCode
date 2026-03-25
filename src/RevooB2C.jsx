@@ -53,27 +53,28 @@ const RevooB2C = () => {
 
     const steps = [
         {
-            id: 'tap',
-            title: 'TAP',
-            subtitle: 'Касание',
+            id: 'scan',
+            title: 'SCAN',
+            subtitle: 'Сканируй QR',
             icon: faHandPointer,
-            description: 'Просто приложи телефон к NFC-метке или сканируй QR на столе. Никаких загрузок из App Store.',
+            description: 'Просто приложи телефон к NFC-метке или сканируй QR на столе. Никаких форм и ожидания.',
             image: '/assets/hero.png'
         },
         {
-            id: 'get',
-            title: 'GET',
-            subtitle: 'Получение',
+            id: 'reveal',
+            title: 'REVEAL',
+            subtitle: 'Увидишь награду',
             icon: faBolt,
-            description: 'Твой VIP-статус и первая награда мгновенно появятся в твоем Apple Wallet. Это заняло 0.5 секунды.',
+            description: 'Твой VIP-статус и личная привилегия появятся мгновенно. Система узнает тебя в лицо.',
+            showBattery: true,
             image: '/assets/vibe.png'
         },
         {
-            id: 'enjoy',
-            title: 'ENJOY',
-            subtitle: 'Удовольствие',
-            icon: faChampagneGlasses,
-            description: 'Просто покажи экран. Наслаждайся сервисом, где тебя знают в лицо и ценят твое время.',
+            id: 'status',
+            title: 'STAY VIP',
+            subtitle: 'Держи заряд',
+            icon: faCrown,
+            description: 'Возвращайся чаще, чтобы держать заряд VIP-батареи на максимуме и сохранять статус.',
             image: '/assets/hospitality.png'
         }
     ];
@@ -203,9 +204,15 @@ const RevooB2C = () => {
                                         {step.description}
                                     </p>
                                 </div>
-                                <div className="mt-auto rounded-3xl overflow-hidden h-48 border border-white/5 shadow-inner opacity-60 grayscale-[80%] group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 relative">
+                                <div className="mt-auto rounded-3xl overflow-hidden h-48 border border-white/5 shadow-inner opacity-60 grayscale-[80%] group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 relative flex items-center justify-center">
                                     <div className="absolute inset-0 bg-gradient-to-t from-[#1C1C1E] to-transparent z-10 opacity-50" />
-                                    <img src={step.image} alt={step.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                                    {step.showBattery ? (
+                                        <div className="scale-[0.5] md:scale-[0.7] transform">
+                                            <PngBattery discount={20} />
+                                        </div>
+                                    ) : (
+                                        <img src={step.image} alt={step.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
+                                    )}
                                 </div>
                             </div>
                         </motion.div>
