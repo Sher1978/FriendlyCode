@@ -73,30 +73,30 @@ const RevooB2B = () => {
             <section className="relative min-h-[90vh] flex items-center pt-32 pb-20 px-6 z-10 border-b border-white/5">
                 <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
                     <motion.div initial="hidden" animate="visible" variants={fadeInUp} className="text-left">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1C1C1E] border border-white/10 text-xs font-bold uppercase tracking-widest text-[#00FF41] mb-8">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-[#00FF41] mb-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] backdrop-blur-md">
                             <FontAwesomeIcon icon={faMicrochip} />
                             The Architecture of Profitability
                         </div>
-                        <h1 className="text-5xl md:text-7xl font-black text-white mb-6 tracking-tight leading-tight uppercase">
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 tracking-tight leading-snug uppercase">
                             Лояльность — <br/>
                             <span className="text-white/40">это не маркетинг.</span> <br/>
                             Это когнитивная инженерия.
                         </h1>
-                        <p className="text-lg md:text-xl text-white/70 font-medium mb-10 max-w-xl leading-relaxed">
+                        <p className="text-base md:text-lg text-white/70 font-medium mb-10 max-w-xl leading-relaxed">
                             Как удерживать 90% гостей, используя Нобелевскую теорию боязни потери и технологию Zero Friction.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4">
                             <motion.button
                                 whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(0, 255, 65, 0.4)" }}
                                 whileTap={{ scale: 0.95 }}
-                                className="bg-[#00FF41] text-black px-8 py-4 rounded-xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all"
+                                className="bg-[#00FF41] text-black px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.4)]"
                             >
                                 СКАЧАТЬ WHITE PAPER
                             </motion.button>
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                className="bg-[#1C1C1E] border border-white/10 text-white px-8 py-4 rounded-xl font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-3"
+                                className="bg-white/5 backdrop-blur-xl border border-white/10 text-white px-8 py-4 rounded-2xl font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
                             >
                                 ТЕСТ-ДРАЙВ
                             </motion.button>
@@ -189,11 +189,11 @@ const RevooB2B = () => {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-4xl md:text-5xl font-black uppercase tracking-tight mb-4 text-[#FF3B30]"
+                        className="text-3xl md:text-5xl font-black uppercase tracking-tight mb-4 text-[#FF3B30]"
                     >
                         Диагноз: Хроническая утечка LTV
                     </motion.h2>
-                    <p className="text-white/60 text-lg max-w-2xl mx-auto font-medium">
+                    <p className="text-white/60 text-base md:text-lg max-w-2xl mx-auto font-medium">
                         Большинство заведений тратят огромные бюджеты (CAC) на привлечение, но клиенты «вытекают» к конкурентам после первого визита.
                     </p>
                 </div>
@@ -203,20 +203,20 @@ const RevooB2B = () => {
                         initial={{ opacity: 0, x: -50 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
-                        className="bg-[#1C1C1E] border border-red-500/20 p-8 rounded-[30px] shadow-[0_0_30px_rgba(255,59,48,0.05)] relative overflow-hidden"
+                        className="bg-white/5 backdrop-blur-2xl border border-red-500/20 p-8 rounded-[30px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_0_30px_rgba(255,59,48,0.05)] relative overflow-hidden"
                     >
                         <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 blur-[50px] rounded-full" />
-                        <h3 className="text-2xl font-black uppercase mb-4 opacity-80 decoration-slate-900 border-b border-white/10 pb-4">Статус Кво</h3>
+                        <h3 className="text-xl md:text-2xl font-black uppercase mb-4 opacity-80 decoration-slate-900 border-b border-white/10 pb-4">Статус Кво</h3>
                         <ul className="space-y-4">
-                            <li className="flex items-start gap-4 text-white/70">
+                            <li className="flex items-start gap-4 text-white/70 text-sm md:text-base">
                                 <FontAwesomeIcon icon={faXmark} className="text-red-500 mt-1" />
                                 <span>Высокая стоимость привлечения (High CAC).</span>
                             </li>
-                            <li className="flex items-start gap-4 text-white/70">
+                            <li className="flex items-start gap-4 text-white/70 text-sm md:text-base">
                                 <FontAwesomeIcon icon={faXmark} className="text-red-500 mt-1" />
                                 <span>Неудобные карточки и мертвые приложения (Neural Friction).</span>
                             </li>
-                            <li className="flex items-start gap-4 text-white/70">
+                            <li className="flex items-start gap-4 text-white/70 text-sm md:text-base">
                                 <FontAwesomeIcon icon={faXmark} className="text-red-500 mt-1" />
                                 <span>Гости забывают о вас через неделю.</span>
                             </li>
@@ -227,20 +227,20 @@ const RevooB2B = () => {
                         initial={{ opacity: 0, x: 50 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
-                        className="bg-[#1C1C1E]/50 border border-[#00FF41]/30 p-8 rounded-[30px] shadow-[0_0_30px_rgba(0,255,65,0.05)] relative overflow-hidden"
+                        className="bg-white/5 backdrop-blur-2xl border border-[#00FF41]/30 p-8 rounded-[30px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_0_30px_rgba(0,255,65,0.05)] relative overflow-hidden"
                     >
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#00FF41]/10 blur-[50px] rounded-full" />
-                        <h3 className="text-2xl font-black uppercase mb-4 text-[#00FF41] border-b border-white/10 pb-4">Архитектура REVOO</h3>
+                        <h3 className="text-xl md:text-2xl font-black uppercase mb-4 text-[#00FF41] border-b border-white/10 pb-4">Архитектура REVOO</h3>
                         <ul className="space-y-4">
-                            <li className="flex items-start gap-4 text-white/80 font-medium">
+                            <li className="flex items-start gap-4 text-white/80 font-medium text-sm md:text-base">
                                 <FontAwesomeIcon icon={faCheck} className="text-[#00FF41] mt-1" />
                                 <span>Максимизация Lifetime Value (LTV).</span>
                             </li>
-                            <li className="flex items-start gap-4 text-white/80 font-medium">
+                            <li className="flex items-start gap-4 text-white/80 font-medium text-sm md:text-base">
                                 <FontAwesomeIcon icon={faCheck} className="text-[#00FF41] mt-1" />
                                 <span>Технология Zero Friction: NFC + Apple Wallet.</span>
                             </li>
-                            <li className="flex items-start gap-4 text-white/80 font-medium">
+                            <li className="flex items-start gap-4 text-white/80 font-medium text-sm md:text-base">
                                 <FontAwesomeIcon icon={faCheck} className="text-[#00FF41] mt-1" />
                                 <span>Дофаминовая петля возвратов.</span>
                             </li>
@@ -259,16 +259,16 @@ const RevooB2B = () => {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-4xl md:text-5xl font-black uppercase tracking-tight mb-4 text-white"
+                        className="text-3xl md:text-5xl font-black uppercase tracking-tight mb-4 text-white"
                     >
                         Взлом привычек через Cognitive Hooks
                     </motion.h2>
-                    <p className="text-white/60 text-lg max-w-3xl mx-auto font-medium">
-                        Почему традиционные системы лояльности мертвы? Потому что они создают <strong>Neural Friction</strong>.
+                    <p className="text-white/60 text-base md:text-lg max-w-3xl mx-auto font-medium">
+                        Почему традиционные системы лояльности мертвы? Потому что они создают <strong className="text-white">Neural Friction</strong>.
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-7xl mx-auto">
                     {[
                         { icon: faBrain, title: "Теория Канемана", subtitle: "(Loss Aversion)", text: "Мы не предлагаем гостю «накопить на подарок». Мы даем ему актив (статус). Психологически потерять 100% заряда батареи в 2 раза больнее, чем радость от бесплатного кофе." },
                         { icon: faBan, title: "Zero Friction", subtitle: "Удаление барьеров", text: "Удаление барьера входа. 0.5 секунды на «Тар» — это быстрее, чем достать кошелек." },
@@ -280,12 +280,16 @@ const RevooB2B = () => {
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ delay: idx * 0.2 }}
-                            className="bg-black border border-white/10 p-8 rounded-3xl group hover:border-[#00FF41]/50 transition-colors"
+                            className="bg-white/5 backdrop-blur-2xl border border-white/10 p-8 rounded-3xl group hover:border-[#00FF41]/40 transition-all shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] relative overflow-hidden"
                         >
-                            <FontAwesomeIcon icon={item.icon} className="text-4xl text-white/20 mb-6 group-hover:text-[#00FF41] transition-colors" />
-                            <h4 className="text-xl font-black uppercase text-white mb-1">{item.title}</h4>
-                            <div className="text-xs font-bold text-[#00FF41] tracking-[0.2em] uppercase mb-4">{item.subtitle}</div>
-                            <p className="text-white/50 text-sm leading-relaxed">{item.text}</p>
+                            {/* Glass Orb Icon Container */}
+                            <div className="w-16 h-16 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center mb-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] group-hover:bg-[#00FF41]/10 transition-colors relative">
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50 rounded-2xl pointer-events-none" />
+                                <FontAwesomeIcon icon={item.icon} className="text-3xl text-white/50 group-hover:text-[#00FF41] transition-colors relative z-10" />
+                            </div>
+                            <h4 className="text-lg font-black uppercase text-white mb-1 tracking-tight">{item.title}</h4>
+                            <div className="text-[10px] font-bold text-[#00FF41] tracking-[0.2em] uppercase mb-4">{item.subtitle}</div>
+                            <p className="text-white/60 text-sm leading-relaxed">{item.text}</p>
                         </motion.div>
                     ))}
                 </div>
@@ -300,30 +304,30 @@ const RevooB2B = () => {
                         viewport={{ once: true }}
                         className="flex-1 text-left"
                     >
-                        <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight mb-6">Технологический стек <span className="text-[#00FF41]">2026 года</span></h2>
-                        <p className="text-white/70 text-lg font-medium mb-8 leading-relaxed max-w-xl">
+                        <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight mb-6">Технологический стек <span className="text-[#00FF41]">2026 года</span></h2>
+                        <p className="text-white/70 text-base md:text-lg font-medium mb-8 leading-relaxed max-w-xl">
                             Никаких POS-интеграций. Никакого обучения персонала. Полная автономность.
                         </p>
                         <ul className="space-y-6">
                             <li className="flex items-start gap-4">
-                                <div className="w-8 h-8 rounded-full bg-[#1C1C1E] border border-[#00FF41]/30 flex items-center justify-center text-[#00FF41] font-black text-sm shrink-0">1</div>
+                                <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-[rgba(0,255,65,0.3)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-center justify-center text-[#00FF41] font-black text-xs shrink-0 pt-[2px]">1</div>
                                 <div>
-                                    <h4 className="text-white font-bold uppercase mb-1 tracking-widest text-sm">Разбор 14-сегментной структуры визуализации</h4>
-                                    <p className="text-white/50 text-sm">Продвинутый PngBattery.jsx контроллер, который мгновенно визуализирует статус гостя.</p>
+                                    <h4 className="text-white font-bold uppercase mb-1 tracking-widest text-xs md:text-sm">Разбор 14-сегментной структуры визуализации</h4>
+                                    <p className="text-white/50 text-xs md:text-sm">Продвинутый PngBattery.jsx контроллер, который мгновенно визуализирует статус гостя.</p>
                                 </div>
                             </li>
                             <li className="flex items-start gap-4">
-                                <div className="w-8 h-8 rounded-full bg-[#1C1C1E] border border-[#ff3b30]/30 flex items-center justify-center text-[#ff3b30] font-black text-sm shrink-0">2</div>
+                                <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-[rgba(255,59,48,0.3)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-center justify-center text-[#ff3b30] font-black text-xs shrink-0 pt-[2px]">2</div>
                                 <div>
-                                    <h4 className="text-white font-bold uppercase mb-1 tracking-widest text-sm">Тающая механика (Melting Logic)</h4>
-                                    <p className="text-white/50 text-sm">Чем дольше пауза между визитами, тем ниже заряд. Алгоритм 자동으로 сжигает энергию неактивных гостей.</p>
+                                    <h4 className="text-white font-bold uppercase mb-1 tracking-widest text-xs md:text-sm">Тающая механика (Melting Logic)</h4>
+                                    <p className="text-white/50 text-xs md:text-sm">Чем дольше пауза между визитами, тем ниже заряд. Алгоритм автоматически сжигает энергию неактивных гостей.</p>
                                 </div>
                             </li>
                             <li className="flex items-start gap-4">
-                                <div className="w-8 h-8 rounded-full bg-[#1C1C1E] border border-blue-500/30 flex items-center justify-center text-blue-500 font-black text-sm shrink-0">3</div>
+                                <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md border border-[rgba(59,130,246,0.3)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-center justify-center text-blue-500 font-black text-xs shrink-0 pt-[2px]">3</div>
                                 <div>
-                                    <h4 className="text-white font-bold uppercase mb-1 tracking-widest text-sm">Apple Wallet & Google Pay</h4>
-                                    <p className="text-white/50 text-sm">Использование нативных инструментов смартфона вместо сторонних приложений.</p>
+                                    <h4 className="text-white font-bold uppercase mb-1 tracking-widest text-xs md:text-sm">Apple Wallet & Google Pay</h4>
+                                    <p className="text-white/50 text-xs md:text-sm">Использование нативных инструментов смартфона вместо сторонних приложений.</p>
                                 </div>
                             </li>
                         </ul>
@@ -358,29 +362,31 @@ const RevooB2B = () => {
                         viewport={{ once: true }}
                         className="text-center mb-12"
                     >
-                         <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight mb-4">Retention Architecture Matrix</h2>
+                         <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight mb-4">Retention Architecture Matrix</h2>
                     </motion.div>
 
-                    <div className="bg-[#1C1C1E] rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
-                        <div className="grid grid-cols-4 bg-black/50 p-6 border-b border-white/10 font-black uppercase text-xs md:text-sm tracking-widest text-white/40">
-                            <div>Параметр</div>
-                            <div className="text-center">Приложения</div>
-                            <div className="text-center">Штампы</div>
-                            <div className="text-center text-[#00FF41]">REVOO 🔄</div>
-                        </div>
-                        {[
-                            { label: "Трение (Friction)", app: "Высокое (Скачивание)", stamp: "Низкое (Кошелек)", revoo: "Нулевое (0.5 сек)" },
-                            { label: "Когнитивный хук", app: "Пассивный", stamp: "Пассивный", revoo: "Активный (Loss Aversion)" },
-                            { label: "Сбор данных", app: "Принудительный", stamp: "Отсутствует", revoo: "Бесшовный (Fingerprinting)" },
-                            { label: "Интеграция", app: "Дорогая / Сложная", stamp: "Нет", revoo: "Автономная (Cloud Alerts)" }
-                        ].map((row, idx) => (
-                            <div key={idx} className="grid grid-cols-4 p-6 border-b border-white/5 last:border-0 text-xs md:text-sm font-medium items-center hover:bg-white/5 transition-colors">
-                                <div className="text-white font-bold">{row.label}</div>
-                                <div className="text-center text-white/50">{row.app}</div>
-                                <div className="text-center text-white/50">{row.stamp}</div>
-                                <div className="text-center text-[#00FF41] font-bold bg-[#00FF41]/10 py-2 rounded-lg">{row.revoo}</div>
+                    <div className="bg-white/5 backdrop-blur-3xl rounded-3xl border border-white/10 overflow-x-auto shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.1)]">
+                        <div className="min-w-[700px]">
+                            <div className="grid grid-cols-4 bg-black/50 p-6 border-b border-white/10 font-black uppercase text-[10px] md:text-xs tracking-widest text-white/40">
+                                <div>Параметр</div>
+                                <div className="text-center">Приложения</div>
+                                <div className="text-center">Штампы</div>
+                                <div className="text-center text-[#00FF41]">REVOO 🔄</div>
                             </div>
-                        ))}
+                            {[
+                                { label: "Трение (Friction)", app: "Высокое (Скачивание)", stamp: "Низкое (Кошелек)", revoo: "Нулевое (0.5 сек)" },
+                                { label: "Когнитивный хук", app: "Пассивный", stamp: "Пассивный", revoo: "Активный (Loss Aversion)" },
+                                { label: "Сбор данных", app: "Принудительный", stamp: "Отсутствует", revoo: "Бесшовный (Фоновый)" },
+                                { label: "Интеграция", app: "Дорогая / Сложная", stamp: "Нет", revoo: "Автономная (Cloud Limits)" }
+                            ].map((row, idx) => (
+                                <div key={idx} className="grid grid-cols-4 p-6 border-b border-white/5 last:border-0 text-xs md:text-sm font-medium items-center hover:bg-white/5 transition-colors">
+                                    <div className="text-white font-bold">{row.label}</div>
+                                    <div className="text-center text-white/50 leading-tight">{row.app}</div>
+                                    <div className="text-center text-white/50 leading-tight">{row.stamp}</div>
+                                    <div className="text-center text-[#00FF41] font-bold bg-[#00FF41]/10 py-2 rounded-xl border border-[#00FF41]/20 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2)]">{row.revoo}</div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </section>
@@ -392,11 +398,11 @@ const RevooB2B = () => {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="text-4xl md:text-5xl font-black uppercase tracking-tight mb-4"
+                        className="text-3xl md:text-5xl font-black uppercase tracking-tight mb-4"
                     >
                         Управление на основе данных
                     </motion.h2>
-                    <p className="text-white/60 text-lg max-w-3xl mx-auto font-medium">
+                    <p className="text-white/60 text-base md:text-lg max-w-3xl mx-auto font-medium">
                         От интуиции к точным алгоритмам.
                     </p>
                 </div>
@@ -407,10 +413,13 @@ const RevooB2B = () => {
                         { icon: faDatabase, title: "Telegram Admin Bot", text: "Уведомления владельцу: «Ваш VIP-гость вошел в зал»." },
                         { icon: faShieldHalved, title: "Prediction AI", text: "Прогноз оттока клиентов до того, как они решат уйти." }
                     ].map((item, idx) => (
-                        <div key={idx} className="bg-black/40 border border-[#00FF41]/20 p-6 rounded-2xl flex flex-col items-center text-center">
-                            <FontAwesomeIcon icon={item.icon} className="text-2xl text-[#00FF41] mb-4" />
-                            <h4 className="text-base font-black uppercase text-white mb-2">{item.title}</h4>
-                            <p className="text-white/50 text-xs leading-relaxed">{item.text}</p>
+                        <div key={idx} className="bg-white/5 backdrop-blur-2xl border border-[rgba(0,255,65,0.15)] p-8 rounded-3xl flex flex-col items-center text-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] hover:border-[#00FF41]/40 transition-all group">
+                            {/* Glass Orb Container for Icons */}
+                            <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] group-hover:bg-[#00FF41]/20 transition-all">
+                                <FontAwesomeIcon icon={item.icon} className="text-2xl text-[#00FF41]" />
+                            </div>
+                            <h4 className="text-base font-black uppercase text-white mb-2 tracking-tight">{item.title}</h4>
+                            <p className="text-white/50 text-xs md:text-sm leading-relaxed">{item.text}</p>
                         </div>
                     ))}
                 </div>
@@ -423,21 +432,22 @@ const RevooB2B = () => {
                         initial={{ opacity: 0, scale: 0.95 }}
                         whileInView={{ opacity: 1, scale: 1 }}
                         viewport={{ once: true }}
-                        className="bg-[#1C1C1E] border border-[#00FF41]/40 p-12 md:p-20 rounded-[40px] shadow-[0_0_80px_rgba(0,255,65,0.15)] relative overflow-hidden"
+                        className="bg-white/5 backdrop-blur-3xl border border-[rgba(0,255,65,0.4)] p-8 md:p-16 lg:p-20 rounded-[40px] shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),0_20px_60px_rgba(0,255,65,0.15)] relative overflow-hidden"
                     >
                         <div className="absolute inset-0 bg-[#00FF41]/5 animate-pulse" />
-                        <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight mb-6 text-white relative z-10">
+                        
+                        <h2 className="text-2xl md:text-4xl lg:text-5xl font-black uppercase tracking-tight mb-6 text-white relative z-10 leading-tight">
                             30-дневный тест-драйв <br/>
                             <span className="text-[#00FF41]">с гарантией 100% ROI.</span>
                         </h2>
-                        <p className="text-white/70 text-lg md:text-xl font-medium mb-12 max-w-2xl mx-auto relative z-10">
+                        <p className="text-white/70 text-base md:text-lg font-medium mb-10 max-w-2xl mx-auto relative z-10 leading-relaxed">
                             Мы настолько уверены в научной базе, что берем все риски на себя. Если через месяц вы не увидите измеримого роста частоты визитов — мы возвращаем инвестиции и забираем оборудование.
                         </p>
                         <motion.button
                             whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(0, 255, 65, 0.4)" }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => window.open('https://t.me/REVOO_bot', '_blank')}
-                            className="bg-[#00FF41] text-black px-12 py-6 rounded-2xl font-black text-lg md:text-xl uppercase tracking-[0.2em] relative z-10 w-full md:w-auto"
+                            className="bg-[#00FF41] text-black px-10 py-5 rounded-2xl font-black text-sm md:text-base uppercase tracking-[0.2em] relative z-10 w-full md:w-auto shadow-[inset_0_1px_1px_rgba(255,255,255,0.5)]"
                         >
                             ВНЕДРИТЬ СИСТЕМУ ЗА 15 МИНУТ
                         </motion.button>
