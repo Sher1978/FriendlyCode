@@ -255,7 +255,13 @@ const RevooB2C = () => {
                         </p>
                         <motion.button 
                             whileHover={{ scale: 1.05, boxShadow: "0 0 50px rgba(212, 175, 55, 0.4)" }}
-                            onClick={() => navigate('/qr?id=demo')}
+                            onClick={() => {
+                                if (interceptedVenueId) {
+                                    navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
+                                } else {
+                                    navigate('/test?id=komKf0beSnsuuZ6p0Igh');
+                                }
+                            }}
                             className="bg-gradient-to-r from-[#1C1C1E] to-black border border-[#D4AF37]/30 text-[#D4AF37] px-12 py-5 rounded-full font-black text-xl uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(212,175,55,0.1)] hover:border-[#D4AF37] transition-all"
                         >
                             Become VIP

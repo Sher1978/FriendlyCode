@@ -21,6 +21,10 @@ import 'package:friendly_code/core/services/visit_service.dart';
 import 'package:friendly_code/core/models/visit_model.dart';
 import 'dart:async';
 import 'package:friendly_code/core/services/statistics_service.dart';
+import 'package:friendly_code/core/widgets/ios_settings_group.dart';
+import 'package:friendly_code/core/widgets/ios_settings_row.dart';
+import 'package:friendly_code/features/owner/presentation/widgets/pulse_check_card.dart';
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 
 class OwnerDashboardScreen extends StatefulWidget {
   const OwnerDashboardScreen({super.key});
@@ -399,92 +403,118 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                 const SizedBox(height: 20),
               ],
 
-              // ─── J1: Stats Grid ────────────────────────────────────────
+              // ─── J1: Pulse Check (Quick Dashboard) ───────────────────────
               GridView.count(
                 crossAxisCount: isMobile ? 2 : 4,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: isMobile ? 1.3 : 1.5,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.1,
                 children: [
-                  _buildStatCard("Total Scans", "${_realTimeStats?.totalCheckins ?? venue.stats.totalCheckins}", Icons.qr_code_scanner, AppColors.premiumBurntOrange),
-                  _buildStatCard("Active (Mo)", "${_realTimeStats?.monthlyActiveUsers ?? 0}", Icons.group_outlined, AppColors.premiumGold),
-                  _buildStatCard("Avg Discount", "${(_realTimeStats?.avgDiscount ?? 0).toStringAsFixed(1)}%", Icons.percent, Colors.green),
-                  _buildStatCard("Retention", "${(_realTimeStats?.retentionRate ?? 0).toStringAsFixed(1)}%", Icons.loop, Colors.blue),
+                  PulseCheckCard(
+                    title: "Total Scans",
+                    value: "${_realTimeStats?.totalCheckins ?? venue.stats.totalCheckins}",
+                    icon: CupertinoIcons.qrcode_viewfinder,
+                  ),
+                  PulseCheckCard(
+                    title: "Retention",
+                    value: "${(_realTimeStats?.retentionRate ?? 0).toStringAsFixed(1)}%",
+                    icon: CupertinoIcons.arrow_2_circlepath,
+                    trend: "+12%",
+                  ),
+                  PulseCheckCard(
+                    title: "Monthly Active",
+                    value: "${_realTimeStats?.monthlyActiveUsers ?? 0}",
+                    icon: CupertinoIcons.person_2,
+                  ),
+                  PulseCheckCard(
+                    title: "Avg Discount",
+                    value: "${(_realTimeStats?.avgDiscount ?? 0).toStringAsFixed(1)}%",
+                    icon: CupertinoIcons.percent,
+                    isPositive: false,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 32),
+
+              // ─── J2: Fast Management (System Settings Look) ────────────
+              IOSSettingsGroup(
+                title: l10n.management,
+                children: [
+                   IOSSettingsRow(
+                    title: l10n.guestDatabase,
+                    subtitle: l10n.guestDatabaseSub,
+                    icon: CupertinoIcons.person_crop_square_fill,
+                    iconColor: AppColors.accentBlue,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GuestListScreen(venueId: venue.id))),
+                  ),
+                  IOSSettingsRow(
+                    title: l10n.venueProfile,
+                    subtitle: l10n.venueProfileSub,
+                    icon: CupertinoIcons.building_2_fill,
+                    iconColor: AppColors.accentOrange,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue))),
+                  ),
+                  IOSSettingsRow(
+                    title: "Staff Management",
+                    subtitle: "Manage venue staff & roles",
+                    icon: CupertinoIcons.person_badge_plus_fill,
+                    iconColor: AppColors.accentGreen,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueStaffScreen(venueId: venue.id))),
+                  ),
+                   IOSSettingsRow(
+                    title: l10n.posStickerGenerator,
+                    subtitle: l10n.posStickerSub,
+                    icon: CupertinoIcons.printer_fill,
+                    iconColor: AppColors.premiumGold,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PosStickerScreen(venue: venue))),
+                  ),
                 ],
               ),
 
               const SizedBox(height: 24),
 
-              // ─── J1: Guest Segments ────────────────────────────────────
-              Text("Guest Segments", style: const TextStyle(color: AppColors.title, fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              _buildSegmentationRow(_realTimeStats ?? venue.stats, isMobile),
-
-              const SizedBox(height: 24),
-
-              // ─── J3: Loyalty Rules Quick Card ─────────────────────────
-              _buildLoyaltyRulesCard(venue),
-
-              const SizedBox(height: 24),
-
-              // ─── J3: Management Quick-Actions ─────────────────────────
-              Text(l10n.management, style: const TextStyle(color: AppColors.title, fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              _buildManagementLink(Icons.people_alt_outlined, l10n.guestDatabase, l10n.guestDatabaseSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => GuestListScreen(venueId: venue.id)))),
-              const SizedBox(height: 10),
-              _buildManagementLink(Icons.storefront_outlined, l10n.venueProfile, l10n.venueProfileSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue)))),
-              const SizedBox(height: 10),
-              _buildManagementLink(Icons.manage_accounts_outlined, "Staff Management", "Manage venue staff", () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueStaffScreen(venueId: venue.id)))),
-
-              const SizedBox(height: 24),
-
-              // ─── J4: QR Card ───────────────────────────────────────────
-              _buildPremiumQRCard(venue),
-
-              const SizedBox(height: 16),
-
-              // ─── J4: Marketing Blast (secondary CTA) ──────────────────
-              InkWell(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MarketingBlastScreen(venueId: venue.id))),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [AppColors.premiumBurntOrange, AppColors.premiumGold]),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [BoxShadow(color: AppColors.premiumBurntOrange.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))],
+              // ─── J3: Growth & Analytics (Pulse Extended) ──────────────
+              IOSSettingsGroup(
+                title: "Intelligence & Growth",
+                children: [
+                  IOSSettingsRow(
+                    title: l10n.loyaltyRules,
+                    subtitle: "Configure tiers, decay, and VIP windows",
+                    icon: CupertinoIcons.infinite,
+                    iconColor: AppColors.accentOrange,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RulesConfigScreen(venueId: venue.id))),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                        child: const Icon(Icons.campaign_outlined, color: Colors.white),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(l10n.marketingBlast.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.0, fontSize: 12)),
-                            const Text("Send offers to your guests", style: TextStyle(color: Colors.white, fontSize: 14)),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.arrow_forward, color: Colors.white),
-                    ],
+                  IOSSettingsRow(
+                    title: "Marketing Campaigns",
+                    subtitle: "Send blasts & automated offers",
+                    icon: CupertinoIcons.speaker_2_fill,
+                    iconColor: AppColors.accentBlue,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MarketingBlastScreen(venueId: venue.id))),
                   ),
-                ),
+                ],
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 32),
 
-              // ─── J4: POS Sticker ───────────────────────────────────────
-              _buildManagementLink(Icons.print_rounded, l10n.posStickerGenerator, l10n.posStickerSub, () => Navigator.push(context, MaterialPageRoute(builder: (_) => PosStickerScreen(venue: venue)))),
+              // ─── J1: Guest Segmentation (Pulse Detail) ─────────────────
+              Padding(
+                padding: const EdgeInsets.only(left: 16, bottom: 12),
+                child: Text(
+                  "GUEST SEGMENTS",
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+              ),
+              _buildSegmentationRow(_realTimeStats ?? venue.stats, isMobile),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
+
+              // ─── J4: Distribution (QR & Landing) ──────────────────────
+              _buildPremiumQRCard(venue),
+
+              const SizedBox(height: 48),
             ],
           ),
         );
@@ -610,122 +640,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
     );
   }
 
-  // ─── NEW: Loyalty Rules Quick Card ──────────────────────────────────────
-  Widget _buildLoyaltyRulesCard(VenueModel venue) {
-    final l10n = AppLocalizations.of(context)!;
-    final config = venue.loyaltyConfig;
-    return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RulesConfigScreen(venueId: venue.id))),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.premiumBurntOrange.withOpacity(0.15)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 4))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(color: AppColors.premiumSand, borderRadius: BorderRadius.circular(10)),
-                  child: const Icon(Icons.tune_rounded, color: AppColors.premiumBurntOrange, size: 20),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(l10n.loyaltyRules, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.title)),
-                      const Text("Active Loyalty Tiers & Decay", style: TextStyle(color: AppColors.body, fontSize: 12)),
-                    ],
-                  ),
-                ),
-                const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.premiumGold),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Tier preview
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildTierPill(l10n.baseTier, "${config.percBase}%", Colors.orange),
-                  ...config.decayStages.asMap().entries.map((entry) {
-                    final index = entry.key + 1;
-                    final stage = entry.value;
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 8),
-                          child: Icon(Icons.arrow_forward, size: 14, color: AppColors.body),
-                        ),
-                        _buildTierPill("Decay $index (${stage.days}d)", "${stage.discount}%", Colors.blue),
-                      ],
-                    );
-                  }),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Icon(Icons.arrow_forward, size: 14, color: AppColors.body),
-                  ),
-                  _buildTierPill("${l10n.vipTier} (${config.vipWindowDays}d)", "${config.percVip}%", Colors.green),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTierPill(String label, String value, Color color) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.3)),
-          ),
-          child: Text(value, style: TextStyle(fontWeight: FontWeight.w900, color: color, fontSize: 18)),
-        ),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.body, fontWeight: FontWeight.w600)),
-      ],
-    );
-  }
-
-  // ─── Existing Widgets (unchanged) ────────────────────────────────────────
-
-  Widget _buildStatCard(String label, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.1)),
-        boxShadow: [
-          BoxShadow(color: const Color(0xFF4E342E).withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 24),
-          const Spacer(),
-          Text(value, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: AppColors.title, height: 1.0)),
-          const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: AppColors.body, fontWeight: FontWeight.w600, fontSize: 11)),
-        ],
-      ),
-    );
-  }
+  // ─── Existing Widgets (Refactored) ────────────────────────────────────────
 
   Widget _buildPremiumQRCard(VenueModel venue) {
     final l10n = AppLocalizations.of(context)!;

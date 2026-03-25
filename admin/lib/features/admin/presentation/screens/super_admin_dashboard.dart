@@ -17,6 +17,10 @@ import 'package:friendly_code/core/localization/locale_provider.dart';
 import 'package:friendly_code/features/owner/presentation/screens/flyer_generator_screen.dart';
 import 'package:friendly_code/features/admin/presentation/widgets/analytics/venue_leaderboard.dart';
 import 'package:friendly_code/features/admin/presentation/widgets/analytics/peak_activity_chart.dart';
+import 'package:friendly_code/core/widgets/ios_settings_group.dart';
+import 'package:friendly_code/core/widgets/ios_settings_row.dart';
+import 'package:friendly_code/features/owner/presentation/widgets/pulse_check_card.dart';
+import 'package:flutter/cupertino.dart' show CupertinoIcons;
 
 class SuperAdminDashboard extends StatefulWidget {
   const SuperAdminDashboard({super.key});
@@ -47,183 +51,191 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 800;
         
-        return DefaultTabController(
-          length: 3,
-          child: Scaffold(
-            backgroundColor: AppColors.premiumSand,
-            body: Padding(
-              padding: EdgeInsets.all(isMobile ? 16.0 : 40.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("SYSTEM CONTROL", style: Theme.of(context).textTheme.labelLarge),
+              Text("Network Management", style: Theme.of(context).textTheme.headlineMedium),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: const Icon(CupertinoIcons.globe, color: AppColors.premiumGold),
+              onPressed: () {
+                final provider = Provider.of<LocaleProvider>(context, listen: false);
+                final nextLocale = provider.locale.languageCode == 'en' 
+                    ? const Locale('ru') 
+                    : (provider.locale.languageCode == 'ru' ? const Locale('vi') : const Locale('en'));
+                provider.setLocale(nextLocale);
+              },
+            ),
+            IconButton(
+              icon: const Icon(CupertinoIcons.plus_app, color: AppColors.premiumGold),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: Column(
+          children: [
+            const SizedBox(height: 16),
+            // System Intelligence Actions
+            IOSSettingsGroup(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                IOSSettingsRow(
+                  title: "Marketing Campaigns",
+                  subtitle: "Global engagement metrics",
+                  icon: CupertinoIcons.speaker_2_fill,
+                  iconColor: AppColors.accentBlue,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MarketingCampaignScreen())),
+                ),
+                IOSSettingsRow(
+                  title: "Flyer Generator",
+                  subtitle: "System-wide brand assets",
+                  icon: CupertinoIcons.doc_plaintext,
+                  iconColor: AppColors.accentOrange,
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FlyerGeneratorScreen())),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const TabBar(
+              isScrollable: true,
+              labelColor: AppColors.premiumGold,
+              unselectedLabelColor: AppColors.body,
+              indicatorColor: AppColors.premiumGold,
+              dividerColor: Colors.transparent,
+              tabs: [
+                Tab(text: "APPROVED"),
+                Tab(text: "REQUESTS"),
+                Tab(text: "NETWORK INTELLIGENCE"),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
                 children: [
-                  // Header
-                  if (isMobile)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text("SYSTEM CONTROL", style: TextStyle(color: AppColors.premiumBurntOrange, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)),
-                        const SizedBox(height: 4),
-                        Text("System Management", style: Theme.of(context).textTheme.headlineMedium?.copyWith(color: AppColors.title, fontWeight: FontWeight.w900, fontSize: 24)),
-                        const SizedBox(height: 16),
-                        Wrap(
-                          spacing: 8, 
-                          runSpacing: 8,
-                          children: [
-                            _buildMobileHeaderAction(Icons.language, "Lang", () {
-                               final provider = Provider.of<LocaleProvider>(context, listen: false);
-                               // Cycle EN -> RU -> VI
-                               final nextLocale = provider.locale.languageCode == 'en' 
-                                   ? const Locale('ru') 
-                                   : (provider.locale.languageCode == 'ru' ? const Locale('vi') : const Locale('en'));
-                               provider.setLocale(nextLocale);
-                            }),
-                            _buildMobileHeaderAction(Icons.campaign_outlined, "Marketing", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MarketingCampaignScreen()))),
-                            _buildMobileHeaderAction(Icons.description_outlined, "Flyers", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FlyerGeneratorScreen()))),
-                            _buildMobileHeaderAction(Icons.add, "New Venue", () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())), isPrimary: true),
-                          ],
-                        ),
-                      ],
-                    )
-                  else
-                    Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text("SYSTEM CONTROL", style: TextStyle(color: AppColors.premiumBurntOrange, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)),
-                          const SizedBox(height: 4),
-                          Text("System Management", style: Theme.of(context).textTheme.displayLarge?.copyWith(color: AppColors.title, fontWeight: FontWeight.w900)),
-                        ],
-                      ),
-                        Row(
-                          children: [
-                            // Language Switcher
-                            IconButton(
-                              icon: const Icon(Icons.language, color: AppColors.accentOrange),
-                              tooltip: "Switch Language",
-                              onPressed: () {
-                                 final provider = Provider.of<LocaleProvider>(context, listen: false);
-                                 // Cycle EN -> RU -> VI
-                                 final nextLocale = provider.locale.languageCode == 'en' 
-                                     ? const Locale('ru') 
-                                     : (provider.locale.languageCode == 'ru' ? const Locale('vi') : const Locale('en'));
-                                 provider.setLocale(nextLocale);
-                              },
-                            ),
-                            const SizedBox(width: 16),
-                            OutlinedButton.icon(
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MarketingCampaignScreen())),
-                            icon: const Icon(Icons.campaign_outlined, size: 20, color: AppColors.accentOrange),
-                            label: const Text("MARKETING CAMPAIGN", style: TextStyle(color: AppColors.accentOrange)),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.accentOrange),
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          OutlinedButton.icon(
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FlyerGeneratorScreen())),
-                            icon: const Icon(Icons.description_outlined, size: 20, color: AppColors.brandBrown),
-                            label: const Text("FLYER GENERATOR", style: TextStyle(color: AppColors.brandBrown)),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.brandBrown),
-                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          ElevatedButton.icon(
-                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())),
-                            icon: const Icon(Icons.add, size: 20),
-                            label: const Text("CREATE NEW VENUE"),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-    
-                  // Tabs
-                  const TabBar(
-                    isScrollable: true,
-                    labelColor: AppColors.deepSeaBlue,
-                    unselectedLabelColor: Colors.grey,
-                    indicatorColor: AppColors.accentOrange,
-                    tabs: [
-                      Tab(text: "Approved Venues"),
-                      Tab(text: "Pending Requests"),
-                      Tab(text: "Network Analytics"),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-    
-                  Expanded(
-                    child: TabBarView(
-                      children: [
-                        _buildVenueList(isMobile),
-                        _buildRequestsList(),
-                        _buildAnalyticsTab(isMobile),
-                      ],
-                    ),
-                  ),
+                  _buildVenueList(isMobile),
+                  _buildRequestsList(),
+                  _buildAnalyticsTab(isMobile),
                 ],
               ),
             ),
-          ),
-        );
+          ],
+        ),
+      ),
+    );
       }
     );
   }
 
-  Widget _buildMobileHeaderAction(IconData icon, String label, VoidCallback onTap, {bool isPrimary = false}) {
-     return InkWell(
-       onTap: onTap,
-       borderRadius: BorderRadius.circular(8),
-       child: Container(
-         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-         decoration: BoxDecoration(
-           color: isPrimary ? AppColors.accentOrange : Colors.transparent,
-           border: Border.all(color: isPrimary ? AppColors.accentOrange : AppColors.body.withOpacity(0.3)),
-           borderRadius: BorderRadius.circular(8),
-         ),
-         child: Row(
-           mainAxisSize: MainAxisSize.min,
-           children: [
-             Icon(icon, size: 16, color: isPrimary ? Colors.white : AppColors.body),
-             const SizedBox(width: 6),
-             Text(label, style: TextStyle(fontSize: 12, color: isPrimary ? Colors.white : AppColors.body, fontWeight: FontWeight.bold)),
-           ],
-         ),
-       ),
-     );
+  Widget _buildAnalyticsTab(bool isMobile) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 40, top: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: Text("NETWORK PERFORMANCE", style: TextStyle(color: AppColors.premiumGold, fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.5)),
+          ),
+          const SizedBox(height: 24),
+          
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Column(
+              children: [
+                Container(
+                  height: 380,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Venue Leaderboard", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.title)),
+                      SizedBox(height: 24),
+                      Expanded(child: VenueLeaderboard()),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  height: 380,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Peak Activity (24h)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.title)),
+                      SizedBox(height: 24),
+                      Expanded(child: PeakActivityChart()),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          const SizedBox(height: 32),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.secondarySurface,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Center(
+                child: Text("Predictive network analysis coming soon...", style: TextStyle(color: AppColors.tertiary, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildVenueList(bool isMobile) {
     return Column(
       children: [
-        // Search Bar (Only for venues for now)
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: AppColors.softShadow,
-          ),
-          child: TextField(
-            controller: _searchCtrl,
-            decoration: InputDecoration(
-              hintText: "Search by name, ID or owner...",
-              prefixIcon: const Icon(Icons.search, color: AppColors.accentOrange),
-              border: InputBorder.none,
-              enabledBorder: InputBorder.none,
-              focusedBorder: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+        // Compact iOS Search Bar
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Container(
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.secondarySurface,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: TextField(
+              controller: _searchCtrl,
+              style: const TextStyle(color: AppColors.title, fontSize: 16),
+              decoration: InputDecoration(
+                hintText: "Search vendors, ID or email",
+                hintStyle: const TextStyle(color: AppColors.tertiary),
+                prefixIcon: const Icon(CupertinoIcons.search, color: AppColors.tertiary, size: 20),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+              ),
             ),
           ),
         ),
-          const SizedBox(height: 32),
-        
-        // --- NEW ANALYTICS SECTION ---
-        // --- ANALYTICS MOVED TO TAB ---
 
         Expanded(
           child: StreamBuilder<List<VenueModel>>(
@@ -239,7 +251,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
                        (v.ownerEmail ?? '').toLowerCase().contains(query);
               }).toList();
 
-              if (venues.isEmpty) return const Center(child: Text("No venues found."));
+              if (venues.isEmpty) return const Center(child: Text("No venues found.", style: TextStyle(color: AppColors.body)));
 
               return ListView.builder(
                 itemCount: venues.length,
@@ -252,8 +264,6 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     );
   }
 
-  // --- Requests Logic ---
-
   Widget _buildRequestsList() {
     return StreamBuilder<List<VenueRequestModel>>(
       stream: VenueRepository().getAllPendingRequestsStream(),
@@ -262,32 +272,48 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
         if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
         final requests = snapshot.data!;
-        if (requests.isEmpty) return const Center(child: Text("No pending requests."));
+        if (requests.isEmpty) {
+          return const Center(
+            child: Text("No pending requests.", style: TextStyle(color: AppColors.body)),
+          );
+        }
 
         return ListView.builder(
+          padding: const EdgeInsets.all(16),
           itemCount: requests.length,
           itemBuilder: (context, index) {
-             final req = requests[index];
-             return Card(
-               margin: const EdgeInsets.only(bottom: 16),
-               child: ListTile(
-                 title: Text(req.type == 'join' ? "Join Request: ${req.targetVenueName}" : "Create Request: ${req.newVenueDetails?['name']}"),
-                 subtitle: Text("User: ${req.userName} (${req.userEmail})\nDate: ${req.createdAt}"),
-                 trailing: Row(
-                   mainAxisSize: MainAxisSize.min,
-                   children: [
-                     IconButton(
-                       icon: const Icon(Icons.check, color: Colors.green),
-                       onPressed: () => _approveRequest(req),
-                     ),
-                     IconButton(
-                       icon: const Icon(Icons.close, color: Colors.red),
-                       onPressed: () => _rejectRequest(req),
-                     ),
-                   ],
-                 ),
-               ),
-             );
+            final req = requests[index];
+            final title = req.type == 'join' 
+                ? "Join: ${req.targetVenueName}" 
+                : "Create: ${req.newVenueDetails?['name']}";
+            
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: ListTile(
+                title: Text(title, style: const TextStyle(color: AppColors.title, fontWeight: FontWeight.bold)),
+                subtitle: Text(
+                  "${req.userName} • ${req.userEmail}",
+                  style: const TextStyle(color: AppColors.body, fontSize: 12),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(CupertinoIcons.check_mark_circled, color: AppColors.accentGreen),
+                      onPressed: () => _approveRequest(req),
+                    ),
+                    IconButton(
+                      icon: const Icon(CupertinoIcons.xmark_circle, color: AppColors.accentOrange),
+                      onPressed: () => _rejectRequest(req),
+                    ),
+                  ],
+                ),
+              ),
+            );
           },
         );
       },
@@ -297,13 +323,11 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   Future<void> _approveRequest(VenueRequestModel req) async {
     try {
       if (req.type == 'join') {
-        // Update User
         await FirebaseFirestore.instance.collection('users').doc(req.userId).update({
           'venueId': req.targetVenueId,
-          'role': 'staff', // Default to staff for join requests? Or 'owner'? Usually staff.
+          'role': 'staff',
         });
       } else if (req.type == 'create') {
-        // Create Venue
         final venueRef = FirebaseFirestore.instance.collection('venues').doc();
         final venue = VenueModel(
           id: venueRef.id,
@@ -311,27 +335,18 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           address: req.newVenueDetails?['address'] ?? 'Unknown Address',
           ownerId: req.userId,
           ownerEmail: req.userEmail,
-          subscription: VenueSubscription(
-             plan: 'free', 
-             isPaid: false
-          ),
+          subscription: VenueSubscription(plan: 'free', isPaid: false),
           isActive: true,
           isManuallyBlocked: false,
         );
-        
         await venueRef.set(venue.toMap());
-
-        // Update User
         await FirebaseFirestore.instance.collection('users').doc(req.userId).update({
            'venueId': venueRef.id,
            'role': 'owner',
         });
       }
-
-      // Update Request Status
       await VenueRepository().updateRequestStatus(req.id, 'approved');
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Request Approved")));
-
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Approved")));
     } catch (e) {
        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
@@ -340,221 +355,68 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   Future<void> _rejectRequest(VenueRequestModel req) async {
     try {
       await VenueRepository().updateRequestStatus(req.id, 'rejected');
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Request Rejected")));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Rejected")));
     } catch (e) {
        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
   }
 
-
   Widget _buildVenueCard(VenueModel venue, bool isMobile) {
-    if (isMobile) {
-      return Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: AppColors.softShadow,
-          border: Border.all(color: AppColors.title.withOpacity(0.05)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-               Row(
-                 children: [
-                   Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      borderRadius: BorderRadius.circular(12),
-                      image: venue.logoUrl != null 
-                        ? DecorationImage(image: NetworkImage(venue.logoUrl!), fit: BoxFit.cover)
-                        : null,
-                    ),
-                    child: venue.logoUrl == null 
-                      ? const Icon(Icons.storefront, color: AppColors.accentOrange, size: 20)
-                      : null,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(venue.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: AppColors.title)),
-                        const SizedBox(height: 4),
-                        Text(venue.ownerEmail ?? 'UNCLAIMED', style: TextStyle(fontSize: 12, color: AppColors.body.withOpacity(0.7), fontWeight: FontWeight.w500)),
-                      ],
-                    ),
-                  ),
-                  _buildStatusBadge(venue),
-                 ],
-               ),
-               const SizedBox(height: 16),
-               Row(
-                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                 children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("EXPIRES", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.body.withOpacity(0.4), letterSpacing: 1)),
-                        Text(
-                          venue.subscription.expiryDate != null 
-                            ? "${venue.subscription.expiryDate!.day}/${venue.subscription.expiryDate!.month}/${venue.subscription.expiryDate!.year}"
-                            : "PERPETUAL",
-                          style: const TextStyle(color: AppColors.title, fontWeight: FontWeight.w800, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                    PopupMenuButton<String>(
-                      onSelected: (value) {
-                         if (value == 'edit') {
-                           Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue)));
-                         } else if (value == 'staff') {
-                           Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffManagementScreen()));
-                         } else if (value == 'config') {
-                           showDialog(
-                             context: context,
-                             builder: (context) => VenueConfigurator(
-                               venue: venue,
-                               userRole: UserRole.superAdmin,
-                             ),
-                           );
-                         } else if (value == 'manage') {
-                           Navigator.push(context, MaterialPageRoute(builder: (_) => VenueDetailView(venue: venue)));
-                         }
-                       },
-                       itemBuilder: (context) => [
-                         const PopupMenuItem(value: 'edit', child: Text("Edit Details")),
-                         const PopupMenuItem(value: 'staff', child: Text("Manage Staff")),
-                         const PopupMenuItem(value: 'config', child: Text("Config Rules")),
-                         const PopupMenuItem(value: 'manage', child: Text("Advanced Management")),
-                       ],
-                       child: Container(
-                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                         decoration: BoxDecoration(
-                           border: Border.all(color: AppColors.accentOrange.withOpacity(0.3)),
-                           borderRadius: BorderRadius.circular(8),
-                         ),
-                         child: const Text("OPTIONS", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900, fontSize: 11)),
-                       ),
-                    ),
-                 ],
-               ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: AppColors.softShadow,
-        border: Border.all(color: AppColors.title.withOpacity(0.05)),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Row(
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AppColors.secondarySurface,
+            borderRadius: BorderRadius.circular(8),
+            image: venue.logoUrl != null 
+              ? DecorationImage(image: NetworkImage(venue.logoUrl!), fit: BoxFit.cover)
+              : null,
+          ),
+          child: venue.logoUrl == null 
+            ? const Icon(CupertinoIcons.building_2_fill, color: AppColors.premiumGold, size: 20)
+            : null,
+        ),
+        title: Text(venue.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.title)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Logo
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.circular(16),
-                image: venue.logoUrl != null 
-                  ? DecorationImage(image: NetworkImage(venue.logoUrl!), fit: BoxFit.cover)
-                  : null,
-              ),
-              child: venue.logoUrl == null 
-                ? const Icon(Icons.storefront, color: AppColors.accentOrange, size: 24)
-                : null,
-            ),
-            const SizedBox(width: 24),
-            
-            // Name & Info
-            Expanded(
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(venue.name, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppColors.title)),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.person_outline, size: 14, color: AppColors.body),
-                      const SizedBox(width: 4),
-                      Text(venue.ownerEmail ?? 'UNCLAIMED', style: TextStyle(fontSize: 13, color: AppColors.body.withOpacity(0.7), fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            
-            // Status Badge
-            Expanded(
-              flex: 2,
-              child: _buildStatusBadge(venue),
-            ),
-            
-            // Sub Info
-            Expanded(
-              flex: 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("EXPIRES", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.body.withOpacity(0.4), letterSpacing: 1)),
-                  const SizedBox(height: 4),
-                  Text(
-                    venue.subscription.expiryDate != null 
-                      ? "${venue.subscription.expiryDate!.day.toString().padLeft(2, '0')}.${venue.subscription.expiryDate!.month.toString().padLeft(2, '0')}.${venue.subscription.expiryDate!.year}"
-                      : "PERPETUAL",
-                    style: const TextStyle(color: AppColors.title, fontWeight: FontWeight.w800, fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-            
-            // Actions
-            PopupMenuButton<String>(
-              onSelected: (value) {
-                if (value == 'edit') {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue)));
-                } else if (value == 'staff') {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const StaffManagementScreen()));
-                } else if (value == 'config') {
-                  showDialog(
-                    context: context,
-                    builder: (context) => VenueConfigurator(
-                      venue: venue,
-                      userRole: UserRole.superAdmin,
-                    ),
-                  );
-                } else if (value == 'manage') {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => VenueDetailView(venue: venue)));
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(value: 'edit', child: Text("Edit Details")),
-                const PopupMenuItem(value: 'staff', child: Text("Manage Staff")),
-                const PopupMenuItem(value: 'config', child: Text("Config Rules")),
-                const PopupMenuItem(value: 'manage', child: Text("Advanced Management")),
-              ],
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.accentOrange.withOpacity(0.3)),
-                  borderRadius: BorderRadius.circular(12),
+            Text(venue.ownerEmail ?? 'UNCLAIMED', style: const TextStyle(color: AppColors.body, fontSize: 13)),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                _buildStatusBadge(venue),
+                const SizedBox(width: 8),
+                Text(
+                  venue.subscription.expiryDate != null 
+                    ? "EXP: ${venue.subscription.expiryDate!.day}/${venue.subscription.expiryDate!.month}/${venue.subscription.expiryDate!.year}"
+                    : "PERPETUAL",
+                  style: const TextStyle(color: AppColors.tertiary, fontSize: 11, fontWeight: FontWeight.bold),
                 ),
-                child: const Text("OPTIONS", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900, fontSize: 11)),
-              ),
+              ],
             ),
+          ],
+        ),
+        trailing: PopupMenuButton<String>(
+          onSelected: (value) {
+            if (value == 'edit') {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue)));
+            } else if (value == 'view') {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => VenueDetailView(venue: venue)));
+            }
+          },
+          icon: const Icon(CupertinoIcons.ellipsis_circle, color: AppColors.premiumGold),
+          itemBuilder: (context) => [
+            const PopupMenuItem(value: 'view', child: Text("View Details")),
+            const PopupMenuItem(value: 'edit', child: Text("Edit Venue")),
           ],
         ),
       ),
@@ -563,132 +425,28 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
 
   Widget _buildStatusBadge(VenueModel venue) {
     String label = "ACTIVE";
-    Color bg = AppColors.statusActiveBg;
-    Color text = AppColors.statusActiveText;
-
+    Color color = AppColors.accentGreen;
     if (venue.isManuallyBlocked) {
       label = "BLOCKED";
-      bg = AppColors.statusBlockedBg;
-      text = AppColors.statusBlockedText;
+      color = AppColors.accentOrange;
     } else if (venue.subscription.expiryDate != null && venue.subscription.expiryDate!.isBefore(DateTime.now())) {
       label = "EXPIRED";
-      bg = AppColors.statusBlockedBg;
-      text = AppColors.statusBlockedText;
+      color = AppColors.accentOrange;
     } else if (!venue.subscription.isPaid && venue.subscription.plan != 'free') {
       label = "UNPAID";
-      bg = AppColors.statusWarningBg;
-      text = AppColors.statusWarningText;
+      color = AppColors.accentYellow;
     } else if (venue.subscription.expiryDate != null && venue.subscription.expiryDate!.difference(DateTime.now()).inDays < 7) {
       label = "EXPIRING";
-      bg = AppColors.statusWarningBg;
-      text = AppColors.statusWarningText;
+      color = AppColors.accentYellow;
     }
-
-    return UnconstrainedBox(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(color: text, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withOpacity(0.3)),
       ),
-    );
-  }
-  Widget _buildAnalyticsTab(bool isMobile) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text("NETWORK PERFORMANCE", style: TextStyle(color: AppColors.premiumBurntOrange, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 2)),
-          const SizedBox(height: 16),
-          
-          if (isMobile) ...[
-            Container(
-              height: 300,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Venue Leaderboard", style: TextStyle(fontWeight: FontWeight.bold)),
-                  SizedBox(height: 16),
-                  Expanded(child: VenueLeaderboard()),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              height: 300,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Peak Activity (24h)", style: TextStyle(fontWeight: FontWeight.bold)),
-                  SizedBox(height: 16),
-                  Expanded(child: PeakActivityChart()),
-                ],
-              ),
-            ),
-          ] else
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 400, // Slightly taller for better view
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Venue Leaderboard", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        SizedBox(height: 24),
-                        Expanded(child: VenueLeaderboard()),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 24),
-                Expanded(
-                  child: Container(
-                    height: 400,
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Peak Activity (24h)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        SizedBox(height: 24),
-                        Expanded(child: PeakActivityChart()),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            
-            const SizedBox(height: 32),
-            // Placeholder for future metrics
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.title.withOpacity(0.05)),
-              ),
-              child: const Center(
-                child: Text("More analytics coming soon...", style: TextStyle(color: AppColors.body)),
-              ),
-            ),
-        ],
-      ),
+      child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
     );
   }
 }

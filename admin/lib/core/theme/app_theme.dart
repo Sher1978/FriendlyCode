@@ -8,16 +8,16 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark, // Force Dark Brightness for text contrast
+      brightness: Brightness.dark,
       primaryColor: AppColors.accentOrange,
-      scaffoldBackgroundColor: Colors.black, // Ensure the base is always black
+      scaffoldBackgroundColor: AppColors.background,
       
       colorScheme: const ColorScheme.dark(
         primary: AppColors.accentOrange,
         secondary: AppColors.accentOrange, 
-        surface: AppColors.surface, // frosted glass color
-        onSurface: AppColors.title, // White
-        onPrimary: Colors.black, // Text on orange buttons
+        surface: AppColors.surface,
+        onSurface: AppColors.title,
+        onPrimary: Colors.black,
       ),
 
       appBarTheme: const AppBarTheme(
@@ -27,64 +27,65 @@ class AppTheme {
         iconTheme: IconThemeData(color: AppColors.title),
         titleTextStyle: TextStyle(
           color: AppColors.title,
-          fontSize: 20,
+          fontSize: 24,
           fontWeight: FontWeight.w900,
-          letterSpacing: -0.5,
+          letterSpacing: -1.0,
         ),
       ),
 
       textTheme: GoogleFonts.interTextTheme(
         ThemeData.dark().textTheme,
       ).apply(
-        bodyColor: AppColors.title, // White
+        bodyColor: AppColors.title,
         displayColor: AppColors.title,
       ).copyWith(
-        displayLarge: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.w900, color: AppColors.title, letterSpacing: -1.0),
-        headlineMedium: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.title, letterSpacing: -0.5),
-        titleMedium: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.title),
-        bodyLarge: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500, color: AppColors.title),
-        bodyMedium: GoogleFonts.inter(fontSize: 14, color: AppColors.title, fontWeight: FontWeight.w500),
+        displayLarge: GoogleFonts.inter(fontSize: 34, fontWeight: FontWeight.w900, color: AppColors.title, letterSpacing: -1.0),
+        headlineMedium: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.title, letterSpacing: -0.5),
+        titleMedium: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.title, letterSpacing: -0.2),
+        bodyLarge: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w400, color: AppColors.title),
+        bodyMedium: GoogleFonts.inter(fontSize: 15, color: AppColors.body, fontWeight: FontWeight.w400),
+        labelLarge: GoogleFonts.inter(fontSize: 13, color: AppColors.tertiary, fontWeight: FontWeight.w600, letterSpacing: 0.5),
       ),
       
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black, // Apple style buttons
+          backgroundColor: AppColors.premiumGold,
+          foregroundColor: Colors.black,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.2),
         ),
       ),
 
       cardTheme: CardThemeData(
-        color: AppColors.surface, // Semi-transparent grey
+        color: AppColors.surface,
         elevation: 0,
+        margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(32),
-          side: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderRadius: BorderRadius.circular(20),
         ),
       ),
 
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: Color(0x661C1C1E), // Frosted inputs
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        fillColor: AppColors.secondarySurface,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: Colors.white, width: 2),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.premiumGold, width: 1.5),
         ),
-        labelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        hintStyle: GoogleFonts.inter(color: Colors.white.withOpacity(0.4), fontSize: 15),
-        prefixIconColor: Colors.white.withOpacity(0.7),
+        labelStyle: const TextStyle(color: AppColors.body, fontWeight: FontWeight.w600),
+        hintStyle: GoogleFonts.inter(color: AppColors.tertiary, fontSize: 16),
+        prefixIconColor: AppColors.body,
       ),
     );
   }
