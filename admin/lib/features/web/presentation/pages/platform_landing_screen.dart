@@ -3,7 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/auth/role_provider.dart';
-import '../../../../core/theme/colors.dart';
+import 'package:friendly_code/core/theme/colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/localization/locale_provider.dart';
 import '../layout/admin_shell.dart';

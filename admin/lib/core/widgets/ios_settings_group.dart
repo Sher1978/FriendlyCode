@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/colors.dart';
+import 'package:friendly_code/core/theme/colors.dart';
 
 class IOSSettingsGroup extends StatelessWidget {
   final String? title;

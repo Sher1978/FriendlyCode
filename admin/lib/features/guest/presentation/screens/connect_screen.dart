@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Add this
 import '../../../../core/auth/auth_service.dart';
 import '../../../../core/data/user_repository.dart'; // Import Repo
-import '../../../../core/theme/colors.dart';
+import 'package:friendly_code/core/theme/colors.dart';
 import '../../../../core/config/app_config.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'success_screen.dart';

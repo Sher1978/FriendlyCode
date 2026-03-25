@@ -14,6 +14,65 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+const StepCard = ({ step, index, interceptedVenueId }) => {
+    const navigate = useNavigate();
+    const ref = React.useRef(null);
+    const { scrollYProgress } = useScroll({
+        target: ref,
+        offset: ["start end", "center center"]
+    });
+
+    const grayscale = useTransform(scrollYProgress, [0, 1], ["100%", "0%"]);
+    const opacity = useTransform(scrollYProgress, [0, 1], [0.6, 1]);
+    const scale = useTransform(scrollYProgress, [0, 1], [0.95, 1]);
+
+    return (
+        <motion.div
+            ref={ref}
+            style={{ scale }}
+            className="group relative"
+        >
+            <div className="bg-[#1C1C1E]/60 backdrop-blur-[40px] border border-white/5 rounded-[40px] p-8 h-full shadow-2xl hover:border-[#D4AF37]/50 transition-all duration-500 overflow-hidden relative group-hover:bg-[#1C1C1E]/80">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#D4AF37]/5 blur-[80px] rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                <div className="relative z-10 flex flex-col h-full">
+                    <div className="w-16 h-16 bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/20 rounded-2xl flex items-center justify-center mb-8 shadow-inner group-hover:bg-gradient-to-br group-hover:from-[#D4AF37] group-hover:to-[#B8860B] group-hover:text-black transition-all duration-500 group-hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]">
+                        <FontAwesomeIcon icon={step.icon} className="text-2xl" />
+                    </div>
+                    <h3 className="text-3xl font-black uppercase mb-1 tracking-tighter text-white">
+                        {step.title}
+                    </h3>
+                    <p className="text-[#D4AF37] font-bold uppercase text-xs tracking-[0.3em] mb-4">
+                        {step.subtitle}
+                    </p>
+                    <p className="text-white/50 font-medium leading-relaxed mb-8 text-sm">
+                        {step.description}
+                    </p>
+                    
+                    <div className="mt-auto">
+                        <motion.div 
+                            style={{ filter: useTransform(grayscale, v => `grayscale(${v})`), opacity }}
+                            className="rounded-3xl overflow-hidden h-56 border border-white/5 shadow-inner transition-all duration-500 relative flex items-center justify-center bg-black/20"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-t from-[#1C1C1E]/40 to-transparent z-10" />
+                            {step.showBattery ? (
+                                <div className="scale-[0.5] md:scale-[0.8] transform">
+                                    <PngBattery discount={20} />
+                                </div>
+                            ) : (
+                                <img 
+                                    src={step.image} 
+                                    alt={step.title} 
+                                    className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
+                                />
+                            )}
+                        </motion.div>
+                    </div>
+                </div>
+            </div>
+        </motion.div>
+    );
+};
+
 const RevooB2C = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -177,42 +236,12 @@ const RevooB2C = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {steps.map((step, index) => (
-                        <motion.div
-                            key={step.id}
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            whileInView={{ opacity: 1, scale: 1 }}
-                            viewport={{ once: true, margin: "-100px" }}
-                            transition={{ duration: 0.6, delay: index * 0.2 }}
-                            className="group relative"
-                        >
-                            <div className="bg-[#1C1C1E]/60 backdrop-blur-[40px] border border-white/5 rounded-[40px] p-8 h-full shadow-2xl hover:border-[#D4AF37]/50 transition-all duration-500 overflow-hidden relative group-hover:bg-[#1C1C1E]/80">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-[#D4AF37]/5 blur-[80px] rounded-full pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                                <div className="relative z-10">
-                                    <div className="w-16 h-16 bg-[#D4AF37]/10 text-[#D4AF37] border border-[#D4AF37]/20 rounded-2xl flex items-center justify-center mb-8 shadow-inner group-hover:bg-gradient-to-br group-hover:from-[#D4AF37] group-hover:to-[#B8860B] group-hover:text-black transition-all duration-500 group-hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]">
-                                        <FontAwesomeIcon icon={step.icon} className="text-2xl" />
-                                    </div>
-                                    <h3 className="text-3xl font-black uppercase mb-1 tracking-tighter text-white">
-                                        {step.title}
-                                    </h3>
-                                    <p className="text-[#D4AF37] font-bold uppercase text-xs tracking-[0.3em] mb-4">
-                                        {step.subtitle}
-                                    </p>
-                                    <p className="text-white/50 font-medium leading-relaxed mb-8 text-sm">
-                                        {step.description}
-                                    </p>
-                                </div>
-                                <div className="mt-auto rounded-3xl overflow-hidden h-48 border border-white/5 shadow-inner opacity-60 grayscale-[80%] group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700 relative flex items-center justify-center">
-                                    <div className="absolute inset-0 bg-gradient-to-t from-[#1C1C1E] to-transparent z-10 opacity-50" />
-                                    {step.showBattery ? (
-                                        <div className="scale-[0.5] md:scale-[0.7] transform">
-                                            <PngBattery discount={20} />
-                                        </div>
-                                    ) : (
-                                        <img src={step.image} alt={step.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" />
-                                    )}
-                                </div>
-                            </div>
-                        </motion.div>
+                        <StepCard 
+                            key={step.id} 
+                            step={step} 
+                            index={index} 
+                            interceptedVenueId={interceptedVenueId} 
+                        />
                     ))}
                 </div>
             </section>

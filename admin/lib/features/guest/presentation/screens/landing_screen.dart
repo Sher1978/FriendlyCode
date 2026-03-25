@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/colors.dart';
+import 'package:friendly_code/core/theme/colors.dart';
 import 'connect_screen.dart';
 import '../../../../features/guest/presentation/screens/discovery_screen.dart';
 import '../../../../features/owner/presentation/screens/owner_dashboard_screen.dart';

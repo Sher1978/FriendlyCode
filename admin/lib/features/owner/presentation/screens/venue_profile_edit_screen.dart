@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
-import '../../../../core/theme/colors.dart';
+import 'package:friendly_code/core/theme/colors.dart';
 
 class VenueProfileEditScreen extends StatefulWidget {
   const VenueProfileEditScreen({super.key});

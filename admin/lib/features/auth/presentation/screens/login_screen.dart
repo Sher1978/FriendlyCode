@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../../../../core/theme/colors.dart';
+import 'package:friendly_code/core/theme/colors.dart';
 import '../../../../core/services/auth_service.dart';
 
 class LoginScreen extends StatelessWidget {

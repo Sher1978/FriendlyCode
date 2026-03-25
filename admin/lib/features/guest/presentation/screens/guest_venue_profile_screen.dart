@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/colors.dart';
+import 'package:friendly_code/core/theme/colors.dart';
 import '../../../../core/models/venue_model.dart';
 import 'success_screen.dart'; // Or Validator trigger logic
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';

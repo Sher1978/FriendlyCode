@@ -21,7 +21,6 @@ class AppColors {
   // Premium Redesign Palette (Kept for compatibility, darkened)
   static const Color premiumSand = Color(0xFF1C1C1E); 
   static const Color premiumBurntOrange = Color(0xFFD35400); 
-  static const Color premiumGold = Color(0xFFB7950B); 
   static const Color premiumCream = Color(0xFF111111); 
   
   // Status Badges (Neon Pastels for Dark Mode)

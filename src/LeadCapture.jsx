@@ -162,37 +162,44 @@ const LeadCapture = () => {
     };
 
     return (
-        <div className="flex flex-col min-h-screen bg-[#FFF8E1] font-sans text-[#4E342E] antialiased">
-            <div className="flex-grow flex flex-col px-6 py-12 relative">
+        <div className="flex flex-col min-h-screen bg-[#000000] font-sans text-white antialiased overflow-hidden relative">
+            {/* Ambient Background Glows */}
+            <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#D4AF37]/10 blur-[120px] rounded-full pointer-events-none" />
+            <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-amber-900/5 blur-[100px] rounded-full pointer-events-none" />
+
+            <div className="flex-grow flex flex-col px-6 py-12 relative z-10">
                 {/* Back Button */}
                 <button
                     onClick={() => navigate(-1)}
-                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-white text-[#4E342E] shadow-sm border border-[#4E342E]/5 absolute top-8 left-6 z-10"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-white/60 shadow-sm border border-white/10 absolute top-8 left-6 z-10 hover:bg-white/10 transition-colors"
                 >
                     <FontAwesomeIcon icon={faArrowLeft} />
                 </button>
 
                 <div className="mt-16 text-left">
-                    <h1 className="text-[32px] font-black leading-tight mb-2">
+                    <h1 className="text-[36px] font-bold tracking-tight leading-tight mb-2 text-white">
                         {t('almost_there')}
                     </h1>
-                    <p className="text-[18px] opacity-70">
+                    <p className="text-[17px] text-white/40 font-medium">
                         {t('introduce_yourself')}
                     </p>
                 </div>
 
-                <div className="mt-8 space-y-6">
+                <div className="mt-12 space-y-8">
                     {/* Google Sign-In Button */}
                     <button
                         onClick={handleGoogleSignIn}
                         disabled={isGoogleLoading}
-                        className="w-full h-[64px] bg-white text-black font-black text-[16px] rounded-[24px] shadow-sm flex items-center justify-center gap-3 transition-all hover:bg-gray-50 active:scale-95 border border-gray-200"
+                        className="w-full h-[60px] bg-white text-black font-bold text-[16px] rounded-[18px] shadow-xl flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
                     >
                         {isGoogleLoading ? (
-                            <span className="animate-pulse">Loading...</span>
+                            <div className="flex items-center gap-2">
+                                <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                                <span>Verifying...</span>
+                            </div>
                         ) : (
                             <>
-                                <svg width="24" height="24" viewBox="0 0 48 48">
+                                <svg width="20" height="20" viewBox="0 0 48 48">
                                     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
                                     <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
                                     <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
@@ -203,43 +210,45 @@ const LeadCapture = () => {
                         )}
                     </button>
 
-                    <div className="flex items-center gap-4 my-2">
-                        <div className="h-px bg-[#4E342E]/10 flex-1"></div>
-                        <span className="text-[12px] font-bold text-[#4E342E]/30 uppercase tracking-widest">OR</span>
-                        <div className="h-px bg-[#4E342E]/10 flex-1"></div>
+                    <div className="flex items-center gap-4 py-2">
+                        <div className="h-px bg-white/5 flex-1"></div>
+                        <span className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em]">OR</span>
+                        <div className="h-px bg-white/5 flex-1"></div>
                     </div>
 
-                    {/* Name Input */}
-                    <div className="relative">
-                        <label className="text-[12px] font-black uppercase tracking-widest text-[#4E342E]/40 mb-2 block pl-1">
-                            {t('your_name')}
-                        </label>
-                        <div className="relative">
-                            <FontAwesomeIcon icon={faUser} className="absolute left-5 top-1/2 -translate-y-1/2 text-[#E68A00]" />
-                            <input
-                                type="text"
-                                placeholder="e.g., Alex"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                className="w-full h-[64px] pl-12 pr-6 bg-white border-2 border-transparent focus:border-[#E68A00] rounded-[24px] font-bold text-[18px] outline-none shadow-sm transition-all"
-                            />
+                    <div className="space-y-6">
+                        {/* Name Input */}
+                        <div className="flex flex-col gap-2">
+                            <label className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/30 ml-1">
+                                {t('your_name')}
+                            </label>
+                            <div className="relative group">
+                                <FontAwesomeIcon icon={faUser} className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-[#D4AF37] transition-colors" />
+                                <input
+                                    type="text"
+                                    placeholder="e.g., Alex"
+                                    value={name}
+                                    onChange={(e) => setName(e.target.value)}
+                                    className="w-full h-[60px] pl-12 pr-6 bg-white/5 border border-white/5 focus:border-[#D4AF37]/50 focus:bg-white/10 rounded-[18px] font-semibold text-[17px] text-white outline-none transition-all placeholder:text-white/10"
+                                />
+                            </div>
                         </div>
-                    </div>
 
-                    {/* Email Input */}
-                    <div className="relative">
-                        <label className="text-[12px] font-black uppercase tracking-widest text-[#4E342E]/40 mb-2 block pl-1">
-                            {t('your_email')}
-                        </label>
-                        <div className="relative">
-                            <FontAwesomeIcon icon={faEnvelope} className="absolute left-5 top-1/2 -translate-y-1/2 text-[#E68A00]" />
-                            <input
-                                type="email"
-                                placeholder="name@example.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="w-full h-[64px] pl-12 pr-6 bg-white border-2 border-transparent focus:border-[#E68A00] rounded-[24px] font-bold text-[18px] outline-none shadow-sm transition-all"
-                            />
+                        {/* Email Input */}
+                        <div className="flex flex-col gap-2">
+                            <label className="text-[11px] font-bold uppercase tracking-[0.15em] text-white/30 ml-1">
+                                {t('your_email')}
+                            </label>
+                            <div className="relative group">
+                                <FontAwesomeIcon icon={faEnvelope} className="absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-[#D4AF37] transition-colors" />
+                                <input
+                                    type="email"
+                                    placeholder="name@example.com"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="w-full h-[60px] pl-12 pr-6 bg-white/5 border border-white/5 focus:border-[#D4AF37]/50 focus:bg-white/10 rounded-[18px] font-semibold text-[17px] text-white outline-none transition-all placeholder:text-white/10"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -250,13 +259,18 @@ const LeadCapture = () => {
                 <button
                     onClick={handleContinue}
                     disabled={!name.trim() || !email.trim()}
-                    className={`w-full h-[64px] rounded-[24px] font-black text-[20px] uppercase transition-all flex items-center justify-center shadow-xl ${name.trim() && email.trim()
-                        ? 'bg-[#E68A00] text-white active:scale-95 shadow-[#E68A00]/30'
-                        : 'bg-[#4E342E]/10 text-[#4E342E]/40 cursor-not-allowed shadow-none'
+                    className={`w-full h-[60px] rounded-[18px] font-bold text-[18px] uppercase tracking-wider transition-all flex items-center justify-center shadow-2xl ${name.trim() && email.trim()
+                        ? 'bg-[#D4AF37] text-black active:scale-[0.97] shadow-[#D4AF37]/20 hover:bg-[#F3E5AB]'
+                        : 'bg-white/5 text-white/20 cursor-not-allowed shadow-none'
                         }`}
                 >
                     {t('continue_reward')}
                 </button>
+            </div>
+            
+            {/* Footer Note */}
+            <div className="p-6 text-center">
+                <p className="text-[10px] font-medium text-white/20 uppercase tracking-[0.1em]">Verified SECURE by FriendlyCode</p>
             </div>
         </div>
     );

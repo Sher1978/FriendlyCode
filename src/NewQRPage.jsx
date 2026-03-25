@@ -201,7 +201,7 @@ const NewQRPage = () => {
             <div className="flex flex-col h-[100dvh] bg-black items-center justify-center p-6 text-white relative overflow-hidden">
                 <div className="z-10 flex flex-col items-center text-center">
                     <div className="w-20 h-20 bg-[#1C1C1E] rounded-3xl flex items-center justify-center mb-6 shadow-2xl animate-pulse">
-                        <img src="/logo.png" alt="REVOO Logo" className="w-[80%] h-[80%] object-contain" />
+                        <img src="/revoo-logo.png" alt="REVOO Logo" className="w-[70%] h-[70%] object-contain" />
                     </div>
                     <p className="text-white/50 font-medium text-sm animate-pulse">{t('calculating_discount')}</p>
                 </div>
@@ -285,7 +285,7 @@ const NewQRPage = () => {
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-grow flex flex-col items-center justify-start mt-2 px-6 pb-[140px] w-full max-w-md mx-auto z-10 gap-4 overflow-y-auto" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+            <div className="flex-grow flex flex-col items-center justify-start mt-1 px-4 pb-[120px] w-full max-w-md mx-auto z-10 gap-3 overflow-y-auto" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
 
                 {/* Hero / Guest Name */}
                 <div className="text-center flex flex-col items-center -mt-4">
@@ -316,7 +316,7 @@ const NewQRPage = () => {
                     <div className="absolute inset-0 border border-white/5 rounded-[28px] pointer-events-none mix-blend-overlay"></div>
 
                     {/* VIP Status Label */}
-                    <p className="text-[12px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">
+                    <p className="text-[10px] font-bold tracking-[0.2em] text-white/40 uppercase mb-1">
                         Your VIP Status is
                     </p>
 
@@ -337,7 +337,7 @@ const NewQRPage = () => {
                         {discount}%
                     </div>
                     {/* The "Discount limits" subline */}
-                    <p className="text-[11px] font-medium tracking-wider opacity-60 uppercase mb-3" style={{ color: batCfg.fillColor }}>
+                    <p className="text-[10px] font-medium tracking-wider opacity-60 uppercase mb-2" style={{ color: batCfg.fillColor }}>
                         Current Rate
                     </p>
 
@@ -350,10 +350,10 @@ const NewQRPage = () => {
                 {/* iOS Settings-style Timeline Widget */}
                 <div className="w-full bg-[#1C1C1E] rounded-[24px] overflow-hidden flex flex-col border border-white/5 shadow-xl mt-0">
                     {timelineItems.map((item, index) => (
-                        <div key={index} className="flex items-center gap-4 py-2.5 border-b border-white/5 last:border-0 relative px-5 hover:bg-white/5 transition-colors">
+                        <div key={index} className="flex items-center gap-3 py-2 border-b border-white/5 last:border-0 relative px-4 hover:bg-white/5 transition-colors">
                             {/* Icon Box */}
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: item.color, boxShadow: `0 0 15px ${item.color}40` }}>
-                                <FontAwesomeIcon icon={faGift} className="text-[11px]" />
+                            <div className="w-6 h-6 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: item.color, boxShadow: `0 0 10px ${item.color}30` }}>
+                                <FontAwesomeIcon icon={faGift} className="text-[9px]" />
                             </div>
                             
                             {/* Text labels */}

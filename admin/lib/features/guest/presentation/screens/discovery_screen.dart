@@ -4,7 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/models/venue_model.dart';
 
 import '../../../../core/data/venue_repository.dart'; // Import Repo
-import '../../../../core/theme/colors.dart'; // Import Colors
+import 'package:friendly_code/core/theme/colors.dart'; // Import Colors
 import 'guest_venue_profile_screen.dart';
 
 class DiscoveryScreen extends StatefulWidget {
