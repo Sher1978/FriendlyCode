@@ -237,7 +237,7 @@ const RevooB2B = () => {
                     >
                         <div>
                             <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">02. Hook Model</div>
-                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Модель "Hook" Нира Эяля</h3>
+                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Модель Хука Нира Эяля</h3>
                             <p className="text-white/80 text-sm md:text-base leading-relaxed mb-4">
                                 Четыре этапа формирования привычки: 
                             </p>
@@ -272,7 +272,7 @@ const RevooB2B = () => {
                     >
                         <div>
                             <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">03. Dopamine Response</div>
-                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Variable Reward Schedule</h3>
+                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Дофаминовый отклик (Variable Reward)</h3>
                             <p className="text-white/80 text-sm md:text-base leading-relaxed">
                                 Непредсказуемость вознаграждения вызывает мощный дофаминовый отклик. Система REVOO использует алгоритмы нелинейного поощрения, заставляя гостя проверять статус батареи как уведомления в соцсетях. Ожидание апдейта превращается в игру.
                             </p>
