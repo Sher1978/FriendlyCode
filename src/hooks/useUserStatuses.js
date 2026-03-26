@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db, auth } from './firebase';
+import { db, auth } from '../firebase';
 import { collection, query, where, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
 
 export const useUserStatuses = () => {
