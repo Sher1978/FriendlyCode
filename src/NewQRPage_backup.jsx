@@ -193,7 +193,7 @@ const NewQRPage = () => {
                 <div className="z-10 flex flex-col items-center text-center">
                     <div className="mb-8 relative">
                         <div className="w-24 h-24 flex items-center justify-center p-2 rounded-2xl bg-white shadow-xl animate-bounce overflow-hidden">
-                            <img src="/logo.png" alt="Friendly Code Logo" className="w-full h-full object-contain" />
+                            <img src="/revoo-logo.png" alt="Friendly Code Logo" className="w-full h-full object-contain" />
                         </div>
                         <div className="absolute top-0 left-0 w-full h-full bg-[#E68A00] rounded-2xl animate-ping opacity-20" />
                     </div>

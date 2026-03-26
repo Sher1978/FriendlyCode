@@ -215,7 +215,7 @@ const TestQRPage = () => {
             <div className="flex flex-col h-[100dvh] bg-black items-center justify-center p-6 text-white relative overflow-hidden">
                 <div className="z-10 flex flex-col items-center text-center">
                     <div className="w-20 h-20 bg-[#1C1C1E] rounded-3xl flex items-center justify-center mb-6 shadow-2xl animate-pulse">
-                        <img src="/logo.png" alt="REVOO Logo" className="w-[80%] h-[80%] object-contain" />
+                        <img src="/revoo-logo.png" alt="REVOO Logo" className="w-[80%] h-[80%] object-contain" />
                     </div>
                     <p className="text-white/50 font-medium text-sm animate-pulse">{t('calculating_discount')}</p>
                 </div>
