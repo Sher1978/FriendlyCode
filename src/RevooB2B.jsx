@@ -424,15 +424,41 @@ const RevooB2B = () => {
                                 {t('b2b_science_pillar_4_text')}
                             </p>
                             
-                            {/* Schematic Bolt visual */}
-                            <div className="mt-auto h-48 bg-black/40 rounded-[32px] border border-white/5 flex items-center justify-center p-4 group-hover:border-[#00FF41]/30 transition-colors">
-                                <div className="relative">
-                                    <div className="w-20 h-20 rounded-full bg-[#00FF41]/10 flex items-center justify-center border border-[#00FF41]/30">
-                                        <FontAwesomeIcon icon={faBolt} className="text-[#00FF41] text-3xl animate-pulse" />
-                                    </div>
-                                    <div className="absolute inset-0 rounded-full border border-[#00FF41] scale-150 opacity-0 animate-[ping_3s_infinite]" />
-                                    <div className="absolute -top-4 -right-4 bg-white/5 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 text-[10px] text-white font-black uppercase">EFFORT: 0.0</div>
-                                </div>
+                            {/* Specific Mario Bounce SVG (Yellow Line, Green Ball, P-Block) */}
+                            <div className="mt-auto h-48 bg-black/40 rounded-[32px] border border-white/5 flex items-center justify-center p-4 group-hover:border-yellow-500/30 transition-colors overflow-hidden">
+                                <svg viewBox="0 0 200 80" className="w-full h-full">
+                                    {/* Yellow Floor Line */}
+                                    <line x1="10" y1="65" x2="190" y2="65" stroke="#FACC15" strokeWidth="2" strokeLinecap="round" strokeDasharray="1 4" className="opacity-30" />
+                                    <line x1="10" y1="65" x2="190" y2="65" stroke="#FACC15" strokeWidth="0.5" strokeLinecap="round" />
+
+                                    {/* P-Shaped Block (Barrier) */}
+                                    <g transform="translate(160, 25)">
+                                        <rect width="20" height="40" fill="#1C1C1E" stroke="#FF3B30" strokeWidth="1" rx="2" />
+                                        <rect x="4" y="4" width="12" height="12" fill="none" stroke="#FF3B30" strokeWidth="0.5" strokeOpacity="0.5" rx="1" />
+                                        <text x="10" y="30" fill="#FF3B30" fontSize="8" fontWeight="black" textAnchor="middle" className="uppercase font-mono">P</text>
+                                    </g>
+
+                                    {/* Green Bouncing Ball */}
+                                    <motion.circle 
+                                        r="6" 
+                                        fill="#4ADE80" 
+                                        stroke="#14532D" 
+                                        strokeWidth="1"
+                                        animate={{ 
+                                            cx: [20, 50, 80, 110, 140, 160, 140, 110, 80, 50, 20],
+                                            cy: [60, 30, 60, 30, 60, 30, 60, 30, 60, 30, 60],
+                                            transition: { 
+                                                duration: 4, 
+                                                repeat: Infinity, 
+                                                ease: "linear"
+                                            }
+                                        }}
+                                    />
+
+                                    {/* Labels */}
+                                    <text x="20" y="15" fill="white" fillOpacity="0.2" fontSize="5" fontWeight="black" className="uppercase tracking-[0.2em] font-mono">Trajectory: REJECTED</text>
+                                    <text x="170" y="75" fill="#FF3B30" fontSize="6" fontWeight="black" textAnchor="middle" className="uppercase tracking-widest font-mono">BARRIER</text>
+                                </svg>
                             </div>
                         </div>
                     </motion.div>
@@ -503,8 +529,8 @@ const RevooB2B = () => {
                                     
                                     {/* Content Card */}
                                     <div className="w-full md:w-[45%] bg-white/5 backdrop-blur-3xl border border-white/5 p-10 rounded-[48px] shadow-2xl relative group hover:border-[#00FF41]/20 transition-all overflow-hidden">
-                                        <div className="absolute top-0 right-0 p-8 opacity-20 transition-opacity group-hover:opacity-30">
-                                            <FontAwesomeIcon icon={item.icon} className="text-8xl text-white" />
+                                        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                                            <FontAwesomeIcon icon={item.icon} className="text-8xl text-[#00FF41]" />
                                         </div>
                                         <div className="flex justify-between items-center mb-6">
                                             <span className="text-[#00FF41] font-black uppercase text-[10px] tracking-widest bg-[#00FF41]/10 px-3 py-1 rounded-full">{t('b2b_path_step')} {item.step}</span>
