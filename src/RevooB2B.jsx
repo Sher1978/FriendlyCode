@@ -80,7 +80,7 @@ const RevooB2B = () => {
                 <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
                     <div className="flex-shrink-0 cursor-pointer flex items-center gap-4" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                         <img src="/revoo-logo.png" className={`transition-all duration-500 ${scrolled ? 'h-8' : 'h-10'} md:h-12 object-contain mix-blend-screen opacity-90 drop-shadow-[0_0_10px_rgba(212,175,55,0.3)]`} alt="REVOO Logo" />
-                        <span className="hidden md:block text-white/40 text-xs md:text-sm font-bold tracking-widest uppercase border-l border-white/20 pl-4">FOR BUSINESS</span>
+                        <span className="hidden md:block text-white/40 text-xs md:text-sm font-bold tracking-widest uppercase border-l border-white/20 pl-4">{t('b2b_nav_business')}</span>
                     </div>
                     <div className="flex items-center gap-3 md:gap-6">
                         <LanguageSelector />
@@ -88,7 +88,7 @@ const RevooB2B = () => {
                             onClick={() => setIsContactModalOpen(true)}
                             className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-6 py-2 rounded-full text-xs md:text-sm font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)] whitespace-nowrap"
                         >
-                            WhatsApp
+                            {t('b2b_form_whatsapp_btn')}
                         </button>
                     </div>
                 </div>
@@ -100,7 +100,7 @@ const RevooB2B = () => {
                     <motion.div initial="hidden" animate="visible" variants={fadeInUp} className="text-left">
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-bold uppercase tracking-widest text-[#D4AF37] mb-6 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] backdrop-blur-md">
                             <FontAwesomeIcon icon={faMicrochip} />
-                            The Architecture of Profitability
+                            {t('b2b_hero_tag')}
                         </div>
                         <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 tracking-tight leading-snug uppercase">
                             <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37]">{t('b2b_hero_h1')}</span>
@@ -151,7 +151,7 @@ const RevooB2B = () => {
                             className="absolute -right-4 md:-right-10 top-20 bg-[#1C1C1E]/80 backdrop-blur-md border border-[#D4AF37]/30 p-4 rounded-xl shadow-2xl flex flex-col gap-1 z-30"
                             animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
                         >
-                            <span className="text-[#D4AF37] text-[10px] uppercase font-mono tracking-widest">Energy Flow</span>
+                            <span className="text-[#D4AF37] text-[10px] uppercase font-mono tracking-widest">{t('b2b_hud_energy')}</span>
                             <motion.span 
                                 key={displayEnergy} 
                                 initial={{ opacity: 0, scale: 0.8 }} 
@@ -174,7 +174,7 @@ const RevooB2B = () => {
                                 className="text-sm font-bold uppercase tracking-wider block"
                                 style={{ color: displayEnergy === 100 ? '#00FF41' : displayEnergy === 50 ? '#FFD700' : displayEnergy === 25 ? '#FF8800' : '#FF3131' }}
                             >
-                                {displayEnergy === 100 ? 'Max Retention' : displayEnergy === 50 ? 'Warning: Decay' : displayEnergy === 25 ? 'High Risk' : 'Critical Loss'}
+                                {displayEnergy === 100 ? t('b2b_status_max') : displayEnergy === 50 ? t('b2b_status_warning') : displayEnergy === 25 ? t('b2b_status_risk') : t('b2b_status_critical')}
                             </motion.span>
                         </motion.div>
                     </motion.div>
@@ -189,7 +189,7 @@ const RevooB2B = () => {
                         whileInView={{ opacity: 1, scale: 1 }}
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-500/10 border border-red-500/20 text-[#FF3B30] text-[10px] font-bold uppercase tracking-widest mb-6"
                     >
-                        Economic Analysis
+                        {t('b2b_diag_tag')}
                     </motion.div>
                     <motion.h2 
                         initial={{ opacity: 0, y: 20 }}
@@ -197,10 +197,10 @@ const RevooB2B = () => {
                         viewport={{ once: true }}
                         className="text-3xl md:text-6xl font-black uppercase tracking-tight mb-6 text-white leading-tight"
                     >
-                        Диагноз: Хроническая утечка LTV
+                        {t('b2b_diagnosis_h2')}
                     </motion.h2>
                     <p className="text-white/60 text-base md:text-xl max-w-3xl mx-auto font-medium leading-relaxed">
-                        Большинство заведений тратят огромные бюджеты (CAC) на привлечение, но клиенты «вытекают» к конкурентам после первого визита.
+                        {t('b2b_diagnosis_intro')}
                     </p>
                 </div>
 
@@ -219,33 +219,33 @@ const RevooB2B = () => {
                         {/* Overlay labels */}
                         <div className="absolute top-12 left-12 bg-white/5 backdrop-blur-md p-4 rounded-3xl border border-white/10 flex flex-col items-center z-20">
                             <span className="text-[#D4AF37] font-black text-xl mb-1">CAC</span>
-                            <span className="text-[10px] text-white/40 uppercase font-bold tracking-widest leading-none">Inflow</span>
+                            <span className="text-[10px] text-white/40 uppercase font-bold tracking-widest leading-none">{t('b2b_diag_inflow')}</span>
                         </div>
                         <div className="absolute bottom-12 right-12 bg-white/5 backdrop-blur-md p-4 rounded-3xl border border-white/10 flex flex-col items-center z-20">
                             <span className="text-[#FF3B30] font-black text-xl mb-1">LOST</span>
-                            <span className="text-[10px] text-white/40 uppercase font-bold tracking-widest leading-none">Churn</span>
+                            <span className="text-[10px] text-white/40 uppercase font-bold tracking-widest leading-none">{t('b2b_diag_churn')}</span>
                         </div>
                     </motion.div>
 
                     <div className="flex flex-col gap-8">
                         <div className="p-8 rounded-[40px] bg-white/5 border border-[#00FF41]/20 backdrop-blur-xl relative group hover:bg-[#00FF41]/5 transition-all">
                             <div className="absolute top-6 right-8 text-[#00FF41] font-black text-2xl animate-pulse">90%</div>
-                            <h4 className="text-[#00FF41] text-2xl font-black mb-1 leading-none uppercase">Retained</h4>
-                            <p className="text-white/40 text-[11px] uppercase font-bold tracking-[0.2em] mb-4 italic">Cost of Retention (LTV)</p>
-                            <p className="text-white/70 text-base leading-relaxed font-medium">90% frequency build-up through cognitive loops.</p>
+                            <h4 className="text-[#00FF41] text-2xl font-black mb-1 leading-none uppercase">{t('b2b_diag_retained_title')}</h4>
+                            <p className="text-white/40 text-[11px] uppercase font-bold tracking-[0.2em] mb-4 italic">{t('b2b_diag_retained_sub')}</p>
+                            <p className="text-white/70 text-base leading-relaxed font-medium">{t('b2b_diag_retained_text')}</p>
                         </div>
 
                         <div className="p-8 rounded-[40px] bg-white/5 border border-red-500/20 backdrop-blur-xl relative group hover:bg-red-500/5 transition-all">
                             <div className="absolute top-6 right-8 text-[#FF3B30] font-black text-2xl">83%</div>
-                            <h4 className="text-[#FF3B30] text-2xl font-black mb-1 leading-none uppercase">Lost</h4>
-                            <p className="text-white/40 text-[11px] uppercase font-bold tracking-[0.2em] mb-4 italic">Cost of Acquisition (CAC)</p>
-                            <p className="text-white/70 text-base leading-relaxed font-medium">83% of first-time guests never return without a hook.</p>
+                            <h4 className="text-[#FF3B30] text-2xl font-black mb-1 leading-none uppercase">{t('b2b_diag_lost_title')}</h4>
+                            <p className="text-white/40 text-[11px] uppercase font-bold tracking-[0.2em] mb-4 italic">{t('b2b_diag_lost_sub')}</p>
+                            <p className="text-white/70 text-base leading-relaxed font-medium">{t('b2b_diag_lost_text')}</p>
                         </div>
                     </div>
                 </div>
 
                 <div className="text-center mt-12 text-white/40 font-bold uppercase tracking-[0.3em] text-sm max-w-2xl mx-auto border-t border-white/5 pt-12">
-                    REVOO останавливает утечку, превращая разовых гостей в фанатов бренда.
+                    {t('b2b_diag_footer_stop_leakage')}
                 </div>
             </section>
 
@@ -257,7 +257,7 @@ const RevooB2B = () => {
                         whileInView={{ opacity: 1, scale: 1 }}
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/20 text-[#D4AF37] text-[10px] font-bold uppercase tracking-widest mb-6"
                     >
-                        Scientific Core
+                        {t('b2b_science_tag')}
                     </motion.div>
                     <motion.h2 
                         initial={{ opacity: 0, y: 20 }}
@@ -280,13 +280,13 @@ const RevooB2B = () => {
                         className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8 group"
                     >
                         <div className="flex flex-col h-full">
-                            <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">01. Loss Aversion</div>
-                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Теория Даниэля Канемана</h3>
+                            <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">{t('b2b_science_pillar_1')}</div>
+                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">{t('b2b_science_pillar_1_title')}</h3>
                             <p className="text-white/60 text-base leading-relaxed mb-6 italic border-l-2 border-[#D4AF37] pl-6">
-                                "Психологически потерять статус в 2 раза больнее, чем радость от бонуса."
+                                "{t('b2b_science_pillar_1_quote')}"
                             </p>
                             <p className="text-white/80 text-sm md:text-base leading-relaxed mb-8">
-                                Согласно теории нобелевского лауреата Даниэля Канемана, избегание потери является более мощным стимулом, чем получение эквивалентной выгоды. Ваша лояльность — это личный капитал гостя.
+                                {t('b2b_science_pillar_1_text')}
                             </p>
                             
                             {/* Schematic Balance visual */}
@@ -308,8 +308,8 @@ const RevooB2B = () => {
                                         transition={{ duration: 1.5, delay: 0.5 }}
                                     />
                                     <circle cx="100" cy="80" r="4" fill="white" />
-                                    <text x="50" y="20" fill="#FF3B30" fontSize="10" fontWeight="black" className="uppercase tracking-widest">Loss (x2)</text>
-                                    <text x="135" y="45" fill="#D4AF37" fontSize="10" fontWeight="black" className="uppercase tracking-widest">Gain (x1)</text>
+                                    <text x="50" y="20" fill="#FF3B30" fontSize="10" fontWeight="black" className="uppercase tracking-widest">{t('b2b_diag_lost_title')} (x2)</text>
+                                    <text x="135" y="45" fill="#D4AF37" fontSize="10" fontWeight="black" className="uppercase tracking-widest">{t('b2b_diag_retained_title')} (x1)</text>
                                 </svg>
                             </div>
                         </div>
@@ -323,14 +323,14 @@ const RevooB2B = () => {
                         className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8 group"
                     >
                         <div className="flex flex-col h-full">
-                            <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">02. Hook Model</div>
-                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Модель Хука Нира Эяля</h3>
+                            <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">{t('b2b_science_pillar_2')}</div>
+                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">{t('b2b_science_pillar_2_title')}</h3>
                             <div className="space-y-4 mb-8">
                                 {[
-                                    { label: 'Trigger', desc: 'NFC или QR метка на столе.' },
-                                    { label: 'Action', desc: 'Мгновенное сканирование (0.5 сек).' },
-                                    { label: 'Reward', desc: 'Заряд батареи и VIP статус.' },
-                                    { label: 'Investment', desc: 'Возврат для сохранения статуса.' }
+                                    { label: t('b2b_science_pillar_2_step_1_label'), desc: t('b2b_science_pillar_2_step_1_desc') },
+                                    { label: t('b2b_science_pillar_2_step_2_label'), desc: t('b2b_science_pillar_2_step_2_desc') },
+                                    { label: t('b2b_science_pillar_2_step_3_label'), desc: t('b2b_science_pillar_2_step_3_desc') },
+                                    { label: t('b2b_science_pillar_2_step_4_label'), desc: t('b2b_science_pillar_2_step_4_desc') }
                                 ].map((step, i) => (
                                     <div key={i} className="flex gap-4 items-center bg-white/5 p-3 rounded-2xl border border-white/5 group-hover:bg-white/10 transition-colors">
                                         <span className="text-[#D4AF37] font-black text-xs w-4">{i+1}</span>
@@ -372,10 +372,10 @@ const RevooB2B = () => {
                         className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8 group"
                     >
                         <div className="flex flex-col h-full">
-                            <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">03. Dopamine Response</div>
-                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Дофаминовый отклик (Variable Reward)</h3>
+                            <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">{t('b2b_science_pillar_3')}</div>
+                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">{t('b2b_science_pillar_3_title')}</h3>
                             <p className="text-white/80 text-sm md:text-base leading-relaxed mb-8">
-                                Непредсказуемость вознаграждения вызывает мощный дофаминовый отклик. Система REVOO использует алгоритмы нелинейного поощрения, заставляя гостя проверять статус батареи как уведомления в соцсетях. Ожидание апдейта превращается в игру.
+                                {t('b2b_science_pillar_3_text')}
                             </p>
                             
                             {/* Schematic Spike visual */}
@@ -390,7 +390,7 @@ const RevooB2B = () => {
                                     />
                                     <circle cx="50" cy="10" r="3" fill="#00FF41" className="animate-ping" />
                                     <circle cx="125" cy="5" r="3" fill="#00FF41" className="animate-ping" />
-                                    <text x="135" y="10" fill="#00FF41" fontSize="8" fontWeight="black" className="uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Reward Spike</text>
+                                    <text x="135" y="10" fill="#00FF41" fontSize="8" fontWeight="black" className="uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">{t('b2b_science_pillar_3').split('. ')[1]}</text>
                                 </svg>
                             </div>
                         </div>
@@ -404,10 +404,10 @@ const RevooB2B = () => {
                         className="bg-[#1C1C1E]/50 rounded-[56px] p-8 md:p-12 border border-white/5 backdrop-blur-3xl overflow-hidden relative flex flex-col gap-8 group"
                     >
                         <div className="flex flex-col h-full">
-                            <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">04. Zero Friction</div>
-                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">Модель Стэнфорда (BJ Fogg)</h3>
+                            <div className="text-[#D4AF37] text-xs font-black uppercase tracking-[0.3em] mb-4">{t('b2b_science_pillar_4')}</div>
+                            <h3 className="text-2xl md:text-3xl font-black text-white mb-4 uppercase leading-tight">{t('b2b_science_pillar_4_title')}</h3>
                             <p className="text-white/80 text-sm md:text-base leading-relaxed mb-8">
-                                Успех = Мотивация + Возможность + Триггер. Если действие требует усилий (трение), клиент его не совершит. Мы свели усилие к нулю.
+                                {t('b2b_science_pillar_4_text')}
                             </p>
                             
                             {/* Schematic Bolt visual */}
@@ -434,16 +434,16 @@ const RevooB2B = () => {
                             whileInView={{ opacity: 1, scale: 1 }}
                             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#00FF41]/10 border border-[#00FF41]/20 text-[#00FF41] text-[10px] font-bold uppercase tracking-widest mb-6"
                         >
-                            Customer Path
+                            {t('b2b_path_tag')}
                         </motion.div>
                         <motion.h2 
                             initial={{ opacity: 0, scale: 0.95 }}
                             whileInView={{ opacity: 1, scale: 1 }}
                             className="text-4xl md:text-7xl font-black uppercase tracking-tighter mb-4 text-white"
                         >
-                            ZERO FRICTION В ДЕЙСТВИИ
+                            {t('b2b_path_h2')}
                         </motion.h2>
-                        <p className="text-white/40 text-sm md:text-lg font-bold uppercase tracking-[0.2em]">Путь гостя к вашей лояльности</p>
+                        <p className="text-white/40 text-sm md:text-lg font-bold uppercase tracking-[0.2em]">{t('b2b_path_sub')}</p>
                     </div>
 
                     {/* Timeline Path Schematic */}
@@ -455,25 +455,25 @@ const RevooB2B = () => {
                             {[
                                 {
                                     step: "01",
-                                    title: "Касание (0.5 сек)",
-                                    subtitle: "Для гостя:",
-                                    text: "Не нужно ничего скачивать. Узнавание смартфона (Device Fingerprinting) происходит мгновенно и анонимно.",
+                                    title: t('b2b_path_step_1_title'),
+                                    subtitle: t('b2b_path_step_1_label'),
+                                    text: t('b2b_path_step_1_text'),
                                     icon: faHandPointer,
                                     side: "left"
                                 },
                                 {
                                     step: "02",
-                                    title: "Узнавание и Магия",
-                                    subtitle: "На экране:",
-                                    text: "На экране вспыхивает «заряженная батарея» с максимальной наградой на сегодня.",
+                                    title: t('b2b_path_step_2_title'),
+                                    subtitle: t('b2b_path_step_2_label'),
+                                    text: t('b2b_path_step_2_text'),
                                     icon: faMagic,
                                     side: "right"
                                 },
                                 {
                                     step: "03",
-                                    title: "Автопилот для бизнеса",
-                                    subtitle: "Для бизнеса:",
-                                    text: "Никаких сложных IT-интеграций с кассой (POS). Не нужно обучать персонал. Установка за 15 минут.",
+                                    title: t('b2b_path_step_3_title'),
+                                    subtitle: t('b2b_path_step_3_label'),
+                                    text: t('b2b_path_step_3_text'),
                                     icon: faRobot,
                                     side: "left"
                                 }
@@ -493,7 +493,7 @@ const RevooB2B = () => {
                                             <FontAwesomeIcon icon={item.icon} className="text-8xl text-white" />
                                         </div>
                                         <div className="flex justify-between items-center mb-6">
-                                            <span className="text-[#00FF41] font-black uppercase text-[10px] tracking-widest bg-[#00FF41]/10 px-3 py-1 rounded-full">Step {item.step}</span>
+                                            <span className="text-[#00FF41] font-black uppercase text-[10px] tracking-widest bg-[#00FF41]/10 px-3 py-1 rounded-full">{t('b2b_path_step')} {item.step}</span>
                                             <FontAwesomeIcon icon={item.icon} className="text-[#00FF41] text-xl" />
                                         </div>
                                         <h3 className="text-xl md:text-2xl font-black text-white uppercase leading-tight mb-4">{item.title}</h3>
@@ -579,27 +579,28 @@ const RevooB2B = () => {
                         className="text-center mb-12"
                     >
                          <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight mb-4">{t('b2b_matrix_h2')}</h2>
+                         <p className="text-white/60 text-sm md:text-base font-medium max-w-2xl mx-auto">{t('b2b_matrix_sub')}</p>
                     </motion.div>
 
                     <div className="bg-white/5 backdrop-blur-3xl rounded-3xl border border-white/10 overflow-x-auto shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.1)]">
-                        <div className="min-w-[700px]">
-                            <div className="grid grid-cols-4 bg-black/50 p-6 border-b border-white/10 font-black uppercase text-[10px] md:text-xs tracking-widest text-white/40">
-                                <div>{t('b2b_matrix_integration').split(' ')[0]}</div>
-                                <div className="text-center">{t('b2b_matrix_val_apps').split(' ')[0]}</div>
-                                <div className="text-center">{t('b2b_matrix_val_stamps').split(' ')[0]}</div>
-                                <div className="text-center text-[#00FF41]">REVOO 🔄</div>
+                        <div className="min-w-[750px]">
+                            <div className="grid grid-cols-4 bg-black/50 p-6 border-b border-white/10 font-black uppercase text-[10px] md:text-xs tracking-widest text-white/40 items-center">
+                                <div className="hidden md:block" />
+                                <div className="text-center">{t('b2b_matrix_val_apps')}</div>
+                                <div className="text-center">{t('b2b_matrix_val_stamps')}</div>
+                                <div className="text-center text-[#00FF41]">{t('b2b_matrix_val_revoo')}</div>
                             </div>
                             {[
-                                { label: t('b2b_matrix_friction'), app: t('b2b_matrix_val_apps'), stamp: t('b2b_matrix_val_stamps'), revoo: t('b2b_matrix_val_revoo_friction') },
-                                { label: t('b2b_matrix_hook'), app: t('b2b_matrix_val_passive'), stamp: t('b2b_matrix_val_passive'), revoo: t('b2b_matrix_val_revoo_hook') },
-                                { label: t('b2b_matrix_data'), app: t('b2b_matrix_val_forced'), stamp: t('b2b_matrix_val_none'), revoo: t('b2b_matrix_val_revoo_data') },
-                                { label: t('b2b_matrix_integration'), app: t('b2b_matrix_val_expensive'), stamp: t('b2b_matrix_val_none'), revoo: t('b2b_matrix_val_revoo_integration') }
+                                { label: t('b2b_matrix_friction'), app: t('b2b_matrix_val_friction_apps'), stamp: t('b2b_matrix_val_friction_paper'), revoo: t('b2b_matrix_val_revoo_friction') },
+                                { label: t('b2b_matrix_hook'), app: t('b2b_matrix_val_hook_apps'), stamp: t('b2b_matrix_val_hook_paper'), revoo: t('b2b_matrix_val_revoo_hook') },
+                                { label: t('b2b_matrix_integration'), app: t('b2b_matrix_val_int_apps'), stamp: t('b2b_matrix_val_int_paper'), revoo: t('b2b_matrix_val_revoo_integration') },
+                                { label: t('b2b_matrix_data'), app: t('b2b_matrix_val_data_apps'), stamp: t('b2b_matrix_val_data_paper'), revoo: t('b2b_matrix_val_revoo_data') }
                             ].map((row, idx) => (
                                 <div key={idx} className="grid grid-cols-4 p-6 border-b border-white/5 last:border-0 text-xs md:text-sm font-medium items-center hover:bg-white/5 transition-colors">
-                                    <div className="text-white font-bold">{row.label}</div>
+                                    <div className="text-white font-bold pr-4">{row.label}</div>
                                     <div className="text-center text-white/50 leading-tight px-2">{row.app}</div>
                                     <div className="text-center text-white/50 leading-tight px-2">{row.stamp}</div>
-                                    <div className="text-center text-[#00FF41] font-bold bg-[#00FF41]/10 py-3 rounded-xl border border-[#00FF41]/20 shadow-[0_0_20px_rgba(0,255,65,0.05)]">{row.revoo}</div>
+                                    <div className="text-center text-[#00FF41] font-bold bg-[#00FF41]/10 py-4 px-2 rounded-xl border border-[#00FF41]/20 shadow-[0_0_20px_rgba(0,255,65,0.05)] h-full flex items-center justify-center">{row.revoo}</div>
                                 </div>
                             ))}
                         </div>
@@ -674,8 +675,8 @@ const RevooB2B = () => {
             <footer className="py-12 border-t border-white/5 bg-black relative z-10">
                 <div className="max-w-7xl mx-auto px-6 text-center">
                     <img src="/revoo-logo.png" className="h-6 mx-auto mix-blend-screen opacity-50 mb-4" alt="REVOO Logo" />
-                    <div className="text-xs font-black uppercase tracking-tighter italic text-[#D4AF37]/40 mb-2">FOR BUSINESS</div>
-                    <div className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/30">The Architecture of Profitability © 2026</div>
+                    <div className="text-xs font-black uppercase tracking-tighter italic text-[#D4AF37]/40 mb-2">{t('b2b_nav_business')}</div>
+                    <div className="text-[10px] font-bold uppercase tracking-[0.4em] text-white/30">{t('b2b_canvas_footer')} © 2026</div>
                 </div>
             </footer>
 

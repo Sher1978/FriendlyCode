@@ -3,8 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faXmark, faCheck } from '@fortawesome/free-solid-svg-icons';
 import { faWhatsapp } from '@fortawesome/free-brands-svg-icons';
+import { useTranslation } from 'react-i18next';
 
 const B2BContactModal = ({ isOpen, onClose }) => {
+    const { t } = useTranslation();
+    
     return (
         <AnimatePresence>
             {isOpen && (
@@ -42,18 +45,18 @@ const B2BContactModal = ({ isOpen, onClose }) => {
                             </div>
 
                             <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white mb-4">
-                                Connect with <span className="text-[#D4AF37]">Specialist</span>
+                                {t('b2b_form_title_start')} <span className="text-[#D4AF37]">{t('b2b_form_title_highlight')}</span>
                             </h3>
                             
                             <p className="text-white/60 text-sm md:text-base mb-8 font-medium leading-relaxed">
-                                Our regional manager will consult you on the implementation process and calculate the potential ROI for your venue.
+                                {t('b2b_form_sub')}
                             </p>
 
                             <div className="space-y-4 mb-10 text-left">
                                 {[
-                                    "Personalized implementation plan",
-                                    "Hardware & technical requirements",
-                                    "Staff training & onboarding"
+                                    t('b2b_form_benefit_1'),
+                                    t('b2b_form_benefit_2'),
+                                    t('b2b_form_benefit_3')
                                 ].map((item, idx) => (
                                     <div key={idx} className="flex items-center gap-3 text-white/80 text-sm font-bold">
                                         <div className="w-6 h-6 rounded-full bg-[#D4AF37]/20 flex items-center justify-center text-[#D4AF37]">
@@ -73,11 +76,11 @@ const B2BContactModal = ({ isOpen, onClose }) => {
                                 }}
                                 className="w-full bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black py-5 rounded-3xl font-black text-sm md:text-base uppercase tracking-[0.2em] shadow-[0_10px_20px_rgba(212,175,55,0.2)] animate-pulse"
                             >
-                                Open WhatsApp
+                                {t('b2b_form_whatsapp_btn')}
                             </motion.button>
                             
                             <p className="mt-6 text-white/30 text-[10px] font-bold uppercase tracking-[0.3em]">
-                                Average response time: 15 minutes
+                                {t('b2b_form_response_time')}
                             </p>
                         </div>
                     </motion.div>
