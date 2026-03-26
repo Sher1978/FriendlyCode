@@ -50,7 +50,7 @@ const RevooB2B = () => {
             index = (index + 1) % cycle.length;
             setDisplayEnergy(cycle[index].energy);
             setBatteryDiscount(cycle[index].discount);
-        }, 500); // 0.5 seconds per state = 2 seconds for full 4-state cycle
+        }, 3000); // 3 seconds per state = 12 seconds for full 4-state cycle
 
         return () => clearInterval(interval);
     }, []);
@@ -480,7 +480,7 @@ const RevooB2B = () => {
                                             cy: [60, 30, 60, 30, 60, 30, 60],
                                         }}
                                         transition={{ 
-                                            duration: animationCycle === 1 ? 8 : 4, // 8s for rejection, 4s for success
+                                            duration: animationCycle === 1 ? 4 : 2, // 2x speedup (was 8/4)
                                             repeat: animationCycle === 1 ? Infinity : 0, 
                                             ease: "linear"
                                         }}
