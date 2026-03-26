@@ -15,7 +15,8 @@ import {
   faBolt,
   faHandPointer,
   faMagic,
-  faRobot
+  faRobot,
+  faTriangleExclamation
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -244,9 +245,22 @@ const RevooB2B = () => {
                     </div>
                 </div>
 
-                <div className="text-center mt-12 text-white/40 font-bold uppercase tracking-[0.3em] text-sm max-w-2xl mx-auto border-t border-white/5 pt-12">
-                    {t('b2b_diag_footer_stop_leakage')}
-                </div>
+                <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    className="mt-16 max-w-3xl mx-auto p-8 rounded-[32px] bg-gradient-to-r from-amber-500/10 to-transparent border border-amber-500/20 backdrop-blur-xl flex items-center gap-6 shadow-[0_0_50px_rgba(212,175,55,0.1)] relative overflow-hidden"
+                >
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 blur-3xl rounded-full translate-x-1/2 -translate-y-1/2" />
+                    <div className="flex-shrink-0 w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-500 text-xl shadow-[0_0_20px_rgba(212,175,55,0.2)]">
+                        <FontAwesomeIcon icon={faTriangleExclamation} />
+                    </div>
+                    <div className="text-left">
+                        <span className="block text-[10px] font-black uppercase tracking-[0.3em] text-amber-500/60 mb-1">{t('b2b_diag_attention')}</span>
+                        <p className="text-white text-lg md:text-xl font-bold leading-tight tracking-tight">
+                            {t('b2b_diag_footer_stop_leakage')}
+                        </p>
+                    </div>
+                </motion.div>
             </section>
 
             {/* SECTION 3: THE DISSERTATION (Научное обоснование - iOS 26 Detailed Style) */}
@@ -489,7 +503,7 @@ const RevooB2B = () => {
                                     
                                     {/* Content Card */}
                                     <div className="w-full md:w-[45%] bg-white/5 backdrop-blur-3xl border border-white/5 p-10 rounded-[48px] shadow-2xl relative group hover:border-[#00FF41]/20 transition-all overflow-hidden">
-                                        <div className="absolute top-0 right-0 p-8 opacity-5">
+                                        <div className="absolute top-0 right-0 p-8 opacity-20 transition-opacity group-hover:opacity-30">
                                             <FontAwesomeIcon icon={item.icon} className="text-8xl text-white" />
                                         </div>
                                         <div className="flex justify-between items-center mb-6">
@@ -499,7 +513,7 @@ const RevooB2B = () => {
                                         <h3 className="text-xl md:text-2xl font-black text-white uppercase leading-tight mb-4">{item.title}</h3>
                                         <div className="space-y-1">
                                             <span className="text-[#00FF41] font-bold text-xs uppercase tracking-wider">{item.subtitle}</span>
-                                            <p className="text-white/50 text-base leading-relaxed font-medium">
+                                            <p className="text-white/70 text-base leading-relaxed font-medium">
                                                 {item.text}
                                             </p>
                                         </div>

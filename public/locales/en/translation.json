@@ -139,6 +139,7 @@
     "b2b_matrix_val_data_apps": "Forced (High drop-off)",
     "b2b_matrix_val_data_paper": "None (Blind to data)",
     "b2b_matrix_val_revoo_data": "Seamless (Device fingerprinting & Visit Velocity)",
+    "b2b_diag_attention": "ATTENTION",
     "b2b_diag_footer_stop_leakage": "REVOO allows you to stop the leak, turning one-time guests into brand fans.",
     "b2b_science_pillar_1_title": "Daniel Kahneman's Theory",
     "b2b_science_pillar_1_quote": "Psychologically, losing a status is twice as painful as the joy of a bonus.",

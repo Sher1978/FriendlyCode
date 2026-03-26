@@ -272,7 +272,7 @@ const TestQRPage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8 }}
-            className="flex flex-col min-h-[100dvh] bg-black font-sans text-white antialiased relative"
+            className="flex flex-col min-h-[100dvh] bg-black font-sans text-white antialiased relative overflow-x-hidden"
             style={{ WebkitFontSmoothing: 'antialiased' }}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
