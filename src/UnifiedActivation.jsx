@@ -13,154 +13,65 @@ const UnifiedActivation = () => {
     const location = useLocation();
     const navigate = useNavigate();
 
-    // State from previous screen or localStorage
-    const guestName = location.state?.guestName || localStorage.getItem('guestName') || 'Guest';
-    const discountValue = location.state?.discountValue || 5;
-    const [venueName, setVenueName] = useState(location.state?.venueName || '');
-
-    // Timer Logic
-    const [isClaimed, setIsClaimed] = useState(false);
-    const [isExpired, setIsExpired] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(300); // 300 seconds (5 minutes) for the claim itself
-
-    // Smart Prediction Timer State
-    const [predictionState, setPredictionState] = useState({
-        percent: 20,
-        secondsLeft: 86400,
-        label: 'max_discount_ends',
-        isBase: false,
-        isMax: false
+    // Venue Settings for logic
+    const [venueName, setVenueName] = useState('');
+    const [guestName, setGuestName] = useState(() => {
+        const params = new URLSearchParams(location.search);
+        return params.get('guestName') || localStorage.getItem('guestName') || 'Guest';
     });
+    const [discountValue, setDiscountValue] = useState(parseInt(localStorage.getItem('currentDiscount')) || 10);
+    const [isClaimed, setIsClaimed] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
+    const [ambientColor, setAmbientColor] = useState('#00FF41');
+    const [venueSettings, setVenueSettings] = useState({ loyaltyInterval: 1, googleReviewLink: '' });
+    const [isReviewOpen, setIsReviewOpen] = useState(false);
 
     useEffect(() => {
-        let interval = null;
-        if (isClaimed && timeLeft > 0) {
-            interval = setInterval(() => {
-                setTimeLeft((prev) => prev - 1);
-            }, 1000);
-        } else if (timeLeft === 0 && isClaimed) {
-            clearInterval(interval);
-            setIsExpired(true);
-        }
-        return () => clearInterval(interval);
-    }, [isClaimed, timeLeft]);
-
-    // Fetch Venue Name if missing
-    useEffect(() => {
-        const venueId = localStorage.getItem('currentVenueId');
-        if (venueId && !venueName) {
+        const params = new URLSearchParams(location.search);
+        const venueId = params.get('venueId') || localStorage.getItem('currentVenueId');
+        if (venueId) {
             getDoc(doc(db, 'venues', venueId)).then(snap => {
-                if (snap.exists()) setVenueName(snap.data().name);
+                if (snap.exists()) {
+                    const data = snap.data();
+                    setVenueName(data.name);
+                    setVenueSettings({
+                        loyaltyInterval: data.loyaltyInterval || 1,
+                        googleReviewLink: data.googleReviewLink || ''
+                    });
+                    if (data.brandColor) setAmbientColor(data.brandColor);
+                }
             });
         }
-    }, [venueName]);
+    }, []);
+
+    useEffect(() => {
+        let timer;
+        if (isClaimed && timeLeft > 0) {
+            timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+        }
+        return () => clearInterval(timer);
+    }, [isClaimed, timeLeft]);
+
+    const handleClaim = async () => {
+        setIsClaimed(true);
+        // Add to history
+        const venueId = localStorage.getItem('currentVenueId');
+        if (venueId) {
+            await addDoc(collection(db, 'venues', venueId, 'redemptions'), {
+                guestName,
+                discount: discountValue,
+                timestamp: serverTimestamp()
+            });
+        }
+    };
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
-        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    const handleClaim = async () => {
-        try {
-            const venueId = location.state?.venueId || localStorage.getItem('currentVenueId') || 'unknown';
-            const guestEmail = (location.state?.guestEmail || localStorage.getItem('guestEmail') || 'unknown').toLowerCase();
-            const user = auth.currentUser;
-            const role = location.state?.userRole || 'guest';
 
-            const effectiveUid = location.state?.effectiveUid || localStorage.getItem('effectiveUid') || user?.uid || 'anonymous';
-
-            const { getDocs, query, collection, where, orderBy, limit } = await import('firebase/firestore');
-            const { RewardCalculator } = await import('./logic/RewardCalculator');
-
-            // Fetch venue timezone for precise duplicate checking
-            let tz = 'Asia/Dubai';
-            try {
-                const venueSnap = await getDoc(doc(db, 'venues', venueId));
-                if (venueSnap.exists()) tz = venueSnap.data().timezone || 'Asia/Dubai';
-            } catch (err) {
-                console.warn("Failed to get venue timezone, using default", err);
-            }
-
-            const qRecent = query(
-                collection(db, 'visits'),
-                where('guestEmail', '==', guestEmail),
-                where('venueId', '==', venueId),
-                orderBy('timestamp', 'desc'),
-                limit(1)
-            );
-            const recentSnaps = await getDocs(qRecent);
-            
-            let alreadyVisitedToday = false;
-            if (!recentSnaps.empty) {
-                const latestDoc = recentSnaps.docs[0];
-                const ts = latestDoc.data().timestamp;
-                if (ts) {
-                    const latestDateStr = RewardCalculator.getVenueDateString(ts.toDate(), tz);
-                    const todayStr = RewardCalculator.getVenueDateString(new Date(), tz);
-                    if (latestDateStr === todayStr) {
-                        alreadyVisitedToday = true;
-                    }
-                }
-            }
-
-            if (!alreadyVisitedToday) {
-                await addDoc(collection(db, 'visits'), {
-                    uid: effectiveUid,
-                    venueId: venueId,
-                    guestEmail: guestEmail,
-                    guestName: guestName,
-                    discountValue: discountValue,
-                    timestamp: serverTimestamp(),
-                    status: 'pending_validation',
-                    is_test: ['staff', 'owner', 'superadmin'].includes(role)
-                });
-            } else {
-                console.log("Visit already recorded for today (calendar day in venue timezone), skipping duplicate insert.");
-            }
-
-            await addDoc(collection(db, 'discount_requests'), {
-                venueId: venueId,
-                guestEmail: guestEmail,
-                guestName: guestName,
-                discountAmount: discountValue,
-                status: 'pending',
-                timestamp: serverTimestamp(),
-            });
-
-            setIsClaimed(true);
-        } catch (e) {
-            console.error("Error creating visit/claim:", e);
-            setIsClaimed(true);
-        }
-    };
-
-    if (isExpired) {
-        return (
-            <div className="flex flex-col min-h-screen bg-black font-sans text-white items-center justify-center p-6 text-center">
-                <div className="w-16 h-16 bg-red-500/10 border border-red-500/20 backdrop-blur-md rounded-full flex items-center justify-center mb-6 text-red-500">
-                    <FontAwesomeIcon icon={faClock} className="text-2xl" />
-                </div>
-                <h1 className="text-xl font-bold text-white mb-2 tracking-wide uppercase">{t('reward_expired')}</h1>
-                <p className="text-white/50 font-medium text-sm max-w-[260px] leading-relaxed">
-                    {t('expired_instruction')}
-                </p>
-                <button
-                    onClick={() => navigate('/qr')}
-                    className="mt-8 px-8 py-3 bg-white text-black font-semibold rounded-[18px] w-full max-w-[200px]"
-                >
-                    Back to Start
-                </button>
-            </div>
-        );
-    }
-
-    // Determine glow color based on discount
-    let ambientColor = 'rgba(255,255,255,0.8)';
-    if (discountValue >= 20) ambientColor = '#00FF41'; // Green
-    else if (discountValue >= 15) ambientColor = '#FFD700'; // Yellow
-    else if (discountValue >= 10) ambientColor = '#FF8800'; // Orange
-    else if (discountValue >= 5) ambientColor = '#FF3131'; // Red
 
     return (
         <div className="flex flex-col min-h-screen bg-black font-sans text-white antialiased overflow-hidden relative" style={{ WebkitFontSmoothing: 'antialiased' }}>
@@ -172,12 +83,9 @@ const UnifiedActivation = () => {
             {/* Header / Nav */}
             <div className="pt-6 px-6 flex justify-between items-center z-50 w-full">
                 <UserMenu 
-                    activeStatus={{
-                        venueId: localStorage.getItem('currentVenueId'),
-                        venueName: venueName || 'Current Venue',
-                        discount: discountValue,
-                        expiry: new Date(Date.now() + 86400000).toISOString()
-                    }}
+                    user={auth.currentUser}
+                    venue={{ name: venueName }}
+                    activeStatuses={[]} 
                     trigger={
                         <div className="flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/5 cursor-pointer active:scale-95 transition-all">
                             <FontAwesomeIcon icon={faUser} className="text-[10px] text-white/50" />
@@ -185,26 +93,41 @@ const UnifiedActivation = () => {
                         </div>
                     }
                 />
-                <div /> {/* Spacer for symmetry or empty spot */}
+                <div />
             </div>
 
             <div className="flex-grow flex flex-col items-center justify-center px-6 relative z-10 w-full max-w-md mx-auto -mt-4">
+
+
 
                 {/* Greeting */}
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-center mb-8"
+                    className="text-center mb-6"
                 >
-                    <div className="w-16 h-16 bg-[#1C1C1E] border border-white/10 rounded-full flex items-center justify-center text-xl mb-4 mx-auto shadow-2xl text-white">
-                        <FontAwesomeIcon icon={faStar} />
-                    </div>
-                    <h1 className="text-[26px] font-bold tracking-tight leading-tight mb-1 text-white">
+                    <h1 className="text-[24px] font-bold tracking-tight leading-tight mb-1 text-white">
                         {t('thanks_for_visiting', { name: guestName, defaultValue: `Thanks for visiting,\n${guestName}!` })}
                     </h1>
-                    <p className="text-white/60 font-medium text-[13px]">
-                        {t('reward_sub', "Here is your special treat.")}
+                </motion.div>
+
+                {/* VIP Milestone (New & Prominent) */}
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="w-full mb-6 bg-gradient-to-r from-[#00FF41]/20 via-[#00FF41]/10 to-[#00FF41]/20 p-[1px] rounded-[24px]"
+                >
+                    <div className="bg-[#1C1C1E] rounded-[23px] py-4 px-6 text-center shadow-xl">
+                        <span className="text-[11px] font-black text-white/40 uppercase tracking-[0.2em] block mb-1">{t('loyalty_vip')} STATUS UPGRADE</span>
+                        <h2 className="text-[14px] font-bold text-[#00FF41] mb-1">
+                        {venueSettings?.loyaltyInterval === 1 
+                            ? t('next_vip_tomorrow') 
+                            : t('next_vip_days', { days: venueSettings?.loyaltyInterval || 1 })}
+                    </h2>
+                    <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">
+                        {t('vip_status_control')}
                     </p>
+                    </div>
                 </motion.div>
 
                 {/* Discount Card */}
@@ -234,15 +157,6 @@ const UnifiedActivation = () => {
 
                     {/* Dynamic Action Area */}
                     <div className="mt-8 relative z-10">
-                        {/* Next Visit Info */}
-                        <div className="mb-4 flex flex-col items-center gap-2">
-                            {predictionState.isBase ? (
-                                <span className="text-[13px] font-semibold text-white/80 animate-pulse">
-                                    {t('tomorrow_20_percent')}
-                                </span>
-                            ) : null}
-                        </div>
-
                         <div className="h-[52px] relative flex justify-center">
                             <AnimatePresence mode="wait">
                                 {!isClaimed ? (
@@ -252,7 +166,7 @@ const UnifiedActivation = () => {
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: -10 }}
                                         onClick={handleClaim}
-                                        className="w-[92%] max-w-[400px] h-full bg-white text-black rounded-[18px] font-semibold text-[16px] flex items-center justify-center gap-2 shadow-xl active:scale-[0.97] transition-all"
+                                        className="w-full h-full bg-white text-black rounded-[18px] font-semibold text-[16px] flex items-center justify-center gap-2 shadow-xl active:scale-[0.97] transition-all"
                                     >
                                         <FontAwesomeIcon icon={faGift} />
                                         {t('claim_gift')}
@@ -262,7 +176,7 @@ const UnifiedActivation = () => {
                                         key="timer"
                                         initial={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
-                                        className="w-[92%] max-w-[400px] h-full bg-white/10 border border-white/20 text-white rounded-[18px] flex items-center justify-center gap-3 font-bold text-[20px] shadow-inner backdrop-blur-md"
+                                        className="w-full h-full bg-white/10 border border-white/20 text-white rounded-[18px] flex items-center justify-center gap-3 font-bold text-[20px] shadow-inner backdrop-blur-md"
                                     >
                                         <FontAwesomeIcon icon={faHeart} className="text-red-500 animate-ping text-[14px]" />
                                         <span className="tabular-nums tracking-wider font-mono">{formatTime(timeLeft)}</span>
@@ -284,6 +198,59 @@ const UnifiedActivation = () => {
                         ? t('show_counter_instruction')
                         : t('claim_instruction')}
                 </motion.p>
+            </div>
+
+            {/* Floating Gift Icon & Review Popup */}
+            <div className="fixed bottom-8 right-6 z-[100]">
+                <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    animate={{ y: [0, -10, 0] }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+                    onClick={() => setIsReviewOpen(!isReviewOpen)}
+                    className="w-14 h-14 bg-[#00FF41] rounded-full shadow-[0_0_30px_rgba(0,255,65,0.4)] flex items-center justify-center text-black text-2xl relative"
+                >
+                    <FontAwesomeIcon icon={faGift} />
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-4 w-4 bg-white"></span>
+                    </span>
+                </motion.button>
+
+                <AnimatePresence>
+                    {isReviewOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0, x: 50, y: 50 }}
+                            animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
+                            exit={{ opacity: 0, scale: 0, x: 50, y: 50 }}
+                            className="absolute bottom-20 right-0 w-[280px] bg-[#1C1C1E] border border-white/10 rounded-[32px] p-6 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 p-4">
+                                <button onClick={() => setIsReviewOpen(false)} className="text-white/20 hover:text-white transition-colors">
+                                    {/* Using faXmark or similar icon */}
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M1 1L11 11M11 1L1 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                                    </svg>
+                                </button>
+                            </div>
+                            <div className="text-center mt-2">
+                                <div className="text-4xl mb-4">🎁</div>
+                                <h3 className="text-lg font-bold text-white mb-2 leading-tight">{t('review_popup_title')}</h3>
+                                <p className="text-white/50 text-[13px] leading-relaxed mb-6">
+                                    {t('review_popup_sub', 'Leave a 5-star review on Google and show the screen to the waiter for an extra gift!')}
+                                </p>
+                                <a 
+                                    href={venueSettings.googleReviewLink || '#'} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="block w-full py-3 bg-[#00FF41] text-black font-black text-xs uppercase tracking-widest rounded-xl hover:shadow-[0_0_20px_rgba(0,255,65,0.3)] transition-all"
+                                >
+                                    {t('review_popup_cta')}
+                                </a>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );

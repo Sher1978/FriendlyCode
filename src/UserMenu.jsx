@@ -9,18 +9,58 @@ import {
     faGear, 
     faChevronRight,
     faStar,
-    faXmark
+    faXmark,
+    faUserCircle, // Added
+    faCrown, // Added
+    faMapMarkedAlt, // Added
+    faRightFromBracket, // Added
+    faRightToBracket // Added
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useUserStatuses } from './hooks/useUserStatuses';
 
-const UserMenu = ({ trigger, activeStatus }) => {
+import { auth } from './firebase';
+import { signOut } from 'firebase/auth';
+
+const UserMenu = ({ user, venue, activeStatuses = [], trigger }) => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
-    const { statuses, loading } = useUserStatuses();
+    const [showStatusDetails, setShowStatusDetails] = useState(null); // Added
+    const { statuses, loading } = useUserStatuses(); // Kept for now, but might be removed if activeStatuses replaces it
     const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            setIsOpen(false);
+            navigate('/activate');
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    };
+
+    const menuItems = [
+        { id: 'dashboard', label: t('menu_guest_dashboard'), icon: faUserCircle, path: '/activate' },
+        { id: 'statuses', label: t('menu_my_statuses'), icon: faCrown, action: () => setIsOpen(false) },
+        { id: 'map', label: t('menu_map'), icon: faMapMarkedAlt, path: '/map' },
+        { id: 'settings', label: t('menu_settings'), icon: faGear, action: () => {} },
+    ];
+
+    const authItem = user ? {
+        id: 'logout',
+        label: t('menu_logout', 'Logout'),
+        icon: faRightFromBracket,
+        action: handleLogout,
+        className: 'text-red-400 mt-4 border-t border-white/5 pt-4'
+    } : {
+        id: 'login',
+        label: t('menu_login', 'Login'),
+        icon: faRightToBracket,
+        path: '/activate',
+        className: 'text-[#00FF41] mt-4 border-t border-white/5 pt-4'
+    };
 
     // PWA Install Logic
     useEffect(() => {
@@ -98,51 +138,34 @@ const UserMenu = ({ trigger, activeStatus }) => {
                             {/* Menu Content */}
                             <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
                                 
-                                {/* Section: My Statuses */}
-                                <div className="space-y-2">
-                                    <h4 className="text-[11px] font-bold text-white/30 uppercase tracking-[0.1em] px-2">{t('menu_my_statuses', 'My Statuses')}</h4>
-                                    <div className="bg-white/5 rounded-2xl overflow-hidden divide-y divide-white/5">
-                                        {loading ? (
-                                            <div className="p-4 text-center animate-pulse"><div className="w-full h-4 bg-white/10 rounded"></div></div>
-                                        ) : (statuses.length > 0 || activeStatus) ? (
-                                            <>
-                                                {/* Current Active Status */}
-                                                {activeStatus && !statuses.find(s => s.venueId === activeStatus.venueId) && (
-                                                    <div className="p-3 flex items-center justify-between bg-white/10 border-b border-white/5">
-                                                        <div className="flex flex-col">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="text-[13px] font-bold text-white leading-tight">{activeStatus.venueName}</span>
-                                                                <span className="text-[8px] bg-green-500 text-black px-1 rounded font-black uppercase">{t('status_active', 'Active')}</span>
-                                                            </div>
-                                                            <span className="text-[10px] text-white/40 font-medium">{t('loyalty_vip', 'VIP')} {activeStatus.discount}% • {new Date(activeStatus.expiry).toLocaleDateString(i18n.language)}</span>
-                                                        </div>
-                                                        <div className="w-6 h-6 bg-white/10 rounded-lg flex items-center justify-center">
-                                                            <FontAwesomeIcon icon={faStar} className="text-[10px] text-yellow-500" />
-                                                        </div>
-                                                    </div>
-                                                )}
-                                                {statuses.map((status, idx) => (
-                                                    <div key={idx} className="p-3 flex items-center justify-between">
-                                                        <div className="flex flex-col">
-                                                            <span className="text-[13px] font-bold text-white leading-tight">{status.venueName}</span>
-                                                            <span className="text-[10px] text-white/40 font-medium">{t('loyalty_vip', 'VIP')} {status.discount}% • {new Date(status.expiry).toLocaleDateString(i18n.language)}</span>
-                                                        </div>
-                                                        <div className="w-6 h-6 bg-white/10 rounded-lg flex items-center justify-center">
-                                                            <FontAwesomeIcon icon={faStar} className="text-[10px] text-yellow-500" />
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </>
-                                        ) : (
-                                            <div className="p-4 text-center text-[12px] text-white/40">{t('no_statuses', 'No active VIP statuses')}</div>
-                                        )}
-                                    </div>
-                                </div>
+                                    {/* Dashboard link */}
+                                    <button 
+                                        onClick={() => { navigate('/activate'); setIsOpen(false); }}
+                                        className="w-full flex items-center justify-between p-3.5 bg-white/5 rounded-2xl text-white active:scale-98 transition-all border border-white/5"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 bg-[#00FF41]/20 text-[#00FF41] rounded-xl flex items-center justify-center">
+                                                <FontAwesomeIcon icon={faUserCircle} />
+                                            </div>
+                                            <span className="text-[14px] font-semibold">{t('menu_guest_dashboard', 'Dashboard')}</span>
+                                        </div>
+                                        <FontAwesomeIcon icon={faChevronRight} className="text-[10px] opacity-30" />
+                                    </button>
 
-                                {/* Section: Actions */}
-                                <div className="space-y-1.5">
-                                    <h4 className="text-[11px] font-bold text-white/30 uppercase tracking-[0.1em] px-2">{t('menu_navigation', 'Navigation')}</h4>
-                                    
+                                    {/* My Statuses */}
+                                    <button 
+                                        onClick={() => setIsOpen(false)}
+                                        className="w-full flex items-center justify-between p-3.5 bg-white/5 rounded-2xl text-white active:scale-98 transition-all border border-white/5"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 bg-yellow-500/20 text-yellow-400 rounded-xl flex items-center justify-center">
+                                                <FontAwesomeIcon icon={faCrown} />
+                                            </div>
+                                            <span className="text-[14px] font-semibold">{t('menu_my_statuses', 'My Statuses')}</span>
+                                        </div>
+                                        <FontAwesomeIcon icon={faChevronRight} className="text-[10px] opacity-30" />
+                                    </button>
+
                                     {/* Map */}
                                     <button 
                                         onClick={() => { navigate('/map'); setIsOpen(false); }}
@@ -187,19 +210,31 @@ const UserMenu = ({ trigger, activeStatus }) => {
                                             <FontAwesomeIcon icon={faChevronRight} className="text-[10px] opacity-30" />
                                         </div>
                                     </button>
-                                </div>
-                            </div>
 
-                            {/* Footer */}
-                            <div className="p-4 bg-white/5 text-center mt-2">
-                                <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">REVOO Digital Ecosystem v2.0</p>
-                            </div>
-                        </motion.div>
-                    </>
-                )}
-            </AnimatePresence>
-        </div>
-    );
+                                    {/* Auth Section */}
+                                    <button 
+                                        onClick={() => { if (user) handleLogout(); else { navigate('/activate'); setIsOpen(false); } }}
+                                        className={`w-full flex items-center justify-between p-3.5 bg-white/5 rounded-2xl active:scale-98 transition-all border border-white/5 mt-4 ${user ? 'text-red-400' : 'text-[#00FF41]'}`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${user ? 'bg-red-500/20' : 'bg-[#00FF41]/20'}`}>
+                                                <FontAwesomeIcon icon={user ? faRightFromBracket : faRightToBracket} />
+                                            </div>
+                                            <span className="text-[14px] font-bold">{user ? t('menu_logout') : t('menu_login')}</span>
+                                        </div>
+                                    </button>
+                                </div>
+
+                                {/* Footer */}
+                                <div className="p-4 bg-white/5 text-center">
+                                    <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">REVOO Digital Ecosystem v2.0</p>
+                                </div>
+                            </motion.div>
+                        </>
+                    )}
+                </AnimatePresence>
+            </div>
+        );
 };
 
 export default UserMenu;
