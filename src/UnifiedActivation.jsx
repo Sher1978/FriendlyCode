@@ -189,11 +189,15 @@ const UnifiedActivation = () => {
 
             {/* Header / Nav */}
             <div className="pt-6 px-6 flex justify-between items-center z-50 w-full">
-                <div className="flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/5">
-                    <FontAwesomeIcon icon={faUser} className="text-[10px] text-white/50" />
-                    <span className="text-[11px] font-semibold tracking-wide text-white">{guestName}</span>
-                </div>
-                <UserMenu />
+                <UserMenu 
+                    trigger={
+                        <div className="flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/5 cursor-pointer active:scale-95 transition-all">
+                            <FontAwesomeIcon icon={faUser} className="text-[10px] text-white/50" />
+                            <span className="text-[11px] font-semibold tracking-wide text-white">{guestName}</span>
+                        </div>
+                    }
+                />
+                <div /> {/* Spacer for symmetry or empty spot */}
             </div>
 
             <div className="flex-grow flex flex-col items-center justify-center px-6 relative z-10 w-full max-w-md mx-auto -mt-4">

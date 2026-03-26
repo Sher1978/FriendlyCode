@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useUserStatuses } from './hooks/useUserStatuses';
 
-const UserMenu = () => {
+const UserMenu = ({ trigger }) => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
@@ -50,12 +50,18 @@ const UserMenu = () => {
     return (
         <div className="relative z-[100]">
             {/* Trigger Button */}
-            <button 
-                onClick={() => setIsOpen(true)}
-                className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-white/80 active:scale-90 transition-all shadow-lg"
-            >
-                <FontAwesomeIcon icon={faCircleUser} className="text-[20px]" />
-            </button>
+            {trigger ? (
+                <div onClick={() => setIsOpen(true)}>
+                    {trigger}
+                </div>
+            ) : (
+                <button 
+                    onClick={() => setIsOpen(true)}
+                    className="w-10 h-10 bg-white/10 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-white/80 active:scale-90 transition-all shadow-lg"
+                >
+                    <FontAwesomeIcon icon={faCircleUser} className="text-[20px]" />
+                </button>
+            )}
 
             <AnimatePresence>
                 {isOpen && (
@@ -71,10 +77,10 @@ const UserMenu = () => {
 
                         {/* Dropdown Card */}
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: -20, x: 20 }}
+                            initial={{ opacity: 0, scale: 0.95, y: -20, x: -20 }}
                             animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: -20, x: 20 }}
-                            className="absolute top-0 right-0 w-[85vw] max-w-[320px] bg-[#1C1C1E] border border-white/10 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[101] overflow-hidden"
+                            exit={{ opacity: 0, scale: 0.95, y: -20, x: -20 }}
+                            className="absolute top-0 left-0 w-[85vw] max-w-[320px] bg-[#1C1C1E] border border-white/10 rounded-[32px] shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-[101] overflow-hidden"
                         >
                             {/* Header */}
                             <div className="p-5 flex items-center justify-between border-b border-white/5 bg-white/5">
