@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLeaf, faRocket, faGift, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { faStar, faChevronRight, faChevronDown, faClock, faUser, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import UserMenu from './UserMenu';
 import { motion } from 'framer-motion';
 import { db, auth } from './firebase';
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
@@ -191,7 +192,7 @@ const NewQRPage = () => {
     }, [location]);
 
     const toggleLanguage = () => {
-        const cycle = { 'en': 'ru', 'ru': 'vi', 'vi': 'en' };
+        const cycle = { 'en': 'ru', 'ru': 'ar', 'ar': 'vi', 'vi': 'en' };
         i18n.changeLanguage(cycle[i18n.language] || 'en');
     };
 
@@ -200,9 +201,11 @@ const NewQRPage = () => {
         return (
             <div className="flex flex-col min-h-[100dvh] bg-black items-center justify-center p-6 text-white relative">
                 <div className="z-10 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-[#1C1C1E] rounded-3xl flex items-center justify-center mb-6 shadow-2xl animate-pulse">
-                        <img src="/revoo-logo.png" alt="REVOO Logo" className="w-[70%] h-[70%] object-contain" />
-                    </div>
+                    <img 
+                        src="/revoo-logo.png" 
+                        className="h-[300px] w-auto mb-6" 
+                        alt="REVOO" 
+                    />
                     <p className="text-white/50 font-medium text-sm animate-pulse">{t('calculating_discount')}</p>
                 </div>
             </div>
@@ -237,17 +240,17 @@ const NewQRPage = () => {
     
     const batCfg = getBatteryConfig(mappedCapacity);
 
-    const formatDays = (d) => parseInt(d) === 1 ? '1 day' : `${d} days`;
+    const formatDays = (d) => parseInt(d) === 1 ? `1 ${t('timeline_day')}` : `${d} ${t('timeline_days')}`;
 
     const timelineItems = loyaltyConfig ? [
-        { label: 'VIP Status', value: `${loyaltyConfig.percVip || 20}%`, sub: `Within ${formatDays(loyaltyConfig.vipWindowDays || 1)}`, color: '#00FF41', perc: loyaltyConfig.percVip || 20 },
-        { label: 'Level 1', value: `${loyaltyConfig.percDecay1 || 15}%`, sub: `Within ${formatDays(loyaltyConfig.tier1DecayDays || 2)}`, color: '#FFD700', perc: loyaltyConfig.percDecay1 || 15 },
-        { label: 'Level 2', value: `${loyaltyConfig.percDecay2 || 10}%`, sub: `Within ${formatDays(loyaltyConfig.tier2DecayDays || 6)}`, color: '#FF8800', perc: loyaltyConfig.percDecay2 || 10 },
-        { label: 'Base Rate', value: `${loyaltyConfig.percBase || 5}%`, sub: 'Any other time', color: '#FF3131', perc: loyaltyConfig.percBase || 5 },
-    ].filter(item => item.perc > (loyaltyConfig.percBase || 0) || item.label === 'Base Rate')
+        { label: t('timeline_vip_status'), value: `${loyaltyConfig.percVip || 20}%`, sub: `${t('timeline_within', { days: formatDays(loyaltyConfig.vipWindowDays || 1) })}`, color: '#00FF41', perc: loyaltyConfig.percVip || 20 },
+        { label: t('timeline_level_1'), value: `${loyaltyConfig.percDecay1 || 15}%`, sub: `${t('timeline_within', { days: formatDays(loyaltyConfig.tier1DecayDays || 2) })}`, color: '#FFD700', perc: loyaltyConfig.percDecay1 || 15 },
+        { label: t('timeline_level_2'), value: `${loyaltyConfig.percDecay2 || 10}%`, sub: `${t('timeline_within', { days: formatDays(loyaltyConfig.tier2DecayDays || 6) })}`, color: '#FF8800', perc: loyaltyConfig.percDecay2 || 10 },
+        { label: t('timeline_base_rate'), value: `${loyaltyConfig.percBase || 5}%`, sub: t('timeline_any_other_time'), color: '#FF3131', perc: loyaltyConfig.percBase || 5 },
+    ].filter(item => item.perc > (loyaltyConfig.percBase || 0) || item.label === t('timeline_base_rate'))
     : [
-        { label: 'Today', value: '10% Max', sub: 'Active', color: '#FF3131' },
-        { label: 'Tomorrow', value: '15% Max', sub: 'Maintaining', color: '#00FF41' },
+        { label: t('today'), value: '10% Max', sub: 'Active', color: '#FF3131' },
+        { label: t('tomorrow'), value: '15% Max', sub: 'Maintaining', color: '#00FF41' },
         { label: '3 Days', value: '20% Max', sub: 'Streak', color: '#FFD700' },
         { label: '7 Days', value: '25% Max', sub: 'VIP Unlock', color: '#FF8800' },
     ];
@@ -273,19 +276,35 @@ const NewQRPage = () => {
                     onClick={toggleLanguage}
                     className="bg-white/10 backdrop-blur-xl px-4 py-1.5 rounded-full text-xs font-semibold text-white border border-white/5 hover:bg-white/20 transition-colors uppercase"
                 >
-                    {i18n.language === 'en' ? 'RU' : i18n.language === 'ru' ? 'VI' : 'EN'}
+                    {i18n.language.toUpperCase()}
                 </button>
             </div>
 
             {/* Content Wrapper */}
             <div className="flex flex-col z-10">
-                {/* Header (Top-Left Logo + Compact Venue) */}
-                <div className="pt-4 pb-2 px-6 flex flex-col items-center relative flex-shrink-0">
-                    <div className="absolute top-4 left-6 opacity-30">
-                        <img src="/revoo-logo.png" className="h-3.5 object-contain mix-blend-screen" alt="REVOO" />
-                    </div>
-                    <h2 className="text-[20px] font-bold tracking-tight text-white/90 leading-tight mt-6">{venueName}</h2>
-                </div>
+                {/* Header / Nav */}
+            <div className="pt-6 px-6 flex justify-between items-center z-50 w-full relative">
+                <UserMenu 
+                    activeStatus={{
+                        venueId: localStorage.getItem('currentVenueId'),
+                        venueName: venueName,
+                        discount: discount,
+                        expiry: new Date(Date.now() + 86400000).toISOString()
+                    }}
+                    trigger={
+                        <div className="flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/5 cursor-pointer active:scale-95 transition-all">
+                            <FontAwesomeIcon icon={faUser} className="text-[10px] text-white/50" />
+                            <span className="text-[11px] font-semibold tracking-wide text-white">{guestName}</span>
+                        </div>
+                    }
+                />
+                <div /> {/* Spacer */}
+            </div>
+
+            <div className="pt-4 pb-2 px-6 flex flex-col items-center flex-shrink-0">
+                <img src="/revoo-logo.png" className="h-[120px] w-auto mb-2 object-contain opacity-100" alt="REVOO" />
+                <h2 className="text-[20px] font-bold tracking-tight text-white/90 leading-tight">{venueName || "REVOO VENUE"}</h2>
+            </div>
 
                 {/* Hero / Guest Name (Pulled Up) */}
                 <div className="text-center flex flex-col items-center flex-shrink-0 px-6 py-0 -mt-1">
@@ -354,7 +373,7 @@ const NewQRPage = () => {
                     </div>
 
                     <p className="text-[11px] font-medium text-white/40 text-center px-4 leading-relaxed tracking-wider py-2">
-                        {i18n.language === 'ru' ? 'Чем чаще ты посещаешь, тем выше ВИП статус и награда!' : 'The more often you visit, the higher your VIP status and reward!'}
+                        {t('timeline_motivation')}
                     </p>
                 </div>
             </div>

@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useUserStatuses } from './hooks/useUserStatuses';
 
-const UserMenu = ({ trigger }) => {
+const UserMenu = ({ trigger, activeStatus }) => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const [isOpen, setIsOpen] = useState(false);
@@ -43,8 +43,8 @@ const UserMenu = ({ trigger }) => {
     };
 
     const toggleLanguage = () => {
-        const newLang = i18n.language === 'en' ? 'ru' : 'en';
-        i18n.changeLanguage(newLang);
+        const cycle = { 'en': 'ru', 'ru': 'ar', 'ar': 'vi', 'vi': 'en' };
+        i18n.changeLanguage(cycle[i18n.language] || 'en');
     };
 
     return (
@@ -88,7 +88,7 @@ const UserMenu = ({ trigger }) => {
                                     <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center">
                                         <FontAwesomeIcon icon={faCircleUser} className="text-white/40" />
                                     </div>
-                                    <span className="font-bold text-[16px] text-white">Guest Dashboard</span>
+                                    <span className="font-bold text-[16px] text-white">{t('menu_guest_dashboard', 'Guest Dashboard')}</span>
                                 </div>
                                 <button onClick={() => setIsOpen(false)} className="w-8 h-8 rounded-full hover:bg-white/5 flex items-center justify-center text-white/40">
                                     <FontAwesomeIcon icon={faXmark} />
@@ -104,18 +104,35 @@ const UserMenu = ({ trigger }) => {
                                     <div className="bg-white/5 rounded-2xl overflow-hidden divide-y divide-white/5">
                                         {loading ? (
                                             <div className="p-4 text-center animate-pulse"><div className="w-full h-4 bg-white/10 rounded"></div></div>
-                                        ) : statuses.length > 0 ? (
-                                            statuses.map((status, idx) => (
-                                                <div key={idx} className="p-3 flex items-center justify-between">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[13px] font-bold text-white leading-tight">{status.venueName}</span>
-                                                        <span className="text-[10px] text-white/40 font-medium">VIP {status.discount}% • {new Date(status.expiry).toLocaleDateString()}</span>
+                                        ) : (statuses.length > 0 || activeStatus) ? (
+                                            <>
+                                                {/* Current Active Status */}
+                                                {activeStatus && !statuses.find(s => s.venueId === activeStatus.venueId) && (
+                                                    <div className="p-3 flex items-center justify-between bg-white/10 border-b border-white/5">
+                                                        <div className="flex flex-col">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[13px] font-bold text-white leading-tight">{activeStatus.venueName}</span>
+                                                                <span className="text-[8px] bg-green-500 text-black px-1 rounded font-black uppercase">{t('status_active', 'Active')}</span>
+                                                            </div>
+                                                            <span className="text-[10px] text-white/40 font-medium">{t('loyalty_vip', 'VIP')} {activeStatus.discount}% • {new Date(activeStatus.expiry).toLocaleDateString(i18n.language)}</span>
+                                                        </div>
+                                                        <div className="w-6 h-6 bg-white/10 rounded-lg flex items-center justify-center">
+                                                            <FontAwesomeIcon icon={faStar} className="text-[10px] text-yellow-500" />
+                                                        </div>
                                                     </div>
-                                                    <div className="w-6 h-6 bg-white/10 rounded-lg flex items-center justify-center">
-                                                        <FontAwesomeIcon icon={faStar} className="text-[10px] text-yellow-500" />
+                                                )}
+                                                {statuses.map((status, idx) => (
+                                                    <div key={idx} className="p-3 flex items-center justify-between">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[13px] font-bold text-white leading-tight">{status.venueName}</span>
+                                                            <span className="text-[10px] text-white/40 font-medium">{t('loyalty_vip', 'VIP')} {status.discount}% • {new Date(status.expiry).toLocaleDateString(i18n.language)}</span>
+                                                        </div>
+                                                        <div className="w-6 h-6 bg-white/10 rounded-lg flex items-center justify-center">
+                                                            <FontAwesomeIcon icon={faStar} className="text-[10px] text-yellow-500" />
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            ))
+                                                ))}
+                                            </>
                                         ) : (
                                             <div className="p-4 text-center text-[12px] text-white/40">{t('no_statuses', 'No active VIP statuses')}</div>
                                         )}
@@ -124,7 +141,7 @@ const UserMenu = ({ trigger }) => {
 
                                 {/* Section: Actions */}
                                 <div className="space-y-1.5">
-                                    <h4 className="text-[11px] font-bold text-white/30 uppercase tracking-[0.1em] px-2">Navigation</h4>
+                                    <h4 className="text-[11px] font-bold text-white/30 uppercase tracking-[0.1em] px-2">{t('menu_navigation', 'Navigation')}</h4>
                                     
                                     {/* Map */}
                                     <button 

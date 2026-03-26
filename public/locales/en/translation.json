@@ -258,5 +258,21 @@
     "menu_map": "Venue Map",
     "menu_download_app": "Download App",
     "menu_settings": "Settings",
-    "pwa_manual_install": "To install: Tap the share button in your browser and 'Add to Home Screen'"
+    "pwa_manual_install": "To install: Tap the share button in your browser and 'Add to Home Screen'",
+    "timeline_vip_status": "VIP Status",
+    "timeline_level_1": "Level 1",
+    "timeline_level_2": "Level 2",
+    "timeline_base_rate": "Base Rate",
+    "timeline_within": "Within {{days}}",
+    "timeline_day": "day",
+    "timeline_days": "days",
+    "timeline_any_other_time": "Any other time",
+    "timeline_motivation": "The more often you visit, the higher your VIP status and reward!",
+    "menu_guest_dashboard": "Guest Dashboard",
+    "status_active": "Active",
+    "menu_navigation": "Navigation",
+    "loyalty_vip": "VIP",
+    "status_valid_until": "Valid until",
+    "swipe_hint": "Swipe left to see more",
+    "b2b_matrix_revoo_status": "REVOO Status"
 }

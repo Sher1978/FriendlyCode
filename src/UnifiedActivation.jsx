@@ -16,6 +16,7 @@ const UnifiedActivation = () => {
     // State from previous screen or localStorage
     const guestName = location.state?.guestName || localStorage.getItem('guestName') || 'Guest';
     const discountValue = location.state?.discountValue || 5;
+    const [venueName, setVenueName] = useState(location.state?.venueName || '');
 
     // Timer Logic
     const [isClaimed, setIsClaimed] = useState(false);
@@ -44,34 +45,15 @@ const UnifiedActivation = () => {
         return () => clearInterval(interval);
     }, [isClaimed, timeLeft]);
 
-    // Smart Timer Logic: Updates every second to simulate the passage of time since claim
+    // Fetch Venue Name if missing
     useEffect(() => {
-        const venueId = localStorage.getItem('currentVenueId') || 'unknown';
-
-        const fetchConfig = async () => {
-            try {
-                const docSnap = await getDoc(doc(db, 'venues', venueId));
-                if (docSnap.exists()) {
-                    const config = docSnap.data().loyaltyConfig;
-                    const interval = setInterval(() => {
-                        let isBase = discountValue <= 5;
-                        let isMax = discountValue >= 20;
-
-                        setPredictionState(prev => ({
-                            ...prev,
-                            isBase,
-                            isMax,
-                            label: isMax ? 'valid_for_label' : 'discount_stable'
-                        }));
-                    }, 1000);
-                    return () => clearInterval(interval);
-                }
-            } catch (e) {
-                console.error("Error fetching venue config for timer:", e);
-            }
-        };
-        fetchConfig();
-    }, [discountValue]);
+        const venueId = localStorage.getItem('currentVenueId');
+        if (venueId && !venueName) {
+            getDoc(doc(db, 'venues', venueId)).then(snap => {
+                if (snap.exists()) setVenueName(snap.data().name);
+            });
+        }
+    }, [venueName]);
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);
@@ -190,6 +172,12 @@ const UnifiedActivation = () => {
             {/* Header / Nav */}
             <div className="pt-6 px-6 flex justify-between items-center z-50 w-full">
                 <UserMenu 
+                    activeStatus={{
+                        venueId: localStorage.getItem('currentVenueId'),
+                        venueName: venueName || 'Current Venue',
+                        discount: discountValue,
+                        expiry: new Date(Date.now() + 86400000).toISOString()
+                    }}
                     trigger={
                         <div className="flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/5 cursor-pointer active:scale-95 transition-all">
                             <FontAwesomeIcon icon={faUser} className="text-[10px] text-white/50" />

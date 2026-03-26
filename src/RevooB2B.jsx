@@ -30,6 +30,9 @@ const RevooB2B = () => {
     const { t, i18n } = useTranslation();
     const [scrolled, setScrolled] = useState(false);
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+    const [animationCycle, setAnimationCycle] = useState(1); // 1 = Bounce, 2 = Pass
+    const [activeCardIdx, setActiveCardIdx] = useState(0);
+    const [swipedCards, setSwipedCards] = useState([]); // Stack for swiped-out cards
     // Battery Simulation Showcase (Cycles 100 -> 50 -> 25 -> 10)
     const [batteryDiscount, setBatteryDiscount] = useState(20);
     const [displayEnergy, setDisplayEnergy] = useState(100);
@@ -425,39 +428,78 @@ const RevooB2B = () => {
                             </p>
                             
                             {/* Specific Mario Bounce SVG (Yellow Line, Green Ball, P-Block) */}
-                            <div className="mt-auto h-48 bg-black/40 rounded-[32px] border border-white/5 flex items-center justify-center p-4 group-hover:border-yellow-500/30 transition-colors overflow-hidden">
+                            <div className="mt-auto h-48 bg-black/40 rounded-[32px] border border-white/5 flex items-center justify-center p-4 group-hover:border-yellow-500/30 transition-colors overflow-hidden relative">
                                 <svg viewBox="0 0 200 80" className="w-full h-full">
                                     {/* Yellow Floor Line */}
                                     <line x1="10" y1="65" x2="190" y2="65" stroke="#FACC15" strokeWidth="2" strokeLinecap="round" strokeDasharray="1 4" className="opacity-30" />
                                     <line x1="10" y1="65" x2="190" y2="65" stroke="#FACC15" strokeWidth="0.5" strokeLinecap="round" />
 
                                     {/* P-Shaped Block (Barrier) */}
-                                    <g transform="translate(160, 25)">
+                                    <motion.g 
+                                        initial={{ y: 0 }}
+                                        animate={{ y: animationCycle === 2 ? 60 : 0 }}
+                                        transition={{ duration: 0.5, delay: animationCycle === 2 ? 2.5 : 0 }}
+                                        onAnimationComplete={() => {
+                                            if (animationCycle === 2) {
+                                                // Reset to cycle 1 after a short delay
+                                                setTimeout(() => setAnimationCycle(1), 3000);
+                                            }
+                                        }}
+                                        transform="translate(160, 25)"
+                                    >
                                         <rect width="20" height="40" fill="#1C1C1E" stroke="#FF3B30" strokeWidth="1" rx="2" />
                                         <rect x="4" y="4" width="12" height="12" fill="none" stroke="#FF3B30" strokeWidth="0.5" strokeOpacity="0.5" rx="1" />
                                         <text x="10" y="30" fill="#FF3B30" fontSize="8" fontWeight="black" textAnchor="middle" className="uppercase font-mono">P</text>
-                                    </g>
+                                    </motion.g>
 
                                     {/* Green Bouncing Ball */}
                                     <motion.circle 
+                                        key={animationCycle}
                                         r="6" 
                                         fill="#4ADE80" 
                                         stroke="#14532D" 
                                         strokeWidth="1"
-                                        animate={{ 
+                                        animate={animationCycle === 1 ? { 
                                             cx: [20, 50, 80, 110, 140, 160, 140, 110, 80, 50, 20],
                                             cy: [60, 30, 60, 30, 60, 30, 60, 30, 60, 30, 60],
-                                            transition: { 
-                                                duration: 4, 
-                                                repeat: Infinity, 
-                                                ease: "linear"
+                                        } : {
+                                            cx: [20, 50, 80, 110, 140, 170, 210],
+                                            cy: [60, 30, 60, 30, 60, 30, 60],
+                                        }}
+                                        transition={{ 
+                                            duration: animationCycle === 1 ? 4 : 3, 
+                                            repeat: animationCycle === 1 ? Infinity : 0, 
+                                            ease: "linear"
+                                        }}
+                                        onAnimationComplete={() => {
+                                            if (animationCycle === 1) {
+                                                // We want to switch to cycle 2 after a few bounces
+                                                // But since repeat is Infinity, we'll use a timer instead
+                                            } else {
+                                                // Cycle 2 finished (ball reached right edge)
                                             }
                                         }}
                                     />
 
+                                    {/* Timer logic to toggle cycles outside SVG */}
+                                    <foreignObject width="0" height="0">
+                                        <div className="hidden">
+                                            {useEffect(() => {
+                                                const interval = setInterval(() => {
+                                                    setAnimationCycle(prev => (prev === 1 ? 2 : 1));
+                                                }, 8000);
+                                                return () => clearInterval(interval);
+                                            }, [])}
+                                        </div>
+                                    </foreignObject>
+
                                     {/* Labels */}
-                                    <text x="20" y="15" fill="white" fillOpacity="0.2" fontSize="5" fontWeight="black" className="uppercase tracking-[0.2em] font-mono">Trajectory: REJECTED</text>
-                                    <text x="170" y="75" fill="#FF3B30" fontSize="6" fontWeight="black" textAnchor="middle" className="uppercase tracking-widest font-mono">BARRIER</text>
+                                    <text x="20" y="15" fill="white" fillOpacity="0.2" fontSize="5" fontWeight="black" className="uppercase tracking-[0.2em] font-mono">
+                                        {animationCycle === 1 ? "Trajectory: REJECTED" : "Trajectory: UNLOCKED"}
+                                    </text>
+                                    <text x="170" y="75" fill={animationCycle === 1 ? "#FF3B30" : "#00FF41"} fontSize="6" fontWeight="black" textAnchor="middle" className="uppercase tracking-widest font-mono">
+                                        {animationCycle === 1 ? "BARRIER" : "SUCCESS"}
+                                    </text>
                                 </svg>
                             </div>
                         </div>
@@ -623,8 +665,8 @@ const RevooB2B = () => {
                     </motion.div>
 
                     <div className="relative">
-                        {/* Mobile: Horizontal Snap Carousel | Desktop: 3-Column Grid */}
-                        <div className="flex md:grid md:grid-cols-3 gap-6 overflow-x-auto md:overflow-hidden snap-x snap-mandatory pb-8 no-scrollbar">
+                        {/* Mobile: Swipable Card Stack | Desktop: 3-Column Grid */}
+                        <div className="hidden md:grid md:grid-cols-3 gap-6">
                             {[
                                 {
                                     title: t('b2b_matrix_val_apps'),
@@ -665,7 +707,7 @@ const RevooB2B = () => {
                             ].map((card, idx) => (
                                 <div 
                                     key={idx} 
-                                    className={`min-w-[85vw] md:min-w-0 snap-center bg-white/5 backdrop-blur-3xl rounded-[40px] border ${card.isPremium ? 'border-[#00FF41]/30 shadow-[0_0_40px_rgba(0,255,65,0.1)]' : 'border-white/10'} p-8 flex flex-col gap-8 transition-all hover:translate-y-[-8px]`}
+                                    className={`bg-white/5 backdrop-blur-3xl rounded-[40px] border ${card.isPremium ? 'border-[#00FF41]/30 shadow-[0_0_40px_rgba(0,255,65,0.1)]' : 'border-white/10'} p-8 flex flex-col gap-8 transition-all hover:translate-y-[-8px]`}
                                 >
                                     <div className="flex items-center gap-4">
                                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${card.isPremium ? 'bg-[#00FF41]/20' : 'bg-white/10'}`}>
@@ -701,6 +743,101 @@ const RevooB2B = () => {
                                         </div>
                                     )}
                                 </div>
+                            ))}
+                        </div>
+
+                        {/* Mobile Stack: Swipable Deck */}
+                        <div className="md:hidden relative h-[500px] w-full flex items-center justify-center perspective-[1000px]">
+                            {[
+                                {
+                                    title: t('b2b_matrix_val_revoo'),
+                                    subtitle: "Neural Architecture",
+                                    icon: "✨",
+                                    isPremium: true,
+                                    features: [
+                                        { label: t('b2b_matrix_friction'), value: t('b2b_matrix_val_revoo_friction'), status: 'positive' },
+                                        { label: t('b2b_matrix_hook'), value: t('b2b_matrix_val_revoo_hook'), status: 'positive' },
+                                        { label: t('b2b_matrix_integration'), value: t('b2b_matrix_val_revoo_integration'), status: 'positive' },
+                                        { label: t('b2b_matrix_data'), value: t('b2b_matrix_val_revoo_data'), status: 'positive' },
+                                    ]
+                                },
+                                {
+                                    title: t('b2b_matrix_val_stamps'),
+                                    subtitle: "Legacy Method",
+                                    icon: "🏷️",
+                                    isPremium: false,
+                                    features: [
+                                        { label: t('b2b_matrix_friction'), value: t('b2b_matrix_val_friction_paper'), status: 'neutral' },
+                                        { label: t('b2b_matrix_hook'), value: t('b2b_matrix_val_hook_paper'), status: 'negative' },
+                                        { label: t('b2b_matrix_integration'), value: t('b2b_matrix_val_int_paper'), status: 'negative' },
+                                        { label: t('b2b_matrix_data'), value: t('b2b_matrix_val_data_paper'), status: 'negative' },
+                                    ]
+                                },
+                                {
+                                    title: t('b2b_matrix_val_apps'),
+                                    subtitle: "Standard Solution",
+                                    icon: "📱",
+                                    isPremium: false,
+                                    features: [
+                                        { label: t('b2b_matrix_friction'), value: t('b2b_matrix_val_friction_apps'), status: 'negative' },
+                                        { label: t('b2b_matrix_hook'), value: t('b2b_matrix_val_hook_apps'), status: 'negative' },
+                                        { label: t('b2b_matrix_integration'), value: t('b2b_matrix_val_int_apps'), status: 'negative' },
+                                        { label: t('b2b_matrix_data'), value: t('b2b_matrix_val_data_apps'), status: 'negative' },
+                                    ]
+                                }
+                            ].map((card, idx) => (
+                                <motion.div 
+                                    key={idx}
+                                    drag="x"
+                                    dragConstraints={{ left: 0, right: 0 }}
+                                    onDragEnd={(_, info) => {
+                                        if (info.offset.x < -100) {
+                                            // Swipe Left: Move to bottom of stack
+                                            setActiveCardIdx((prev) => (prev + 1) % 3);
+                                        } else if (info.offset.x > 100) {
+                                            // Swipe Right: Move previous card back to top
+                                            setActiveCardIdx((prev) => (prev - 1 + 3) % 3);
+                                        }
+                                    }}
+                                    animate={{ 
+                                        x: (idx - activeCardIdx + 3) % 3 === 0 ? 0 : (idx - activeCardIdx + 3) % 3 === 1 ? 20 : 40,
+                                        y: (idx - activeCardIdx + 3) % 3 === 0 ? 0 : (idx - activeCardIdx + 3) % 3 === 1 ? 10 : 20,
+                                        scale: (idx - activeCardIdx + 3) % 3 === 0 ? 1 : 0.95,
+                                        zIndex: 3 - ((idx - activeCardIdx + 3) % 3),
+                                        opacity: 1
+                                    }}
+                                    className={`absolute w-[85vw] bg-[#1C1C1E] rounded-[40px] border ${card.isPremium ? 'border-[#00FF41]/30 shadow-[0_0_40px_rgba(0,255,65,0.1)]' : 'border-white/10'} p-8 flex flex-col gap-8 shadow-2xl touch-none`}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${card.isPremium ? 'bg-[#00FF41]/20' : 'bg-white/10'}`}>
+                                            {card.icon}
+                                        </div>
+                                        <div>
+                                            <h4 className={`font-black uppercase tracking-tight text-white ${card.isPremium ? 'text-[#00FF41]' : ''}`}>{card.title}</h4>
+                                            <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">{card.subtitle}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        {card.features.map((feat, fIdx) => (
+                                            <div key={fIdx} className="p-4 rounded-2xl bg-black/20 border border-white/5 flex flex-col gap-1">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{feat.label}</span>
+                                                    <span>
+                                                        {feat.status === 'positive' ? '✅' : feat.status === 'negative' ? '❌' : '⛔'}
+                                                    </span>
+                                                </div>
+                                                <p className={`text-xs font-bold leading-tight ${card.isPremium ? 'text-white' : 'text-white/60'}`}>
+                                                    {feat.value}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    
+                                    <div className="text-center text-[10px] text-white/20 font-bold uppercase tracking-widest mt-4">
+                                        {t('swipe_hint', 'Swipe to explore')}
+                                    </div>
+                                </motion.div>
                             ))}
                         </div>
                     </div>

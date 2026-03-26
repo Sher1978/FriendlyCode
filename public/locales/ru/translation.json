@@ -258,5 +258,21 @@
     "menu_map": "Карта Заведений",
     "menu_download_app": "Скачать приложение",
     "menu_settings": "Настройки",
-    "pwa_manual_install": "Для установки: Нажмите кнопку 'Поделиться' в браузере и 'На экран Домой'"
+    "pwa_manual_install": "Для установки: Нажмите кнопку 'Поделиться' в браузере и 'На экран Домой'",
+    "timeline_vip_status": "VIP Статус",
+    "timeline_level_1": "Уровень 1",
+    "timeline_level_2": "Уровень 2",
+    "timeline_base_rate": "Базовая ставка",
+    "timeline_within": "В течение {{days}}",
+    "timeline_day": "день",
+    "timeline_days": "дней",
+    "timeline_any_other_time": "В любое другое время",
+    "timeline_motivation": "Чем чаще вы заходите, тем выше ваш VIP-статус и награда!",
+    "menu_guest_dashboard": "Панель гостя",
+    "status_active": "Активен",
+    "menu_navigation": "Навигация",
+    "loyalty_vip": "VIP",
+    "status_valid_until": "Действует до",
+    "swipe_hint": "Смахните влево, чтобы увидеть больше",
+    "b2b_matrix_revoo_status": "Статус REVOO"
 }
