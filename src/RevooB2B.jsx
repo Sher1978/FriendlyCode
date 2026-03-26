@@ -50,9 +50,16 @@ const RevooB2B = () => {
             index = (index + 1) % cycle.length;
             setDisplayEnergy(cycle[index].energy);
             setBatteryDiscount(cycle[index].discount);
-        }, 3500); // 3.5 seconds per state gives enough time to see the animation
+        }, 500); // 0.5 seconds per state = 2 seconds for full 4-state cycle
 
         return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setActiveCardIdx((prev) => (prev + 1) % 3);
+        }, 5000); // Auto-scroll every 5 seconds
+        return () => clearInterval(timer);
     }, []);
 
     useEffect(() => {
@@ -61,6 +68,14 @@ const RevooB2B = () => {
         };
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Timer logic to toggle Mario animation cycles
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setAnimationCycle(prev => (prev === 1 ? 2 : 1));
+        }, 8000);
+        return () => clearInterval(interval);
     }, []);
 
     // Helper: Fade in Up Animation
@@ -106,7 +121,7 @@ const RevooB2B = () => {
                             <FontAwesomeIcon icon={faMicrochip} />
                             {t('b2b_hero_tag')}
                         </div>
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 tracking-tight leading-snug uppercase">
+                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 tracking-tight leading-snug">
                             <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37]">{t('b2b_hero_h1')}</span>
                         </h1>
                         <p className="text-base md:text-lg text-white/70 font-medium mb-10 max-w-xl leading-relaxed">
@@ -124,7 +139,7 @@ const RevooB2B = () => {
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
-                                onClick={() => navigate('/qr?id=demo')}
+                                onClick={() => setIsContactModalOpen(true)}
                                 className="bg-white/5 backdrop-blur-xl border border-white/10 text-white px-8 py-4 rounded-full font-bold text-sm uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]"
                             >
                                 {t('b2b_hero_cta_demo')}
@@ -431,21 +446,19 @@ const RevooB2B = () => {
                             <div className="mt-auto h-48 bg-black/40 rounded-[32px] border border-white/5 flex items-center justify-center p-4 group-hover:border-yellow-500/30 transition-colors overflow-hidden relative">
                                 <svg viewBox="0 0 200 80" className="w-full h-full">
                                     {/* Yellow Floor Line */}
-                                    <line x1="10" y1="65" x2="190" y2="65" stroke="#FACC15" strokeWidth="2" strokeLinecap="round" strokeDasharray="1 4" className="opacity-30" />
-                                    <line x1="10" y1="65" x2="190" y2="65" stroke="#FACC15" strokeWidth="0.5" strokeLinecap="round" />
+                                    <line x1="10" y1="66" x2="190" y2="66" stroke="#FACC15" strokeWidth="2" strokeLinecap="round" strokeDasharray="1 4" className="opacity-30" />
+                                    <line x1="10" y1="66" x2="190" y2="66" stroke="#FACC15" strokeWidth="0.5" strokeLinecap="round" />
 
-                                    {/* P-Shaped Block (Barrier) */}
+                                    {/* P-Shaped Block (Barrier) - Moved to the Right */}
                                     <motion.g 
-                                        initial={{ y: 0 }}
-                                        animate={{ y: animationCycle === 2 ? 60 : 0 }}
-                                        transition={{ duration: 0.5, delay: animationCycle === 2 ? 2.5 : 0 }}
-                                        onAnimationComplete={() => {
-                                            if (animationCycle === 2) {
-                                                // Reset to cycle 1 after a short delay
-                                                setTimeout(() => setAnimationCycle(1), 3000);
-                                            }
+                                        initial={{ x: 150, y: 26 }}
+                                        animate={{ y: animationCycle === 2 ? 80 : 26 }}
+                                        transition={{ 
+                                            duration: 0.5, 
+                                            type: "spring",
+                                            stiffness: 100,
+                                            delay: animationCycle === 2 ? 1.5 : 0 
                                         }}
-                                        transform="translate(160, 25)"
                                     >
                                         <rect width="20" height="40" fill="#1C1C1E" stroke="#FF3B30" strokeWidth="1" rx="2" />
                                         <rect x="4" y="4" width="12" height="12" fill="none" stroke="#FF3B30" strokeWidth="0.5" strokeOpacity="0.5" rx="1" />
@@ -460,38 +473,18 @@ const RevooB2B = () => {
                                         stroke="#14532D" 
                                         strokeWidth="1"
                                         animate={animationCycle === 1 ? { 
-                                            cx: [20, 50, 80, 110, 140, 160, 140, 110, 80, 50, 20],
+                                            cx: [20, 50, 80, 110, 140, 150, 140, 110, 80, 50, 20],
                                             cy: [60, 30, 60, 30, 60, 30, 60, 30, 60, 30, 60],
                                         } : {
-                                            cx: [20, 50, 80, 110, 140, 170, 210],
+                                            cx: [20, 50, 80, 110, 140, 170, 190],
                                             cy: [60, 30, 60, 30, 60, 30, 60],
                                         }}
                                         transition={{ 
-                                            duration: animationCycle === 1 ? 4 : 3, 
+                                            duration: animationCycle === 1 ? 8 : 4, // 8s for rejection, 4s for success
                                             repeat: animationCycle === 1 ? Infinity : 0, 
                                             ease: "linear"
                                         }}
-                                        onAnimationComplete={() => {
-                                            if (animationCycle === 1) {
-                                                // We want to switch to cycle 2 after a few bounces
-                                                // But since repeat is Infinity, we'll use a timer instead
-                                            } else {
-                                                // Cycle 2 finished (ball reached right edge)
-                                            }
-                                        }}
                                     />
-
-                                    {/* Timer logic to toggle cycles outside SVG */}
-                                    <foreignObject width="0" height="0">
-                                        <div className="hidden">
-                                            {useEffect(() => {
-                                                const interval = setInterval(() => {
-                                                    setAnimationCycle(prev => (prev === 1 ? 2 : 1));
-                                                }, 8000);
-                                                return () => clearInterval(interval);
-                                            }, [])}
-                                        </div>
-                                    </foreignObject>
 
                                     {/* Labels */}
                                     <text x="20" y="15" fill="white" fillOpacity="0.2" fontSize="5" fontWeight="black" className="uppercase tracking-[0.2em] font-mono">
@@ -747,7 +740,7 @@ const RevooB2B = () => {
                         </div>
 
                         {/* Mobile Stack: Swipable Deck */}
-                        <div className="md:hidden relative h-[500px] w-full flex items-center justify-center perspective-[1000px]">
+                        <div className="md:hidden relative mt-24 h-[600px] w-full flex items-center justify-center perspective-[1000px]">
                             {[
                                 {
                                     title: t('b2b_matrix_val_revoo'),
@@ -878,6 +871,54 @@ const RevooB2B = () => {
                 </div>
             </section>
 
+            {/* SECTION 6.5: ADDITIONAL TOOLS FOR OWNERS */}
+            <section className="py-24 px-6 relative z-10 border-b border-white/5 bg-black">
+                <div className="max-w-7xl mx-auto">
+                    <div className="text-center mb-16">
+                        <motion.h2 
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            className="text-3xl md:text-5xl font-black uppercase tracking-tight mb-4"
+                        >
+                            {t('b2b_tools_h2')}
+                        </motion.h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+                        {/* CRM Tool */}
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            className="bg-white/5 backdrop-blur-3xl border border-white/10 p-10 rounded-[48px] relative group hover:border-[#00FF41]/30 transition-all overflow-hidden"
+                        >
+                            <div className="w-16 h-16 rounded-2xl bg-[#00FF41]/10 flex items-center justify-center text-[#00FF41] text-3xl mb-8 group-hover:scale-110 transition-transform">
+                                <FontAwesomeIcon icon={faRobot} />
+                            </div>
+                            <h3 className="text-2xl font-black text-white uppercase mb-4 tracking-tight">{t('b2b_tools_crm_title')}</h3>
+                            <p className="text-white/60 text-lg leading-relaxed font-medium">
+                                {t('b2b_tools_crm_text')}
+                            </p>
+                        </motion.div>
+
+                        {/* Google Reviews Tool */}
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                            className="bg-white/5 backdrop-blur-3xl border border-white/10 p-10 rounded-[48px] relative group hover:border-[#00FF41]/30 transition-all overflow-hidden"
+                        >
+                            <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center text-white text-3xl mb-8 group-hover:scale-110 transition-transform">
+                                <span className="font-bold">G</span>
+                            </div>
+                            <h3 className="text-2xl font-black text-white uppercase mb-4 tracking-tight">{t('b2b_tools_reviews_title')}</h3>
+                            <p className="text-white/60 text-lg leading-relaxed font-medium">
+                                {t('b2b_tools_reviews_text')}
+                            </p>
+                        </motion.div>
+                    </div>
+                </div>
+            </section>
+
             {/* SECTION 7: THE ZERO-RISK GUARANTEE */}
             <section className="py-32 px-6 relative z-10">
                 <div className="max-w-4xl mx-auto text-center">
@@ -920,7 +961,6 @@ const RevooB2B = () => {
                 isOpen={isContactModalOpen} 
                 onClose={() => setIsContactModalOpen(false)} 
             />
-
         </div>
     );
 };

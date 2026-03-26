@@ -17,7 +17,7 @@ function App() {
   const isLegacyDomain = window.location.hostname.includes('friendlycode.fun');
   const queryParams = new URLSearchParams(window.location.search);
   const brandOverride = queryParams.get('brand');
-  const showRevoo = brandOverride === 'revoo' || window.location.hostname.includes('revoo.win') || window.location.hostname.includes('revoo.ae') || (!isLegacyDomain && window.location.hostname !== 'localhost');
+  const showRevoo = brandOverride === 'revoo' || window.location.hostname.includes('revoo.win') || window.location.hostname.includes('revoo.ae') || window.location.hostname === 'localhost' || (!isLegacyDomain && window.location.hostname !== 'localhost');
 
   return (
     <BrowserRouter>

@@ -289,7 +289,7 @@ const RevooB2C = () => {
 
 
             {/* Footer */}
-            <footer className="py-20 border-t border-white/5 bg-black">
+            <footer className="py-20 border-t border-white/5 bg-black pb-32 md:pb-20">
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-10">
                     <div className="text-3xl font-black uppercase tracking-tighter italic text-[#00FF41]">REVOO</div>
                     <div className="flex gap-8 text-xs font-bold uppercase tracking-widest opacity-40 text-white mt-10 md:mt-0">
@@ -302,6 +302,26 @@ const RevooB2C = () => {
                     </div>
                 </div>
             </footer>
+
+            {/* Sticky Mobile CTA */}
+            <div className="fixed bottom-0 left-0 w-full z-50 p-4 md:hidden">
+                <motion.button
+                    initial={{ y: 100 }}
+                    animate={{ y: 0 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                        if (interceptedVenueId) {
+                            navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
+                        } else {
+                            navigate('/test?id=komKf0beSnsuuZ6p0Igh');
+                        }
+                    }}
+                    className="w-full bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37] text-black py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-[0_-10px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3"
+                >
+                    {interceptedVenueId ? t('b2c_hero_cta_reward', 'ПОЛУЧИТЬ НАГРАДУ') : t('b2c_hero_cta_vip', 'СТАТЬ ВИП')}
+                    <FontAwesomeIcon icon={faArrowRight} />
+                </motion.button>
+            </div>
 
             <style>{`
                 @keyframes slow-zoom {

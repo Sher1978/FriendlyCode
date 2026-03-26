@@ -5,7 +5,7 @@ import { faUser, faEnvelope, faArrowLeft } from '@fortawesome/free-solid-svg-ico
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { db, auth, googleProvider } from './firebase';
-import { signInWithPopup, linkWithPopup } from 'firebase/auth';
+import { signInWithPopup, linkWithPopup, signInWithRedirect, getRedirectResult, linkWithRedirect } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, limit, doc, setDoc, getDoc, orderBy } from 'firebase/firestore';
 import { RewardCalculator } from './logic/RewardCalculator';
 
@@ -18,6 +18,27 @@ const LeadCapture = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+    // Handle Redirect Result on Mount
+    React.useEffect(() => {
+        const handleRedirect = async () => {
+            try {
+                const result = await getRedirectResult(auth);
+                if (result) {
+                    setIsGoogleLoading(true);
+                    const linkedUser = result.user;
+                    const googleName = linkedUser.displayName || 'Guest';
+                    const googleEmail = linkedUser.email;
+                    await processAuthUser(googleName, googleEmail, linkedUser.uid);
+                }
+            } catch (error) {
+                console.error("Redirect Auth Result failed:", error);
+            } finally {
+                setIsGoogleLoading(false);
+            }
+        };
+        handleRedirect();
+    }, []);
 
     const processAuthUser = async (userName, userEmail, currentUid) => {
         const lowerEmail = userEmail.trim().toLowerCase();
@@ -91,6 +112,19 @@ const LeadCapture = () => {
                     timestamp: serverTimestamp(),
                     source: 'lead_capture'
                 });
+
+                // 3. OWNER NOTIFICATION: Guest used status
+                try {
+                    await addDoc(collection(db, 'notifications'), {
+                        venueId: venueId,
+                        type: 'guest_status_usage',
+                        message: `Ваш гость ${userName.trim()} (${lowerEmail}) использовал свой Статус`,
+                        timestamp: serverTimestamp(),
+                        read: false
+                    });
+                } catch (notifErr) {
+                    console.error("Failed to send owner notification:", notifErr);
+                }
             }
 
             // Save guest data locally for instant recognition
@@ -129,34 +163,30 @@ const LeadCapture = () => {
         setIsGoogleLoading(true);
         try {
             const user = auth.currentUser;
-            let result;
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
             if (user && user.isAnonymous) {
-                try {
-                    result = await linkWithPopup(user, googleProvider);
-                } catch (linkError) {
-                    if (linkError.code === 'auth/credential-already-in-use') {
-                        result = await signInWithPopup(auth, googleProvider);
-                    } else {
-                        throw linkError;
-                    }
+                if (isMobile) {
+                    await linkWithRedirect(user, googleProvider);
+                } else {
+                    const result = await linkWithPopup(user, googleProvider);
+                    const linkedUser = result.user;
+                    await processAuthUser(linkedUser.displayName || 'Guest', linkedUser.email, linkedUser.uid);
                 }
             } else {
-                result = await signInWithPopup(auth, googleProvider);
+                if (isMobile) {
+                    await signInWithRedirect(auth, googleProvider);
+                } else {
+                    const result = await signInWithPopup(auth, googleProvider);
+                    const linkedUser = result.user;
+                    await processAuthUser(linkedUser.displayName || 'Guest', linkedUser.email, linkedUser.uid);
+                }
             }
-
-            const linkedUser = result.user;
-            const googleName = linkedUser.displayName || 'Guest';
-            const googleEmail = linkedUser.email;
-            
-            await processAuthUser(googleName, googleEmail, linkedUser.uid);
-            
         } catch (error) {
             console.error("Google Auth failed:", error);
-            if (error.code !== 'auth/popup-closed-by-user') {
+            if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
                 alert("Google Sign-In failed: " + error.message);
             }
-        } finally {
             setIsGoogleLoading(false);
         }
     };
