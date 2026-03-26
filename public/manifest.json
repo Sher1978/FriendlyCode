@@ -1,0 +1,30 @@
+{
+  "short_name": "REVOO",
+  "name": "REVOO Guest Dashboard",
+  "icons": [
+    {
+      "src": "/revoo-logo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/revoo-logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/?pwa=true",
+  "background_color": "#000000",
+  "display": "standalone",
+  "scope": "/",
+  "theme_color": "#000000",
+  "shortcuts": [
+    {
+      "name": "My Statuses",
+      "short_name": "Statuses",
+      "description": "View your VIP Rewards",
+      "url": "/thank-you",
+      "icons": [{ "src": "/revoo-logo.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -252,5 +252,11 @@
     "b2c_step_enjoy_desc": "Receive your gifts.",
     "b2c_ready_title": "Ready for a new level of hospitality?",
     "b2c_ready_sub": "Try the demo right now and feel the magic of REVOO.",
-    "b2c_launch_demo": "Launch Demo"
+    "b2c_launch_demo": "Launch Demo",
+    "menu_my_statuses": "My Statuses",
+    "no_statuses": "No active VIP statuses",
+    "menu_map": "Venue Map",
+    "menu_download_app": "Download App",
+    "menu_settings": "Settings",
+    "pwa_manual_install": "To install: Tap the share button in your browser and 'Add to Home Screen'"
 }

@@ -292,25 +292,24 @@ const TestQRPage = () => {
                 </button>
             </div>
 
-            {/* Header (Minimal, San Francisco Style) */}
-            <div className="pt-6 px-6 text-center z-10 w-full">
-                <p className="text-[11px] font-semibold text-white/40 tracking-widest uppercase mb-1">Welcome To</p>
-                <h2 className="text-[28px] font-bold tracking-tight text-white leading-tight">{venueName}</h2>
-                <div className="flex items-center justify-center gap-1 opacity-20 mt-1 cursor-pointer">
-                    <span className="text-[9px] font-semibold uppercase tracking-widest">Powered by REVOO</span>
+            {/* Header (Top-Left Logo + Compact Venue) */}
+            <div className="pt-4 pb-2 px-6 flex flex-col items-center relative z-10 w-full">
+                <div className="absolute top-4 left-6 opacity-30">
+                    <img src="/revoo-logo.png" className="h-3.5 object-contain mix-blend-screen" alt="REVOO" />
                 </div>
+                <h2 className="text-[20px] font-bold tracking-tight text-white/90 leading-tight mt-6">{venueName}</h2>
             </div>
 
             {/* Main Content Area */}
-            <div className="flex flex-col items-center justify-start mt-2 px-6 pb-[140px] w-full max-w-md mx-auto z-10 gap-4" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+            <div className="flex flex-col items-center justify-start mt-1 px-6 pb-[140px] w-full max-w-md mx-auto z-10 gap-2.5" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
 
                 {/* Hero / Guest Name */}
-                <div className="text-center flex flex-col items-center -mt-4">
+                <div className="text-center flex flex-col items-center -mt-2">
                     {guestName ? (
                         <>
-                            <p className="text-[12px] font-medium text-white/50 mb-0.5">{t('hero_welcome_back')}</p>
+                            <p className="text-[11px] font-medium text-white/40 mb-0">{t('hero_welcome_back')}</p>
                             <div 
-                                className="text-[24px] font-semibold tracking-tight text-white/90"
+                                className="text-[20px] font-semibold tracking-tight text-white/80"
                                 onClick={() => setDebugClicks(c => c + 1)}
                             >
                                 {guestName}
@@ -327,19 +326,19 @@ const TestQRPage = () => {
                 </div>
 
                 {/* ── GLASS BATTERY CONTAINER (Modern Floating Card) ── */}
-                <div className="flex flex-col items-center w-full bg-[#1C1C1E]/60 backdrop-blur-[40px] border border-white/10 rounded-[28px] p-5 shadow-2xl relative overflow-hidden">
+                <div className="flex flex-col items-center w-full bg-[#1C1C1E]/60 backdrop-blur-[40px] border border-white/10 rounded-[28px] p-4 shadow-2xl relative overflow-hidden">
                     
                     {/* Inner highlight ring */}
                     <div className="absolute inset-0 border border-white/5 rounded-[28px] pointer-events-none mix-blend-overlay"></div>
 
                     {/* VIP Status Label */}
-                    <p className="text-[12px] font-bold tracking-[0.2em] text-white/40 uppercase mb-2">
+                    <p className="text-[9px] font-bold tracking-[0.2em] text-white/30 uppercase mb-0">
                         Your VIP Status is
                     </p>
 
                     {/* Massive Accent Number */}
                     <div
-                        className="text-[64px] font-bold leading-none tracking-tighter"
+                        className="text-[56px] font-bold leading-none tracking-tighter"
                         style={{
                             color: '#FFFFFF',
                             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
@@ -367,25 +366,19 @@ const TestQRPage = () => {
                 {/* iOS Settings-style Timeline Widget */}
                 <div className="w-full bg-[#1C1C1E] rounded-[24px] overflow-hidden flex flex-col border border-white/5 shadow-xl mt-0">
                     {timelineItems.map((item, index) => (
-                        <div key={index} className="flex items-center gap-4 py-2.5 border-b border-white/5 last:border-0 relative px-5 hover:bg-white/5 transition-colors">
+                        <div key={index} className="flex items-center gap-3 py-2.5 border-b border-white/5 last:border-0 relative px-4 hover:bg-white/5 transition-colors">
                             {/* Icon Box */}
-                            <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: item.color, boxShadow: `0 0 15px ${item.color}40` }}>
-                                <FontAwesomeIcon icon={faGift} className="text-[11px]" />
+                            <div className="w-6 h-6 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: item.color, boxShadow: `0 0 10px ${item.color}30` }}>
+                                <FontAwesomeIcon icon={faGift} className="text-[10px]" />
                             </div>
                             
                             {/* Text labels */}
                             <div className="flex items-center w-full justify-between">
                                 <div className="flex flex-col">
-                                    <span className="font-semibold text-[15px] text-white">
-                                        {item.label}
-                                    </span>
-                                    <span className="text-[10px] text-white/30 font-medium uppercase tracking-wider">
-                                        {item.sub}
-                                    </span>
+                                    <span className="font-semibold text-[14px] text-white">{item.label}</span>
+                                    <span className="text-[10px] text-white/30 font-medium uppercase tracking-wider">{item.sub}</span>
                                 </div>
-                                <span className="text-[15px] text-white/50 font-bold">
-                                    {item.value}
-                                </span>
+                                <span className="text-[14px] text-white/50 font-bold">{item.value}</span>
                             </div>
                         </div>
                     ))}

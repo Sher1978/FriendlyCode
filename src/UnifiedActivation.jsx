@@ -6,6 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db, auth } from './firebase';
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
+import UserMenu from './UserMenu';
 
 const UnifiedActivation = () => {
     const { t } = useTranslation();
@@ -187,11 +188,12 @@ const UnifiedActivation = () => {
             <div className="absolute bottom-[10%] right-[-20vw] w-[140vw] h-[50vh] rounded-[100%] blur-[120px] pointer-events-none opacity-[0.15]" style={{ backgroundColor: ambientColor }} />
 
             {/* Header / Nav */}
-            <div className="pt-6 px-6 flex justify-between items-center z-10 w-full">
-                <div className="flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/5 mx-auto">
+            <div className="pt-6 px-6 flex justify-between items-center z-50 w-full">
+                <div className="flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/5">
                     <FontAwesomeIcon icon={faUser} className="text-[10px] text-white/50" />
                     <span className="text-[11px] font-semibold tracking-wide text-white">{guestName}</span>
                 </div>
+                <UserMenu />
             </div>
 
             <div className="flex-grow flex flex-col items-center justify-center px-6 relative z-10 w-full max-w-md mx-auto -mt-4">
