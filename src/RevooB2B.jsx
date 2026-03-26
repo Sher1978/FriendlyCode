@@ -622,25 +622,84 @@ const RevooB2B = () => {
                          <p className="text-white/60 text-sm md:text-base font-medium max-w-2xl mx-auto">{t('b2b_matrix_sub')}</p>
                     </motion.div>
 
-                    <div className="bg-white/5 backdrop-blur-3xl rounded-3xl border border-white/10 overflow-x-auto shadow-[0_20px_50px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.1)]">
-                        <div className="min-w-[750px]">
-                            <div className="grid grid-cols-4 bg-black/50 p-6 border-b border-white/10 font-black uppercase text-[10px] md:text-xs tracking-widest text-white/40 items-center">
-                                <div className="hidden md:block" />
-                                <div className="text-center">{t('b2b_matrix_val_apps')}</div>
-                                <div className="text-center">{t('b2b_matrix_val_stamps')}</div>
-                                <div className="text-center text-[#00FF41]">{t('b2b_matrix_val_revoo')}</div>
-                            </div>
+                    <div className="relative">
+                        {/* Mobile: Horizontal Snap Carousel | Desktop: 3-Column Grid */}
+                        <div className="flex md:grid md:grid-cols-3 gap-6 overflow-x-auto md:overflow-hidden snap-x snap-mandatory pb-8 no-scrollbar">
                             {[
-                                { label: t('b2b_matrix_friction'), app: t('b2b_matrix_val_friction_apps'), stamp: t('b2b_matrix_val_friction_paper'), revoo: t('b2b_matrix_val_revoo_friction') },
-                                { label: t('b2b_matrix_hook'), app: t('b2b_matrix_val_hook_apps'), stamp: t('b2b_matrix_val_hook_paper'), revoo: t('b2b_matrix_val_revoo_hook') },
-                                { label: t('b2b_matrix_integration'), app: t('b2b_matrix_val_int_apps'), stamp: t('b2b_matrix_val_int_paper'), revoo: t('b2b_matrix_val_revoo_integration') },
-                                { label: t('b2b_matrix_data'), app: t('b2b_matrix_val_data_apps'), stamp: t('b2b_matrix_val_data_paper'), revoo: t('b2b_matrix_val_revoo_data') }
-                            ].map((row, idx) => (
-                                <div key={idx} className="grid grid-cols-4 p-6 border-b border-white/5 last:border-0 text-xs md:text-sm font-medium items-center hover:bg-white/5 transition-colors">
-                                    <div className="text-white font-bold pr-4">{row.label}</div>
-                                    <div className="text-center text-white/50 leading-tight px-2">{row.app}</div>
-                                    <div className="text-center text-white/50 leading-tight px-2">{row.stamp}</div>
-                                    <div className="text-center text-[#00FF41] font-bold bg-[#00FF41]/10 py-4 px-2 rounded-xl border border-[#00FF41]/20 shadow-[0_0_20px_rgba(0,255,65,0.05)] h-full flex items-center justify-center">{row.revoo}</div>
+                                {
+                                    title: t('b2b_matrix_val_apps'),
+                                    subtitle: "Standard Solution",
+                                    icon: "📱",
+                                    isPremium: false,
+                                    features: [
+                                        { label: t('b2b_matrix_friction'), value: t('b2b_matrix_val_friction_apps'), status: 'negative' },
+                                        { label: t('b2b_matrix_hook'), value: t('b2b_matrix_val_hook_apps'), status: 'negative' },
+                                        { label: t('b2b_matrix_integration'), value: t('b2b_matrix_val_int_apps'), status: 'negative' },
+                                        { label: t('b2b_matrix_data'), value: t('b2b_matrix_val_data_apps'), status: 'negative' },
+                                    ]
+                                },
+                                {
+                                    title: t('b2b_matrix_val_stamps'),
+                                    subtitle: "Legacy Method",
+                                    icon: "🏷️",
+                                    isPremium: false,
+                                    features: [
+                                        { label: t('b2b_matrix_friction'), value: t('b2b_matrix_val_friction_paper'), status: 'neutral' },
+                                        { label: t('b2b_matrix_hook'), value: t('b2b_matrix_val_hook_paper'), status: 'negative' },
+                                        { label: t('b2b_matrix_integration'), value: t('b2b_matrix_val_int_paper'), status: 'negative' },
+                                        { label: t('b2b_matrix_data'), value: t('b2b_matrix_val_data_paper'), status: 'negative' },
+                                    ]
+                                },
+                                {
+                                    title: t('b2b_matrix_val_revoo'),
+                                    subtitle: "Neural Architecture",
+                                    icon: "✨",
+                                    isPremium: true,
+                                    features: [
+                                        { label: t('b2b_matrix_friction'), value: t('b2b_matrix_val_revoo_friction'), status: 'positive' },
+                                        { label: t('b2b_matrix_hook'), value: t('b2b_matrix_val_revoo_hook'), status: 'positive' },
+                                        { label: t('b2b_matrix_integration'), value: t('b2b_matrix_val_revoo_integration'), status: 'positive' },
+                                        { label: t('b2b_matrix_data'), value: t('b2b_matrix_val_revoo_data'), status: 'positive' },
+                                    ]
+                                }
+                            ].map((card, idx) => (
+                                <div 
+                                    key={idx} 
+                                    className={`min-w-[85vw] md:min-w-0 snap-center bg-white/5 backdrop-blur-3xl rounded-[40px] border ${card.isPremium ? 'border-[#00FF41]/30 shadow-[0_0_40px_rgba(0,255,65,0.1)]' : 'border-white/10'} p-8 flex flex-col gap-8 transition-all hover:translate-y-[-8px]`}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${card.isPremium ? 'bg-[#00FF41]/20' : 'bg-white/10'}`}>
+                                            {card.icon}
+                                        </div>
+                                        <div>
+                                            <h4 className={`font-black uppercase tracking-tight ${card.isPremium ? 'text-[#00FF41]' : 'text-white'}`}>{card.title}</h4>
+                                            <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">{card.subtitle}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        {card.features.map((feat, fIdx) => (
+                                            <div key={fIdx} className="p-4 rounded-2xl bg-black/20 border border-white/5 flex flex-col gap-1">
+                                                <div className="flex justify-between items-center">
+                                                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{feat.label}</span>
+                                                    <span>
+                                                        {feat.status === 'positive' ? '✅' : feat.status === 'negative' ? '❌' : '⛔'}
+                                                    </span>
+                                                </div>
+                                                <p className={`text-xs md:text-sm font-bold leading-tight ${card.isPremium ? 'text-white' : 'text-white/60'}`}>
+                                                    {feat.value}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {card.isPremium && (
+                                        <div className="mt-auto pt-4">
+                                            <div className="bg-[#00FF41]/10 rounded-2xl p-4 border border-[#00FF41]/20 text-center">
+                                                <span className="text-[10px] font-black text-[#00FF41] uppercase tracking-[0.2em]">Competitive Advantage: 10x</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                         </div>
