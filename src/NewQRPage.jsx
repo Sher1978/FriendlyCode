@@ -198,7 +198,7 @@ const NewQRPage = () => {
     // ── LOADING (iOS Dark) ──
     if (status === 'loading' || !minDelayPassed) {
         return (
-            <div className="flex flex-col h-[100dvh] bg-black items-center justify-center p-6 text-white relative overflow-hidden">
+            <div className="flex flex-col min-h-[100dvh] bg-black items-center justify-center p-6 text-white relative">
                 <div className="z-10 flex flex-col items-center text-center">
                     <div className="w-20 h-20 bg-[#1C1C1E] rounded-3xl flex items-center justify-center mb-6 shadow-2xl animate-pulse">
                         <img src="/revoo-logo.png" alt="REVOO Logo" className="w-[70%] h-[70%] object-contain" />
@@ -278,7 +278,7 @@ const NewQRPage = () => {
             </div>
 
             {/* Content Wrapper */}
-            <div className="flex-grow flex flex-col z-10">
+            <div className="flex flex-col z-10">
                 {/* Header (Minimal) */}
                 <div className="pt-8 pb-4 px-6 text-center flex-shrink-0">
                     <p className="text-[11px] font-semibold text-white/40 tracking-widest uppercase mb-1">Welcome To</p>
@@ -311,7 +311,7 @@ const NewQRPage = () => {
                 </div>
 
                 {/* Scrollable Container for elements (naturally scrolls on root) */}
-                <div className="flex-grow flex flex-col items-center px-4 w-full max-w-md mx-auto gap-4 py-2">
+                <div className="flex flex-col items-center px-4 w-full max-w-md mx-auto gap-4 py-2">
                     
                     {/* ── GLASS BATTERY CONTAINER ── */}
                     <div className="flex flex-col items-center w-full bg-[#1C1C1E]/60 backdrop-blur-[40px] border border-white/10 rounded-[28px] p-6 shadow-2xl relative overflow-hidden flex-shrink-0">

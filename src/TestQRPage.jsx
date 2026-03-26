@@ -212,7 +212,7 @@ const TestQRPage = () => {
     // ── LOADING (iOS Dark) ──
     if (status === 'loading' || !minDelayPassed) {
         return (
-            <div className="flex flex-col h-[100dvh] bg-black items-center justify-center p-6 text-white relative overflow-hidden">
+            <div className="flex flex-col min-h-[100dvh] bg-black items-center justify-center p-6 text-white relative">
                 <div className="z-10 flex flex-col items-center text-center">
                     <div className="w-20 h-20 bg-[#1C1C1E] rounded-3xl flex items-center justify-center mb-6 shadow-2xl animate-pulse">
                         <img src="/revoo-logo.png" alt="REVOO Logo" className="w-[80%] h-[80%] object-contain" />
@@ -272,7 +272,7 @@ const TestQRPage = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8 }}
-            className="flex flex-col h-[100dvh] bg-black font-sans text-white antialiased overflow-hidden relative"
+            className="flex flex-col min-h-[100dvh] bg-black font-sans text-white antialiased relative"
             style={{ WebkitFontSmoothing: 'antialiased' }}
             onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
@@ -302,7 +302,7 @@ const TestQRPage = () => {
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-grow flex flex-col items-center justify-start mt-2 px-6 pb-[140px] w-full max-w-md mx-auto z-10 gap-4 overflow-y-auto" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+            <div className="flex flex-col items-center justify-start mt-2 px-6 pb-[140px] w-full max-w-md mx-auto z-10 gap-4" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
 
                 {/* Hero / Guest Name */}
                 <div className="text-center flex flex-col items-center -mt-4">
