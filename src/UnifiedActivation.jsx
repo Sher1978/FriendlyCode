@@ -17,12 +17,25 @@ const UnifiedActivation = () => {
     const [venueName, setVenueName] = useState('');
     const [guestName, setGuestName] = useState(() => {
         const params = new URLSearchParams(location.search);
-        return params.get('guestName') || localStorage.getItem('guestName') || 'Guest';
+        return location.state?.guestName || params.get('guestName') || localStorage.getItem('guestName') || 'Guest';
     });
-    const [discountValue, setDiscountValue] = useState(parseInt(localStorage.getItem('currentDiscount')) || 10);
+    const [discountValue, setDiscountValue] = useState(() => {
+        const stateValue = location.state?.discountValue;
+        if (stateValue !== undefined) return stateValue;
+        return parseInt(localStorage.getItem('currentDiscount')) || 10;
+    });
     const [isClaimed, setIsClaimed] = useState(false);
     const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
-    const [ambientColor, setAmbientColor] = useState('#00FF41');
+    
+    // Helper to get color based on discount
+    const getTierColor = (val) => {
+        if (val >= 20) return '#00FF41'; // Green (Max)
+        if (val >= 15) return '#FFD700'; // Gold (Level 1)
+        if (val >= 10) return '#FF8800'; // Orange (Level 2)
+        return '#FF3131'; // Red (Base)
+    };
+
+    const [ambientColor, setAmbientColor] = useState(getTierColor(discountValue));
     const [venueSettings, setVenueSettings] = useState({ loyaltyInterval: 1, googleReviewLink: '' });
     const [isReviewOpen, setIsReviewOpen] = useState(false);
 
@@ -115,18 +128,24 @@ const UnifiedActivation = () => {
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="w-full mb-6 bg-gradient-to-r from-[#00FF41]/20 via-[#00FF41]/10 to-[#00FF41]/20 p-[1px] rounded-[24px]"
+                    className="w-full mb-6 p-[1px] rounded-[24px]"
+                    style={{ background: `linear-gradient(90deg, ${ambientColor}20, ${ambientColor}10, ${ambientColor}20)` }}
                 >
                     <div className="bg-[#1C1C1E] rounded-[23px] py-4 px-6 text-center shadow-xl">
                         <span className="text-[11px] font-black text-white/40 uppercase tracking-[0.2em] block mb-1">{t('loyalty_vip')} STATUS UPGRADE</span>
-                        <h2 className="text-[14px] font-bold text-[#00FF41] mb-1">
-                        {venueSettings?.loyaltyInterval === 1 
-                            ? t('next_vip_tomorrow') 
-                            : t('next_vip_days', { days: venueSettings?.loyaltyInterval || 1 })}
-                    </h2>
-                    <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">
-                        {t('vip_status_control')}
-                    </p>
+                        <h2 className="text-[14px] font-bold mb-1" style={{ color: ambientColor }}>
+                            {discountValue >= 20 
+                                ? t('max_vip_achieved', 'YOU HAVE REACHED MAXIMUM VIP!') 
+                                : (venueSettings?.loyaltyInterval === 1 
+                                    ? t('next_vip_tomorrow') 
+                                    : t('next_vip_days', { days: venueSettings?.loyaltyInterval || 1 }))
+                            }
+                        </h2>
+                        <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">
+                            {discountValue >= 20 
+                                ? t('vip_maintenance_hint', 'Visit regularly to keep your status')
+                                : t('vip_status_control')}
+                        </p>
                     </div>
                 </motion.div>
 
@@ -208,7 +227,8 @@ const UnifiedActivation = () => {
                     animate={{ y: [0, -10, 0] }}
                     transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
                     onClick={() => setIsReviewOpen(!isReviewOpen)}
-                    className="w-14 h-14 bg-[#00FF41] rounded-full shadow-[0_0_30px_rgba(0,255,65,0.4)] flex items-center justify-center text-black text-2xl relative"
+                    className="w-14 h-14 rounded-full flex items-center justify-center text-black text-2xl relative shadow-lg"
+                    style={{ backgroundColor: ambientColor, boxShadow: `0 0 30px ${ambientColor}60` }}
                 >
                     <FontAwesomeIcon icon={faGift} />
                     <span className="absolute -top-1 -right-1 flex h-4 w-4">
@@ -243,7 +263,8 @@ const UnifiedActivation = () => {
                                     href={venueSettings.googleReviewLink || '#'} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="block w-full py-3 bg-[#00FF41] text-black font-black text-xs uppercase tracking-widest rounded-xl hover:shadow-[0_0_20px_rgba(0,255,65,0.3)] transition-all"
+                                    className="block w-full py-3 text-black font-black text-xs uppercase tracking-widest rounded-xl transition-all"
+                                    style={{ backgroundColor: ambientColor }}
                                 >
                                     {t('review_popup_cta')}
                                 </a>
