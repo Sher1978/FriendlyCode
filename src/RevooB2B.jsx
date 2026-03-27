@@ -162,6 +162,17 @@ const RevooB2B = () => {
 
                         {/* PngBattery Container (Horizontal) */}
                         <div className="relative w-full max-w-sm flex flex-col items-center drop-shadow-[0_20px_40px_rgba(0,0,0,0.6)] z-20">
+                            {/* VIP Status Control Pill */}
+                            <motion.div 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 1, duration: 1 }}
+                                className="mb-6 px-5 py-2 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 backdrop-blur-xl shadow-[0_0_15px_rgba(212,175,55,0.1)]"
+                            >
+                                <span className="text-[10px] md:text-[11px] font-black text-[#D4AF37] uppercase tracking-[0.2em]">
+                                    {t('vip_status_control')}
+                                </span>
+                            </motion.div>
                             <PngBattery discount={batteryDiscount} />
                         </div>
 
@@ -662,22 +673,22 @@ const RevooB2B = () => {
                         <div className="hidden md:grid md:grid-cols-3 gap-6">
                             {[
                                 {
-                                    id: 'apps',
-                                    title: t('b2b_matrix_val_apps'),
-                                    subtitle: "Standard Solution",
-                                    icon: "📱",
-                                    isPremium: false,
+                                    id: 'revoo',
+                                    title: "REVOO",
+                                    subtitle: "Maximum Energy",
+                                    icon: "⚡",
+                                    isPremium: true,
                                     features: [
-                                        { label: t('b2b_matrix_friction'), value: t('b2b_matrix_val_friction_apps'), status: 'negative' },
-                                        { label: t('b2b_matrix_hook'), value: t('b2b_matrix_val_hook_apps'), status: 'negative' },
-                                        { label: t('b2b_matrix_integration'), value: t('b2b_matrix_val_int_apps'), status: 'negative' },
-                                        { label: t('b2b_matrix_data'), value: t('b2b_matrix_val_data_apps'), status: 'negative' },
+                                        { label: t('b2b_matrix_friction'), value: t('b2b_matrix_val_revoo_friction'), status: 'positive' },
+                                        { label: t('b2b_matrix_hook'), value: t('b2b_matrix_val_revoo_hook'), status: 'positive' },
+                                        { label: t('b2b_matrix_integration'), value: t('b2b_matrix_val_revoo_integration'), status: 'positive' },
+                                        { label: t('b2b_matrix_data'), value: t('b2b_matrix_val_revoo_data'), status: 'positive' },
                                     ]
                                 },
                                 {
                                     id: 'stamps',
-                                    title: t('b2b_matrix_val_stamps'),
-                                    subtitle: "Legacy Method",
+                                    title: "PAPER CARDS",
+                                    subtitle: "Low Retention",
                                     icon: "🏷️",
                                     isPremium: false,
                                     features: [
@@ -688,33 +699,28 @@ const RevooB2B = () => {
                                     ]
                                 },
                                 {
-                                    id: 'revoo',
-                                    title: t('b2b_matrix_val_revoo'),
-                                    subtitle: "Neural Architecture",
-                                    icon: "✨",
-                                    isPremium: true,
+                                    id: 'apps',
+                                    title: "APP SOLUTIONS",
+                                    subtitle: "High Friction",
+                                    icon: "📱",
+                                    isPremium: false,
                                     features: [
-                                        { label: t('b2b_matrix_friction'), value: t('b2b_matrix_val_revoo_friction'), status: 'positive' },
-                                        { label: t('b2b_matrix_hook'), value: t('b2b_matrix_val_revoo_hook'), status: 'positive' },
-                                        { label: t('b2b_matrix_integration'), value: t('b2b_matrix_val_revoo_integration'), status: 'positive' },
-                                        { label: t('b2b_matrix_data'), value: t('b2b_matrix_val_revoo_data'), status: 'positive' },
+                                        { label: t('b2b_matrix_friction'), value: t('b2b_matrix_val_friction_apps'), status: 'negative' },
+                                        { label: t('b2b_matrix_hook'), value: t('b2b_matrix_val_hook_apps'), status: 'negative' },
+                                        { label: t('b2b_matrix_integration'), value: t('b2b_matrix_val_int_apps'), status: 'negative' },
+                                        { label: t('b2b_matrix_data'), value: t('b2b_matrix_val_data_apps'), status: 'negative' },
                                     ]
                                 }
                             ].map((card, idx) => (
                                 <div 
                                     key={idx} 
-                                    className={`relative overflow-hidden transition-all hover:translate-y-[-8px] p-8 flex flex-col gap-8 
-                                        ${card.id === 'apps' ? 'bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[48px] shadow-[inset_0_0_40px_rgba(255,255,255,0.05)]' : ''}
-                                        ${card.id === 'stamps' ? 'bg-white/[0.02] backdrop-blur-md border border-white/5 rounded-[32px] border-dashed' : ''}
-                                        ${card.id === 'revoo' ? 'bg-black border border-[#00FF41]/30 shadow-[0_0_40px_rgba(0,255,65,0.1)] rounded-[40px]' : ''}
+                                    className={`relative overflow-hidden transition-all hover:translate-y-[-8px] p-8 flex flex-col gap-8 rounded-3xl border border-white/10
+                                        ${card.isPremium ? 'bg-[#00FF41]/10 border-[#00FF41]/30 shadow-[0_0_40px_rgba(0,255,65,0.1)]' : 'bg-white/5 backdrop-blur-xl'}
                                     `}
                                 >
                                     {/* Schematic Battery for REVOO Card */}
                                     {card.id === 'revoo' && (
-                                        <>
-                                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#00FF41]/10 px-4 py-1 rounded-full border border-[#00FF41]/20 z-20">
-                                                <span className="text-[9px] font-black text-[#00FF41] uppercase tracking-[0.1em]">{t('vip_status_control')}</span>
-                                            </div>
+
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-32 bg-black border border-[#00FF41]/20 rounded-md overflow-hidden flex flex-col-reverse p-0.5 opacity-40">
                                                 <motion.div 
                                                     animate={{ height: ['20%', '100%', '20%'] }} 
@@ -722,7 +728,6 @@ const RevooB2B = () => {
                                                     className="w-full bg-[#00FF41] shadow-[0_0_10px_rgba(0,255,65,0.5)] rounded-sm"
                                                 />
                                             </div>
-                                        </>
                                     )}
 
                                     <div className="flex items-center gap-4 relative z-10">
@@ -768,9 +773,9 @@ const RevooB2B = () => {
                             {[
                                 {
                                     id: 'revoo',
-                                    title: t('b2b_matrix_val_revoo'),
-                                    subtitle: "Neural Architecture",
-                                    icon: "✨",
+                                    title: "REVOO",
+                                    subtitle: "Maximum Energy",
+                                    icon: "⚡",
                                     isPremium: true,
                                     features: [
                                         { label: t('b2b_matrix_friction'), value: t('b2b_matrix_val_revoo_friction'), status: 'positive' },
@@ -781,8 +786,8 @@ const RevooB2B = () => {
                                 },
                                 {
                                     id: 'stamps',
-                                    title: t('b2b_matrix_val_stamps'),
-                                    subtitle: "Legacy Method",
+                                    title: "PAPER CARDS",
+                                    subtitle: "Low Retention",
                                     icon: "🏷️",
                                     isPremium: false,
                                     features: [
@@ -794,8 +799,8 @@ const RevooB2B = () => {
                                 },
                                 {
                                     id: 'apps',
-                                    title: t('b2b_matrix_val_apps'),
-                                    subtitle: "Standard Solution",
+                                    title: "APP SOLUTIONS",
+                                    subtitle: "High Friction",
                                     icon: "📱",
                                     isPremium: false,
                                     features: [
@@ -826,18 +831,13 @@ const RevooB2B = () => {
                                         zIndex: 3 - ((idx - activeCardIdx + 3) % 3),
                                         opacity: 1
                                     }}
-                                    className={`absolute w-[85vw] p-8 flex flex-col gap-8 shadow-2xl touch-none overflow-hidden
-                                        ${card.id === 'apps' ? 'bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[48px] shadow-[inset_0_0_40px_rgba(255,255,255,0.05)] text-white' : ''}
-                                        ${card.id === 'stamps' ? 'bg-white/[0.02] backdrop-blur-md border border-white/5 rounded-[32px] border-dashed text-white' : ''}
-                                        ${card.id === 'revoo' ? 'bg-black border border-[#00FF41]/30 shadow-[0_0_40px_rgba(0,255,65,0.1)] rounded-[40px] text-[#00FF41]' : ''}
+                                    className={`absolute w-[85vw] p-8 flex flex-col gap-8 shadow-2xl touch-none overflow-hidden rounded-3xl border border-white/10
+                                        ${card.isPremium ? 'bg-black border-[#00FF41]/30 text-[#00FF41]' : 'bg-white/5 backdrop-blur-xl text-white'}
                                     `}
                                 >
                                     {/* Schematic Battery for REVOO Card */}
                                     {card.id === 'revoo' && (
-                                        <>
-                                            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#00FF41]/10 px-4 py-1 rounded-full border border-[#00FF41]/20 z-20">
-                                                <span className="text-[9px] font-black text-[#00FF41] uppercase tracking-[0.1em]">{t('vip_status_control')}</span>
-                                            </div>
+
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-32 bg-black border border-[#00FF41]/20 rounded-md overflow-hidden flex flex-col-reverse p-0.5 opacity-30">
                                                 <motion.div 
                                                     animate={{ height: ['20%', '100%', '20%'] }} 
@@ -845,7 +845,6 @@ const RevooB2B = () => {
                                                     className="w-full bg-[#00FF41] shadow-[0_0_10px_rgba(0,255,65,0.5)] rounded-sm"
                                                 />
                                             </div>
-                                        </>
                                     )}
 
                                     <div className="flex items-center gap-4 relative z-10">
