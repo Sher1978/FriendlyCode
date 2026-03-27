@@ -74,7 +74,7 @@ const RevooB2B = () => {
     useEffect(() => {
         const interval = setInterval(() => {
             setAnimationCycle(prev => (prev === 1 ? 2 : 1));
-        }, 8000);
+        }, 6000); // 6s interval: 1 hit (4s) + 2s padding, or 1 pass (2s) + 4s padding
         return () => clearInterval(interval);
     }, []);
 
@@ -468,7 +468,7 @@ const RevooB2B = () => {
                                             duration: 0.5, 
                                             type: "spring",
                                             stiffness: 100,
-                                            delay: animationCycle === 2 ? 1.5 : 0 
+                                            delay: animationCycle === 2 ? 1.15 : 0 // Adjusted for 1.5s hit reaching 150
                                         }}
                                     >
                                         <rect width="20" height="40" fill="#1C1C1E" stroke="#FF3B30" strokeWidth="1" rx="2" />
@@ -484,15 +484,15 @@ const RevooB2B = () => {
                                         stroke="#14532D" 
                                         strokeWidth="1"
                                         animate={animationCycle === 1 ? { 
-                                            cx: [20, 50, 80, 110, 140, 150, 140, 110, 80, 50, 20],
-                                            cy: [60, 30, 60, 30, 60, 30, 60, 30, 60, 30, 60],
+                                            cx: [20, 150, 20],
+                                            cy: [60, 30, 60],
                                         } : {
-                                            cx: [20, 50, 80, 110, 140, 170, 190],
-                                            cy: [60, 30, 60, 30, 60, 30, 60],
+                                            cx: [20, 150, 190],
+                                            cy: [60, 30, 60],
                                         }}
                                         transition={{ 
-                                            duration: animationCycle === 1 ? 4 : 2, // 2x speedup (was 8/4)
-                                            repeat: animationCycle === 1 ? Infinity : 0, 
+                                            duration: animationCycle === 1 ? 3 : 1.5,
+                                            repeat: 0, 
                                             ease: "linear"
                                         }}
                                     />

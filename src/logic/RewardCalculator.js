@@ -57,6 +57,8 @@ export class RewardCalculator {
         const lastVisitUtc = Date.parse(lastVisitDateStr + "T00:00:00Z");
         
         let diffDays = Math.round((todayUtc - lastVisitUtc) / msPerDay);
+        // Debug logging to help identify why 'yesterday' might be > 1
+        console.log(`[RewardCalculator] today: ${todayStr}, last: ${lastVisitDateStr}, diff: ${diffDays}`);
         
         if (diffDays < 0) diffDays = 0; // Sanity check if timezones act weird
 

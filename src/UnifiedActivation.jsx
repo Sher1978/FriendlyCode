@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db, auth } from './firebase';
 import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 import UserMenu from './UserMenu';
+import ScanInstructionAnimation from './ScanInstructionAnimation';
 
 const UnifiedActivation = () => {
     const { t } = useTranslation();
@@ -51,7 +52,10 @@ const UnifiedActivation = () => {
                         loyaltyInterval: data.loyaltyInterval || 1,
                         googleReviewLink: data.googleReviewLink || ''
                     });
-                    if (data.brandColor) setAmbientColor(data.brandColor);
+                    // Priority: Status-based color (already set in state init)
+                    // Only override if brandColor is explicitly requested to be the background
+                    // but according to user feedback, status color is preferred.
+                    // if (data.brandColor) setAmbientColor(data.brandColor); 
                 }
             });
         }
@@ -133,7 +137,7 @@ const UnifiedActivation = () => {
                 >
                     <div className="bg-[#1C1C1E] rounded-[23px] py-4 px-6 text-center shadow-xl">
                         <span className="text-[11px] font-black text-white/40 uppercase tracking-[0.2em] block mb-1">{t('loyalty_vip')} STATUS UPGRADE</span>
-                        <h2 className="text-[14px] font-bold mb-1" style={{ color: ambientColor }}>
+                        <h2 className="text-[14px] font-bold mb-1 text-white">
                             {discountValue >= 20 
                                 ? t('max_vip_achieved', 'YOU HAVE REACHED MAXIMUM VIP!') 
                                 : (venueSettings?.loyaltyInterval === 1 
@@ -192,13 +196,12 @@ const UnifiedActivation = () => {
                                     </motion.button>
                                 ) : (
                                     <motion.div
-                                        key="timer"
+                                        key="animation-container"
                                         initial={{ opacity: 0, scale: 0.95 }}
                                         animate={{ opacity: 1, scale: 1 }}
-                                        className="w-full h-full bg-white/10 border border-white/20 text-white rounded-[18px] flex items-center justify-center gap-3 font-bold text-[20px] shadow-inner backdrop-blur-md"
+                                        className="w-full h-full"
                                     >
-                                        <FontAwesomeIcon icon={faHeart} className="text-red-500 animate-ping text-[14px]" />
-                                        <span className="tabular-nums tracking-wider font-mono">{formatTime(timeLeft)}</span>
+                                        <ScanInstructionAnimation ambientColor={ambientColor} discountValue={discountValue} />
                                     </motion.div>
                                 )}
                             </AnimatePresence>
