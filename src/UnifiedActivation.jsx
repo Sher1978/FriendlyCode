@@ -113,7 +113,7 @@ const UnifiedActivation = () => {
                 <div />
             </div>
 
-            <div className="flex-grow flex flex-col items-center justify-center px-6 relative z-10 w-full max-w-md mx-auto -mt-4">
+            <div className="flex-grow flex flex-col items-center justify-start pt-12 px-6 relative z-10 w-full max-w-md mx-auto -mt-4">
 
 
 
@@ -121,7 +121,7 @@ const UnifiedActivation = () => {
                 <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="text-center mb-6"
+                    className="text-center mb-2"
                 >
                     <h1 className="text-[24px] font-bold tracking-tight leading-tight mb-1 text-white">
                         {t('thanks_for_visiting', { name: guestName, defaultValue: `Thanks for visiting,\n${guestName}!` })}
@@ -132,7 +132,7 @@ const UnifiedActivation = () => {
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    className="w-full mb-6 p-[1px] rounded-[24px]"
+                    className="w-full mb-4 p-[1px] rounded-[24px]"
                     style={{ background: `linear-gradient(90deg, ${ambientColor}20, ${ambientColor}10, ${ambientColor}20)` }}
                 >
                     <div className="bg-[#1C1C1E] rounded-[23px] py-4 px-6 text-center shadow-xl">
@@ -158,7 +158,7 @@ const UnifiedActivation = () => {
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="w-full bg-[#1C1C1E]/60 backdrop-blur-[40px] rounded-[32px] p-8 text-center shadow-2xl border border-white/10 relative overflow-hidden"
+                    className="w-full bg-[#1C1C1E]/60 backdrop-blur-[40px] rounded-[32px] p-6 text-center shadow-2xl border border-white/10 relative overflow-hidden"
                 >
                     <div className="absolute inset-0 border border-white/5 rounded-[32px] pointer-events-none mix-blend-overlay"></div>
 
@@ -179,8 +179,8 @@ const UnifiedActivation = () => {
                     </div>
 
                     {/* Dynamic Action Area */}
-                    <div className="mt-8 relative z-10">
-                        <div className="h-[52px] relative flex justify-center">
+                    <div className="mt-6 relative z-10">
+                        <div className={`${isClaimed ? 'h-[120px]' : 'h-[52px]'} relative flex justify-center transition-all duration-300`}>
                             <AnimatePresence mode="wait">
                                 {!isClaimed ? (
                                     <motion.button
@@ -214,7 +214,7 @@ const UnifiedActivation = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="text-center text-[12px] font-medium text-white/50 mt-6 max-w-[260px] leading-relaxed"
+                    className="text-center text-[12px] font-medium text-white/50 mt-4 max-w-[260px] leading-relaxed"
                 >
                     {isClaimed
                         ? t('show_counter_instruction')

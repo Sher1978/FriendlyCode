@@ -290,5 +290,9 @@
     "loyalty_vip": "VIP",
     "status_valid_until": "Действует до",
     "swipe_hint": "Смахните влево, чтобы увидеть больше",
-    "b2b_matrix_revoo_status": "Статус REVOO"
+    "b2b_matrix_revoo_status": "Статус REVOO",
+    "instruction_hold": "Возьмите телефон",
+    "instruction_show": "Покажите на кассе",
+    "instruction_redeem": "Получите награду",
+    "instruction_success": "Готово!"
 }

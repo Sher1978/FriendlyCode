@@ -288,5 +288,9 @@
     "loyalty_vip": "VIP",
     "status_valid_until": "Valid until",
     "swipe_hint": "Swipe left to see more",
-    "b2b_matrix_revoo_status": "REVOO Status"
+    "b2b_matrix_revoo_status": "REVOO Status",
+    "instruction_hold": "Hold your phone",
+    "instruction_show": "Show to staff",
+    "instruction_redeem": "Redeem Reward",
+    "instruction_success": "Success!"
 }
