@@ -287,8 +287,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                   icon: const Icon(Icons.add_circle_outline),
                   label: const Text("CREATE MY FIRST VENUE"),
                 ),
-              ],
-            ),
+            ],
           ),
         ),
       );
