@@ -642,9 +642,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                     color: AppColors.accentGreen,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
+                  child: Text(
                     "+${pending.length - 1}",
-                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12),
+                    style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12),
                   ),
                 ),
               const SizedBox(width: 8),
