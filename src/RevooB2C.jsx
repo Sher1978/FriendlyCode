@@ -108,6 +108,16 @@ const RevooB2C = () => {
     const searchParams = new URLSearchParams(location.search);
     const interceptedVenueId = searchParams.get('qr_venue_id');
 
+    // Prevent PWA Install Prompt on B2C Landing
+    useEffect(() => {
+        const handler = (e) => {
+            e.preventDefault();
+            console.log("PWA Install prompt prevented on B2C.");
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
     // Return Guest Logic: If user is already known, bypass landing and go to QR page
     useEffect(() => {
         const guestName = localStorage.getItem('guestName');
@@ -183,8 +193,9 @@ const RevooB2C = () => {
                         <img src="/revoo-logo.png" className={`transition-all duration-500 ${scrolled ? 'h-6' : 'h-8'} md:h-12 object-contain mix-blend-screen opacity-90 drop-shadow-[0_0_10px_rgba(212,175,55,0.3)]]`} alt="REVOO Logo" />
                         <span className="hidden sm:block text-white/40 text-[10px] md:text-sm font-bold tracking-widest uppercase border-l border-white/20 pl-4">REVOO</span>
                     </div>
-                    <div className="flex items-center gap-2 md:gap-4">
-                        <div className="flex items-center gap-1.5 md:gap-2 mr-2">
+                    <div className="flex items-center gap-2 md:gap-6">
+                        {/* Language Selection - Flags Top Right */}
+                        <div className="flex items-center gap-1.5 md:gap-2">
                             {[
                                 { code: 'en', flag: '🇺🇸' },
                                 { code: 'ar', flag: '🇦🇪' },
@@ -194,9 +205,10 @@ const RevooB2C = () => {
                                 <button
                                     key={lang.code}
                                     onClick={() => i18n.changeLanguage(lang.code)}
-                                    className={`w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-full transition-all ${i18n.language === lang.code ? 'bg-[#D4AF37] scale-110 shadow-[0_0_15px_rgba(212,175,55,0.5)]' : 'bg-white/5 hover:bg-white/10 opacity-50 hover:opacity-100'}`}
+                                    className={`w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full transition-all duration-300 ${i18n.language === lang.code ? 'bg-[#D4AF37] scale-110 shadow-[0_0_15px_rgba(212,175,55,0.4)]' : 'bg-white/5 hover:bg-white/10 opacity-60 hover:opacity-100'}`}
+                                    title={lang.code.toUpperCase()}
                                 >
-                                    <span className="text-base md:text-lg">{lang.flag}</span>
+                                    <span className="text-base md:text-xl transform hover:scale-120 transition-transform">{lang.flag}</span>
                                 </button>
                             ))}
                         </div>
@@ -247,7 +259,10 @@ const RevooB2C = () => {
                                 {t('b2c_hero_title')}
                             </span>
                         </h1>
-                        <p className="text-sm md:text-xl text-white/60 font-medium mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed px-4">
+                        <p className="text-[17px] md:text-xl text-white/80 font-bold mb-4 md:mb-6 max-w-2xl mx-auto leading-tight px-4 uppercase tracking-tight">
+                            Это первая справедливая система Управления статусом, где ты получишь <span className="text-[#D4AF37]">МАКСИМАЛЬНО</span> возможную скидку <span className="text-[#00FF41]">УЖЕ ЗАВТРА</span>
+                        </p>
+                        <p className="text-sm md:text-lg text-white/40 font-medium mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed px-4">
                             {t('b2c_hero_sub')}
                         </p>
                         <motion.button
@@ -275,10 +290,10 @@ const RevooB2C = () => {
             </section>
 
             {/* Steps Section */}
-            <section className="py-12 md:py-32 px-6 max-w-7xl mx-auto relative">
-                <div className="text-center mb-24 relative">
+            <section className="py-4 md:py-32 px-6 max-w-7xl mx-auto relative">
+                <div className="text-center mb-8 md:mb-24 relative">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#D4AF37] blur-[100px] opacity-10 pointer-events-none rounded-full" />
-                    <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tight mb-6 relative z-10 text-white">Магия в 3 шага</h2>
+                    <h2 className="text-3xl md:text-6xl font-black uppercase tracking-tight mb-4 relative z-10 text-white">Магия в 3 шага</h2>
                     <div className="w-24 h-1 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent mx-auto relative z-10" />
                 </div>
 
@@ -295,13 +310,13 @@ const RevooB2C = () => {
             </section>
 
             {/* Psychology Section */}
-            <section className="relative py-12 md:py-32 overflow-hidden">
+            <section className="relative py-4 md:py-32 overflow-hidden">
                 <div className="relative z-10 max-w-7xl mx-auto px-6 text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 100 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="bg-gradient-to-br from-[#1C1C1E] to-black border border-white/10 p-8 md:p-24 rounded-[40px] md:rounded-[60px] shadow-[0_0_80px_rgba(0,0,0,0.5)] relative overflow-hidden"
+                        className="bg-gradient-to-br from-[#1C1C1E] to-black border border-white/10 p-6 md:p-24 rounded-[32px] md:rounded-[60px] shadow-[0_0_80px_rgba(0,0,0,0.5)] relative overflow-hidden"
                     >
                         {/* Glow Effect */}
                         <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37] blur-[150px] opacity-10 translate-x-1/2 -translate-y-1/2 pointer-events-none" />
@@ -338,7 +353,7 @@ const RevooB2C = () => {
 
 
             {/* Footer */}
-            <footer className="py-20 border-t border-white/5 bg-black pb-32 md:pb-20">
+            <footer className="py-12 md:py-20 border-t border-white/5 bg-black pb-32 md:pb-20">
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-10">
                     <div className="text-3xl font-black uppercase tracking-tighter italic text-[#00FF41]">REVOO</div>
                     <div className="flex gap-8 text-xs font-bold uppercase tracking-widest opacity-40 text-white mt-10 md:mt-0">

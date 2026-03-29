@@ -75,8 +75,17 @@ const NewQRPage = () => {
                     setVenueName(venueData.name || '');
                     if (venueData.loyaltyConfig) setLoyaltyConfig(venueData.loyaltyConfig);
 
+                    // --- LANGUAGE INITIALIZATION ---
+                    const savedLang = safeStorage.getItem('userLanguage');
                     const venueLang = venueData.defaultLanguage || 'en';
-                    if (i18n.language !== venueLang) i18n.changeLanguage(venueLang);
+                    
+                    // Priority: 1. Manual User Selection, 2. Venue Default
+                    const targetLang = savedLang || venueLang;
+                    if (i18n.language !== targetLang) {
+                        console.log(`Setting language to ${targetLang} (Saved: ${savedLang}, Venue: ${venueLang})`);
+                        i18n.changeLanguage(targetLang);
+                    }
+                    // --------------------------------
 
                     const now = new Date();
                     const expiry = venueData.subscription?.expiryDate?.toDate();
@@ -194,8 +203,14 @@ const NewQRPage = () => {
     }, [location]);
 
     const toggleLanguage = () => {
+        const current = i18n.resolvedLanguage || i18n.language || 'en';
+        const baseLang = current.substring(0, 2).toLowerCase();
         const cycle = { 'en': 'ru', 'ru': 'ar', 'ar': 'vi', 'vi': 'en' };
-        i18n.changeLanguage(cycle[i18n.language] || 'en');
+        const next = cycle[baseLang] || 'en';
+        
+        console.log(`Toggling language: ${baseLang} -> ${next}`);
+        i18n.changeLanguage(next);
+        safeStorage.setItem('userLanguage', next);
     };
 
     // ── LOADING (iOS Dark) ──

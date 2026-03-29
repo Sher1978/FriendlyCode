@@ -183,21 +183,77 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
       });
     }
 
-    if (_isLoadingRole) {
-      return const Scaffold(
-        backgroundColor: AppColors.background,
-        body: Center(child: CircularProgressIndicator(color: AppColors.accentGreen)),
-      );
-    }
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Stack(
+        children: [
+          // 1. High-Tech Battery Watermark (Strict Green 20% Theme)
+          _buildBatteryWatermark(),
+          
+          // 2. Main Content
+          if (_isLoadingRole)
+            const Center(child: CircularProgressIndicator(color: AppColors.accentGreen))
+          else if (venueIds.isEmpty)
+            _buildEmptyState(context)
+          else
+            _buildDashboardContent(context, roleProvider, activeVenueId),
+        ],
+      ),
+    );
+  }
 
-    if (venueIds.isEmpty) {
-      return Scaffold(
-        backgroundColor: AppColors.premiumSand,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildBatteryWatermark() {
+    return Positioned(
+      bottom: -40,
+      right: -60,
+      child: Opacity(
+        opacity: 0.05,
+        child: Transform.rotate(
+          angle: -pi / 6,
+          child: Container(
+            width: 320,
+            height: 180,
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.accentGreen, width: 4),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Container(
+                  width: 50, // 20% of width roughly
+                  decoration: BoxDecoration(
+                    color: AppColors.accentGreen,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                const Spacer(),
+                // Battery Tip
+                Container(
+                  width: 15,
+                  height: 40,
+                  decoration: const BoxDecoration(
+                    color: AppColors.accentGreen,
+                    borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(5),
+                      bottomRight: Radius.circular(5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const Icon(Icons.storefront_outlined, size: 80, color: AppColors.premiumBurntOrange),
                 const SizedBox(height: 24),
@@ -236,12 +292,14 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
           ),
         ),
       );
-    }
+  }
 
+  Widget _buildDashboardContent(BuildContext context, RoleProvider roleProvider, String? activeVenueId) {
     final l10n = AppLocalizations.of(context)!;
+    final venueIds = roleProvider.venueIds;
 
     return Scaffold(
-      backgroundColor: AppColors.premiumSand,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -291,17 +349,17 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                 Positioned(
                   bottom: -100,
                   right: -100,
-                  child: Opacity(
-                    opacity: 0.03,
-                    child: Transform.rotate(
-                      angle: -0.2,
-                      child: const Icon(
-                        Icons.battery_2_bar, // Represents ~20%
-                        size: 600,
-                        color: AppColors.accentGreen,
+                    child: Opacity(
+                      opacity: 0.08,
+                      child: Transform.rotate(
+                        angle: -0.2,
+                        child: const Icon(
+                          Icons.battery_2_bar, // Represents ~20%
+                          size: 600,
+                          color: AppColors.accentGreen,
+                        ),
                       ),
                     ),
-                  ),
                 ),
                 _buildModernDashboard(context, venue, l10n),
                 if (isBlocked) _buildBlockingOverlay(),
@@ -330,12 +388,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-           color: Colors.white,
+           color: AppColors.surface,
            borderRadius: BorderRadius.circular(20),
-           border: Border.all(color: AppColors.premiumGold.withOpacity(0.3)),
-           boxShadow: [
-             BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))
-           ]
+           border: Border.all(color: AppColors.accentGreen.withOpacity(0.2)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -601,11 +656,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.secondarySurface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.accentGreen, width: 1.5),
+            border: Border.all(color: AppColors.accentGreen.withOpacity(0.5), width: 1),
             boxShadow: [
-              BoxShadow(color: AppColors.accentGreen.withOpacity(0.1), blurRadius: 12, offset: const Offset(0, 4)),
+              BoxShadow(color: AppColors.accentGreen.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
             ],
           ),
           child: Row(
@@ -663,9 +718,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
     final venueUrl = "https://www.friendlycode.fun/qr?id=${venue.id}";
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.title,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: AppColors.softShadow,
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       padding: const EdgeInsets.all(24),
       child: Row(
@@ -687,9 +742,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.black.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    border: Border.all(color: Colors.white.withOpacity(0.05)),
                   ),
                   child: Row(
                     children: [
@@ -743,10 +798,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.title.withOpacity(0.05)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 4, offset: const Offset(0, 2))],
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
         child: Row(
           children: [
@@ -852,10 +906,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.3)),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 4))],
+          border: Border.all(color: color.withOpacity(0.2)),
         ),
         child: Column(
           children: [

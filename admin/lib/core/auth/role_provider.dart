@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 enum UserRole { superAdmin, admin, manager, owner, staff }
 
@@ -29,10 +30,54 @@ class RoleProvider extends ChangeNotifier {
 
   void setActiveVenueId(String id) {
     _activeVenueId = id;
+    _saveToPrefs();
     notifyListeners();
   }
 
+  Future<void> _saveToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (_venueIds.isNotEmpty) {
+        await prefs.setStringList('cached_venue_ids', _venueIds);
+      }
+      if (_activeVenueId != null) {
+        await prefs.setString('cached_active_venue_id', _activeVenueId!);
+      }
+    } catch (e) {
+      debugPrint("Error saving to prefs: $e");
+    }
+  }
+
+  Future<void> _loadFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedIds = prefs.getStringList('cached_venue_ids');
+      final cachedActive = prefs.getString('cached_active_venue_id');
+      
+      if (cachedIds != null && cachedIds.isNotEmpty && _venueIds.isEmpty) {
+        _venueIds = cachedIds;
+      }
+      if (cachedActive != null && _activeVenueId == null) {
+        _activeVenueId = cachedActive;
+      }
+      if (_venueIds.isNotEmpty || _activeVenueId != null) {
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("Error loading from prefs: $e");
+    }
+  }
+
+  RoleProvider() {
+    _loadFromPrefs();
+  }
+
   Future<void> refreshRole() async {
+    // Initial load from local cache to provide instant UI
+    if (_venueIds.isEmpty) {
+      await _loadFromPrefs();
+    }
+    
     final user = _authService.currentUser;
     if (user != null) {
       _uid = user.uid;
@@ -196,16 +241,18 @@ class RoleProvider extends ChangeNotifier {
         venueIdsSet.addAll(managerVenues.docs.map((d) => d.id));
 
         _venueIds = venueIdsSet.toList();
-
+        _saveToPrefs();
       } catch (e) {
-        debugPrint("Error fetching role/venues: $e");
-        _currentRole = UserRole.owner;
-        _venueIds = [];
+        debugPrint("Error fetching role/venues (using cache if available): $e");
+        // DO NOT clear _venueIds here, keep cached if available
       }
     } else {
       _uid = null;
       _venueIds = [];
       _currentRole = UserRole.owner;
+      _activeVenueId = null;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
     }
     notifyListeners();
   }

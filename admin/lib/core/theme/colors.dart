@@ -30,9 +30,9 @@ class AppColors {
   ];
   
   // Premium Redesign Palette (Strict Green)
-  static const Color premiumSand = Color(0xFF0A0A0A); 
+  static const Color premiumSand = Color(0xFF000000); 
   static const Color premiumBurntOrange = Color(0xFF00FF41); // Now aliased to Green
-  static const Color premiumCream = Color(0xFF111111); 
+  static const Color premiumCream = Color(0xFF050505); 
   
   // Status Badges (Neon Pastels for Dark Mode)
   static const Color statusActiveBg = Color(0x3300FF41);

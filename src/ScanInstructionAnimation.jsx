@@ -14,24 +14,26 @@ const ScanInstructionAnimation = ({ ambientColor, discountValue }) => {
     }, []);
 
     const frames = [
-        // Frame 0: Idle - Phone held by hand
+        // Frame 0: Action - Holding and showing discount immediately (As requested)
         {
             title: t('instruction_hold'),
             phone: { x: 50, y: 0, rotate: 5 },
             hand: { opacity: 1 },
-            staff: { opacity: 0.3, x: -10 }
+            staff: { opacity: 0.3, x: -10 },
+            screenActive: true // Discount visible from frame 1
         },
-        // Frame 1: Action - Moving towards staff (Left)
+        // Frame 1: Action - Moving towards staff (Show)
         {
             title: t('instruction_show'),
             phone: { x: -30, y: -10, rotate: -5 },
             hand: { opacity: 1 },
-            staff: { opacity: 1, x: 0 }
+            staff: { opacity: 1, x: 0 },
+            screenActive: true
         },
-        // Frame 2: Active - Screen lit up
+        // Frame 2: Active - Near counter
         {
             title: t('instruction_redeem'),
-            phone: { x: -30, y: -10, rotate: -5, scale: 1.1 },
+            phone: { x: -35, y: -15, rotate: -10, scale: 1.05 },
             hand: { opacity: 1 },
             staff: { opacity: 1, x: 0 },
             screenActive: true
@@ -49,7 +51,7 @@ const ScanInstructionAnimation = ({ ambientColor, discountValue }) => {
     const current = frames[frame];
 
     return (
-        <div className="relative w-full h-[120px] flex items-center justify-center overflow-hidden rounded-[18px] bg-white/5 backdrop-blur-md border border-white/10 shadow-inner">
+        <div className="relative w-full h-[120px] flex items-center justify-center overflow-hidden rounded-[24px] bg-white/5 backdrop-blur-md border border-white/10 shadow-inner">
             
             {/* Staff Member Schematic (Left Side) - Back layer */}
             <motion.div 
@@ -72,10 +74,10 @@ const ScanInstructionAnimation = ({ ambientColor, discountValue }) => {
                 {/* Smartphone (iOS 16 style) - Smaller scale for better fit */}
                 <motion.div
                     animate={{ rotate: current.phone.rotate, scale: current.phone.scale || 1, opacity: current.phone.opacity ?? 1 }}
-                    className="w-14 h-24 bg-[#1C1C1E] border-[1.5px] border-white/20 rounded-[10px] p-0.5 shadow-2xl overflow-hidden relative z-20"
+                    className="w-14 h-24 bg-[#1C1C1E] border-[1.5px] border-white/20 rounded-[12px] p-0.5 shadow-2xl overflow-hidden relative z-20"
                 >
                     {/* Screen Content */}
-                    <div className="w-full h-full bg-black rounded-[8px] flex flex-col items-center justify-center p-1 relative">
+                    <div className="w-full h-full bg-black rounded-[10px] flex flex-col items-center justify-center p-1 relative">
                         <motion.div 
                             animate={{ opacity: current.screenActive ? 1 : 0 }}
                             className="absolute inset-0 bg-white/5 flex flex-col items-center justify-center"
@@ -90,23 +92,46 @@ const ScanInstructionAnimation = ({ ambientColor, discountValue }) => {
                     </div>
                 </motion.div>
 
-                {/* Realistic Schematic Hand (SVG) - Flipped (mirror) for holding phone from right */}
+                {/* More Realistic Schematic Hand (SVG) */}
                 <motion.div 
                     animate={current.hand}
-                    className="absolute -bottom-10 -right-8 w-24 h-24 z-10 pointer-events-none"
-                    style={{ filter: 'drop-shadow(-4px 8px 15px rgba(0,0,0,0.4))' }}
+                    className="absolute -bottom-10 -right-4 w-40 h-40 z-10 pointer-events-none"
+                    style={{ filter: 'drop-shadow(-4px 8px 20px rgba(0,0,0,0.4))' }}
                 >
-                    <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ transform: 'scaleX(-1)' }}>
-                        {/* Wrist and Forearm */}
-                        <path d="M40 120L45 100L70 95L75 120H40Z" fill="#E5C1A7" opacity="0.8" />
-                        {/* Palm Refined */}
-                        <path d="M45 95C32 95 22 85 18 70C14 55 18 40 30 32C42 24 55 30 62 40C69 50 75 80 75 90C75 100 62 95 45 95Z" fill="#E5C1A7" />
-                        {/* Thumb Wrap (Front) */}
-                        <path d="M30 65C25 60 22 50 28 40C34 30 44 35 50 45" stroke="#D4A78A" strokeWidth="8" strokeLinecap="round" />
-                        {/* Fingers Tucked (Behind phone) */}
-                        <rect x="70" y="50" width="10" height="22" rx="5" fill="#E5C1A7" />
-                        <rect x="76" y="60" width="10" height="22" rx="5" fill="#D4A78A" />
-                        <rect x="80" y="72" width="10" height="22" rx="5" fill="#C3967A" />
+                    <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        {/* Wrist / Forearm */}
+                        <path 
+                            d="M85 120 C 80 110, 78 100, 75 85 L 45 85 C 42 100, 40 110, 35 120" 
+                            fill="#F3D5C1" 
+                            className="opacity-80"
+                        />
+                        
+                        {/* Main Palm Body - Unified cleaner shape */}
+                        <path 
+                            d="M45 85 C 35 85, 25 75, 25 60 C 25 45, 35 35, 48 35 C 55 35, 75 38, 85 55 L 85 85 L 45 85" 
+                            fill="#F3D5C1" 
+                        />
+                        
+                        {/* Fingers wrapping BEHIND/SIDE the phone (visible tips) */}
+                        {/* Index - Tip wrapping over the top side */}
+                        <path d="M48 35 C 45 28, 52 22, 58 28 C 62 32, 60 40, 55 45" fill="#E8B99A" />
+                        {/* Middle */}
+                        <path d="M60 38 C 58 30, 68 25, 75 32 C 80 38, 78 45, 72 50" fill="#F3D5C1" />
+                        {/* Ring */}
+                        <path d="M72 45 C 75 38, 85 35, 90 42 C 95 48, 92 58, 85 62" fill="#E8B99A" />
+                        {/* Pinky */}
+                        <path d="M82 58 C 85 52, 95 50, 100 58 C 105 65, 100 75, 90 80" fill="#F3D5C1" />
+
+                        {/* Thumb - More expressive wrap-around */}
+                        <path 
+                            d="M25 60 C 18 60, 15 50, 22 42 C 28 35, 38 38, 45 48" 
+                            fill="#F3D5C1" 
+                            stroke="#D4A78A" 
+                            strokeWidth="0.8"
+                        />
+                        
+                        {/* Palm crease detail for anatomical hint */}
+                        <path d="M45 80 Q 55 75 65 80" stroke="#D4A78A" strokeWidth="0.5" opacity="0.3" fill="none"/>
                     </svg>
                 </motion.div>
             </motion.div>

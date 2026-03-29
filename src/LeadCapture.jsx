@@ -19,60 +19,109 @@ const LeadCapture = () => {
     const [email, setEmail] = useState('');
     const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-    // Handle Redirect Result on Mount
+    // --- ROBUST AUTH REDIRECT HANDLING (MOBILE) ---
     React.useEffect(() => {
-        const handleRedirect = async () => {
+        let isProcessing = false;
+        let checkCount = 0;
+
+        const handleAuthAction = async (user) => {
+            if (!user || isProcessing) return;
+            isProcessing = true;
+            console.log("Auth event triggered for:", user.email);
+            
+            const venueId = localStorage.getItem('currentVenueId') || 'unknown';
+            const guestName = user.displayName || localStorage.getItem('guestName') || 'Guest';
+            const guestEmail = user.email;
+
+            setIsGoogleLoading(true); 
             try {
-                const result = await getRedirectResult(auth);
-                if (result) {
-                    setIsGoogleLoading(true);
-                    const linkedUser = result.user;
-                    const googleName = linkedUser.displayName || 'Guest';
-                    const googleEmail = linkedUser.email;
-                    await processAuthUser(googleName, googleEmail, linkedUser.uid);
-                }
-            } catch (error) {
-                console.error("Redirect Auth Result failed:", error);
+                await processAuthUser(guestName, guestEmail, user.uid, venueId);
+            } catch (err) {
+                console.error("Auth process error:", err);
             } finally {
                 setIsGoogleLoading(false);
             }
         };
-        handleRedirect();
-    }, []);
 
-    const processAuthUser = async (userName, userEmail, currentUid) => {
+        const checkRedirect = async () => {
+            if (isProcessing) return;
+            checkCount++;
+            console.log(`[Attempt ${checkCount}] Checking Google Auth status...`);
+            
+            try {
+                // 1. Check for a redirect result explicitly
+                const result = await getRedirectResult(auth);
+                if (result?.user) {
+                    console.log("Redirect result found! User:", result.user.email);
+                    await handleAuthAction(result.user);
+                    return;
+                }
+
+                // 2. Fallback: Check if user is already signed in (Firebase might have restored session)
+                if (auth.currentUser) {
+                    console.log("Found existing auth session:", auth.currentUser.email);
+                    await handleAuthAction(auth.currentUser);
+                    return;
+                }
+
+                // 3. Retry logic for mobile browsers that are slow to populate auth state
+                if (checkCount < 3) {
+                    setTimeout(checkRedirect, 1000); // Wait another second
+                } else {
+                    console.log("Stop checking for redirect - no session found.");
+                    setIsGoogleLoading(false);
+                }
+            } catch (error) {
+                console.error("Critical Redirect Error:", error);
+                setIsGoogleLoading(false);
+            }
+        };
+
+        // Standard listener (Backup)
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user && !isProcessing) {
+                handleAuthAction(user);
+            }
+        });
+
+        // Initial check triggers for redirect logic
+        checkRedirect();
+
+        return () => {
+            unsubscribe();
+        };
+    }, []);
+    // -----------------------------------------------
+
+    const processAuthUser = async (userName, userEmail, currentUid, venueIdOverride) => {
         const lowerEmail = userEmail.trim().toLowerCase();
+        const venueId = venueIdOverride || localStorage.getItem('currentVenueId') || 'unknown';
 
         try {
-            const venueId = localStorage.getItem('currentVenueId') || 'unknown';
+            console.log(`Processing user ${lowerEmail} for venue ${venueId}`);
             
             let effectiveUid = currentUid;
             let finalDiscount = discount;
 
             if (currentUid) {
-                // 0. Check if this email already exists in 'users' collection
+                // 1. Sync with 'users' collection
                 const q = query(collection(db, 'users'), where('email', '==', lowerEmail), limit(1));
                 const querySnapshot = await getDocs(q);
 
                 if (!querySnapshot.empty) {
-                    // FOUND EXISTING USER -> Link to this ID instead of the new anonymous one
                     const existingUserDoc = querySnapshot.docs[0];
                     effectiveUid = existingUserDoc.id;
-                    console.log(`Found existing user for ${lowerEmail}: ${effectiveUid}. Linking session...`);
-
-                    // Update existing user with latest name/timestamp
+                    
                     await setDoc(doc(db, 'users', effectiveUid), {
                         displayName: userName.trim(),
                         updatedAt: serverTimestamp(),
                     }, { merge: true });
 
-                    // Recalculate discount based on actual history
+                    // Recalculate discount
                     try {
                         const vDoc = await getDoc(doc(db, 'venues', venueId));
                         if (vDoc.exists()) {
                             const venueData = vDoc.data();
-                            console.log("Recalculating discount for existing user using tiers:", venueData.tiers);
-
                             const qVisits = query(
                                 collection(db, 'visits'),
                                 where('guestEmail', '==', lowerEmail),
@@ -86,34 +135,36 @@ const LeadCapture = () => {
                                 const now = new Date();
                                 const calcResult = RewardCalculator.calculate(lastVisitDate, now, venueData.loyaltyConfig || venueData.tiers, venueData.timezone || 'Asia/Dubai');
                                 finalDiscount = calcResult.discount;
-                                console.log(`New discount calculated for ${lowerEmail}: ${finalDiscount}%`);
                             }
                         }
                     } catch (err) {
-                        console.error("Error recalculating discount on email match:", err);
+                        console.error("Discount calc error:", err);
                     }
                 } else {
-                    // NEW USER -> Create new doc with current auth UID
                     await setDoc(doc(db, 'users', currentUid), {
                         displayName: userName.trim(),
                         email: lowerEmail,
                         role: 'guest',
                         updatedAt: serverTimestamp(),
-                        createdAt: serverTimestamp(), // Add creation time for new users
+                        createdAt: serverTimestamp(),
                     }, { merge: true });
                 }
 
-                // 2. Also keep the lead entry for marketing tracking (using effectiveUid)
-                await addDoc(collection(db, 'leads'), {
-                    uid: effectiveUid,
-                    name: userName.trim(),
-                    email: lowerEmail,
-                    venueId: venueId,
-                    timestamp: serverTimestamp(),
-                    source: 'lead_capture'
-                });
+                // 2. Log Lead
+                try {
+                    await addDoc(collection(db, 'leads'), {
+                        uid: effectiveUid,
+                        name: userName.trim(),
+                        email: lowerEmail,
+                        venueId: venueId,
+                        timestamp: serverTimestamp(),
+                        source: 'lead_capture'
+                    });
+                } catch (e) {
+                    console.warn("Lead logging failed but continuing:", e);
+                }
 
-                // 3. OWNER NOTIFICATION: Guest used status
+                // 3. Notify Owner
                 try {
                     await addDoc(collection(db, 'notifications'), {
                         venueId: venueId,
@@ -122,19 +173,16 @@ const LeadCapture = () => {
                         timestamp: serverTimestamp(),
                         read: false
                     });
-                } catch (notifErr) {
-                    console.error("Failed to send owner notification:", notifErr);
-                }
+                } catch (e) {}
             }
 
-            // Save guest data locally for instant recognition
+            // Save locally
             localStorage.setItem('guestName', userName.trim());
             localStorage.setItem('guestEmail', lowerEmail);
-            if (effectiveUid) {
-                localStorage.setItem('effectiveUid', effectiveUid);
-            }
+            if (effectiveUid) localStorage.setItem('effectiveUid', effectiveUid);
 
-            // Navigate to UnifiedActivation (Reward Screen)
+            // Final Navigation
+            console.log("Navigating to reward screen with discount:", finalDiscount);
             navigate('/thank-you', {
                 state: {
                     guestName: userName.trim(),
@@ -142,14 +190,17 @@ const LeadCapture = () => {
                     discountValue: finalDiscount,
                     venueId: venueId,
                     userRole: 'guest',
-                    effectiveUid: effectiveUid // PASS THIS TO NEXT SCREEN
-                }
+                    effectiveUid: effectiveUid
+                },
+                replace: true // Use replace to prevent back-looping to lead capture
             });
         } catch (e) {
-            console.error("Error saving lead/user:", e);
-            localStorage.setItem('guestName', userName.trim());
-            localStorage.setItem('guestEmail', lowerEmail);
-            navigate('/thank-you', { state: { guestName: userName.trim(), discountValue: discount } });
+            console.error("Critical error in processAuthUser:", e);
+            // Fallback navigation
+            navigate('/thank-you', { 
+                state: { guestName: userName.trim(), discountValue: discount, venueId: venueId },
+                replace: true
+            });
         }
     };
 
