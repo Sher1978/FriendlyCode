@@ -103,6 +103,7 @@ const UnifiedActivation = () => {
                     user={auth.currentUser}
                     venue={{ name: venueName }}
                     activeStatuses={[]} 
+                    isGuestView={true}
                     trigger={
                         <div className="flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/5 cursor-pointer active:scale-95 transition-all">
                             <FontAwesomeIcon icon={faUser} className="text-[10px] text-white/50" />

@@ -12,6 +12,7 @@ import NewQRPage from './NewQRPage';
 import TestQRPage from './TestQRPage';
 import RevooB2C from './RevooB2C';
 import RevooB2B from './RevooB2B';
+import GuestDashboard from './GuestDashboard';
 
 function App() {
   const isLegacyDomain = window.location.hostname.includes('friendlycode.fun');
@@ -44,6 +45,7 @@ function App() {
           <Route path="/thank-you" element={<UnifiedActivation />} />
           <Route path="/telegram-auth" element={<TelegramAuth />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
+          <Route path="/guest-dashboard" element={<GuestDashboard />} />
 
           {/* Redirects for Admin/Owner panels to sub-path handled by Flutter */}
           <Route path="/owner" element={<NavigateToAdmin path="owner" />} />

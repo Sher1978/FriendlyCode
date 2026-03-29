@@ -307,12 +307,9 @@ const NewQRPage = () => {
                 {/* Header / Nav */}
             <div className="pt-6 px-6 flex justify-between items-center z-50 w-full relative">
                 <UserMenu 
-                    activeStatus={{
-                        venueId: localStorage.getItem('currentVenueId'),
-                        venueName: venueName,
-                        discount: discount,
-                        expiry: new Date(Date.now() + 86400000).toISOString()
-                    }}
+                    user={auth.currentUser}
+                    isGuestView={true}
+                    venueColor={batCfg.fillColor}
                     trigger={
                         <div className="flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/5 cursor-pointer active:scale-95 transition-all">
                             <FontAwesomeIcon icon={faUser} className="text-[10px] text-white/50" />
@@ -339,6 +336,7 @@ const NewQRPage = () => {
                             >
                                 {guestName || 'Friend'}
                             </div>
+                            <div className="mt-2" />
                         </>
                     ) : (
                         <button

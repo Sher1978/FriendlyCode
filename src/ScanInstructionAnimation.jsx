@@ -14,127 +14,131 @@ const ScanInstructionAnimation = ({ ambientColor, discountValue }) => {
     }, []);
 
     const frames = [
-        // Frame 0: Action - Holding and showing discount immediately (As requested)
+        // Frame 0: Reveal - Focus on the phone where the discount just appeared
         {
-            title: t('instruction_hold'),
-            phone: { x: 50, y: 0, rotate: 5 },
-            hand: { opacity: 1 },
-            staff: { opacity: 0.3, x: -10 },
-            screenActive: true // Discount visible from frame 1
+            title: t('instruction_reveal', 'Discount Activated'),
+            phone: { x: 0, y: 10, rotate: 0, scale: 1.1 },
+            hand: { opacity: 1, scale: 1, y: 0 },
+            staff: { opacity: 0.1, x: -20 },
+            screenActive: true,
+            showStaff: false
         },
-        // Frame 1: Action - Moving towards staff (Show)
+        // Frame 1: Action - Holding and moving towards staff
         {
-            title: t('instruction_show'),
-            phone: { x: -30, y: -10, rotate: -5 },
-            hand: { opacity: 1 },
+            title: t('instruction_show', 'Show to Staff'),
+            phone: { x: -25, y: -5, rotate: -5, scale: 1 },
+            hand: { opacity: 1, scale: 1, y: 0 },
             staff: { opacity: 1, x: 0 },
-            screenActive: true
+            screenActive: true,
+            showStaff: true
         },
-        // Frame 2: Active - Near counter
+        // Frame 2: Active - Near counter for verification
         {
-            title: t('instruction_redeem'),
-            phone: { x: -35, y: -15, rotate: -10, scale: 1.05 },
-            hand: { opacity: 1 },
+            title: t('instruction_verify', 'Verifying...'),
+            phone: { x: -35, y: -10, rotate: -10, scale: 1.05 },
+            hand: { opacity: 1, scale: 1, y: 0 },
             staff: { opacity: 1, x: 0 },
-            screenActive: true
+            screenActive: true,
+            showStaff: true
         },
-        // Frame 3: Success - Checkmark
+        // Frame 3: Success - Interaction complete
         {
-            title: t('instruction_success'),
-            phone: { x: 0, y: 0, rotate: 0, scale: 0.8, opacity: 0 },
-            hand: { opacity: 0 },
-            staff: { opacity: 0.2 },
-            success: true
+            title: t('instruction_success', 'Verified'),
+            phone: { x: 0, y: 20, rotate: 0, scale: 0.9, opacity: 0 },
+            hand: { opacity: 0, scale: 0.9 },
+            staff: { opacity: 0.3 },
+            success: true,
+            showStaff: true
         }
     ];
 
     const current = frames[frame];
 
     return (
-        <div className="relative w-full h-[120px] flex items-center justify-center overflow-hidden rounded-[24px] bg-white/5 backdrop-blur-md border border-white/10 shadow-inner">
+        <div className="relative w-full h-[130px] flex items-center justify-center overflow-hidden rounded-[28px] bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
             
-            {/* Staff Member Schematic (Left Side) - Back layer */}
+            {/* Staff Member Schematic - Back layer */}
             <motion.div 
                 animate={current.staff}
-                className="absolute left-6 top-1/2 -translate-y-1/2 z-0 pointer-events-none"
+                className="absolute left-8 top-1/2 -translate-y-1/2 z-0 pointer-events-none"
             >
-                {/* Staff Head */}
-                <div className="w-6 h-6 rounded-full bg-white/10 mb-1 mx-auto" />
-                {/* Staff Shoulders */}
-                <div className="w-14 h-8 rounded-t-2xl bg-white/5" />
-                {/* Counter Bar */}
-                <div className="absolute -bottom-1 -left-4 w-20 h-1.5 bg-white/20 rounded-full blur-[1px]" />
+                <div className="w-7 h-7 rounded-full bg-white/10 mb-1.5 mx-auto border border-white/5" />
+                <div className="w-16 h-10 rounded-t-[20px] bg-white/5 border-t border-white/10" />
+                <div className="absolute -bottom-2 -left-6 w-28 h-2 bg-white/10 rounded-full blur-[2px]" />
             </motion.div>
 
             {/* Hand & Phone Group */}
             <motion.div
-                animate={{ x: current.phone.x, y: current.phone.y - 5 }} // Slight lift, but not too much
+                animate={{ x: current.phone.x, y: current.phone.y }}
                 className="relative z-10 flex items-center justify-center"
             >
-                {/* Smartphone (iOS 16 style) - Smaller scale for better fit */}
+                {/* Smartphone (Premium iOS Style) */}
                 <motion.div
                     animate={{ rotate: current.phone.rotate, scale: current.phone.scale || 1, opacity: current.phone.opacity ?? 1 }}
-                    className="w-14 h-24 bg-[#1C1C1E] border-[1.5px] border-white/20 rounded-[12px] p-0.5 shadow-2xl overflow-hidden relative z-20"
+                    className="w-15 h-26 bg-[#121214] border-[2px] border-white/20 rounded-[14px] p-1 shadow-[0_20px_40px_rgba(0,0,0,0.6)] overflow-hidden relative z-20"
                 >
-                    {/* Screen Content */}
-                    <div className="w-full h-full bg-black rounded-[10px] flex flex-col items-center justify-center p-1 relative">
+                    <div className="w-full h-full bg-black rounded-[11px] flex flex-col items-center justify-center p-1 relative overflow-hidden">
                         <motion.div 
                             animate={{ opacity: current.screenActive ? 1 : 0 }}
-                            className="absolute inset-0 bg-white/5 flex flex-col items-center justify-center"
+                            className="absolute inset-0 flex flex-col items-center justify-center"
                         >
-                            <div className="w-6 h-6 rounded-full blur-md opacity-50 absolute" style={{ backgroundColor: ambientColor }} />
-                            <span className="text-[10px] font-black text-white relative z-10 leading-none">{discountValue}%</span>
-                            <span className="text-[3px] font-bold text-white/40 uppercase tracking-tighter mt-0.5 relative z-10">REVOO</span>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60 z-10" />
+                            <div className="w-10 h-10 rounded-full blur-xl opacity-40 absolute" style={{ backgroundColor: ambientColor }} />
+                            <span className="text-[12px] font-black text-white relative z-20 tracking-tighter" style={{ textShadow: `0 0 10px ${ambientColor}` }}>{discountValue}%</span>
+                            <span className="text-[4px] font-black text-[#00FF41] uppercase tracking-[0.2em] mt-1 relative z-20">REVOO PRIVILEGE</span>
                         </motion.div>
                         
-                        {/* Notch */}
-                        <div className="absolute top-0 w-5 h-1 bg-[#1C1C1E] rounded-b-md" />
+                        {/* Dynamic Notch */}
+                        <div className="absolute top-0 w-6 h-1.5 bg-[#121214] rounded-b-lg z-30" />
                     </div>
                 </motion.div>
 
-                {/* More Realistic Schematic Hand (SVG) */}
+                {/* PREMIUM ANATOMICAL HAND (SVG) - NO MORE EAR */}
                 <motion.div 
-                    animate={current.hand}
-                    className="absolute -bottom-10 -right-4 w-40 h-40 z-10 pointer-events-none"
-                    style={{ filter: 'drop-shadow(-4px 8px 20px rgba(0,0,0,0.4))' }}
+                    animate={{ opacity: current.hand.opacity, scale: current.hand.scale, y: current.hand.y }}
+                    className="absolute -bottom-14 -right-10 w-48 h-48 z-10 pointer-events-none"
+                    style={{ filter: 'drop-shadow(-15px 20px 40px rgba(0,0,0,0.4))' }}
                 >
-                    <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        {/* Wrist / Forearm */}
-                        <path 
-                            d="M85 120 C 80 110, 78 100, 75 85 L 45 85 C 42 100, 40 110, 35 120" 
-                            fill="#F3D5C1" 
-                            className="opacity-80"
-                        />
-                        
-                        {/* Main Palm Body - Unified cleaner shape */}
-                        <path 
-                            d="M45 85 C 35 85, 25 75, 25 60 C 25 45, 35 35, 48 35 C 55 35, 75 38, 85 55 L 85 85 L 45 85" 
-                            fill="#F3D5C1" 
-                        />
-                        
-                        {/* Fingers wrapping BEHIND/SIDE the phone (visible tips) */}
-                        {/* Index - Tip wrapping over the top side */}
-                        <path d="M48 35 C 45 28, 52 22, 58 28 C 62 32, 60 40, 55 45" fill="#E8B99A" />
-                        {/* Middle */}
-                        <path d="M60 38 C 58 30, 68 25, 75 32 C 80 38, 78 45, 72 50" fill="#F3D5C1" />
-                        {/* Ring */}
-                        <path d="M72 45 C 75 38, 85 35, 90 42 C 95 48, 92 58, 85 62" fill="#E8B99A" />
-                        {/* Pinky */}
-                        <path d="M82 58 C 85 52, 95 50, 100 58 C 105 65, 100 75, 90 80" fill="#F3D5C1" />
+                    <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
+                        <defs>
+                            <linearGradient id="handGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#F3D5C1" />
+                                <stop offset="100%" stopColor="#E8B99A" />
+                            </linearGradient>
+                            <filter id="skinShadow">
+                                <feDropShadow dx="-2" dy="2" stdDeviation="1.5" floodColor="#D4A78A" floodOpacity="0.5" />
+                            </filter>
+                        </defs>
 
-                        {/* Thumb - More expressive wrap-around */}
-                        <path 
-                            d="M25 60 C 18 60, 15 50, 22 42 C 28 35, 38 38, 45 48" 
-                            fill="#F3D5C1" 
-                            stroke="#D4A78A" 
-                            strokeWidth="0.8"
-                        />
+                        {/* Forearm / Wrist Structure */}
+                        <path d="M130 200 C 125 185, 120 165, 115 145 L 60 145 C 55 165, 50 185, 45 200" fill="url(#handGrad)" opacity="0.95" />
                         
-                        {/* Palm crease detail for anatomical hint */}
-                        <path d="M45 80 Q 55 75 65 80" stroke="#D4A78A" strokeWidth="0.5" opacity="0.3" fill="none"/>
+                        {/* Palm Base (Fleshy part) */}
+                        <path d="M60 145 C 35 145, 30 120, 30 100 C 30 80, 50 75, 75 75 C 95 75, 120 80, 135 110 L 135 145 L 60 145" fill="url(#handGrad)" filter="url(#skinShadow)" />
+
+                        {/* Index Finger (The 'Point' or 'Hold') */}
+                        <path d="M75 75 C 70 55, 80 45, 95 55 C 105 62, 102 80, 92 85" fill="#F3D5C1" stroke="#E8B99A" strokeWidth="0.5" />
+                        
+                        {/* Middle Finger (Longest) */}
+                        <path d="M95 80 C 92 60, 110 52, 122 65 C 130 75, 128 90, 118 100" fill="url(#handGrad)" stroke="#E8B99A" strokeWidth="0.5" />
+                        
+                        {/* Ring Finger */}
+                        <path d="M118 95 C 122 80, 138 75, 148 88 C 158 100, 150 115, 135 125" fill="#E8B99A" stroke="#D4A78A" strokeWidth="0.5" />
+                        
+                        {/* Pinky Finger */}
+                        <path d="M135 115 C 145 105, 160 105, 165 120 C 170 135, 160 145, 140 145" fill="url(#handGrad)" stroke="#D4A78A" strokeWidth="0.5" />
+
+                        {/* Thumb (Opposable Grip) */}
+                        <path d="M35 105 C 15 105, 10 80, 25 65 C 40 50, 60 60, 75 80" fill="url(#handGrad)" filter="url(#skinShadow)" />
+
+                        {/* Realistic Details (Folds, Nails) */}
+                        <path d="M78 60 Q 82 58 86 60" stroke="#D4A78A" strokeWidth="0.8" opacity="0.3" /> {/* Index Nail */}
+                        <path d="M98 68 Q 102 66 106 68" stroke="#D4A78A" strokeWidth="0.8" opacity="0.3" /> {/* Middle Nail */}
+                        <path d="M48 105 Q 60 100 75 110" stroke="#D4A78A" strokeWidth="1" opacity="0.2" /> {/* Palm Line */}
                     </svg>
                 </motion.div>
             </motion.div>
+
 
             {/* Success Overlays */}
             <AnimatePresence>
