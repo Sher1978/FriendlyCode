@@ -50,20 +50,15 @@ export function getBatteryConfig(capacity) {
 
 const TOTAL_SEGMENTS = 14;
 
-export default function PngBattery({ discount }) {
-    let mappedCapacity = 10;
-    if (discount >= 20) mappedCapacity = 100;
-    else if (discount >= 15) mappedCapacity = 50;
-    else if (discount >= 10) mappedCapacity = 25;
-    
-    const cfg = getBatteryConfig(mappedCapacity);
+export default function PngBattery({ capacity = 10 }) {
+    const cfg = getBatteryConfig(capacity);
     const uid = cfg.label;
 
     const fillStart = 14.5;
     const fillEnd = 85.5;
     
     // Continuous charge ratio for the sweeping wave mask
-    const chargeRatio = mappedCapacity / 100;
+    const chargeRatio = (capacity || 10) / 100;
     const currentFill = fillStart + (fillEnd - fillStart) * chargeRatio;
 
     return (

@@ -185,8 +185,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
 
     if (_isLoadingRole) {
       return const Scaffold(
-        backgroundColor: AppColors.premiumSand,
-        body: Center(child: CircularProgressIndicator(color: AppColors.premiumBurntOrange)),
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator(color: AppColors.accentGreen)),
       );
     }
 
@@ -249,7 +249,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
         title: _buildVenueSelector(venueIds, roleProvider),
         actions: [
           IconButton(
-            icon: const Icon(Icons.language, color: AppColors.premiumBurntOrange),
+            icon: const Icon(Icons.language, color: AppColors.accentGreen),
             tooltip: "Switch Language",
             onPressed: () {
                final provider = Provider.of<LocaleProvider>(context, listen: false);
@@ -260,7 +260,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
             },
           ),
           IconButton(
-            icon: const Icon(Icons.add_business_outlined, color: AppColors.premiumBurntOrange),
+            icon: const Icon(Icons.add_business_outlined, color: AppColors.accentGreen),
             tooltip: "Add Venue",
             onPressed: () async {
               final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen()));
@@ -287,6 +287,22 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
 
             return Stack(
               children: [
+                // Background Decoration: 20% Battery Watermark
+                Positioned(
+                  bottom: -100,
+                  right: -100,
+                  child: Opacity(
+                    opacity: 0.03,
+                    child: Transform.rotate(
+                      angle: -0.2,
+                      child: const Icon(
+                        Icons.battery_2_bar, // Represents ~20%
+                        size: 600,
+                        color: AppColors.accentGreen,
+                      ),
+                    ),
+                  ),
+                ),
                 _buildModernDashboard(context, venue, l10n),
                 if (isBlocked) _buildBlockingOverlay(),
               ],
@@ -324,7 +340,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.store, size: 18, color: AppColors.premiumBurntOrange),
+            const Icon(Icons.store, size: 18, color: AppColors.accentGreen),
             const SizedBox(width: 8),
             Text(
               l10n.switchVenue(venueIds.length),
@@ -377,7 +393,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                       children: [
                         Text(
                           l10n.hello(userEmail.split('@').first),
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.premiumBurntOrange),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.accentGreen, letterSpacing: 1.2),
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -585,11 +601,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFFFFF8E1),
+            color: AppColors.surface,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFFFB300), width: 1.5),
+            border: Border.all(color: AppColors.accentGreen, width: 1.5),
             boxShadow: [
-              BoxShadow(color: const Color(0xFFFFB300).withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
+              BoxShadow(color: AppColors.accentGreen.withOpacity(0.1), blurRadius: 12, offset: const Offset(0, 4)),
             ],
           ),
           child: Row(
@@ -597,10 +613,10 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFB300).withOpacity(0.2),
+                  color: AppColors.accentGreen.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.person_pin_circle_outlined, color: Color(0xFFE65100), size: 24),
+                child: const Icon(Icons.person_pin_circle_outlined, color: AppColors.accentGreen, size: 24),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -609,12 +625,12 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                   children: [
                     Text(
                       l10n.guestWaiting,
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Color(0xFFE65100), letterSpacing: 1.2),
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.accentGreen, letterSpacing: 1.2),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       "${latest.guestName} — ${latest.discountValue}% OFF",
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF4E342E)),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ],
                 ),
@@ -623,16 +639,16 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFB300),
+                    color: AppColors.accentGreen,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Text(
+                  child: const Text(
                     "+${pending.length - 1}",
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12),
                   ),
                 ),
               const SizedBox(width: 8),
-              const Icon(Icons.arrow_forward_ios, size: 14, color: Color(0xFFE65100)),
+              const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.accentGreen),
             ],
           ),
         ),
@@ -664,7 +680,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(l10n.shareToClients, style: const TextStyle(color: AppColors.premiumGold, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.5)),
+                Text(l10n.shareToClients, style: const TextStyle(color: AppColors.accentGreen, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.5)),
                 const SizedBox(height: 4),
                 Text(venue.name.toUpperCase(), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 12),
@@ -695,7 +711,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                              );
                            }
                         },
-                        child: const Icon(Icons.copy, color: AppColors.premiumGold, size: 16),
+                        child: const Icon(Icons.copy, color: AppColors.accentGreen, size: 16),
                       ),
                     ],
                   ),
@@ -737,7 +753,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(color: AppColors.premiumSand, borderRadius: BorderRadius.circular(12)),
-              child: Icon(icon, color: AppColors.premiumBurntOrange, size: 20),
+              child: Icon(icon, color: AppColors.accentGreen, size: 20),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -749,7 +765,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.premiumGold),
+            const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.accentGreen),
           ],
         ),
       ),

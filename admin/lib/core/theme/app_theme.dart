@@ -9,12 +9,12 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      primaryColor: AppColors.accentOrange,
+      primaryColor: AppColors.accentGreen,
       scaffoldBackgroundColor: AppColors.background,
       
       colorScheme: const ColorScheme.dark(
-        primary: AppColors.accentOrange,
-        secondary: AppColors.accentOrange, 
+        primary: AppColors.accentGreen,
+        secondary: AppColors.accentGreen, 
         surface: AppColors.surface,
         onSurface: AppColors.title,
         onPrimary: Colors.black,
@@ -49,12 +49,12 @@ class AppTheme {
       
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.premiumGold,
+          backgroundColor: AppColors.accentGreen,
           foregroundColor: Colors.black,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: -0.2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5, fontSize: 13),
         ),
       ),
 

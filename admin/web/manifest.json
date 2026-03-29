@@ -1,11 +1,11 @@
 {
-    "name": "friendly_code",
-    "short_name": "friendly_code",
-    "start_url": ".",
+    "name": "REVOO Admin",
+    "short_name": "REVOO Ad",
+    "start_url": "/admin/",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#000000",
+    "theme_color": "#00FF41",
+    "description": "REVOO Partner & Administrative Portal",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

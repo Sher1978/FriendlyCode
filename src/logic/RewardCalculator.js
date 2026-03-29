@@ -26,13 +26,13 @@ export class RewardCalculator {
      */
     static calculate(lastVisitDateStr, currentTime, config, venueTimezone = 'Asia/Dubai', isDayActive = false) {
         const safeConfig = {
-            percBase: config?.percBase || 5,
-            percVip: config?.percVip || 20,
-            percDecay1: config?.percDecay1 || 15,
-            percDecay2: config?.percDecay2 || 10,
-            vipWindowDays: config?.vipWindowDays || 1, // default 1 day (daily visit)
-            tier1DecayDays: config?.tier1DecayDays || 2, // default 2 days
-            tier2DecayDays: config?.tier2DecayDays || 6, // default 6 days
+            percBase: Number(config?.percBase ?? 5),
+            percVip: Number(config?.percVip ?? 20),
+            percDecay1: Number(config?.percDecay1 ?? 15),
+            percDecay2: Number(config?.percDecay2 ?? 10),
+            vipWindowDays: Number(config?.vipWindowDays ?? 1), // default 1 day (daily visit)
+            tier1DecayDays: Number(config?.tier1DecayDays ?? 2), // default 2 days
+            tier2DecayDays: Number(config?.tier2DecayDays ?? 6), // default 6 days
         };
 
         const todayStr = this.getVenueDateString(currentTime, venueTimezone);
@@ -57,8 +57,8 @@ export class RewardCalculator {
         const lastVisitUtc = Date.parse(lastVisitDateStr + "T00:00:00Z");
         
         let diffDays = Math.round((todayUtc - lastVisitUtc) / msPerDay);
-        // Debug logging to help identify why 'yesterday' might be > 1
-        console.log(`[RewardCalculator] today: ${todayStr}, last: ${lastVisitDateStr}, diff: ${diffDays}`);
+        // Debug logging with current thresholds
+        console.log(`[RewardCalculator] today: ${todayStr}, last: ${lastVisitDateStr}, diff: ${diffDays}. Thresholds: VIP <= ${safeConfig.vipWindowDays}, T1 <= ${safeConfig.tier1DecayDays}, T2 <= ${safeConfig.tier2DecayDays}`);
         
         if (diffDays < 0) diffDays = 0; // Sanity check if timezones act weird
 

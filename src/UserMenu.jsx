@@ -29,7 +29,6 @@ const UserMenu = ({ user, venue, activeStatuses = [], trigger }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [showStatusDetails, setShowStatusDetails] = useState(null); // Added
     const { statuses, loading } = useUserStatuses(); // Kept for now, but might be removed if activeStatuses replaces it
-    const [deferredPrompt, setDeferredPrompt] = useState(null);
 
     const handleLogout = async () => {
         try {
@@ -62,25 +61,6 @@ const UserMenu = ({ user, venue, activeStatuses = [], trigger }) => {
         className: 'text-[#00FF41] mt-4 border-t border-white/5 pt-4'
     };
 
-    // PWA Install Logic
-    useEffect(() => {
-        const handleBeforeInstallPrompt = (e) => {
-            e.preventDefault();
-            setDeferredPrompt(e);
-        };
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    }, []);
-
-    const handleInstallClick = async () => {
-        if (!deferredPrompt) {
-            alert(t('pwa_manual_install', "To install: Tap the share button in your browser and 'Add to Home Screen'"));
-            return;
-        }
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') setDeferredPrompt(null);
-    };
 
     const toggleLanguage = () => {
         const cycle = { 'en': 'ru', 'ru': 'ar', 'ar': 'vi', 'vi': 'en' };
@@ -176,20 +156,6 @@ const UserMenu = ({ user, venue, activeStatuses = [], trigger }) => {
                                                 <FontAwesomeIcon icon={faMapLocationDot} />
                                             </div>
                                             <span className="text-[14px] font-semibold">{t('menu_map', 'Venue Map')}</span>
-                                        </div>
-                                        <FontAwesomeIcon icon={faChevronRight} className="text-[10px] opacity-30" />
-                                    </button>
-
-                                    {/* App Download */}
-                                    <button 
-                                        onClick={handleInstallClick}
-                                        className="w-full flex items-center justify-between p-3.5 bg-white/5 rounded-2xl text-white active:scale-98 transition-all border border-white/5"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 bg-green-500/20 text-green-400 rounded-xl flex items-center justify-center">
-                                                <FontAwesomeIcon icon={faDownload} />
-                                            </div>
-                                            <span className="text-[14px] font-semibold">{t('menu_download_app', 'Download App')}</span>
                                         </div>
                                         <FontAwesomeIcon icon={faChevronRight} className="text-[10px] opacity-30" />
                                     </button>

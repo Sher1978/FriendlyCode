@@ -14,6 +14,32 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
+const StaticTimeline = ({ t }) => {
+    const items = [
+        { label: t('timeline_vip_status'), value: '20%', sub: t('tomorrow'), color: '#00FF41' },
+        { label: t('timeline_level_1'), value: '15%', sub: t('in_3_days', 'In 3 days'), color: '#FFD700' },
+        { label: t('timeline_level_2'), value: '10%', sub: t('in_7_days', 'In 7 days'), color: '#FF8800' },
+        { label: t('timeline_base_rate'), value: '5%', sub: t('always'), color: '#FF3131' },
+    ];
+
+    return (
+        <div className="flex flex-col gap-3 w-full max-w-sm mx-auto mt-8 bg-white/5 backdrop-blur-xl p-6 rounded-[32px] border border-white/10 shadow-2xl">
+            {items.map((item, i) => (
+                <div key={i} className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color, boxShadow: `0 0 10px ${item.color}` }} />
+                        <div className="flex flex-col items-start">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-white/40 leading-none mb-1">{item.label}</span>
+                            <span className="text-[12px] font-bold text-white/90 leading-none">{item.sub}</span>
+                        </div>
+                    </div>
+                    <div className="text-xl font-black text-white">{item.value}</div>
+                </div>
+            ))}
+        </div>
+    );
+};
+
 const StepCard = ({ step, index, interceptedVenueId }) => {
     const navigate = useNavigate();
     const ref = React.useRef(null);
@@ -157,8 +183,23 @@ const RevooB2C = () => {
                         <img src="/revoo-logo.png" className={`transition-all duration-500 ${scrolled ? 'h-6' : 'h-8'} md:h-12 object-contain mix-blend-screen opacity-90 drop-shadow-[0_0_10px_rgba(212,175,55,0.3)]]`} alt="REVOO Logo" />
                         <span className="hidden sm:block text-white/40 text-[10px] md:text-sm font-bold tracking-widest uppercase border-l border-white/20 pl-4">REVOO</span>
                     </div>
-                    <div className="flex items-center gap-2 md:gap-6">
-                        <LanguageSelector />
+                    <div className="flex items-center gap-2 md:gap-4">
+                        <div className="flex items-center gap-1.5 md:gap-2 mr-2">
+                            {[
+                                { code: 'en', flag: '🇺🇸' },
+                                { code: 'ar', flag: '🇦🇪' },
+                                { code: 'ru', flag: '🇷🇺' },
+                                { code: 'vi', flag: '🇻🇳' }
+                            ].map(lang => (
+                                <button
+                                    key={lang.code}
+                                    onClick={() => i18n.changeLanguage(lang.code)}
+                                    className={`w-7 h-7 md:w-8 md:h-8 flex items-center justify-center rounded-full transition-all ${i18n.language === lang.code ? 'bg-[#D4AF37] scale-110 shadow-[0_0_15px_rgba(212,175,55,0.5)]' : 'bg-white/5 hover:bg-white/10 opacity-50 hover:opacity-100'}`}
+                                >
+                                    <span className="text-base md:text-lg">{lang.flag}</span>
+                                </button>
+                            ))}
+                        </div>
                         
                         {/* Integrated Battery Widget */}
                         <motion.div 
@@ -166,8 +207,8 @@ const RevooB2C = () => {
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                         >
-                            <span className="text-[7px] md:text-[10px] font-black uppercase tracking-widest opacity-40 text-white leading-none">Status</span>
-                            <div className="w-10 h-5 md:w-14 md:h-7 border-[1.5px] md:border-2 border-white/20 rounded-[3px] md:rounded-md p-[1px] md:p-[2px] relative bg-white/5 backdrop-blur-xl">
+                            <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest opacity-40 text-white leading-none">STATUS</span>
+                            <div className="w-8 h-4 md:w-12 md:h-6 border-[1.5px] md:border-2 border-white/20 rounded-[2px] md:rounded-md p-[1px] md:p-[1.5px] relative bg-white/5 backdrop-blur-xl">
                                 <motion.div 
                                     className="h-full rounded-[1px] md:rounded-[2px]"
                                     style={{ 
@@ -202,32 +243,39 @@ const RevooB2C = () => {
                         transition={{ duration: 0.8, ease: "easeOut" }}
                     >
                         <h1 className="text-xl md:text-3xl font-black text-white/50 mb-4 md:mb-6 tracking-[0.2em] uppercase border-t border-white/10 pt-6 md:pt-8 inline-block">
-                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37]">ENERGY</span> THAT MATTERS
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37]">
+                                {t('b2c_hero_title')}
+                            </span>
                         </h1>
                         <p className="text-sm md:text-xl text-white/60 font-medium mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed px-4">
-                            Забудь про пластик и анкеты. Получай статус и награды мгновенно. Ваше время стоит большего.
+                            {t('b2c_hero_sub')}
                         </p>
                         <motion.button
                             whileHover={{ scale: 1.05, boxShadow: "0 0 50px rgba(212, 175, 55, 0.4)" }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => {
+                                const lng = i18n.language;
                                 if (interceptedVenueId) {
-                                    navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
+                                    navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true&lng=${lng}`);
                                 } else {
-                                    navigate('/test?id=komKf0beSnsuuZ6p0Igh');
+                                    navigate(`/test?id=komKf0beSnsuuZ6p0Igh&lng=${lng}`);
                                 }
                             }}
                             className="bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37] text-black px-12 py-5 rounded-full font-black text-sm md:text-base uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:shadow-[0_0_40px_rgba(212,175,55,0.5)] mx-auto flex items-center gap-4"
                         >
-                            {interceptedVenueId ? 'ПОЛУЧИТЬ НАГРАДУ' : 'СТАТЬ ВИП'}
+                            {interceptedVenueId ? t('b2c_hero_cta_reward', 'ПОЛУЧИТЬ НАГРАДУ') : t('b2c_hero_cta_vip', 'СТАТЬ ВИП')}
                             <FontAwesomeIcon icon={faArrowRight} />
                         </motion.button>
+                        
+                        <div className="mt-12 flex justify-center">
+                            <StaticTimeline t={t} />
+                        </div>
                     </motion.div>
                 </div>
             </section>
 
             {/* Steps Section */}
-            <section className="py-32 px-6 max-w-7xl mx-auto relative">
+            <section className="py-12 md:py-32 px-6 max-w-7xl mx-auto relative">
                 <div className="text-center mb-24 relative">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#D4AF37] blur-[100px] opacity-10 pointer-events-none rounded-full" />
                     <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tight mb-6 relative z-10 text-white">Магия в 3 шага</h2>
@@ -247,39 +295,40 @@ const RevooB2C = () => {
             </section>
 
             {/* Psychology Section */}
-            <section className="relative py-32 overflow-hidden">
+            <section className="relative py-12 md:py-32 overflow-hidden">
                 <div className="relative z-10 max-w-7xl mx-auto px-6 text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 100 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="bg-gradient-to-br from-[#1C1C1E] to-black border border-white/10 p-12 md:p-24 rounded-[60px] shadow-[0_0_80px_rgba(0,0,0,0.5)] relative overflow-hidden"
+                        className="bg-gradient-to-br from-[#1C1C1E] to-black border border-white/10 p-8 md:p-24 rounded-[40px] md:rounded-[60px] shadow-[0_0_80px_rgba(0,0,0,0.5)] relative overflow-hidden"
                     >
                         {/* Glow Effect */}
                         <div className="absolute top-0 right-0 w-96 h-96 bg-[#D4AF37] blur-[150px] opacity-10 translate-x-1/2 -translate-y-1/2 pointer-events-none" />
                         <div className="absolute bottom-0 left-0 w-96 h-96 bg-amber-900 blur-[150px] opacity-10 -translate-x-1/2 translate-y-1/2 pointer-events-none" />
                         
-                        <div className="relative mx-auto w-24 h-24 mb-12 flex items-center justify-center">
+                        <div className="relative mx-auto w-16 h-16 md:w-24 md:h-24 mb-8 md:12 flex items-center justify-center">
                             <div className="absolute inset-0 bg-[#D4AF37]/20 rounded-full blur-[30px] animate-pulse" />
-                            <FontAwesomeIcon icon={faCrown} className="text-[#D4AF37] text-6xl relative z-10 drop-shadow-[0_0_20px_rgba(212,175,55,0.6)]" />
+                            <FontAwesomeIcon icon={faCrown} className="text-[#D4AF37] text-4xl md:text-6xl relative z-10 drop-shadow-[0_0_20px_rgba(212,175,55,0.6)]" />
                         </div>
-                        <h2 className="text-4xl md:text-7xl font-black uppercase mb-8 leading-tight tracking-tighter text-white">
+                        <h2 className="text-2xl md:text-7xl font-black uppercase mb-6 md:mb-8 leading-tight tracking-tighter text-white">
                             Don’t lose your energy. <br/>
                             <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37]">Stay Super VIP.</span>
                         </h2>
-                        <p className="text-lg md:text-xl text-white/50 font-medium max-w-3xl mx-auto leading-relaxed mb-12 italic">
+                        <p className="text-base md:text-xl text-white/50 font-medium max-w-3xl mx-auto leading-relaxed mb-8 md:12 italic">
                             « Твой статус — это живая батарея. Приходи чаще, чтобы поддерживать заряд на 100%. Если ты долго не заходишь — энергия тает, и твой ВИП статус снижается ».
                         </p>
                         <motion.button 
-                            whileHover={{ scale: 1.05, boxShadow: "0 0 50px rgba(212, 175, 55, 0.4)" }}
+                            whileHover={{ scale: 1.05, boxShadow: "0_0_50px_rgba(212,175,55,0.4)" }}
                             onClick={() => {
+                                const lng = i18n.language;
                                 if (interceptedVenueId) {
-                                    navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
+                                    navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true&lng=${lng}`);
                                 } else {
-                                    navigate('/test?id=komKf0beSnsuuZ6p0Igh');
+                                    navigate(`/test?id=komKf0beSnsuuZ6p0Igh&lng=${lng}`);
                                 }
                             }}
-                            className="bg-gradient-to-r from-[#1C1C1E] to-black border border-[#D4AF37]/30 text-[#D4AF37] px-12 py-5 rounded-full font-black text-xl uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(212,175,55,0.1)] hover:border-[#D4AF37] transition-all"
+                            className="bg-gradient-to-r from-[#1C1C1E] to-black border border-[#D4AF37]/30 text-[#D4AF37] px-8 md:px-12 py-4 md:py-5 rounded-full font-black text-sm md:text-xl uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(212,175,55,0.1)] hover:border-[#D4AF37] transition-all"
                         >
                             Become VIP
                         </motion.button>
@@ -310,13 +359,14 @@ const RevooB2C = () => {
                     animate={{ y: 0 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => {
+                        const lng = i18n.language;
                         if (interceptedVenueId) {
-                            navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
+                            navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true&lng=${lng}`);
                         } else {
-                            navigate('/test?id=komKf0beSnsuuZ6p0Igh');
+                            navigate(`/test?id=komKf0beSnsuuZ6p0Igh&lng=${lng}`);
                         }
                     }}
-                    className="w-full bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37] text-black py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-[0_-10px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3"
+                    className="w-full bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37] text-black py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-[0_10px_40px_rgba(212,175,55,0.3)] flex items-center justify-center gap-3"
                 >
                     {interceptedVenueId ? t('b2c_hero_cta_reward', 'ПОЛУЧИТЬ НАГРАДУ') : t('b2c_hero_cta_vip', 'СТАТЬ ВИП')}
                     <FontAwesomeIcon icon={faArrowRight} />

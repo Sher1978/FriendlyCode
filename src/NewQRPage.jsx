@@ -153,7 +153,9 @@ const NewQRPage = () => {
 
                             debugInfo = { 
                                 ...debugInfo, 
-                                daysAgoStr: isDayActive ? `Сегодня (${todayStr})` : (lastVisitDateStr || 'Никогда'), 
+                                todayDate: todayStr,
+                                lastVisitDisplay: lastVisitDateStr || 'Никогда', 
+                                isDayActive,
                                 history: debugDays.length ? debugDays.join(', ') : 'Нет', 
                                 discountToday: calculatedDiscount, 
                                 diffDays: result.diffDays ?? 'N/A' 
@@ -233,21 +235,26 @@ const NewQRPage = () => {
     }
 
     // Map discount logic
+    // Safe percentages for comparison
+    const targetVip = Number(loyaltyConfig?.percVip ?? 20);
+    const targetDecay1 = Number(loyaltyConfig?.percDecay1 ?? 15);
+    const targetDecay2 = Number(loyaltyConfig?.percDecay2 ?? 10);
+
     let mappedCapacity = 10;
-    if (discount >= 20) mappedCapacity = 100;
-    else if (discount >= 15) mappedCapacity = 50;
-    else if (discount >= 10) mappedCapacity = 25;
+    if (discount >= targetVip) mappedCapacity = 100;
+    else if (discount >= targetDecay1) mappedCapacity = 50;
+    else if (discount >= targetDecay2) mappedCapacity = 25;
     
     const batCfg = getBatteryConfig(mappedCapacity);
 
     const formatDays = (d) => parseInt(d) === 1 ? `1 ${t('timeline_day')}` : `${d} ${t('timeline_days')}`;
 
     const timelineItems = loyaltyConfig ? [
-        { label: t('timeline_vip_status'), value: `${loyaltyConfig.percVip || 20}%`, sub: `${t('timeline_within', { days: formatDays(loyaltyConfig.vipWindowDays || 1) })}`, color: '#00FF41', perc: loyaltyConfig.percVip || 20 },
-        { label: t('timeline_level_1'), value: `${loyaltyConfig.percDecay1 || 15}%`, sub: `${t('timeline_within', { days: formatDays(loyaltyConfig.tier1DecayDays || 2) })}`, color: '#FFD700', perc: loyaltyConfig.percDecay1 || 15 },
-        { label: t('timeline_level_2'), value: `${loyaltyConfig.percDecay2 || 10}%`, sub: `${t('timeline_within', { days: formatDays(loyaltyConfig.tier2DecayDays || 6) })}`, color: '#FF8800', perc: loyaltyConfig.percDecay2 || 10 },
-        { label: t('timeline_base_rate'), value: `${loyaltyConfig.percBase || 5}%`, sub: t('timeline_any_other_time'), color: '#FF3131', perc: loyaltyConfig.percBase || 5 },
-    ].filter(item => item.perc > (loyaltyConfig.percBase || 0) || item.label === t('timeline_base_rate'))
+        { label: t('timeline_vip_status'), value: `${loyaltyConfig.percVip ?? 20}%`, sub: `${t('timeline_within', { days: formatDays(loyaltyConfig.vipWindowDays ?? 1) })}`, color: '#00FF41', perc: Number(loyaltyConfig.percVip ?? 20) },
+        { label: t('timeline_level_1'), value: `${loyaltyConfig.percDecay1 ?? 15}%`, sub: `${t('timeline_within', { days: formatDays(loyaltyConfig.tier1DecayDays ?? 2) })}`, color: '#FFD700', perc: Number(loyaltyConfig.percDecay1 ?? 15) },
+        { label: t('timeline_level_2'), value: `${loyaltyConfig.percDecay2 ?? 10}%`, sub: `${t('timeline_within', { days: formatDays(loyaltyConfig.tier2DecayDays ?? 6) })}`, color: '#FF8800', perc: Number(loyaltyConfig.percDecay2 ?? 10) },
+        { label: t('timeline_base_rate'), value: `${loyaltyConfig.percBase ?? 5}%`, sub: t('timeline_any_other_time'), color: '#FF3131', perc: Number(loyaltyConfig.percBase ?? 5) },
+    ].filter(item => item.perc > Number(loyaltyConfig.percBase ?? 0) || item.label === t('timeline_base_rate'))
     : [
         { label: t('today'), value: '10% Max', sub: 'Active', color: '#FF3131' },
         { label: t('tomorrow'), value: '15% Max', sub: 'Maintaining', color: '#00FF41' },
@@ -350,7 +357,7 @@ const NewQRPage = () => {
                             Current Rate
                         </p>
                         <div className="w-full relative z-10 pointer-events-none scale-100 mb-0">
-                            <PngBattery discount={discount} />
+                            <PngBattery capacity={mappedCapacity} />
                         </div>
                     </div>
 
@@ -415,7 +422,9 @@ const NewQRPage = () => {
                                         { label: 'UID', value: lastVisitDebug.uid },
                                         { label: 'Email', value: lastVisitDebug.email },
                                         { label: 'Venue', value: lastVisitDebug.venueId },
-                                        { label: 'Current State', value: lastVisitDebug.daysAgoStr },
+                                        { label: 'System Date', value: lastVisitDebug.todayDate },
+                                        { label: 'Last Recorded Visit', value: lastVisitDebug.lastVisitDisplay },
+                                        { label: 'Is Today Active', value: lastVisitDebug.isDayActive ? 'YES' : 'NO' },
                                         { label: 'History (5 days)', value: lastVisitDebug.history },
                                         { label: 'Calculated Rate', value: `${lastVisitDebug.discountToday}%`, color: 'text-[#00FF41]' }
                                     ].map((item, idx) => (

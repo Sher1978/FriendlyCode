@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import '../../core/auth/role_provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/services/fcm_service.dart';
 import '../../features/owner/presentation/screens/owner_dashboard_screen.dart';
@@ -24,10 +26,7 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
   @override
   void initState() {
     super.initState();
-    // WEB: Skip auto-login to prevent stalls. Show Login Screen immediately.
-    if (!kIsWeb) {
-      _checkToken();
-    }
+    _checkToken();
     
     // Initialize FCM without blocking UI
     FCMService().initialize();
@@ -52,26 +51,11 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
     if (mounted) {
       if (user != null) {
         try {
-          // User is logged in, check if they have a venue
-          final userDoc = await FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.uid)
-              .get()
-              .timeout(const Duration(seconds: 7));
+          // 1. Refresh global role & venue list
+          await Provider.of<RoleProvider>(context, listen: false).refreshRole();
           
-          if (userDoc.exists) {
-             final venueId = userDoc.data()?['venueId'];
-             if (venueId != null && (venueId as String).isNotEmpty) {
-                // Assigned to a venue -> Dashboard
-                _navigateToDashboard();
-             } else {
-               // Not assigned -> Welcome Screen (Join/Create)
-               _navigateToWelcome();
-             }
-          } else {
-             // User authenticated but no DB record
-             _navigateToWelcome();
-          }
+          // 2. Navigate based on assigned data or just go to dashboard
+          _navigateToDashboard();
         } catch (e) {
           debugPrint("Dispatcher error: $e");
           // On error, fall back to landing page to allow re-login if needed
@@ -117,10 +101,8 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // WEB: Always show landing screen immediately (No loading spinner)
-    if (kIsWeb) {
-      return const PlatformLandingScreen();
-    }
+    // WEB: Allow loading to check for token/session
+    // Removed immediate PlatformLandingScreen return
 
     if (_isLoading) {
       return const Scaffold(

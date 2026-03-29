@@ -13,8 +13,8 @@ class AppColors {
   static const Color body = Color(0x99EBEBF5); // Light grey text (Apple secondary)
   static const Color tertiary = Color(0x4DEBEBF5); // Apple tertiary text
 
-  static const Color accentOrange = Color(0xFFFF9F0A); // iOS Orange
-  static const Color accentGreen = Color(0xFF30D158); // iOS Green
+  static const Color accentGreen = Color(0xFF00FF41); // Revoo Neon Green
+  static const Color accentOrange = Color(0xFFFF9F0A); // iOS Orange (De-emphasized)
   static const Color accentBlue = Color(0xFF0A84FF); // iOS Blue
   static const Color accentRed = Color(0xFFFF453A); // iOS Red
   static const Color accentYellow = Color(0xFFFFD60A); // iOS Yellow
@@ -29,9 +29,9 @@ class AppColors {
     ),
   ];
   
-  // Premium Redesign Palette (Kept for compatibility, darkened)
-  static const Color premiumSand = Color(0xFF1C1C1E); 
-  static const Color premiumBurntOrange = Color(0xFFD35400); 
+  // Premium Redesign Palette (Strict Green)
+  static const Color premiumSand = Color(0xFF0A0A0A); 
+  static const Color premiumBurntOrange = Color(0xFF00FF41); // Now aliased to Green
   static const Color premiumCream = Color(0xFF111111); 
   
   // Status Badges (Neon Pastels for Dark Mode)
@@ -64,7 +64,7 @@ class AppColors {
   // Legacy/Compatibility & Aliases
   static const Color backgroundCream = background;
   static const Color surfaceCream = surface;
-  static const Color brandOrange = accentOrange;
+  static const Color brandOrange = accentGreen;
   static const Color brandGreen = accentGreen;
   static const Color brandBrown = title;
   static const Color textSecondary = body;

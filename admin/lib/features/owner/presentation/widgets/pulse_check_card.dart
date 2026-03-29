@@ -35,12 +35,12 @@ class PulseCheckCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.premiumGold.withOpacity(0.1),
+                  color: AppColors.accentGreen.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(
                   icon,
-                  color: AppColors.premiumGold,
+                  color: AppColors.accentGreen,
                   size: 20,
                 ),
               ),
