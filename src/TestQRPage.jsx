@@ -243,11 +243,30 @@ const TestQRPage = () => {
         );
     }
 
-    // Map discount logic
-    let mappedCapacity = 10;
-    if (discount >= 20) mappedCapacity = 100;
-    else if (discount >= 15) mappedCapacity = 50;
-    else if (discount >= 10) mappedCapacity = 25;
+    // ── Rank-Based Battery Mapping ──
+    const getMappedCapacity = (currentDiscount, config) => {
+        if (!config) return 10;
+        
+        // Extract all tiers that define the progression
+        const tiers = [
+            Number(config.percBase ?? 5),
+            Number(config.percDecay2 || config.percBase || 5),
+            Number(config.percDecay1 || config.percBase || 5),
+            Number(config.percVip ?? 20)
+        ];
+
+        // Filter unique and sort ascending to find the rank
+        const uniqueTiers = [...new Set(tiers)].sort((a, b) => a - b);
+        const index = uniqueTiers.indexOf(Number(currentDiscount));
+
+        if (index === -1) return 10; // Fallback
+        if (index === 0) return 10; // 1st tier (Lowest) = Red
+        if (index === uniqueTiers.length - 1) return 100; // Last tier (VIP) = Green
+        if (index === 1) return 25; // 2nd tier = Orange
+        return 50; // Everything else = Yellow
+    };
+
+    const mappedCapacity = getMappedCapacity(discount, loyaltyConfig);
     
     const batCfg = getBatteryConfig(mappedCapacity);
 
@@ -357,10 +376,9 @@ const TestQRPage = () => {
                         Current Rate
                     </p>
 
-                    {/* Horizontal battery component */}
-                    <div className="w-full relative z-10 pointer-events-none">
-                        <PngBattery discount={discount} />
-                    </div>
+                        <div className="w-full relative z-10 pointer-events-none">
+                            <PngBattery capacity={mappedCapacity} />
+                        </div>
                 </div>
 
                 {/* iOS Settings-style Timeline Widget */}

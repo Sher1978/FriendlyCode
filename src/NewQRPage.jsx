@@ -249,16 +249,30 @@ const NewQRPage = () => {
         );
     }
 
-    // Map discount logic
-    // Safe percentages for comparison
-    const targetVip = Number(loyaltyConfig?.percVip ?? 20);
-    const targetDecay1 = Number(loyaltyConfig?.percDecay1 ?? 15);
-    const targetDecay2 = Number(loyaltyConfig?.percDecay2 ?? 10);
+    // ── Rank-Based Battery Mapping ──
+    const getMappedCapacity = (currentDiscount, config) => {
+        if (!config) return 10;
+        
+        // Extract all tiers that define the progression
+        const tiers = [
+            Number(config.percBase ?? 5),
+            Number(config.percDecay2 || config.percBase || 5),
+            Number(config.percDecay1 || config.percBase || 5),
+            Number(config.percVip ?? 20)
+        ];
 
-    let mappedCapacity = 10;
-    if (discount >= targetVip) mappedCapacity = 100;
-    else if (discount >= targetDecay1) mappedCapacity = 50;
-    else if (discount >= targetDecay2) mappedCapacity = 25;
+        // Filter unique and sort ascending to find the rank
+        const uniqueTiers = [...new Set(tiers)].sort((a, b) => a - b);
+        const index = uniqueTiers.indexOf(Number(currentDiscount));
+
+        if (index === -1) return 10; // Fallback
+        if (index === 0) return 10; // 1st tier (Lowest) = Red
+        if (index === uniqueTiers.length - 1) return 100; // Last tier (VIP) = Green
+        if (index === 1) return 25; // 2nd tier = Orange
+        return 50; // Everything else = Yellow
+    };
+
+    const mappedCapacity = getMappedCapacity(discount, loyaltyConfig);
     
     const batCfg = getBatteryConfig(mappedCapacity);
 

@@ -50,8 +50,11 @@ export function getBatteryConfig(capacity) {
 
 const TOTAL_SEGMENTS = 14;
 
-export default function PngBattery({ capacity = 10 }) {
-    const cfg = getBatteryConfig(capacity);
+export default function PngBattery({ capacity, discount }) {
+    // Current rank-based system uses 10, 25, 50, 100
+    // We prioritize 'capacity' if provided, then 'discount', then default to 10
+    const batteryLevel = capacity ?? discount ?? 10;
+    const cfg = getBatteryConfig(batteryLevel);
     const uid = cfg.label;
 
     const fillStart = 14.5;
