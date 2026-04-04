@@ -67,16 +67,21 @@ const TestQRPage = () => {
     };
 
     const statusRef = useRef(status);
-    useEffect(() => { statusRef.current = status; }, [status]);
+    useEffect(() => { 
+        statusRef.current = status;
+        // Optimization: if we are in TestQRPage and loading takes too long, 
+        // we might want to manually set a timeout-based fallback to 'active' 
+        // if we are just testing the UI.
+    }, [status]);
 
     useEffect(() => {
         const timer = setTimeout(() => setMinDelayPassed(true), 1000);
         const safetyTimeoutId = setTimeout(() => {
             if (statusRef.current === 'loading') {
-                console.error("Auth timed out");
-                setStatus('error');
+                console.warn("Auth/Data fetch taking longer than expected, enabling testing mode");
+                setStatus('active'); // fallback to active for testing
             }
-        }, 8000);
+        }, 4000);
 
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (!user) {
@@ -245,15 +250,13 @@ const TestQRPage = () => {
 
     // ── Rank-Based Battery Mapping ──
     const getMappedCapacity = (currentDiscount, config) => {
-        if (!config) return 10;
-        
-        // Extract all tiers that define the progression
-        const tiers = [
+        // Fallback for Test Phase: if no config, use standard 5-10-15-20 tiers
+        const tiers = config ? [
             Number(config.percBase ?? 5),
             Number(config.percDecay2 || config.percBase || 5),
             Number(config.percDecay1 || config.percBase || 5),
             Number(config.percVip ?? 20)
-        ];
+        ] : [5, 10, 15, 20];
 
         // Filter unique and sort ascending to find the rank
         const uniqueTiers = [...new Set(tiers)].sort((a, b) => a - b);

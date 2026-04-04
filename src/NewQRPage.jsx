@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faStar, faChevronRight, faChevronDown, faClock, faUser, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { faStar, faChevronRight, faChevronDown, faClock, faUser, faExclamationTriangle, faGift } from '@fortawesome/free-solid-svg-icons';
 import UserMenu from './UserMenu';
 import { motion } from 'framer-motion';
 import { db, auth } from './firebase';

@@ -61,7 +61,7 @@ export default function PngBattery({ capacity, discount }) {
     const fillEnd = 85.5;
     
     // Continuous charge ratio for the sweeping wave mask
-    const chargeRatio = (capacity || 10) / 100;
+    const chargeRatio = (batteryLevel) / 100;
     const currentFill = fillStart + (fillEnd - fillStart) * chargeRatio;
 
     return (
