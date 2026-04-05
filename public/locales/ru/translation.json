@@ -336,5 +336,12 @@
     "review_thank_you": "Спасибо за отзыв!",
     "review_gift_screen_title": "Поздравляем!",
     "review_gift_screen_sub": "Покажите этот экран персоналу — и получите специальный подарок!",
-    "review_gift_close": "Понятно!"
+    "review_gift_close": "Понятно!",
+    "review_instruction_title": "Хотите подарок за отзыв?",
+    "review_instruction_step_1": "Поставьте 5 звёзд на Гугл Картах",
+    "review_instruction_step_2": "Напишите короткий отзыв",
+    "review_instruction_step_3": "Затем покажите ваш отзыв персоналу",
+    "review_instruction_step_4": "Получите ваш подарок!",
+    "review_instruction_button": "В ГУГЛ КАРТЫ",
+    "review_instruction_close": "ПОЗЖЕ"
 }

@@ -117,7 +117,7 @@
     "b2b_tech_segments_title": "14-Segment Structure",
     "b2b_tech_segments_text": "Analysis of the 14-segment visualization structure.",
     "b2b_tech_melting_title": "Melting Logic",
-    "b2b_tech_melting_text": "How the \"melting\" mechanic works: the longer the pause between visits, the lower the charge.",
+    "b2b_tech_melting_text": "How the \"melting\" mechanic works: the longer the speed between visits, the lower the charge.",
     "b2b_tech_wallet_title": "Apple Wallet & Google Pay",
     "b2b_tech_wallet_text": "Using native smartphone tools instead of third-party apps.",
     "b2b_matrix_h2": "The Retention Architecture Matrix",
@@ -334,5 +334,12 @@
     "review_thank_you": "Thank you for your feedback!",
     "review_gift_screen_title": "Congratulations!",
     "review_gift_screen_sub": "Show this screen to the staff to receive your special gift!",
-    "review_gift_close": "Got it!"
+    "review_gift_close": "Got it!",
+    "review_instruction_title": "Want a bonus gift?",
+    "review_instruction_step_1": "Tap the button below",
+    "review_instruction_step_2": "Leave a 5-star rating on Google Maps",
+    "review_instruction_step_3": "Show your review to the staff",
+    "review_instruction_step_4": "Receive your special gift!",
+    "review_instruction_button": "GO TO GOOGLE MAPS",
+    "review_instruction_close": "LATER"
 }

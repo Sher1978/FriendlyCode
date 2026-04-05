@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
-    faLayoutDashboard, 
+    faGaugeHigh, 
     faCrown, 
     faMapLocationDot, 
     faArrowLeft,
