@@ -13,7 +13,16 @@ const LeadCapture = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
-    const { discount } = location.state || { discount: 5 }; // Default to 5% if direct access
+    
+    // --- STATE PERSISTENCE (Recover state after redirect) ---
+    const [discount, setDiscount] = useState(() => {
+        const stateDiscount = location.state?.discount;
+        if (stateDiscount !== undefined) {
+            sessionStorage.setItem('pendingDiscount', stateDiscount.toString());
+            return stateDiscount;
+        }
+        return parseInt(sessionStorage.getItem('pendingDiscount')) || 5;
+    });
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -22,7 +31,6 @@ const LeadCapture = () => {
     // --- ROBUST AUTH REDIRECT HANDLING (MOBILE) ---
     React.useEffect(() => {
         let isProcessing = false;
-        let checkCount = 0;
 
         const handleAuthAction = async (user) => {
             if (!user || isProcessing) return;
@@ -38,58 +46,41 @@ const LeadCapture = () => {
                 await processAuthUser(guestName, guestEmail, user.uid, venueId);
             } catch (err) {
                 console.error("Auth process error:", err);
-            } finally {
                 setIsGoogleLoading(false);
+                isProcessing = false; // Allow retry on failure
             }
         };
 
         const checkRedirect = async () => {
-            if (isProcessing) return;
-            checkCount++;
-            console.log(`[Attempt ${checkCount}] Checking Google Auth status...`);
-            
+            console.log("Checking Google Auth redirect status...");
             try {
-                // 1. Check for a redirect result explicitly
                 const result = await getRedirectResult(auth);
                 if (result?.user) {
-                    console.log("Redirect result found! User:", result.user.email);
+                    console.log("Redirect result found:", result.user.email);
                     await handleAuthAction(result.user);
-                    return;
-                }
-
-                // 2. Fallback: Check if user is already signed in (Firebase might have restored session)
-                if (auth.currentUser) {
-                    console.log("Found existing auth session:", auth.currentUser.email);
+                } else if (auth.currentUser) {
+                    console.log("Existing user session found:", auth.currentUser.email);
                     await handleAuthAction(auth.currentUser);
-                    return;
-                }
-
-                // 3. Retry logic for mobile browsers that are slow to populate auth state
-                if (checkCount < 3) {
-                    setTimeout(checkRedirect, 1000); // Wait another second
                 } else {
-                    console.log("Stop checking for redirect - no session found.");
                     setIsGoogleLoading(false);
                 }
             } catch (error) {
-                console.error("Critical Redirect Error:", error);
+                console.error("Redirect Error:", error);
                 setIsGoogleLoading(false);
             }
         };
 
-        // Standard listener (Backup)
+        // Single entry point for auth check
         const unsubscribe = auth.onAuthStateChanged((user) => {
-            if (user && !isProcessing) {
+            if (user) {
                 handleAuthAction(user);
+            } else {
+                // If not logged in yet, check if we're waiting for a redirect result
+                checkRedirect();
             }
         });
 
-        // Initial check triggers for redirect logic
-        checkRedirect();
-
-        return () => {
-            unsubscribe();
-        };
+        return () => unsubscribe();
     }, []);
     // -----------------------------------------------
 

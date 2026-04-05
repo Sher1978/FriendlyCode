@@ -16,26 +16,32 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 const StaticTimeline = ({ t }) => {
     const items = [
-        { label: t('timeline_vip_status'), value: '20%', sub: t('tomorrow'), color: '#00FF41' },
-        { label: t('timeline_level_1'), value: '15%', sub: t('in_3_days', 'In 3 days'), color: '#FFD700' },
-        { label: t('timeline_level_2'), value: '10%', sub: t('in_7_days', 'In 7 days'), color: '#FF8800' },
-        { label: t('timeline_base_rate'), value: '5%', sub: t('always'), color: '#FF3131' },
+        { label: t('b2c_timeline_today'), value: 'Guest', color: '#FF3131' },
+        { label: t('b2c_timeline_tomorrow'), value: 'SUPER VIP', color: '#00FF41' },
+        { label: t('b2c_timeline_week'), value: 'VIP', color: '#FFD700' },
     ];
 
     return (
-        <div className="flex flex-col gap-3 w-full max-w-sm mx-auto mt-8 bg-white/5 backdrop-blur-xl p-6 rounded-[32px] border border-white/10 shadow-2xl">
+        <div className="flex flex-col gap-3 w-full max-w-sm mx-auto mt-8 bg-white/5 backdrop-blur-xl p-6 rounded-[32px] border border-white/10 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-2 opacity-20">
+                <FontAwesomeIcon icon={faBolt} className="text-[#00FF41]" />
+            </div>
             {items.map((item, i) => (
-                <div key={i} className="flex items-center justify-between gap-4">
+                <div key={i} className="flex items-center justify-between gap-4 text-left">
                     <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color, boxShadow: `0 0 10px ${item.color}` }} />
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color, boxShadow: `0 0 15px ${item.color}` }} />
                         <div className="flex flex-col items-start">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-white/40 leading-none mb-1">{item.label}</span>
-                            <span className="text-[12px] font-bold text-white/90 leading-none">{item.sub}</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 leading-none mb-1.5">{item.label}</span>
+                            <span className="text-[13px] font-black text-white/90 leading-none uppercase">{item.value}</span>
                         </div>
                     </div>
-                    <div className="text-xl font-black text-white">{item.value}</div>
                 </div>
             ))}
+            <div className="mt-4 pt-4 border-t border-white/5">
+                <p className="text-[10px] font-bold text-[#D4AF37] uppercase tracking-widest text-center">
+                    {t('b2c_timeline_charge')}
+                </p>
+            </div>
         </div>
     );
 };
@@ -118,13 +124,27 @@ const RevooB2C = () => {
         return () => window.removeEventListener('beforeinstallprompt', handler);
     }, []);
 
-    // Return Guest Logic: If user is already known, bypass landing and go to QR page
+    // Return Guest Logic: If user is already known or authenticated, bypass landing
     useEffect(() => {
         const guestName = localStorage.getItem('guestName');
         const guestEmail = localStorage.getItem('guestEmail');
-        if ((guestName || guestEmail) && interceptedVenueId) {
-            navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`);
-        }
+        
+        const checkReturnGuest = (user) => {
+            if ((guestName || guestEmail || user) && interceptedVenueId) {
+                console.log("Recognized user/guest! Bypassing landing for venue:", interceptedVenueId);
+                navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`, { replace: true });
+            }
+        };
+
+        // 1. Initial check (localStorage)
+        checkReturnGuest(auth.currentUser);
+
+        // 2. Auth listener check (in case session loads slightly later)
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) checkReturnGuest(user);
+        });
+
+        return () => unsubscribe();
     }, [interceptedVenueId, navigate]);
     
     // Scroll tracking for the Sticky Battery
@@ -254,16 +274,13 @@ const RevooB2C = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
                     >
-                        <h1 className="text-xl md:text-3xl font-black text-white/50 mb-4 md:mb-6 tracking-[0.2em] uppercase border-t border-white/10 pt-6 md:pt-8 inline-block">
-                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37]">
-                                {t('b2c_hero_title')}
+                        <h1 className="text-xl md:text-4xl font-black text-white/50 mb-4 md:mb-6 tracking-[0.05em] uppercase border-t border-white/10 pt-6 md:pt-8 inline-block max-w-[80vw]">
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37] leading-[1.1]">
+                                {t('b2c_hero_super_vip_title')}
                             </span>
                         </h1>
-                        <p className="text-[17px] md:text-xl text-white/80 font-bold mb-4 md:mb-6 max-w-2xl mx-auto leading-tight px-4 uppercase tracking-tight">
-                            Это первая справедливая система Управления статусом, где ты получишь <span className="text-[#D4AF37]">МАКСИМАЛЬНО</span> возможную скидку <span className="text-[#00FF41]">УЖЕ ЗАВТРА</span>
-                        </p>
-                        <p className="text-sm md:text-lg text-white/40 font-medium mb-8 md:mb-12 max-w-2xl mx-auto leading-relaxed px-4">
-                            {t('b2c_hero_sub')}
+                        <p className="text-[16px] md:text-xl text-white/60 font-medium mb-4 md:mb-6 max-w-2xl mx-auto leading-relaxed px-4 lowercase tracking-tight">
+                            {t('b2c_hero_no_points')}
                         </p>
                         <motion.button
                             whileHover={{ scale: 1.05, boxShadow: "0 0 50px rgba(212, 175, 55, 0.4)" }}
