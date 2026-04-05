@@ -329,5 +329,12 @@
     "b2b_matrix_energy_max": "Максимум энергии",
     "b2b_matrix_competitive_advantage": "Конкурентное преимущество: 10x",
     "b2b_matrix_paper_cards": "БУМАЖНЫЕ КАРТЫ",
-    "b2b_matrix_app_solutions": "ПРИЛОЖЕНИЯ"
+    "b2b_matrix_app_solutions": "ПРИЛОЖЕНИЯ",
+    "review_stars_prompt": "Как вам понравилось?",
+    "review_gift_hint": "Оцените 4–5 звёзд и получите бонусный подарок",
+    "review_tap_stars": "Нажмите на звёзду, чтобы оценить",
+    "review_thank_you": "Спасибо за отзыв!",
+    "review_gift_screen_title": "Поздравляем!",
+    "review_gift_screen_sub": "Покажите этот экран персоналу — и получите специальный подарок!",
+    "review_gift_close": "Понятно!"
 }

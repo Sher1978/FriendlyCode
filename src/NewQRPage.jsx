@@ -40,7 +40,7 @@ const NewQRPage = () => {
     useEffect(() => { statusRef.current = status; }, [status]);
 
     useEffect(() => {
-        const timer = setTimeout(() => setMinDelayPassed(true), 1000);
+        const timer = setTimeout(() => setMinDelayPassed(true), 500);
         const safetyTimeoutId = setTimeout(() => {
             if (statusRef.current === 'loading') {
                 console.error("Auth timed out");
@@ -58,86 +58,115 @@ const NewQRPage = () => {
             }
             clearTimeout(safetyTimeoutId);
 
-            const checkUserAndVenue = async () => {
-                const searchParams = new URLSearchParams(location.search);
-                const rawId = searchParams.get('id') || searchParams.get('v') || 'default_venue';
-                const bypassLanding = searchParams.get('bypass_landing') === 'true';
-                // Robustness: strip potential encoding artifacts like '3D' at the start
-                const venueId = rawId.startsWith('3D') && rawId.length > 10 ? rawId.substring(2) : rawId;
-                safeStorage.setItem('currentVenueId', venueId);
-
-                try {
-                    const venueRef = doc(db, 'venues', venueId);
-                    const venueSnap = await getDoc(venueRef);
-                    if (!venueSnap.exists()) { setStatus('error'); return; }
-
-                    const venueData = venueSnap.data();
-                    setVenueName(venueData.name || '');
-                    if (venueData.loyaltyConfig) setLoyaltyConfig(venueData.loyaltyConfig);
-
-                    // --- LANGUAGE INITIALIZATION ---
-                    const savedLang = safeStorage.getItem('userLanguage');
-                    const venueLang = venueData.defaultLanguage || 'en';
+                const checkUserAndVenue = async () => {
+                    const searchParams = new URLSearchParams(location.search);
+                    const rawId = searchParams.get('id') || searchParams.get('v') || 'default_venue';
+                    const bypassLanding = searchParams.get('bypass_landing') === 'true';
+                    // Robustness: strip potential encoding artifacts like '3D' at the start
+                    const venueId = rawId.startsWith('3D') && rawId.length > 10 ? rawId.substring(2) : rawId;
                     
-                    // Priority: 1. Manual User Selection, 2. Venue Default
-                    const targetLang = savedLang || venueLang;
-                    if (i18n.language !== targetLang) {
-                        console.log(`Setting language to ${targetLang} (Saved: ${savedLang}, Venue: ${venueLang})`);
-                        i18n.changeLanguage(targetLang);
-                    }
-                    // --------------------------------
+                    try {
+                        let venueData = null;
+                        let activeVenueId = venueId;
 
-                    const now = new Date();
-                    const expiry = venueData.subscription?.expiryDate?.toDate();
-                    if (!venueData.isActive || (expiry && expiry < now)) { setStatus('blocked'); return; }
-
-                    const userRef = doc(db, 'users', user.uid);
-                    const userSnap = await getDoc(userRef);
-                    let userData = userSnap.exists() ? userSnap.data() : null;
-
-                    let resolvedName = '';
-                    if (userData) {
-                        setUserRole(userData.role || 'guest');
-                        const displayName = userData.displayName || userData.name;
-                        if (displayName) { 
-                            resolvedName = displayName;
-                            setGuestName(displayName); 
-                            safeStorage.setItem('guestName', displayName); 
+                        // 1. Try resolving by Doc ID
+                        const venueRef = doc(db, 'venues', venueId);
+                        const venueSnap = await getDoc(venueRef);
+                        
+                        if (venueSnap.exists()) {
+                            venueData = venueSnap.data();
+                        } else {
+                            // 2. Try resolving by slug field
+                            const qSlug = query(collection(db, 'venues'), where('slug', '==', venueId));
+                            const qSlugSnap = await getDocs(qSlug);
+                            if (!qSlugSnap.empty) {
+                                venueData = qSlugSnap.docs[0].data();
+                                activeVenueId = qSlugSnap.docs[0].id;
+                            } else {
+                                // 3. Try resolving by name (normalized case-insensitive check if possible, or just exact)
+                                const qName = query(collection(db, 'venues'), where('name', '==', venueId));
+                                const qNameSnap = await getDocs(qName);
+                                if (!qNameSnap.empty) {
+                                    venueData = qNameSnap.docs[0].data();
+                                    activeVenueId = qNameSnap.docs[0].id;
+                                }
+                            }
                         }
-                        if (userData.email) safeStorage.setItem('guestEmail', userData.email);
-                    } else {
-                        const savedName = safeStorage.getItem('guestName');
-                        if (savedName) {
-                            resolvedName = savedName;
-                            setGuestName(savedName);
+
+                        if (!venueData) { 
+                            console.error(`Venue not found for ID: ${venueId}`);
+                            setStatus('error'); 
+                            return; 
                         }
-                    }
 
-                    // --- B2C INTERCEPT LOGIC ---
-                    if (!resolvedName && !bypassLanding) {
-                        // User is completely new, and hasn't been funneled through the landing page yet
-                        window.location.href = `/?qr_venue_id=${venueId}`;
-                        return;
-                    }
-                    // ---------------------------
+                        safeStorage.setItem('currentVenueId', activeVenueId);
 
-                    const rawEmail = userData?.email || safeStorage.getItem('guestEmail') || '';
-                    const email = rawEmail.toLowerCase();
-                    let calculatedDiscount = 5;
-                    let result = null;
-                    let debugInfo = { email: email || 'No Email', uid: user.uid, venueId, daysAgoStr: 'Никогда', history: 'Нет', discountToday: 5, diffDays: 'N/A' };
+                        setVenueName(venueData.name || '');
+                        if (venueData.loyaltyConfig) setLoyaltyConfig(venueData.loyaltyConfig);
 
-                    if (email) {
-                        const qVisits = query(collection(db, 'visits'), where('guestEmail', '==', email), where('venueId', '==', venueId), orderBy('timestamp', 'desc'), limit(10));
-                        const querySnapshot = await getDocs(qVisits);
+                        // --- LANGUAGE INITIALIZATION ---
+                        const savedLang = safeStorage.getItem('userLanguage');
+                        const venueLang = venueData.defaultLanguage || 'en';
+                        
+                        // Priority: 1. Manual User Selection, 2. Venue Default
+                        const targetLang = savedLang || venueLang;
+                        if (i18n.language !== targetLang) {
+                            console.log(`Setting language to ${targetLang} (Saved: ${savedLang}, Venue: ${venueLang})`);
+                            i18n.changeLanguage(targetLang);
+                        }
+                        // --------------------------------
 
-                        if (!querySnapshot.empty) {
-                            const docs = querySnapshot.docs;
-                            const uniqueDays = [];
-                            const tz = venueData.timezone || 'Asia/Dubai';
+                        const now = new Date();
+                        const expiry = venueData.subscription?.expiryDate?.toDate();
+                        if (!venueData.isActive || (expiry && expiry < now)) { setStatus('blocked'); return; }
 
-                            docs.forEach(docSnap => {
-                                const timestamp = docSnap.data().timestamp;
+                        const userRef = doc(db, 'users', user.uid);
+                        const userSnap = await getDoc(userRef);
+                        let userData = userSnap.exists() ? userSnap.data() : null;
+
+                        let resolvedName = '';
+                        if (userData) {
+                            setUserRole(userData.role || 'guest');
+                            const displayName = userData.displayName || userData.name;
+                            if (displayName) { 
+                                resolvedName = displayName;
+                                setGuestName(displayName); 
+                                safeStorage.setItem('guestName', displayName); 
+                            }
+                            if (userData.email) safeStorage.setItem('guestEmail', userData.email);
+                        } else {
+                            const savedName = safeStorage.getItem('guestName');
+                            if (savedName) {
+                                resolvedName = savedName;
+                                setGuestName(savedName);
+                            }
+                        }
+
+                        // --- B2C INTERCEPT LOGIC ---
+                        if (!resolvedName && !bypassLanding) {
+                            // User is completely new, go to landing with the original slug/id provided
+                            window.location.href = `/?qr_venue_id=${venueId}`;
+                            return;
+                        }
+                        // ---------------------------
+
+                        const rawEmail = userData?.email || safeStorage.getItem('guestEmail') || '';
+                        const email = rawEmail.toLowerCase();
+                        let calculatedDiscount = 5;
+                        let result = null;
+                        let debugInfo = { email: email || 'No Email', uid: user.uid, venueId: activeVenueId, daysAgoStr: 'Никогда', history: 'Нет', discountToday: 5, diffDays: 'N/A' };
+
+                        if (email) {
+                            const qVisits = query(collection(db, 'visits'), where('guestEmail', '==', email), where('venueId', '==', activeVenueId), orderBy('timestamp', 'desc'), limit(10));
+                            const querySnapshot = await getDocs(qVisits);
+
+                            if (!querySnapshot.empty) {
+                                const docs = querySnapshot.docs;
+                                const uniqueDays = [];
+                                const tz = venueData.timezone || 'Asia/Dubai';
+
+                                docs.forEach(docSnap => {
+                                    const timestamp = docSnap.data().timestamp;
                                 if (!timestamp) return;
                                 const dateObj = timestamp.toDate();
                                 const dateStr = RewardCalculator.getVenueDateString(dateObj, tz);

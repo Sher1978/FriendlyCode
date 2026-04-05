@@ -39,6 +39,26 @@ const UnifiedActivation = () => {
     const [ambientColor, setAmbientColor] = useState(getTierColor(discountValue));
     const [venueSettings, setVenueSettings] = useState({ loyaltyInterval: 1, googleReviewLink: '' });
     const [isReviewOpen, setIsReviewOpen] = useState(false);
+    const [reviewStars, setReviewStars] = useState(0);
+    const [hoveredStar, setHoveredStar] = useState(0);
+    const [showGiftScreen, setShowGiftScreen] = useState(false);
+
+    const handleStarClick = (star) => {
+        setReviewStars(star);
+        if (star >= 4) {
+            // Open Google review in background, then show gift screen
+            if (venueSettings.googleReviewLink) {
+                window.open(venueSettings.googleReviewLink, '_blank', 'noopener,noreferrer');
+            }
+            setTimeout(() => {
+                setIsReviewOpen(false);
+                setShowGiftScreen(true);
+            }, 300);
+        } else {
+            // Low rating — just close the popup
+            setTimeout(() => setIsReviewOpen(false), 600);
+        }
+    };
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -181,7 +201,7 @@ const UnifiedActivation = () => {
 
                     {/* Dynamic Action Area */}
                     <div className="mt-6 relative z-10">
-                        <div className={`${isClaimed ? 'h-[120px]' : 'h-[52px]'} relative flex justify-center transition-all duration-300`}>
+                        <div className={`${isClaimed ? 'h-[220px]' : 'h-[52px]'} relative flex justify-center transition-all duration-300`}>
                             <AnimatePresence mode="wait">
                                 {!isClaimed ? (
                                     <motion.button
@@ -258,25 +278,162 @@ const UnifiedActivation = () => {
                                 </button>
                             </div>
                             <div className="text-center mt-2">
-                                <div className="text-4xl mb-4">🎁</div>
-                                <h3 className="text-lg font-bold text-white mb-2 leading-tight">{t('review_popup_title')}</h3>
-                                <p className="text-white/50 text-[13px] leading-relaxed mb-6">
-                                    {t('review_popup_sub', 'Leave a 5-star review on Google and show the screen to the waiter for an extra gift!')}
+                                <div className="text-4xl mb-3">🌟</div>
+                                <h3 className="text-[16px] font-bold text-white mb-1 leading-tight">{t('review_stars_prompt', 'How was your experience?')}</h3>
+                                <p className="text-white/40 text-[11px] leading-relaxed mb-4 uppercase tracking-wider">
+                                    {t('review_gift_hint', 'Rate 4–5 stars and get a bonus gift')}
                                 </p>
-                                <a 
-                                    href={venueSettings.googleReviewLink || '#'} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="block w-full py-3 text-black font-black text-xs uppercase tracking-widest rounded-xl transition-all"
-                                    style={{ backgroundColor: ambientColor }}
-                                >
-                                    {t('review_popup_cta')}
-                                </a>
+                                {/* Star Rating */}
+                                <div className="flex justify-center gap-2 mb-5">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <motion.button
+                                            key={star}
+                                            whileTap={{ scale: 0.8 }}
+                                            onMouseEnter={() => setHoveredStar(star)}
+                                            onMouseLeave={() => setHoveredStar(0)}
+                                            onClick={() => handleStarClick(star)}
+                                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}
+                                        >
+                                            <motion.div
+                                                animate={{
+                                                    scale: (hoveredStar >= star || reviewStars >= star) ? 1.3 : 1,
+                                                    rotate: (hoveredStar >= star || reviewStars >= star) ? [0, -10, 10, 0] : 0,
+                                                }}
+                                                transition={{ duration: 0.2 }}
+                                            >
+                                                <FontAwesomeIcon
+                                                    icon={faStar}
+                                                    className="text-[28px]"
+                                                    style={{
+                                                        color: (hoveredStar >= star || reviewStars >= star)
+                                                            ? ambientColor
+                                                            : 'rgba(255,255,255,0.15)',
+                                                        filter: (hoveredStar >= star || reviewStars >= star)
+                                                            ? `drop-shadow(0 0 8px ${ambientColor})`
+                                                            : 'none',
+                                                        transition: 'color 0.15s, filter 0.15s',
+                                                    }}
+                                                />
+                                            </motion.div>
+                                        </motion.button>
+                                    ))}
+                                </div>
+                                <p className="text-white/25 text-[10px]">
+                                    {reviewStars > 0 && reviewStars < 4
+                                        ? t('review_thank_you', 'Thank you for your feedback!')
+                                        : t('review_tap_stars', 'Tap a star to rate')}
+                                </p>
                             </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
             </div>
+
+            {/* ── FULL SCREEN GIFT OVERLAY ── */}
+            <AnimatePresence>
+                {showGiftScreen && (
+                    <motion.div
+                        key="gift-screen"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[200] flex flex-col items-center justify-center text-center px-8"
+                        style={{ background: 'rgba(0,0,0,0.97)', backdropFilter: 'blur(24px)' }}
+                    >
+                        {/* Ambient glow matching tier */}
+                        <div
+                            style={{
+                                position: 'absolute',
+                                width: '300px', height: '300px',
+                                borderRadius: '50%',
+                                background: `radial-gradient(circle, ${ambientColor}35 0%, transparent 70%)`,
+                                filter: 'blur(40px)',
+                                pointerEvents: 'none',
+                            }}
+                        />
+
+                        {/* Animated gift emoji */}
+                        <motion.div
+                            initial={{ scale: 0, rotate: -20 }}
+                            animate={{ scale: 1, rotate: 0 }}
+                            transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
+                            className="text-[90px] mb-8 relative z-10"
+                        >
+                            🎁
+                        </motion.div>
+
+                        {/* Title */}
+                        <motion.h2
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.25 }}
+                            className="text-[32px] font-black tracking-tight text-white leading-tight mb-3 relative z-10"
+                            style={{ textShadow: `0 0 40px ${ambientColor}` }}
+                        >
+                            {t('review_gift_screen_title', 'Congratulations!')}
+                        </motion.h2>
+
+                        {/* Subtitle */}
+                        <motion.p
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.35 }}
+                            className="text-[16px] font-semibold text-white/70 leading-relaxed mb-2 max-w-[280px] relative z-10"
+                        >
+                            {t('review_gift_screen_sub', 'Show this screen to the staff to receive your special gift!')}
+                        </motion.p>
+
+                        {/* Stars earned badge */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.45 }}
+                            className="flex gap-1 mb-10 relative z-10"
+                        >
+                            {[1,2,3,4,5].map(s => (
+                                <FontAwesomeIcon
+                                    key={s}
+                                    icon={faStar}
+                                    style={{
+                                        fontSize: '22px',
+                                        color: s <= reviewStars ? ambientColor : 'rgba(255,255,255,0.1)',
+                                        filter: s <= reviewStars ? `drop-shadow(0 0 6px ${ambientColor})` : 'none',
+                                    }}
+                                />
+                            ))}
+                        </motion.div>
+
+                        {/* Glowing divider */}
+                        <motion.div
+                            initial={{ opacity: 0, scaleX: 0 }}
+                            animate={{ opacity: 1, scaleX: 1 }}
+                            transition={{ delay: 0.5 }}
+                            style={{
+                                width: '80px', height: '2px',
+                                background: `linear-gradient(90deg, transparent, ${ambientColor}, transparent)`,
+                                marginBottom: '40px',
+                                position: 'relative',
+                                zIndex: 10,
+                            }}
+                        />
+
+                        {/* Close button */}
+                        <motion.button
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.6 }}
+                            onClick={() => setShowGiftScreen(false)}
+                            className="relative z-10 px-10 py-4 rounded-[20px] text-black font-black text-[16px] uppercase tracking-widest active:scale-[0.97] transition-all shadow-2xl"
+                            style={{
+                                backgroundColor: ambientColor,
+                                boxShadow: `0 0 40px ${ambientColor}50`,
+                            }}
+                        >
+                            {t('review_gift_close', 'Got it!')}
+                        </motion.button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

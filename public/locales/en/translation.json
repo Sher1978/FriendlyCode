@@ -327,5 +327,12 @@
     "b2b_matrix_energy_max": "Maximum Energy",
     "b2b_matrix_competitive_advantage": "Competitive Advantage: 10x",
     "b2b_matrix_paper_cards": "PAPER CARDS",
-    "b2b_matrix_app_solutions": "APP SOLUTIONS"
+    "b2b_matrix_app_solutions": "APP SOLUTIONS",
+    "review_stars_prompt": "How was your experience?",
+    "review_gift_hint": "Rate 4–5 stars and get a bonus gift",
+    "review_tap_stars": "Tap a star to rate",
+    "review_thank_you": "Thank you for your feedback!",
+    "review_gift_screen_title": "Congratulations!",
+    "review_gift_screen_sub": "Show this screen to the staff to receive your special gift!",
+    "review_gift_close": "Got it!"
 }
