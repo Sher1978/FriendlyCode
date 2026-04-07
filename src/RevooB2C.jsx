@@ -126,10 +126,11 @@ const RevooB2C = () => {
     }, []);
 
     // Return Guest Logic: If user is already known or authenticated, bypass landing
+    // We check this as early as possible to avoid "flash" of landing page
+    const guestName = localStorage.getItem('guestName');
+    const guestEmail = localStorage.getItem('guestEmail');
+
     useEffect(() => {
-        const guestName = localStorage.getItem('guestName');
-        const guestEmail = localStorage.getItem('guestEmail');
-        
         const checkReturnGuest = (user) => {
             if ((guestName || guestEmail || user) && interceptedVenueId) {
                 console.log("Recognized user/guest! Bypassing landing for venue:", interceptedVenueId);
@@ -137,7 +138,7 @@ const RevooB2C = () => {
             }
         };
 
-        // 1. Initial check (localStorage)
+        // 1. Initial check (locally stored data or sync auth)
         checkReturnGuest(auth.currentUser);
 
         // 2. Auth listener check (in case session loads slightly later)
@@ -146,7 +147,7 @@ const RevooB2C = () => {
         });
 
         return () => unsubscribe();
-    }, [interceptedVenueId, navigate]);
+    }, [interceptedVenueId, navigate, guestName, guestEmail]);
     
     // Scroll tracking for the Sticky Battery
     const { scrollYProgress } = useScroll();

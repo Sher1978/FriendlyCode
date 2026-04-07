@@ -56,98 +56,93 @@ const NewQRPage = () => {
                 }
                 return;
             }
-            clearTimeout(safetyTimeoutId);
+                clearTimeout(safetyTimeoutId);
 
-                const checkUserAndVenue = async () => {
-                    const searchParams = new URLSearchParams(location.search);
-                    const rawId = searchParams.get('id') || searchParams.get('v') || 'default_venue';
-                    const bypassLanding = searchParams.get('bypass_landing') === 'true';
-                    // Robustness: strip potential encoding artifacts like '3D' at the start
-                    const venueId = rawId.startsWith('3D') && rawId.length > 10 ? rawId.substring(2) : rawId;
+            const checkUserAndVenue = async () => {
+                const searchParams = new URLSearchParams(location.search);
+                const rawId = searchParams.get('id') || searchParams.get('v') || 'default_venue';
+                const bypassLanding = searchParams.get('bypass_landing') === 'true';
+                const venueId = rawId.startsWith('3D') && rawId.length > 10 ? rawId.substring(2) : rawId;
+                
+                try {
+                    // --- PARALLEL FETCHING START ---
+                    // Fetch venue and user data in parallel
+                    const venueRef = doc(db, 'venues', venueId);
+                    const userRef = doc(db, 'users', user.uid);
                     
-                    try {
-                        let venueData = null;
-                        let activeVenueId = venueId;
+                    const [venueSnap, userSnap] = await Promise.all([
+                        getDoc(venueRef),
+                        getDoc(userRef)
+                    ]);
+                    
+                    let venueData = venueSnap.exists() ? venueSnap.data() : null;
+                    let activeVenueId = venueId;
 
-                        // 1. Try resolving by Doc ID
-                        const venueRef = doc(db, 'venues', venueId);
-                        const venueSnap = await getDoc(venueRef);
-                        
-                        if (venueSnap.exists()) {
-                            venueData = venueSnap.data();
+                    if (!venueData) {
+                        // Sequential fallback only if slug resolution is needed
+                        // (Usually 90% of hits will be Doc IDs and be fast)
+                        const qSlug = query(collection(db, 'venues'), where('slug', '==', venueId));
+                        const qSlugSnap = await getDocs(qSlug);
+                        if (!qSlugSnap.empty) {
+                            venueData = qSlugSnap.docs[0].data();
+                            activeVenueId = qSlugSnap.docs[0].id;
                         } else {
-                            // 2. Try resolving by slug field
-                            const qSlug = query(collection(db, 'venues'), where('slug', '==', venueId));
-                            const qSlugSnap = await getDocs(qSlug);
-                            if (!qSlugSnap.empty) {
-                                venueData = qSlugSnap.docs[0].data();
-                                activeVenueId = qSlugSnap.docs[0].id;
-                            } else {
-                                // 3. Try resolving by name (normalized case-insensitive check if possible, or just exact)
-                                const qName = query(collection(db, 'venues'), where('name', '==', venueId));
-                                const qNameSnap = await getDocs(qName);
-                                if (!qNameSnap.empty) {
-                                    venueData = qNameSnap.docs[0].data();
-                                    activeVenueId = qNameSnap.docs[0].id;
-                                }
+                            const qName = query(collection(db, 'venues'), where('name', '==', venueId));
+                            const qNameSnap = await getDocs(qName);
+                            if (!qNameSnap.empty) {
+                                venueData = qNameSnap.docs[0].data();
+                                activeVenueId = qNameSnap.docs[0].id;
                             }
                         }
+                    }
 
-                        if (!venueData) { 
-                            console.error(`Venue not found for ID: ${venueId}`);
-                            setStatus('error'); 
-                            return; 
+                    if (!venueData) { 
+                        console.error(`Venue not found for ID: ${venueId}`);
+                        setStatus('error'); 
+                        return; 
+                    }
+
+                    safeStorage.setItem('currentVenueId', activeVenueId);
+
+                    setVenueName(venueData.name || '');
+                    if (venueData.loyaltyConfig) setLoyaltyConfig(venueData.loyaltyConfig);
+
+                    // --- LANGUAGE INITIALIZATION ---
+                    const savedLang = safeStorage.getItem('userLanguage');
+                    const venueLang = venueData.defaultLanguage || 'en';
+                    const targetLang = savedLang || venueLang;
+                    if (i18n.language !== targetLang) {
+                        i18n.changeLanguage(targetLang);
+                    }
+
+                    const now = new Date();
+                    const expiry = venueData.subscription?.expiryDate?.toDate();
+                    if (!venueData.isActive || (expiry && expiry < now)) { setStatus('blocked'); return; }
+
+                    let userData = userSnap.exists() ? userSnap.data() : null;
+                    let resolvedName = '';
+                    if (userData) {
+                        setUserRole(userData.role || 'guest');
+                        const displayName = userData.displayName || userData.name;
+                        if (displayName) { 
+                            resolvedName = displayName;
+                            setGuestName(displayName); 
+                            safeStorage.setItem('guestName', displayName); 
                         }
-
-                        safeStorage.setItem('currentVenueId', activeVenueId);
-
-                        setVenueName(venueData.name || '');
-                        if (venueData.loyaltyConfig) setLoyaltyConfig(venueData.loyaltyConfig);
-
-                        // --- LANGUAGE INITIALIZATION ---
-                        const savedLang = safeStorage.getItem('userLanguage');
-                        const venueLang = venueData.defaultLanguage || 'en';
-                        
-                        // Priority: 1. Manual User Selection, 2. Venue Default
-                        const targetLang = savedLang || venueLang;
-                        if (i18n.language !== targetLang) {
-                            console.log(`Setting language to ${targetLang} (Saved: ${savedLang}, Venue: ${venueLang})`);
-                            i18n.changeLanguage(targetLang);
+                        if (userData.email) safeStorage.setItem('guestEmail', userData.email);
+                    } else {
+                        const savedName = safeStorage.getItem('guestName');
+                        if (savedName) {
+                            resolvedName = savedName;
+                            setGuestName(savedName);
                         }
-                        // --------------------------------
+                    }
 
-                        const now = new Date();
-                        const expiry = venueData.subscription?.expiryDate?.toDate();
-                        if (!venueData.isActive || (expiry && expiry < now)) { setStatus('blocked'); return; }
-
-                        const userRef = doc(db, 'users', user.uid);
-                        const userSnap = await getDoc(userRef);
-                        let userData = userSnap.exists() ? userSnap.data() : null;
-
-                        let resolvedName = '';
-                        if (userData) {
-                            setUserRole(userData.role || 'guest');
-                            const displayName = userData.displayName || userData.name;
-                            if (displayName) { 
-                                resolvedName = displayName;
-                                setGuestName(displayName); 
-                                safeStorage.setItem('guestName', displayName); 
-                            }
-                            if (userData.email) safeStorage.setItem('guestEmail', userData.email);
-                        } else {
-                            const savedName = safeStorage.getItem('guestName');
-                            if (savedName) {
-                                resolvedName = savedName;
-                                setGuestName(savedName);
-                            }
-                        }
-
-                        // --- B2C INTERCEPT LOGIC ---
-                        if (!resolvedName && !bypassLanding) {
-                            // User is completely new, go to landing with the original slug/id provided
-                            window.location.href = `/?qr_venue_id=${venueId}`;
-                            return;
-                        }
+                    // --- B2C INTERCEPT LOGIC ---
+                    if (!resolvedName && !bypassLanding) {
+                        window.location.href = `/?qr_venue_id=${venueId}`;
+                        return;
+                    }
                         // ---------------------------
 
                         const rawEmail = userData?.email || safeStorage.getItem('guestEmail') || '';
@@ -243,7 +238,7 @@ const NewQRPage = () => {
     };
 
     // ── LOADING (iOS Dark) ──
-    if (status === 'loading' || !minDelayPassed) {
+    if (status === 'loading') {
         return (
             <div className="flex flex-col min-h-[100dvh] bg-black items-center justify-center p-6 text-white relative">
                 <div className="z-10 flex flex-col items-center text-center">

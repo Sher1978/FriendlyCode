@@ -14,7 +14,8 @@ import {
     faAward,
     faCalendarAlt,
     faInfoCircle,
-    faBolt
+    faBolt,
+    faLayoutDashboard
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
