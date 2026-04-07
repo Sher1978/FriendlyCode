@@ -15,7 +15,7 @@ import {
     faCalendarAlt,
     faInfoCircle,
     faBolt,
-    faLayoutDashboard
+    faGaugeHigh
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -261,7 +261,7 @@ const UserMenu = ({ user, trigger, isGuestView, venueColor = '#00FF41' }) => {
                                 >
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-[0_0_15px_rgba(0,0,0,0.1)]" style={{ backgroundColor: `${getAccentColor()}10`, color: getAccentColor() }}>
-                                            <FontAwesomeIcon icon={faLayoutDashboard} />
+                                            <FontAwesomeIcon icon={faGaugeHigh} />
                                         </div>
                                         <span className="text-xs font-black uppercase tracking-widest">{t('menu_guest_dashboard', 'Guest Dashboard')}</span>
                                     </div>
