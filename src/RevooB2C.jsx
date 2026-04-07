@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import PngBattery from './PngBattery';
 import LanguageSelector from './LanguageSelector';
+import { auth } from './firebase';
 
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
