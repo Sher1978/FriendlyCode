@@ -180,7 +180,7 @@ const LeadCapture = () => {
 
             // Final Navigation
             console.log("Navigating to reward screen with discount:", finalDiscount);
-            navigate('/thank-you', {
+            navigate(`/qr?id=${venueId}&bypass_landing=true`, {
                 state: {
                     guestName: (userName || 'Guest').trim(),
                     guestEmail: lowerEmail,
@@ -194,7 +194,7 @@ const LeadCapture = () => {
         } catch (e) {
             console.error("Critical error in processAuthUser:", e);
             // Fallback navigation
-            navigate('/thank-you', { 
+            navigate(`/qr?id=${venueId}&bypass_landing=true`, { 
                 state: { guestName: (userName || 'Guest').trim(), discountValue: discount, venueId: venueId },
                 replace: true
             });
