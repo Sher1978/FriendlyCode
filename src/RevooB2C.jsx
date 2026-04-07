@@ -125,29 +125,32 @@ const RevooB2C = () => {
         return () => window.removeEventListener('beforeinstallprompt', handler);
     }, []);
 
-    // Return Guest Logic: If user is already known or authenticated, bypass landing
-    // We check this as early as possible to avoid "flash" of landing page
-    const guestName = localStorage.getItem('guestName');
-    const guestEmail = localStorage.getItem('guestEmail');
-
     useEffect(() => {
-        const checkReturnGuest = (user) => {
-            if ((guestName || guestEmail || user) && interceptedVenueId) {
+        const checkReturnGuest = (currentUser) => {
+            const storedName = localStorage.getItem('guestName');
+            const storedEmail = localStorage.getItem('guestEmail');
+            
+            if ((storedName || storedEmail || currentUser) && interceptedVenueId) {
                 console.log("Recognized user/guest! Bypassing landing for venue:", interceptedVenueId);
                 navigate(`/qr?id=${interceptedVenueId}&bypass_landing=true`, { replace: true });
             }
         };
 
-        // 1. Initial check (locally stored data or sync auth)
-        checkReturnGuest(auth.currentUser);
+        // 1. Initial check (briefly wait for auth or local data)
+        const timer = setTimeout(() => {
+            checkReturnGuest(auth.currentUser);
+        }, 100);
 
-        // 2. Auth listener check (in case session loads slightly later)
-        const unsubscribe = auth.onAuthStateChanged((user) => {
-            if (user) checkReturnGuest(user);
+        // 2. Auth listener check (standard Firebase behavior)
+        const unsubscribe = auth.onAuthStateChanged((u) => {
+            if (u) checkReturnGuest(u);
         });
 
-        return () => unsubscribe();
-    }, [interceptedVenueId, navigate, guestName, guestEmail]);
+        return () => {
+            clearTimeout(timer);
+            unsubscribe();
+        };
+    }, [interceptedVenueId, navigate]);
     
     // Scroll tracking for the Sticky Battery
     const { scrollYProgress } = useScroll();

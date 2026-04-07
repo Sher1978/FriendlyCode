@@ -53,7 +53,15 @@ const UserMenu = ({ user, trigger, isGuestView, venueColor = '#00FF41' }) => {
 
     const handleLogout = async () => {
         try {
+            // Clear Firebase Auth
             await signOut(auth);
+            
+            // Clear application state
+            localStorage.removeItem('guestName');
+            localStorage.removeItem('guestEmail');
+            localStorage.removeItem('currentVenueId');
+            localStorage.removeItem('effectiveUid');
+            
             setIsOpen(false);
             navigate('/');
         } catch (error) {

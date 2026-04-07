@@ -5,7 +5,7 @@ import { faUser, faEnvelope, faArrowLeft } from '@fortawesome/free-solid-svg-ico
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { db, auth, googleProvider } from './firebase';
-import { signInWithPopup, linkWithPopup, signInWithRedirect, getRedirectResult, linkWithRedirect } from 'firebase/auth';
+import { signInWithPopup, linkWithPopup, signInWithRedirect, getRedirectResult, linkWithRedirect, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, limit, doc, setDoc, getDoc, orderBy } from 'firebase/firestore';
 import { RewardCalculator } from './logic/RewardCalculator';
 
@@ -46,8 +46,9 @@ const LeadCapture = () => {
                 await processAuthUser(guestName, guestEmail, user.uid, venueId);
             } catch (err) {
                 console.error("Auth process error:", err);
-                setIsGoogleLoading(false);
                 isProcessing = false; // Allow retry on failure
+            } finally {
+                setIsGoogleLoading(false);
             }
         };
 
@@ -84,8 +85,13 @@ const LeadCapture = () => {
     }, []);
     // -----------------------------------------------
 
-    const processAuthUser = async (userName, userEmail, currentUid, venueIdOverride) => {
-        const lowerEmail = userEmail.trim().toLowerCase();
+    const processAuthUser = async (userName = 'Guest', userEmail = '', currentUid, venueIdOverride) => {
+        const safeEmail = (userEmail || '').trim();
+        if (!safeEmail) {
+            console.error("No email provided for processAuthUser");
+            return;
+        }
+        const lowerEmail = safeEmail.toLowerCase();
         const venueId = venueIdOverride || localStorage.getItem('currentVenueId') || 'unknown';
 
         try {
@@ -104,7 +110,7 @@ const LeadCapture = () => {
                     effectiveUid = existingUserDoc.id;
                     
                     await setDoc(doc(db, 'users', effectiveUid), {
-                        displayName: userName.trim(),
+                        displayName: (userName || 'Guest').trim(),
                         updatedAt: serverTimestamp(),
                     }, { merge: true });
 
@@ -133,7 +139,7 @@ const LeadCapture = () => {
                     }
                 } else {
                     await setDoc(doc(db, 'users', currentUid), {
-                        displayName: userName.trim(),
+                        displayName: (userName || 'Guest').trim(),
                         email: lowerEmail,
                         role: 'guest',
                         updatedAt: serverTimestamp(),
@@ -145,7 +151,7 @@ const LeadCapture = () => {
                 try {
                     await addDoc(collection(db, 'leads'), {
                         uid: effectiveUid,
-                        name: userName.trim(),
+                        name: (userName || 'Guest').trim(),
                         email: lowerEmail,
                         venueId: venueId,
                         timestamp: serverTimestamp(),
@@ -160,7 +166,7 @@ const LeadCapture = () => {
                     await addDoc(collection(db, 'notifications'), {
                         venueId: venueId,
                         type: 'guest_status_usage',
-                        message: `Ваш гость ${userName.trim()} (${lowerEmail}) использовал свой Статус`,
+                        message: `Ваш гость ${(userName || 'Guest').trim()} (${lowerEmail}) использовал свой Статус`,
                         timestamp: serverTimestamp(),
                         read: false
                     });
@@ -168,7 +174,7 @@ const LeadCapture = () => {
             }
 
             // Save locally
-            localStorage.setItem('guestName', userName.trim());
+            localStorage.setItem('guestName', (userName || 'Guest').trim());
             localStorage.setItem('guestEmail', lowerEmail);
             if (effectiveUid) localStorage.setItem('effectiveUid', effectiveUid);
 
@@ -176,7 +182,7 @@ const LeadCapture = () => {
             console.log("Navigating to reward screen with discount:", finalDiscount);
             navigate('/thank-you', {
                 state: {
-                    guestName: userName.trim(),
+                    guestName: (userName || 'Guest').trim(),
                     guestEmail: lowerEmail,
                     discountValue: finalDiscount,
                     venueId: venueId,
@@ -189,16 +195,18 @@ const LeadCapture = () => {
             console.error("Critical error in processAuthUser:", e);
             // Fallback navigation
             navigate('/thank-you', { 
-                state: { guestName: userName.trim(), discountValue: discount, venueId: venueId },
+                state: { guestName: (userName || 'Guest').trim(), discountValue: discount, venueId: venueId },
                 replace: true
             });
         }
     };
 
     const handleContinue = async () => {
-        if (!name.trim() || !email.trim()) return;
+        const safeName = (name || '').trim();
+        const safeEmail = (email || '').trim();
+        if (!safeName || !safeEmail) return;
         const user = auth.currentUser;
-        await processAuthUser(name, email, user?.uid);
+        await processAuthUser(safeName, safeEmail, user?.uid);
     };
 
     const handleGoogleSignIn = async () => {
@@ -208,20 +216,37 @@ const LeadCapture = () => {
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
             if (user && user.isAnonymous) {
-                if (isMobile) {
-                    await linkWithRedirect(user, googleProvider);
-                } else {
-                    const result = await linkWithPopup(user, googleProvider);
-                    const linkedUser = result.user;
-                    await processAuthUser(linkedUser.displayName || 'Guest', linkedUser.email, linkedUser.uid);
+                try {
+                    if (isMobile) {
+                        await linkWithRedirect(user, googleProvider);
+                    } else {
+                        const result = await linkWithPopup(user, googleProvider);
+                        const linkedUser = result.user;
+                        await processAuthUser(linkedUser.displayName || 'Guest', linkedUser.email, linkedUser.uid);
+                    }
+                } catch (linkError) {
+                    // Logic: If linking fails because account is already in use, just sign in with that account.
+                    if (linkError.code === 'auth/credential-already-in-use') {
+                        console.log("Account already linked to another user. Switching users...");
+                        const credential = GoogleAuthProvider.credentialFromError(linkError);
+                        if (credential) {
+                            const result = await signInWithCredential(auth, credential);
+                            await processAuthUser(result.user.displayName || 'Guest', result.user.email, result.user.uid);
+                        } else {
+                            throw linkError;
+                        }
+                    } else {
+                        throw linkError;
+                    }
                 }
             } else {
+                // Normal sign in
                 if (isMobile) {
                     await signInWithRedirect(auth, googleProvider);
                 } else {
                     const result = await signInWithPopup(auth, googleProvider);
-                    const linkedUser = result.user;
-                    await processAuthUser(linkedUser.displayName || 'Guest', linkedUser.email, linkedUser.uid);
+                    const loggedUser = result.user;
+                    await processAuthUser(loggedUser.displayName || 'Guest', loggedUser.email, loggedUser.uid);
                 }
             }
         } catch (error) {
@@ -229,6 +254,7 @@ const LeadCapture = () => {
             if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
                 alert("Google Sign-In failed: " + error.message);
             }
+        } finally {
             setIsGoogleLoading(false);
         }
     };
@@ -330,8 +356,8 @@ const LeadCapture = () => {
                 {/* Submit */}
                 <button
                     onClick={handleContinue}
-                    disabled={!name.trim() || !email.trim()}
-                    className={`w-full h-[60px] rounded-[18px] font-bold text-[18px] uppercase tracking-wider transition-all flex items-center justify-center shadow-2xl ${name.trim() && email.trim()
+                    disabled={!(name || '').trim() || !(email || '').trim()}
+                    className={`w-full h-[60px] rounded-[18px] font-bold text-[18px] uppercase tracking-wider transition-all flex items-center justify-center shadow-2xl ${(name || '').trim() && (email || '').trim()
                         ? 'bg-[#D4AF37] text-black active:scale-[0.97] shadow-[#D4AF37]/20 hover:bg-[#F3E5AB]'
                         : 'bg-white/5 text-white/20 cursor-not-allowed shadow-none'
                         }`}
