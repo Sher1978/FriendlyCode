@@ -101,7 +101,7 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.title.withOpacity(0.05)),
                     boxShadow: AppColors.softShadow,
@@ -230,7 +230,7 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
         ),
         decoration: InputDecoration(
           filled: true,
-          fillColor: Colors.white,
+          fillColor: AppColors.secondarySurface,
           hintText: hint,
           hintStyle: TextStyle(color: AppColors.title.withOpacity(0.3)),
           prefixIcon: Icon(icon, color: AppColors.accentOrange, size: 20),

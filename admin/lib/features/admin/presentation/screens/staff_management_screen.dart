@@ -119,7 +119,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                     hintText: "Search user by exact email to promote...",
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: AppColors.secondarySurface,
                     errorText: _searchError,
                   ),
                   onSubmitted: (_) => _performSearch(),
@@ -230,9 +230,9 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
+        border: Border.all(color: AppColors.title.withOpacity(0.05)),
       ),
       child: Row(
         children: [

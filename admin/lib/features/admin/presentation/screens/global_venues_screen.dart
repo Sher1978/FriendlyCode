@@ -55,7 +55,7 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
               prefixIcon: const Icon(Icons.search),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: AppColors.secondarySurface,
             ),
              onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
           ),
@@ -116,7 +116,7 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                               constraints: BoxConstraints(minWidth: constraints.maxWidth),
                               child: DataTable(
                                 headingRowColor: MaterialStateProperty.all(AppColors.background),
-                                dataRowColor: MaterialStateProperty.all(Colors.white),
+                                dataRowColor: MaterialStateProperty.all(AppColors.background),
                                 headingTextStyle: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.title, letterSpacing: 0.5),
                                 dataRowMinHeight: 70,
                                 dataRowMaxHeight: 80,

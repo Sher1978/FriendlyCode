@@ -197,7 +197,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         labelText: label,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: AppColors.secondarySurface,
       ),
       validator: required ? (val) => val == null || val.isEmpty ? AppLocalizations.of(context)!.required : null : null,
     );
@@ -207,9 +207,9 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: AppColors.title.withOpacity(0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
