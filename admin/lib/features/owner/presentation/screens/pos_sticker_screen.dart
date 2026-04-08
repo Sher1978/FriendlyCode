@@ -121,8 +121,8 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
     // Use our new V9 sticker asset
     const imageAsset = 'assets/images/pos_sticker_v9.png';
     
-    // Determine QR Data using the revoo.win format
-    final qrData = 'https://revoo.win/${widget.venue.id}';
+    // Determine QR Data using the production friendlycode.fun format
+    final qrData = 'https://www.friendlycode.fun/qr?id=${widget.venue.id}';
 
     return Container(
       width: width,
@@ -157,15 +157,15 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
 
             // 2. Dynamic QR Code Overlay
             Positioned(
-              top: 367, // Adjusted for V9 Hybrid layout
-              left: 89.5, // Center: (350 - 171) / 2
+              top: 408, // Precisely centered in the gold frame
+              left: 100, // Balanced for 150 width: (350 - 150) / 2
               child: QrImageView(
                 data: qrData,
                 version: QrVersions.auto,
-                size: 171.0, 
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.all(10),
+                size: 150.0, // Reduced to fit inside gold corners
+                backgroundColor: Colors.transparent, // Gold on Black look
+                foregroundColor: AppColors.premiumGold,
+                padding: EdgeInsets.zero,
               ),
             ),
           ],
