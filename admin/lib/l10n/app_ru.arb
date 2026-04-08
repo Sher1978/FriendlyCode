@@ -358,6 +358,8 @@
   "baseTier": "База",
   "decayTier": "Уровень {index}",
   "vipTier": "VIP",
+  "labelGoogleMapsUrl": "Ссылка на Google Карты",
+  "hintGoogleMapsUrl": "Ссылка для отзывов гостей",
   "@hello": {
     "placeholders": {
       "name": {

@@ -114,6 +114,6 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
       );
     }
 
-    return const LandingScreen();
+    return const PlatformLandingScreen();
   }
 }

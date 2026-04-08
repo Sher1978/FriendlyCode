@@ -47,7 +47,7 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: Colors.grey[200],
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(l10n.posStickerGenerator),
         actions: [

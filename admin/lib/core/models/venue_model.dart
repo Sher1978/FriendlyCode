@@ -159,6 +159,7 @@ class VenueModel {
   final String? assignedAdminId;
   final String? assignedManagerId;
   final bool emailReportsActive;
+  final String? googleMapsUrl;
 
   VenueModel({
     required this.id,
@@ -184,6 +185,7 @@ class VenueModel {
     this.assignedAdminId,
     this.assignedManagerId,
     this.emailReportsActive = false,
+    this.googleMapsUrl,
   }) : 
     tiers = tiers ?? [],
     subscription = subscription ?? VenueSubscription(),
@@ -220,6 +222,7 @@ class VenueModel {
       'assignedAdminId': assignedAdminId,
       'assignedManagerId': assignedManagerId,
       'emailReportsActive': emailReportsActive,
+      'googleMapsUrl': googleMapsUrl,
     };
   }
 
@@ -248,6 +251,7 @@ class VenueModel {
       assignedAdminId: map['assignedAdminId'],
       assignedManagerId: map['assignedManagerId'],
       emailReportsActive: map['emailReportsActive'] ?? false,
+      googleMapsUrl: map['googleMapsUrl'],
     );
   }
 }

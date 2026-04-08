@@ -30,6 +30,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
   late TextEditingController _descCtrl;
   late TextEditingController _logoUrlCtrl;
   late TextEditingController _linkUrlCtrl;
+  late TextEditingController _googleMapsUrlCtrl;
 
   List<VenueTier> _tiers = [];
   late VenueSubscription _subscription;
@@ -61,6 +62,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     _descCtrl = TextEditingController(text: widget.venue?.description ?? '');
     _logoUrlCtrl = TextEditingController(text: widget.venue?.logoUrl ?? '');
     _linkUrlCtrl = TextEditingController(text: widget.venue?.linkUrl ?? '');
+    _googleMapsUrlCtrl = TextEditingController(text: widget.venue?.googleMapsUrl ?? '');
     _tiers = widget.venue?.tiers != null ? List.from(widget.venue!.tiers) : [
       VenueTier(maxHours: 24, percentage: 20),
       VenueTier(maxHours: 72, percentage: 10),
@@ -86,6 +88,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     _descCtrl.dispose();
     _logoUrlCtrl.dispose();
     _linkUrlCtrl.dispose();
+    _googleMapsUrlCtrl.dispose();
     super.dispose();
   }
 
@@ -105,6 +108,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         description: _descCtrl.text.trim(),
         logoUrl: _logoUrlCtrl.text.trim(),
         linkUrl: _linkUrlCtrl.text.trim(),
+        googleMapsUrl: _googleMapsUrlCtrl.text.trim(),
         tiers: _tiers,
         subscription: _subscription,
         defaultLanguage: _defaultLanguage,
@@ -112,11 +116,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         assignedManagerId: widget.venue?.assignedManagerId,
       );
 
-      if (widget.venue == null) {
-        await _venuesService.saveVenue(updatedVenue);
-      } else {
-        await _venuesService.saveVenue(updatedVenue);
-      }
+      await _venuesService.saveVenue(updatedVenue);
 
       if (mounted) Navigator.pop(context);
     } catch (e) {
@@ -132,8 +132,6 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
      final isSuperAdmin = roleProvider.isSuperAdmin;
      final l10n = AppLocalizations.of(context)!;
 
-     // ... existing UI structure ...
-     // Re-implementing the body with the new fields
      return Scaffold(
        appBar: AppBar(
          title: Text(widget.venue == null ? l10n.newVenue : l10n.editVenue),
@@ -172,6 +170,8 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                _buildTextField(_logoUrlCtrl, l10n.labelLogoUrl),
                const SizedBox(height: 16),
                _buildTextField(_linkUrlCtrl, l10n.labelExternalLink),
+               const SizedBox(height: 16),
+               _buildTextField(_googleMapsUrlCtrl, l10n.labelGoogleMapsUrl),
                const SizedBox(height: 24),
 
                _buildSectionHeader(l10n.sectionSubscriptionStatus),

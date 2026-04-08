@@ -333,6 +333,8 @@
   "sectionMedia": "Media",
   "labelLogoUrl": "Logo URL",
   "labelExternalLink": "External Link / Website",
+  "labelGoogleMapsUrl": "Google Maps Business URL",
+  "hintGoogleMapsUrl": "Link for guest reviews",
   "sectionStaffAssignment": "Staff Assignment",
   "labelAssignedAdmin": "Assigned Admin",
   "labelAssignedManager": "Assigned Manager",

@@ -52,51 +52,75 @@ class PlatformLandingScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: AppColors.backgroundCream,
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
+          // Background Glow
+          Positioned(
+            top: -100,
+            left: -100,
+            child: Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                color: AppColors.accentGreen.withOpacity(0.05),
+                shape: BoxShape.circle,
+              ),
+            ),
+          ),
           Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // 1. Branding
-                  const Icon(
-                    FontAwesomeIcons.leaf,
-                    size: 64,
-                    color: AppColors.brandGreen,
+                  // 1. Branding (Premium Logo)
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.accentGreen.withOpacity(0.2)),
+                    ),
+                    child: const Icon(
+                      FontAwesomeIcons.leaf,
+                      size: 48,
+                      color: AppColors.accentGreen,
+                    ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 32),
                   Text(
                     'FRIENDLY CODE',
                     style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                          color: AppColors.brandBrown,
+                          color: AppColors.title,
                           fontWeight: FontWeight.w900,
-                          letterSpacing: 1.2,
+                          letterSpacing: 2,
+                          fontSize: 40,
                         ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Text(
-                    l10n.b2bHeadline,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: AppColors.brandBrown.withOpacity(0.7),
+                    l10n.b2bHeadline.toUpperCase(),
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: AppColors.body.withOpacity(0.6),
+                          letterSpacing: 4,
                         ),
                   ),
                   const SizedBox(height: 64),
     
-                  // 2. Login Section
+                  // 2. Login Section (Premium Card)
                   Container(
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    padding: const EdgeInsets.all(32),
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    padding: const EdgeInsets.all(40),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(24),
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(32),
+                      border: Border.all(color: Colors.white.withOpacity(0.05)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
+                          color: Colors.black.withOpacity(0.4),
+                          blurRadius: 40,
+                          offset: const Offset(0, 20),
                         ),
                       ],
                     ),
@@ -108,81 +132,68 @@ class PlatformLandingScreen extends StatelessWidget {
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.brandBrown,
+                                color: AppColors.title,
                               ),
                         ),
-                        const SizedBox(height: 24),
-                        ElevatedButton.icon(
-                          onPressed: () => _handleLogin(context, false),
-                          icon: const Icon(FontAwesomeIcons.google),
-                          label: Text(l10n.ownerDashboard),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.brandOrange,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 20),
-                            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
+                        const SizedBox(height: 8),
+                        Text(
+                          "Access your control panel",
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: AppColors.body,
+                              ),
                         ),
+                        const SizedBox(height: 40),
+                        
+                        // Owner Dashboard Button
+                        _buildLoginButton(
+                          context: context,
+                          label: l10n.ownerDashboard,
+                          icon: FontAwesomeIcons.briefcase,
+                          color: AppColors.accentGreen,
+                          onPressed: () => _handleLogin(context, false),
+                        ),
+                        
                         const SizedBox(height: 16),
-                        OutlinedButton.icon(
+                        
+                        // Admin Console Button
+                        _buildLoginButton(
+                          context: context,
+                          label: 'Super Admin Console',
+                          icon: FontAwesomeIcons.shieldHalved,
+                          color: AppColors.premiumGold,
                           onPressed: () => _handleLogin(context, true),
-                          icon: const Icon(FontAwesomeIcons.userShield, size: 18),
-                          label: const Text('Super Admin Console'), // Keep Admin Console in English for now or rename to Admin
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.brandBrown,
-                            padding: const EdgeInsets.symmetric(vertical: 20),
-                            side: BorderSide(color: AppColors.brandBrown.withOpacity(0.2)),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
                         ),
                       ],
                     ),
                   ),
     
                   const SizedBox(height: 64),
-    
-                  // 3. Download Section
-                  Text(
-                    l10n.getTheApp,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 24),
+                  
+                  // Footer Links
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _StoreButton(
-                        icon: FontAwesomeIcons.apple,
-                        label: 'App Store',
-                        onTap: () {},
-                      ),
+                      _buildFooterLink(l10n.navPricing),
                       const SizedBox(width: 24),
-                      _StoreButton(
-                        icon: FontAwesomeIcons.googlePlay,
-                        label: 'Google Play',
-                        onTap: () {},
-                      ),
+                      _buildFooterLink("Terms"),
+                      const SizedBox(width: 24),
+                      _buildFooterLink("Support"),
                     ],
                   ),
                   
                   const SizedBox(height: 48),
                   Text(
-                    '© 2026 Friendly Code',
+                    '© 2026 Friendly Code Platform',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.black26,
+                          color: AppColors.tertiary,
                         ),
                   ),
                 ],
               ),
             ),
           ),
+          // Language Switcher (Top Right)
           Positioned(
             top: 16,
             right: 16,
@@ -191,15 +202,66 @@ class PlatformLandingScreen extends StatelessWidget {
                 return TextButton(
                   onPressed: () => provider.toggleLocale(),
                   style: TextButton.styleFrom(
-                    foregroundColor: AppColors.brandBrown,
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                    foregroundColor: AppColors.body,
                   ),
-                  child: Text(provider.locale.languageCode.toUpperCase()),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.language, size: 16),
+                      const SizedBox(width: 8),
+                      Text(provider.locale.languageCode.toUpperCase()),
+                    ],
+                  ),
                 );
               },
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildLoginButton({
+    required BuildContext context,
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.15),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.black,
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 0,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooterLink(String label) {
+    return TextButton(
+      onPressed: () {},
+      child: Text(
+        label,
+        style: const TextStyle(color: AppColors.body, fontSize: 13),
       ),
     );
   }
@@ -220,8 +282,9 @@ class _StoreButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.black,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.05)),
         ),
         child: Row(
           children: [
@@ -246,3 +309,4 @@ class _StoreButton extends StatelessWidget {
     );
   }
 }
+

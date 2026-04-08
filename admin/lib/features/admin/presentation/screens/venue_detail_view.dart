@@ -70,10 +70,12 @@ class _VenueDetailViewState extends State<VenueDetailView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.deepSeaBlueDark,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text("MANAGE: ${widget.venue.name}"),
-        backgroundColor: AppColors.deepSeaBlue,
+        title: Text(widget.venue.name.toUpperCase(), style: const TextStyle(letterSpacing: 1.5, fontSize: 14, fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.title,
+        elevation: 0,
       ),
       body: Center(
         child: Container(
@@ -86,8 +88,9 @@ class _VenueDetailViewState extends State<VenueDetailView> {
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: AppColors.deepSeaBlue,
+                  color: AppColors.surface,
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.white.withOpacity(0.05)),
                 ),
                 child: Row(
                   children: [
@@ -111,7 +114,7 @@ class _VenueDetailViewState extends State<VenueDetailView> {
               const SizedBox(height: 32),
 
               // Controls
-              Text("ADMIN CONTROLS", style: Theme.of(context).textTheme.titleMedium?.copyWith(color: AppColors.lime)),
+              Text("NETWORK PARAMETERS", style: Theme.of(context).textTheme.titleSmall?.copyWith(color: AppColors.premiumGold, letterSpacing: 1.2, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
 
                 SwitchListTile(
