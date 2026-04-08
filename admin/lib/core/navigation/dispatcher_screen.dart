@@ -80,11 +80,13 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
   }
 
   void _navigateToDashboard() {
-     // For now, default to OwnerDashboard as it handles both or checks roles
-     Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const OwnerDashboardScreen()),
-    ); 
+    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+    
+    if (roleProvider.isSuperAdmin) {
+      Navigator.pushReplacementNamed(context, '/admin');
+    } else {
+      Navigator.pushReplacementNamed(context, '/owner');
+    }
   }
 
   Future<void> _navigateToSuccess() async {

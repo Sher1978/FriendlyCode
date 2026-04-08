@@ -277,7 +277,10 @@ class _AdminShellState extends State<AdminShell> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: InkWell(
-                  onTap: () => Navigator.pushReplacementNamed(context, '/'),
+                  onTap: () async {
+                    await AuthService().signOut();
+                    if (context.mounted) Navigator.pushReplacementNamed(context, '/');
+                  },
                   borderRadius: BorderRadius.circular(16),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
