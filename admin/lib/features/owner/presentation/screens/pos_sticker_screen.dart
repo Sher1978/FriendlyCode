@@ -118,16 +118,11 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
     const double width = 350;
     const double height = 700;
 
-    // Determine correct image asset based on locale
-    final locale = Localizations.localeOf(context).languageCode;
-    final imageAsset = locale == 'ru' 
-        ? 'assets/images/pos_sticker_ru.png' 
-        : 'assets/images/pos_sticker_en.png'; // Fallback to EN for 'vi' as well
+    // Use our new V9 sticker asset
+    const imageAsset = 'assets/images/pos_sticker_v9.png';
     
-    // Determine QR Data
-    final qrData = _useVenueQr 
-        ? 'https://www.friendlycode.fun/qr?id=${widget.venue.id}'
-        : 'https://www.friendlycode.fun';
+    // Determine QR Data using the revoo.win format
+    final qrData = 'https://revoo.win/${widget.venue.id}';
 
     return Container(
       width: width,
@@ -162,15 +157,15 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
 
             // 2. Dynamic QR Code Overlay
             Positioned(
-              top: 190, 
-              left: 89.5, 
+              top: 367, // Adjusted for V9 Hybrid layout
+              left: 89.5, // Center: (350 - 171) / 2
               child: QrImageView(
                 data: qrData,
                 version: QrVersions.auto,
                 size: 171.0, 
-                backgroundColor: const Color(0xFFFBF4E6), // Restore beige background
+                backgroundColor: Colors.white,
                 foregroundColor: Colors.black,
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
               ),
             ),
           ],
