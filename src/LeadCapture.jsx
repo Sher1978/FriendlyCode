@@ -5,7 +5,7 @@ import { faUser, faEnvelope, faArrowLeft } from '@fortawesome/free-solid-svg-ico
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { db, auth, googleProvider } from './firebase';
-import { signInWithPopup, linkWithPopup, signInWithRedirect, getRedirectResult, linkWithRedirect, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithPopup, linkWithPopup, signInWithRedirect, getRedirectResult, linkWithRedirect, signInWithCredential, GoogleAuthProvider, signInAnonymously } from 'firebase/auth';
 import { collection, addDoc, serverTimestamp, query, where, getDocs, limit, doc, setDoc, getDoc, orderBy } from 'firebase/firestore';
 import { RewardCalculator } from './logic/RewardCalculator';
 
@@ -180,7 +180,7 @@ const LeadCapture = () => {
 
             // Final Navigation
             console.log("Navigating to reward screen with discount:", finalDiscount);
-            navigate(`/qr?id=${venueId}&bypass_landing=true`, {
+            navigate(`/thank-you?venueId=${venueId}`, {
                 state: {
                     guestName: (userName || 'Guest').trim(),
                     guestEmail: lowerEmail,
@@ -194,7 +194,7 @@ const LeadCapture = () => {
         } catch (e) {
             console.error("Critical error in processAuthUser:", e);
             // Fallback navigation
-            navigate(`/qr?id=${venueId}&bypass_landing=true`, { 
+            navigate(`/thank-you?venueId=${venueId}`, { 
                 state: { guestName: (userName || 'Guest').trim(), discountValue: discount, venueId: venueId },
                 replace: true
             });
@@ -205,8 +205,22 @@ const LeadCapture = () => {
         const safeName = (name || '').trim();
         const safeEmail = (email || '').trim();
         if (!safeName || !safeEmail) return;
-        const user = auth.currentUser;
-        await processAuthUser(safeName, safeEmail, user?.uid);
+        
+        setIsGoogleLoading(true);
+        try {
+            let user = auth.currentUser;
+            if (!user) {
+                console.log("No user found, signing in anonymously...");
+                const result = await signInAnonymously(auth);
+                user = result.user;
+            }
+            await processAuthUser(safeName, safeEmail, user.uid);
+        } catch (err) {
+            console.error("Manual entry auth error:", err);
+            alert("Ошибка: " + err.message);
+        } finally {
+            setIsGoogleLoading(false);
+        }
     };
 
     const handleGoogleSignIn = async () => {
@@ -220,9 +234,7 @@ const LeadCapture = () => {
                     if (isMobile) {
                         await linkWithRedirect(user, googleProvider);
                     } else {
-                        const result = await linkWithPopup(user, googleProvider);
-                        const linkedUser = result.user;
-                        await processAuthUser(linkedUser.displayName || 'Guest', linkedUser.email, linkedUser.uid);
+                        await linkWithPopup(user, googleProvider);
                     }
                 } catch (linkError) {
                     // Logic: If linking fails because account is already in use, just sign in with that account.
@@ -244,9 +256,7 @@ const LeadCapture = () => {
                 if (isMobile) {
                     await signInWithRedirect(auth, googleProvider);
                 } else {
-                    const result = await signInWithPopup(auth, googleProvider);
-                    const loggedUser = result.user;
-                    await processAuthUser(loggedUser.displayName || 'Guest', loggedUser.email, loggedUser.uid);
+                    await signInWithPopup(auth, googleProvider);
                 }
             }
         } catch (error) {
