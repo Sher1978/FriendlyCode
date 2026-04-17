@@ -697,6 +697,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get labelExternalLink => 'External Link / Website';
 
   @override
+  String get labelGoogleMapsUrl => 'Google Maps Business URL';
+
+  @override
+  String get hintGoogleMapsUrl => 'Link for guest reviews';
+
+  @override
   String get sectionStaffAssignment => 'Staff Assignment';
 
   @override

@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingPage from './LandingPage';
 import LeadCapture from './LeadCapture';
@@ -14,6 +15,8 @@ import RevooB2C from './RevooB2C';
 import RevooB2B from './RevooB2B';
 import GuestDashboard from './GuestDashboard';
 
+import DubaiTechBadge from './DubaiTechBadge';
+
 function App() {
   const isLegacyDomain = window.location.hostname.includes('friendlycode.fun');
   const queryParams = new URLSearchParams(window.location.search);
@@ -23,8 +26,14 @@ function App() {
   return (
     <BrowserRouter>
       <React.Suspense fallback={
-        <div className="min-h-screen bg-[#000000] flex flex-col items-center justify-center animate-pulse">
-          <img src="/revoo-logo.png" alt="Loading REVOO" className="w-32 opacity-80 mix-blend-screen drop-shadow-[0_0_10px_rgba(212,175,55,0.3)]" />
+        <div className="min-h-screen bg-[#000000] flex flex-col items-center justify-center gap-6">
+          <motion.div 
+            animate={{ opacity: [0.4, 0.8, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            <img src="/revoo-logo.png" alt="Loading REVOO" className="w-32 opacity-80 mix-blend-screen drop-shadow-[0_0_10px_rgba(212,175,55,0.3)]" />
+          </motion.div>
+          <DubaiTechBadge />
         </div>
       }>
         <Routes>

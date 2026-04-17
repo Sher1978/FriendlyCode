@@ -22,9 +22,20 @@ cd ..
 firebase deploy --only functions
 ```
 
-## 4. Build & Deploy Web (Super Admin & Guest Web)
+## 4. Build & Deploy Web (Super Admin + Guest Web + React Landing)
+This project uses a hybrid architecture. You MUST use the combined build script to merge the React landing page and the Flutter admin panel:
+
 ```bash
-flutter build web --release --no-tree-shake-icons
+# 1. Ensure dependencies are installed in both root and admin
+npm install
+cd admin
+flutter pub get
+cd ..
+
+# 2. Run the unified build script
+node scripts/build-all.js
+
+# 3. Deploy the resulting 'dist' folder
 firebase deploy --only hosting
 ```
 

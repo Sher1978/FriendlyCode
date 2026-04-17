@@ -70,56 +70,64 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
   }
 
   void _showRedemptionDialog(VisitModel visit) {
-    showDialog(
+    showCupertinoDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          backgroundColor: Colors.white,
+        return CupertinoAlertDialog(
           title: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.celebration, color: AppColors.premiumBurntOrange),
+              const Icon(CupertinoIcons.sparkles, color: CupertinoColors.activeOrange),
               const SizedBox(width: 12),
-              Expanded(child: Text("New Redemption!", style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold))),
+              const Text("New Redemption"),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                "${visit.guestName} wants to redeem",
-                style: const TextStyle(fontSize: 16, color: AppColors.body),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                "${visit.discountValue}% OFF",
-                style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w900, color: AppColors.title),
-              ),
-              const SizedBox(height: 12),
-              const Text("Ensure the bill reflects this discount before approving.", style: TextStyle(fontSize: 12, color: Colors.grey), textAlign: TextAlign.center),
-            ],
+          content: Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "${visit.guestName} is waiting for",
+                  style: const TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "${visit.discountValue}% OFF",
+                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: CupertinoColors.activeOrange),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  "Ensure the bill reflects this discount before approving.",
+                  style: TextStyle(fontSize: 12, color: AppColors.macosTextSecondary),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
           actions: [
-            TextButton(
+            CupertinoDialogAction(
+              isDestructiveAction: true,
               onPressed: () async {
                 await _visitsService.updateVisitStatus(visit.id, 'rejected');
                 if (context.mounted) Navigator.pop(context);
               },
-              child: const Text("REJECT", style: TextStyle(color: Colors.grey)),
+              child: const Text("Reject"),
             ),
-            ElevatedButton(
+            CupertinoDialogAction(
+              isDefaultAction: true,
               onPressed: () async {
                 await _visitsService.updateVisitStatus(visit.id, 'approved');
                 if (context.mounted) Navigator.pop(context);
                 if (mounted) {
+                  // Keep snackbar for transient feedback or switch to custom overlay
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Discount Approved!"), backgroundColor: Colors.green),
                   );
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.premiumBurntOrange, foregroundColor: Colors.white),
-              child: const Text("APPROVE"),
+              child: const Text("Approve"),
             ),
           ],
         );
@@ -184,15 +192,23 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
-          // 1. High-Tech Battery Watermark (Strict Green 20% Theme)
-          _buildBatteryWatermark(),
+          // 1. Smooth Background Vibrancy
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.1,
+              child: Image.asset(
+                'assets/images/macos_vibrancy.png', // Fallback or design token
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(),
+              ),
+            ),
+          ),
           
-          // 2. Main Content
           if (_isLoadingRole)
-            const Center(child: CircularProgressIndicator(color: AppColors.accentGreen))
+            const Center(child: CupertinoActivityIndicator(radius: 16))
           else if (venueIds.isEmpty)
             _buildEmptyState(context)
           else
@@ -305,9 +321,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
         centerTitle: false,
         title: _buildVenueSelector(venueIds, roleProvider),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.language, color: AppColors.accentGreen),
-            tooltip: "Switch Language",
+          CupertinoButton(
+            child: const Icon(CupertinoIcons.globe, color: CupertinoColors.activeOrange, size: 22),
             onPressed: () {
                final provider = Provider.of<LocaleProvider>(context, listen: false);
                final nextLocale = provider.locale.languageCode == 'en'
@@ -316,9 +331,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                provider.setLocale(nextLocale);
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.add_business_outlined, color: AppColors.accentGreen),
-            tooltip: "Add Venue",
+          CupertinoButton(
+            child: const Icon(CupertinoIcons.plus_circle, color: CupertinoColors.activeOrange, size: 22),
             onPressed: () async {
               final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen()));
               if (result == true && context.mounted) {
@@ -326,7 +340,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
               }
             },
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 8),
         ],
       ),
       body: activeVenueId == null
@@ -385,23 +399,23 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
           _fetchRealStats(val);
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-           color: AppColors.surface,
-           borderRadius: BorderRadius.circular(20),
-           border: Border.all(color: AppColors.accentGreen.withOpacity(0.2)),
+           color: AppColors.macosSurfaceBg,
+           borderRadius: BorderRadius.circular(12),
+           border: Border.all(color: AppColors.macosDivider),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.store, size: 18, color: AppColors.accentGreen),
-            const SizedBox(width: 8),
+            const Icon(CupertinoIcons.building_2_fill, size: 16, color: CupertinoColors.activeOrange),
+            const SizedBox(width: 10),
             Text(
               l10n.switchVenue(venueIds.length),
-              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.title, fontSize: 12, letterSpacing: 0.5)
+              style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 13, letterSpacing: -0.2)
             ),
-            const SizedBox(width: 4),
-            const Icon(Icons.arrow_drop_down, color: AppColors.title),
+            const SizedBox(width: 6),
+            const Icon(CupertinoIcons.chevron_down, color: AppColors.macosTextSecondary, size: 12),
           ],
         ),
       ),
@@ -439,23 +453,24 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
 
               // ─── J1: Header + Subscription Badge ───────────────────────
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          l10n.hello(userEmail.split('@').first),
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.accentGreen, letterSpacing: 1.2),
+                          l10n.hello(userEmail.split('@').first).toUpperCase(),
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: CupertinoColors.activeOrange, letterSpacing: 1.5),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Text(
                           venue.name,
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            color: AppColors.title,
+                          style: const TextStyle(
+                            color: AppColors.macosTextPrimary,
                             fontWeight: FontWeight.w900,
-                            fontSize: isMobile ? 24 : null,
+                            fontSize: 34,
+                            letterSpacing: -1.0,
                           ),
                         ),
                       ],

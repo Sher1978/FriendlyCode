@@ -14,9 +14,6 @@
   ],
   "hosting": {
     "public": "dist",
-    "predeploy": [
-      "node scripts/build-all.js"
-    ],
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -32,6 +29,11 @@
         "source": "/Superadmin",
         "destination": "/admin/admin",
         "type": 301
+      },
+      {
+        "source": "/superadmin",
+        "destination": "/admin/admin",
+        "type": 301
       }
     ],
     "rewrites": [
@@ -43,6 +45,9 @@
         "source": "**",
         "destination": "/index.html"
       }
+    ],
+    "predeploy": [
+      "node scripts/build-all.js"
     ]
   },
   "firestore": {

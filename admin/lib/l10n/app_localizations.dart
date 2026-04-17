@@ -1360,6 +1360,18 @@ abstract class AppLocalizations {
   /// **'External Link / Website'**
   String get labelExternalLink;
 
+  /// No description provided for @labelGoogleMapsUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Maps Business URL'**
+  String get labelGoogleMapsUrl;
+
+  /// No description provided for @hintGoogleMapsUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Link for guest reviews'**
+  String get hintGoogleMapsUrl;
+
   /// No description provided for @sectionStaffAssignment.
   ///
   /// In en, this message translates to:

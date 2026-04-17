@@ -34,14 +34,20 @@ const LeadCapture = () => {
 
         const handleAuthAction = async (user) => {
             if (!user || isProcessing) return;
+            
+            const guestEmail = user.email;
+            if (!guestEmail) {
+                console.log("User session found but no email yet (anonymous or pending redirect).");
+                return;
+            }
+
+            console.log("Processing auth for:", guestEmail);
             isProcessing = true;
-            console.log("Auth event triggered for:", user.email);
+            setIsGoogleLoading(true); 
             
             const venueId = localStorage.getItem('currentVenueId') || 'unknown';
             const guestName = user.displayName || localStorage.getItem('guestName') || 'Guest';
-            const guestEmail = user.email;
 
-            setIsGoogleLoading(true); 
             try {
                 await processAuthUser(guestName, guestEmail, user.uid, venueId);
             } catch (err) {
@@ -57,26 +63,47 @@ const LeadCapture = () => {
             try {
                 const result = await getRedirectResult(auth);
                 if (result?.user) {
-                    console.log("Redirect result found:", result.user.email);
+                    console.log("Redirect result user identified:", result.user.email);
                     await handleAuthAction(result.user);
-                } else if (auth.currentUser) {
-                    console.log("Existing user session found:", auth.currentUser.email);
-                    await handleAuthAction(auth.currentUser);
                 } else {
+                    console.log("No redirect result found (Normal page load).");
                     setIsGoogleLoading(false);
                 }
             } catch (error) {
-                console.error("Redirect Error:", error);
+                console.error("Google Redirect Error:", error);
+                
+                // Handle already-in-use error for redirect flow
+                if (error.code === 'auth/credential-already-in-use') {
+                    console.log("Account already in use. Attempting direct sign-in...");
+                    try {
+                        const credential = GoogleAuthProvider.credentialFromError(error);
+                        if (credential) {
+                            const result = await signInWithCredential(auth, credential);
+                            await handleAuthAction(result.user);
+                            return;
+                        }
+                    } catch (signInErr) {
+                        console.error("Secondary sign-in failed:", signInErr);
+                    }
+                }
+                
                 setIsGoogleLoading(false);
+                if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+                    alert("Authentication Error: " + error.message);
+                }
             }
         };
 
         // Single entry point for auth check
         const unsubscribe = auth.onAuthStateChanged((user) => {
-            if (user) {
+            console.log("Auth state changed:", user ? `User(${user.email || 'anonymous'})` : "Null");
+            if (user && user.email) {
+                // We have a user with email, process them immediately
                 handleAuthAction(user);
             } else {
-                // If not logged in yet, check if we're waiting for a redirect result
+                // No user OR anonymous user. 
+                // We MUST check for redirect result here because a redirect just completed,
+                // and we need to see if it upgraded our anonymous user or signed in a new one.
                 checkRedirect();
             }
         });
@@ -116,9 +143,11 @@ const LeadCapture = () => {
 
                     // Recalculate discount
                     try {
+                        console.log("Searching for venue config:", venueId);
                         const vDoc = await getDoc(doc(db, 'venues', venueId));
                         if (vDoc.exists()) {
                             const venueData = vDoc.data();
+                            console.log("Venue config found. Checking visit history for:", lowerEmail);
                             const qVisits = query(
                                 collection(db, 'visits'),
                                 where('guestEmail', '==', lowerEmail),
@@ -129,9 +158,13 @@ const LeadCapture = () => {
                             const visitsSnap = await getDocs(qVisits);
                             if (!visitsSnap.empty) {
                                 const lastVisitDate = visitsSnap.docs[0].data().timestamp.toDate();
+                                console.log("Last visit found:", lastVisitDate);
                                 const now = new Date();
                                 const calcResult = RewardCalculator.calculate(lastVisitDate, now, venueData.loyaltyConfig || venueData.tiers, venueData.timezone || 'Asia/Dubai');
                                 finalDiscount = calcResult.discount;
+                                console.log("Loyalty discount calculated:", finalDiscount);
+                            } else {
+                                console.log("No prior visits found for this venue.");
                             }
                         }
                     } catch (err) {

@@ -17,9 +17,8 @@ void main() {
     config = LoyaltyConfig(
       percBase: 5,
       percVip: 20,
-      degradationIntervalHours: 168, // 7 days
-      resetIntervalDays: 30, // 30 days
-      safetyCooldownHours: 12, 
+      degradationIntervalDays: 7, 
+      resetIntervalDays: 30, 
     );
   });
 

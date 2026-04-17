@@ -1,3 +1,5 @@
+import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:friendly_code/core/theme/colors.dart';
@@ -67,149 +69,248 @@ class _VenueStaffScreenState extends State<VenueStaffScreen> {
       _searchCtrl.clear();
     });
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Staff added!"), backgroundColor: Colors.green));
+      showCupertinoDialog(
+        context: context,
+        builder: (context) => CupertinoAlertDialog(
+          title: const Text("Staff Added"),
+          content: const Text("User has been assigned as staff for this venue."),
+          actions: [
+            CupertinoDialogAction(child: const Text("OK"), onPressed: () => Navigator.pop(context)),
+          ],
+        ),
+      );
+    }
+  }
+
+  Future<void> _removeStaff(String uid) async {
+    await _firestore.collection('users').doc(uid).update({
+      'role': 'user',
+      'venueId': null,
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Staff removed"), backgroundColor: Colors.orange));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text("Staff Management", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: AppColors.title),
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          child: const Icon(CupertinoIcons.chevron_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Manage your venue's staff. Assigned staff can process redemptions.",
-              style: TextStyle(fontSize: 14, color: AppColors.body),
-            ),
-            const SizedBox(height: 20),
-            
-            // Integrated Search Bar
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _searchCtrl,
-                    decoration: InputDecoration(
-                      hintText: "Add staff by exact email...",
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      filled: true,
-                      fillColor: Colors.white,
-                      errorText: _searchError,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                    ),
-                    onSubmitted: (_) => _performSearch(),
-                  ),
+      body: Center(
+        child: Container(
+          maxWidth: 900,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "Staff Management",
+                style: TextStyle(
+                  color: AppColors.macosTextPrimary,
+                  fontSize: 34,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -1.0,
                 ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: _isSearching ? null : _performSearch,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.brandOrange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.all(18),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: _isSearching 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : const Icon(Icons.search),
-                ),
-              ],
-            ),
-
-            // Search Result Card
-            if (_searchResult != null) ...[
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Assign users as staff member for this venue to process redemptions.",
+                style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 16),
+              ),
+              const SizedBox(height: 48),
+              
+              _buildAddStaffSection(),
+              
+              const SizedBox(height: 48),
+              
+              const Text(
+                "CURRENT STAFF MEMBERS",
+                style: TextStyle(color: CupertinoColors.activeOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
+              ),
               const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.lime.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.lime),
-                ),
-                child: Row(
-                  children: [
-                    const CircleAvatar(backgroundColor: AppColors.lime, child: Icon(Icons.person, color: Colors.white)),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(_searchResult!['email'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          Text("Current role: ${_searchResult!['role'] ?? 'guest'}", style: const TextStyle(fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: () => _addStaff(_searchResultId!),
-                      icon: const Icon(Icons.add),
-                      label: const Text("Assign as Staff"),
-                      style: TextButton.styleFrom(foregroundColor: AppColors.brandOrange),
-                    ),
-                  ],
+              
+              Expanded(
+                child: StreamBuilder<QuerySnapshot>(
+                  stream: _firestore.collection('users')
+                      .where('venueId', isEqualTo: widget.venueId)
+                      .where('role', isEqualTo: 'staff')
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (!snapshot.hasData) return const Center(child: CupertinoActivityIndicator());
+                    final staff = snapshot.data!.docs;
+                    
+                    if (staff.isEmpty) {
+                      return Center(
+                        child: Text("No staff members assigned.", 
+                          style: TextStyle(color: AppColors.macosTextSecondary.withOpacity(0.5))),
+                      );
+                    }
+
+                    return ListView.builder(
+                      itemCount: staff.length,
+                      itemBuilder: (context, index) {
+                        final data = staff[index].data() as Map<String, dynamic>;
+                        return _buildStaffTile(staff[index].id, data);
+                      },
+                    );
+                  },
                 ),
               ),
             ],
-            const SizedBox(height: 24),
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
-                stream: _firestore
-                    .collection('users')
-                    .where('role', isEqualTo: 'staff')
-                    .where('venueId', isEqualTo: widget.venueId)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-
-                  final staff = snapshot.data!.docs;
-                  if (staff.isEmpty) {
-                    return Center(
-                      child: Text("No staff assigned yet.", style: TextStyle(color: AppColors.body.withOpacity(0.5))),
-                    );
-                  }
-
-                  return ListView.builder(
-                    itemCount: staff.length,
-                    itemBuilder: (context, index) {
-                      final doc = staff[index];
-                      final data = doc.data() as Map<String, dynamic>;
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: ListTile(
-                          leading: const CircleAvatar(backgroundColor: AppColors.lime, child: Icon(Icons.person, color: Colors.white)),
-                          title: Text(data['email'] ?? 'Unknown Email', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text(data['name'] ?? 'Unnamed User'),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            tooltip: "Remove from staff",
-                            onPressed: () async {
-                              await _firestore.collection('users').doc(doc.id).update({
-                                'role': 'guest',
-                                'venueId': FieldValue.delete(),
-                              });
-                            },
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
+  Widget _buildAddStaffSection() {
+    return _buildGlassContainer(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "ADD NEW STAFF",
+            style: TextStyle(color: CupertinoColors.activeBlue, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: CupertinoSearchTextField(
+                  controller: _searchCtrl,
+                  placeholder: "Search user by email...",
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  onSubmitted: (_) => _performSearch(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              _isSearching 
+                ? const CupertinoActivityIndicator()
+                : CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    color: CupertinoColors.activeBlue,
+                    borderRadius: BorderRadius.circular(8),
+                    onPressed: _performSearch,
+                    child: const Text("Search", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  ),
+            ],
+          ),
+          if (_searchError != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Text(_searchError!, style: const TextStyle(color: CupertinoColors.systemRed, fontSize: 13)),
+            ),
+          if (_searchResult != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 24),
+              child: _buildSearchResultCard(),
+            ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildSearchResultCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.macosDivider),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: AppColors.brandOrange.withOpacity(0.2),
+            child: const Icon(CupertinoIcons.person_fill, color: AppColors.brandOrange),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_searchResult!['displayName'] ?? "Unnamed User", 
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                Text(_searchResult!['email'] ?? "", 
+                  style: TextStyle(color: AppColors.macosTextSecondary.withOpacity(0.7), fontSize: 13)),
+              ],
+            ),
+          ),
+          CupertinoButton(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+            color: CupertinoColors.activeGreen,
+            borderRadius: BorderRadius.circular(8),
+            onPressed: () => _addStaff(_searchResultId!),
+            child: const Text("Add as Staff", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStaffTile(String uid, Map<String, dynamic> data) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.macosSurfaceBg.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.macosDivider),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 20,
+            backgroundImage: data['photoUrl'] != null ? NetworkImage(data['photoUrl']) : null,
+            child: data['photoUrl'] == null ? const Icon(CupertinoIcons.person_fill, size: 20) : null,
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(data['displayName'] ?? "Staff Member", 
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                Text(data['email'] ?? "", 
+                  style: TextStyle(color: AppColors.macosTextSecondary.withOpacity(0.6), fontSize: 12)),
+              ],
+            ),
+          ),
+          CupertinoButton(
+            padding: EdgeInsets.zero,
+            child: const Text("Remove", style: TextStyle(color: CupertinoColors.systemRed, fontSize: 13)),
+            onPressed: () => _removeStaff(uid),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGlassContainer({required Widget child}) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.macosSurfaceBg,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.macosDivider),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
 }

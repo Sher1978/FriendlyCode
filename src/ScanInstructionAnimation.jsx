@@ -2,6 +2,29 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 
+const WaiterSilhouette = ({ color, isActive }) => (
+    <motion.div
+        animate={{ 
+            opacity: isActive ? 0.3 : 0.05,
+            x: isActive ? 0 : 20,
+            scale: isActive ? 1.1 : 1,
+        }}
+        transition={{ duration: 0.8 }}
+        style={{
+            position: 'absolute',
+            right: '-10px',
+            bottom: '-20px',
+            zIndex: 1,
+            pointerEvents: 'none',
+        }}
+    >
+        <svg width="160" height="220" viewBox="0 0 120 150" fill="none">
+            <circle cx="60" cy="30" r="25" fill={color} />
+            <path d="M60 65C30 65 5 100 5 150H115C115 100 90 65 60 65Z" fill={color} />
+        </svg>
+    </motion.div>
+);
+
 const ScanInstructionAnimation = ({ ambientColor, discountValue }) => {
     const { t } = useTranslation();
     const [frame, setFrame] = useState(0);
@@ -15,28 +38,32 @@ const ScanInstructionAnimation = ({ ambientColor, discountValue }) => {
 
     const frames = [
         {
-            phone: { y: 0, rotate: 0, scale: 1.15, opacity: 1 },
+            phone: { x: 0, y: 0, rotate: 0, scale: 1.15, opacity: 1 },
             text: t('instruction_hold', 'Возьмите телефон'),
             screenActive: true,
             success: false,
+            waiterActive: false,
         },
         {
-            phone: { y: -5, rotate: -5, scale: 1.2, opacity: 1 },
+            phone: { x: 45, y: -10, rotate: 12, scale: 1.25, opacity: 1 },
             text: t('instruction_show', 'Покажите на кассе'),
             screenActive: true,
             success: false,
+            waiterActive: true,
         },
         {
-            phone: { y: 5, rotate: 5, scale: 1.2, opacity: 1 },
+            phone: { x: 30, y: 5, rotate: 8, scale: 1.2, opacity: 1 },
             text: t('instruction_redeem', 'Получите награду'),
             screenActive: true,
             success: false,
+            waiterActive: true,
         },
         {
-            phone: { y: 0, rotate: 0, scale: 1.0, opacity: 0.1 },
+            phone: { x: 0, y: 0, rotate: 0, scale: 1.0, opacity: 0.1 },
             text: t('instruction_success', 'Готово!'),
             screenActive: false,
             success: true,
+            waiterActive: false,
         },
     ];
 
@@ -45,6 +72,7 @@ const ScanInstructionAnimation = ({ ambientColor, discountValue }) => {
 
     return (
         <div className="relative w-full h-[240px] flex flex-col items-center justify-center overflow-hidden rounded-[28px] bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl p-6">
+            <WaiterSilhouette color={color} isActive={current.waiterActive} />
             
             {/* Ambient glow behind phone */}
             <motion.div

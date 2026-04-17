@@ -1,5 +1,5 @@
-
-import 'package:friendly_code/l10n/app_localizations.dart';
+import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/services/venue_service.dart';
@@ -7,11 +7,10 @@ import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:friendly_code/l10n/app_localizations.dart';
 
 class VenueEditorScreen extends StatefulWidget {
   final VenueModel? venue;
-
   const VenueEditorScreen({super.key, this.venue});
 
   @override
@@ -24,17 +23,11 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
 
   late TextEditingController _nameCtrl;
   late TextEditingController _ownerEmailCtrl;
-  late TextEditingController _ownerIdCtrl;
   late TextEditingController _categoryCtrl;
   late TextEditingController _addressCtrl;
   late TextEditingController _descCtrl;
-  late TextEditingController _logoUrlCtrl;
-  late TextEditingController _linkUrlCtrl;
   late TextEditingController _googleMapsUrlCtrl;
 
-  List<VenueTier> _tiers = [];
-  late VenueSubscription _subscription;
-  String _defaultLanguage = 'en';
   bool _isSaving = false;
 
   @override
@@ -47,80 +40,78 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     _nameCtrl = TextEditingController(text: widget.venue?.name ?? '');
     
     String ownerEmail = widget.venue?.ownerEmail ?? '';
-    String ownerId = widget.venue?.ownerId ?? '';
-
     if (widget.venue == null && !isSuperAdmin && currentUser != null) {
       ownerEmail = currentUser.email ?? '';
-      ownerId = currentUser.uid;
     }
 
     _ownerEmailCtrl = TextEditingController(text: ownerEmail);
-    _ownerIdCtrl = TextEditingController(text: ownerId);
-    
     _categoryCtrl = TextEditingController(text: widget.venue?.category ?? 'General');
     _addressCtrl = TextEditingController(text: widget.venue?.address ?? '');
     _descCtrl = TextEditingController(text: widget.venue?.description ?? '');
-    _logoUrlCtrl = TextEditingController(text: widget.venue?.logoUrl ?? '');
-    _linkUrlCtrl = TextEditingController(text: widget.venue?.linkUrl ?? '');
     _googleMapsUrlCtrl = TextEditingController(text: widget.venue?.googleMapsUrl ?? '');
-    _tiers = widget.venue?.tiers != null ? List.from(widget.venue!.tiers) : [
-      VenueTier(maxHours: 24, percentage: 20),
-      VenueTier(maxHours: 72, percentage: 10),
-      VenueTier(maxHours: 168, percentage: 5),
-    ];
-
-    _subscription = widget.venue?.subscription ?? VenueSubscription(
-      plan: 'pro', 
-      isPaid: true, 
-      startDate: DateTime.now(),
-      expiryDate: DateTime.now().add(const Duration(days: 365))
-    );
-    _defaultLanguage = widget.venue?.defaultLanguage ?? 'en';
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
     _ownerEmailCtrl.dispose();
-    _ownerIdCtrl.dispose();
     _categoryCtrl.dispose();
     _addressCtrl.dispose();
     _descCtrl.dispose();
-    _logoUrlCtrl.dispose();
-    _linkUrlCtrl.dispose();
     _googleMapsUrlCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isSaving = true);
 
     try {
-      final updatedVenue = VenueModel(
-        id: widget.venue?.id ?? '', // ID handled by service on create
-        name: _nameCtrl.text.trim(),
-        ownerEmail: _ownerEmailCtrl.text.trim(),
-        ownerId: _ownerIdCtrl.text.trim(),
-        category: _categoryCtrl.text.trim(),
-        address: _addressCtrl.text.trim(),
-        description: _descCtrl.text.trim(),
-        logoUrl: _logoUrlCtrl.text.trim(),
-        linkUrl: _linkUrlCtrl.text.trim(),
-        googleMapsUrl: _googleMapsUrlCtrl.text.trim(),
-        tiers: _tiers,
-        subscription: _subscription,
-        defaultLanguage: _defaultLanguage,
-        assignedAdminId: widget.venue?.assignedAdminId,
-        assignedManagerId: widget.venue?.assignedManagerId,
+      final updatedVenue = (widget.venue ?? VenueModel(
+        id: '',
+        name: '',
+        ownerId: AuthService().currentUser?.uid ?? '',
+        ownerEmail: '',
+        address: '',
+        description: '',
+        category: '',
+        isActive: false,
+        createdAt: DateTime.now(),
+      )).copyWith(
+        name: _nameCtrl.text,
+        ownerEmail: _ownerEmailCtrl.text,
+        category: _categoryCtrl.text,
+        address: _addressCtrl.text,
+        description: _descCtrl.text,
+        googleMapsUrl: _googleMapsUrlCtrl.text,
       );
 
-      await _venuesService.saveVenue(updatedVenue);
+      if (widget.venue == null) {
+        await _venuesService.createVenue(updatedVenue);
+      } else {
+        await _venuesService.updateVenue(updatedVenue);
+      }
 
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (ctx) => CupertinoAlertDialog(
+            title: const Text("Success"),
+            content: const Text("Venue details saved successfully."),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text("OK"), 
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.pop(context);
+                }
+              ),
+            ],
+          ),
+        );
+      }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("${AppLocalizations.of(context)!.errorLabel} $e")));
+      debugPrint("Error saving venue: $e");
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -128,128 +119,134 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-     final roleProvider = Provider.of<RoleProvider>(context);
-     final isSuperAdmin = roleProvider.isSuperAdmin;
-     final l10n = AppLocalizations.of(context)!;
+    if (_isSaving) return const Center(child: CupertinoActivityIndicator(radius: 12));
 
-     return Scaffold(
-       appBar: AppBar(
-         title: Text(widget.venue == null ? l10n.newVenue : l10n.editVenue),
-         backgroundColor: AppColors.surface,
-         foregroundColor: AppColors.title,
-         elevation: 0,
-         actions: [
-            if (_isSaving)
-              const Center(child: Padding(padding: EdgeInsets.only(right: 16), child: CircularProgressIndicator())),
-            if (!_isSaving)
-              IconButton(onPressed: _save, icon: const Icon(Icons.check)),
-         ],
-       ),
-       body: Form(
-         key: _formKey,
-         child: SingleChildScrollView(
-           padding: const EdgeInsets.all(24),
-           child: Column(
-             crossAxisAlignment: CrossAxisAlignment.start,
-             children: [
-               _buildSectionHeader(l10n.sectionBasicInfo),
-               _buildTextField(_nameCtrl, l10n.labelVenueName, required: true),
-               const SizedBox(height: 16),
-               _buildTextField(_categoryCtrl, l10n.labelCategory),
-               const SizedBox(height: 16),
-               _buildTextField(_addressCtrl, l10n.labelAddress),
-               const SizedBox(height: 24),
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: CupertinoButton(
+          padding: EdgeInsets.zero,
+          child: const Icon(CupertinoIcons.chevron_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.venue == null ? "Register Venue" : "Edit Venue",
+                    style: const TextStyle(
+                      color: AppColors.macosTextPrimary,
+                      fontSize: 34,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    "Provide basic information about your establishment.",
+                    style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 16),
+                  ),
+                  const SizedBox(height: 48),
 
-               _buildSectionHeader(l10n.sectionOwnership),
-               _buildTextField(_ownerEmailCtrl, l10n.labelOwnerEmail),
-               const SizedBox(height: 16),
-               _buildTextField(_ownerIdCtrl, l10n.labelOwnerId),
-               const SizedBox(height: 24),
+                  _buildGlassSection(
+                    title: "IDENTITY",
+                    children: [
+                      _buildCupertinoField("Venue Name", _nameCtrl, placeholder: "e.g. Skyline Lounge"),
+                      _buildCupertinoField("Owner Email", _ownerEmailCtrl, placeholder: "owner@example.com"),
+                      _buildCupertinoField("Category", _categoryCtrl, placeholder: "e.g. Bar, Cafe, Restaurant"),
+                    ],
+                  ),
 
-               _buildSectionHeader(l10n.sectionMedia),
-               _buildTextField(_logoUrlCtrl, l10n.labelLogoUrl),
-               const SizedBox(height: 16),
-               _buildTextField(_linkUrlCtrl, l10n.labelExternalLink),
-               const SizedBox(height: 16),
-               _buildTextField(_googleMapsUrlCtrl, l10n.labelGoogleMapsUrl),
-               const SizedBox(height: 24),
+                  const SizedBox(height: 32),
 
-               _buildSectionHeader(l10n.sectionSubscriptionStatus),
-               _buildSubscriptionInfo(isSuperAdmin, l10n),
-             ],
-           ),
-         ),
-       ),
-     );
+                  _buildGlassSection(
+                    title: "LOCATION & DETAILS",
+                    children: [
+                      _buildCupertinoField("Physical Address", _addressCtrl, placeholder: "Street, City, Country"),
+                      _buildCupertinoField("Google Maps Link", _googleMapsUrlCtrl, placeholder: "https://maps.google.com/..."),
+                      _buildCupertinoField("Description", _descCtrl, placeholder: "Briefly describe your venue", maxLines: 3),
+                    ],
+                  ),
+
+                  const SizedBox(height: 48),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: CupertinoButton.filled(
+                      onPressed: _save,
+                      borderRadius: BorderRadius.circular(10),
+                      child: const Text("SUBMIT DETAILS", style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildGlassSection({required String title, required List<Widget> children}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 12, bottom: 12),
+          child: Text(
+            title,
+            style: const TextStyle(color: CupertinoColors.activeOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
+          ),
+        ),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.macosSurfaceBg,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.macosDivider),
+              ),
+              child: Column(children: children),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCupertinoField(String label, TextEditingController controller, {String? placeholder, int maxLines = 1}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.title)),
-    );
-  }
-
-  Widget _buildTextField(TextEditingController controller, String label, {bool required = false}) {
-    return TextFormField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        filled: true,
-        fillColor: AppColors.secondarySurface,
-      ),
-      validator: required ? (val) => val == null || val.isEmpty ? AppLocalizations.of(context)!.required : null : null,
-    );
-  }
-
-  Widget _buildSubscriptionInfo(bool isSuperAdmin, AppLocalizations l10n) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.title.withOpacity(0.1)),
-      ),
+      padding: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(l10n.labelPlan, style: const TextStyle(fontWeight: FontWeight.bold)),
-              if (!isSuperAdmin) Text(_subscription.plan.toUpperCase(), style: const TextStyle(color: AppColors.brandOrange, fontWeight: FontWeight.bold)),
-              if (isSuperAdmin)
-                DropdownButton<String>(
-                  value: _subscription.plan,
-                  items: ['free', 'pro', 'enterprise'].map((e) => DropdownMenuItem(value: e, child: Text(e.toUpperCase()))).toList(),
-                  onChanged: (val) => setState(() => _subscription = VenueSubscription(plan: val ?? 'free', isPaid: _subscription.isPaid, startDate: _subscription.startDate, expiryDate: _subscription.expiryDate)),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(l10n.labelPaymentStatus, style: const TextStyle(fontWeight: FontWeight.bold)),
-              if (!isSuperAdmin) Text(_subscription.isPaid ? l10n.planPaid : l10n.planUnpaid, style: TextStyle(color: _subscription.isPaid ? Colors.green : Colors.red, fontWeight: FontWeight.bold)),
-              if (isSuperAdmin)
-                Switch(
-                  value: _subscription.isPaid,
-                  onChanged: (val) => setState(() => _subscription = VenueSubscription(plan: _subscription.plan, isPaid: val, startDate: _subscription.startDate, expiryDate: _subscription.expiryDate)),
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(l10n.labelExpiryDate, style: const TextStyle(fontWeight: FontWeight.bold)),
-              Text(
-                _subscription.expiryDate != null ? "${_subscription.expiryDate!.day}/${_subscription.expiryDate!.month}/${_subscription.expiryDate!.year}" : l10n.notSet,
-                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.body),
-              ),
-            ],
+          Text(label, style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          CupertinoTextField(
+            controller: controller,
+            placeholder: placeholder,
+            placeholderStyle: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 14),
+            style: const TextStyle(color: Colors.white, fontSize: 14),
+            padding: const EdgeInsets.all(16),
+            maxLines: maxLines,
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.macosDivider),
+            ),
           ),
         ],
       ),

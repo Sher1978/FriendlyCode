@@ -1,0 +1,12 @@
+FILE_PATH = r"c:\Sher_AI_Studio\projects\FriendlyCode\src\NewQRPage.jsx"
+
+with open(FILE_PATH, "r", encoding="utf-8") as f:
+    content = f.read()
+
+# Fix literal \n
+content = content.replace("useState(false);\\n    const [hasInteracted", "useState(false);\\n    const [hasInteracted")
+# Wait, if it was literal \\n in the file, we need to replace it with actual newline.
+content = content.replace("useState(false);\\n", "useState(false);\\n")
+
+with open(FILE_PATH, "w", encoding="utf-8") as f:
+    f.write(content)

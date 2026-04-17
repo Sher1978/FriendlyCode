@@ -1,3 +1,5 @@
+import 'dart:ui';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 
@@ -19,63 +21,70 @@ class PulseCheckCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.macosSurfaceBg,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.macosDivider),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.accentGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(
-                  icon,
-                  color: AppColors.accentGreen,
-                  size: 20,
-                ),
-              ),
-              if (trend != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: (isPositive ? AppColors.accentGreen : AppColors.accentRed).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    trend!,
-                    style: TextStyle(
-                      color: isPositive ? AppColors.accentGreen : AppColors.accentRed,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: CupertinoColors.activeOrange.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: CupertinoColors.activeOrange,
+                      size: 20,
                     ),
                   ),
+                  if (trend != null)
+                    Text(
+                      trend!,
+                      style: TextStyle(
+                        color: isPositive ? CupertinoColors.activeGreen : CupertinoColors.systemRed,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                title.toUpperCase(),
+                style: TextStyle(
+                  color: AppColors.macosTextSecondary.withOpacity(0.5),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
                 ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            title,
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                  fontSize: 28,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  color: AppColors.macosTextPrimary,
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
                   letterSpacing: -1.0,
                 ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

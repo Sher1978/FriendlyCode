@@ -699,6 +699,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get labelExternalLink => 'External Link / Website';
 
   @override
+  String get labelGoogleMapsUrl => 'Ссылка на Google Карты';
+
+  @override
+  String get hintGoogleMapsUrl => 'Ссылка для отзывов гостей';
+
+  @override
   String get sectionStaffAssignment => 'Staff Assignment';
 
   @override
