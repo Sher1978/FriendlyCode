@@ -179,7 +179,7 @@ class _OwnerVenuesScreenState extends State<OwnerVenuesScreen> {
                               if (venue.isActive)
                                 _buildStatusBadge("Active", CupertinoColors.activeGreen)
                               else
-                                _buildStatusBadge("Pending", CupertinoColors.activeOrange),
+                                _buildStatusBadge("Pending", AppColors.accentOrange),
                             ],
                           ),
                           const SizedBox(height: 4),

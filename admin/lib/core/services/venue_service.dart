@@ -16,6 +16,9 @@ class VenuesService {
     await docRef.set(venue.toMap(), SetOptions(merge: true));
   }
 
+  Future<void> createVenue(VenueModel venue) => saveVenue(venue);
+  Future<void> updateVenue(VenueModel venue) => saveVenue(venue);
+
   // Get Venue by Owner ID
   Future<VenueModel?> getVenueByOwnerId(String ownerId) async {
     final snapshot = await _firestore

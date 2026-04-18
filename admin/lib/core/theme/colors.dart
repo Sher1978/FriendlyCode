@@ -61,6 +61,14 @@ class AppColors {
     ),
   ];
 
+  // MacOS-style Theme (for B2B dashboards)
+  static const Color macosBackground = Color(0xFF000000);
+  static const Color macosSurfaceBg = Color(0xFF1C1C1E);
+  static const Color macosDivider = Color(0x33EBEBF5);
+  static const Color macosTextPrimary = Colors.white;
+  static const Color macosTextSecondary = Color(0x99EBEBF5);
+  static const double macosRadius = 12.0;
+
   // Legacy/Compatibility & Aliases
   static const Color backgroundCream = background;
   static const Color surfaceCream = surface;

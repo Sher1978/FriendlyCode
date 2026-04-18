@@ -205,7 +205,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
           padding: const EdgeInsets.only(left: 12, bottom: 12),
           child: Text(
             title,
-            style: const TextStyle(color: CupertinoColors.activeOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
+            style: const TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
           ),
         ),
         ClipRRect(

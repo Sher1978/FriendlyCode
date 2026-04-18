@@ -24,10 +24,11 @@ import 'package:friendly_code/core/services/statistics_service.dart';
 import 'package:friendly_code/core/widgets/ios_settings_group.dart';
 import 'package:friendly_code/core/widgets/ios_settings_row.dart';
 import 'package:friendly_code/features/owner/presentation/widgets/pulse_check_card.dart';
-import 'package:flutter/cupertino.dart' show CupertinoIcons;
+import 'package:flutter/cupertino.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
-  const OwnerDashboardScreen({super.key});
+  final VenueModel? venue;
+  const OwnerDashboardScreen({super.key, this.venue});
 
   @override
   State<OwnerDashboardScreen> createState() => _OwnerDashboardScreenState();
@@ -78,7 +79,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
           title: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(CupertinoIcons.sparkles, color: CupertinoColors.activeOrange),
+              const Icon(CupertinoIcons.sparkles, color: AppColors.accentOrange),
               const SizedBox(width: 12),
               const Text("New Redemption"),
             ],
@@ -95,7 +96,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                 const SizedBox(height: 12),
                 Text(
                   "${visit.discountValue}% OFF",
-                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: CupertinoColors.activeOrange),
+                  style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: AppColors.accentOrange),
                 ),
                 const SizedBox(height: 12),
                 const Text(
@@ -322,7 +323,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
         title: _buildVenueSelector(venueIds, roleProvider),
         actions: [
           CupertinoButton(
-            child: const Icon(CupertinoIcons.globe, color: CupertinoColors.activeOrange, size: 22),
+            child: const Icon(CupertinoIcons.globe, color: AppColors.accentOrange, size: 22),
             onPressed: () {
                final provider = Provider.of<LocaleProvider>(context, listen: false);
                final nextLocale = provider.locale.languageCode == 'en'
@@ -332,7 +333,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
             },
           ),
           CupertinoButton(
-            child: const Icon(CupertinoIcons.plus_circle, color: CupertinoColors.activeOrange, size: 22),
+            child: const Icon(CupertinoIcons.plus_circle, color: AppColors.accentOrange, size: 22),
             onPressed: () async {
               final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen()));
               if (result == true && context.mounted) {
@@ -408,7 +409,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(CupertinoIcons.building_2_fill, size: 16, color: CupertinoColors.activeOrange),
+            const Icon(CupertinoIcons.building_2_fill, size: 16, color: AppColors.accentOrange),
             const SizedBox(width: 10),
             Text(
               l10n.switchVenue(venueIds.length),
@@ -461,7 +462,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                       children: [
                         Text(
                           l10n.hello(userEmail.split('@').first).toUpperCase(),
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: CupertinoColors.activeOrange, letterSpacing: 1.5),
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.accentOrange, letterSpacing: 1.5),
                         ),
                         const SizedBox(height: 6),
                         Text(

@@ -154,6 +154,7 @@ class VenueModel {
   final VenueStats stats;
   
   final DateTime? lastBlastDate;
+  final DateTime? createdAt;
   final double? latitude;
   final double? longitude;
   final String? assignedAdminId;
@@ -180,6 +181,7 @@ class VenueModel {
     LoyaltyConfig? loyaltyConfig,
     VenueStats? stats,
     this.lastBlastDate,
+    this.createdAt,
     this.latitude,
     this.longitude,
     this.assignedAdminId,
@@ -217,6 +219,7 @@ class VenueModel {
       'loyaltyConfig': loyaltyConfig.toMap(),
       'stats': stats.toMap(),
       'lastBlastDate': lastBlastDate != null ? Timestamp.fromDate(lastBlastDate!) : null,
+      'createdAt': createdAt != null ? Timestamp.fromDate(createdAt!) : null,
       'latitude': latitude,
       'longitude': longitude,
       'assignedAdminId': assignedAdminId,
@@ -246,6 +249,7 @@ class VenueModel {
       loyaltyConfig: map['loyaltyConfig'] != null ? LoyaltyConfig.fromMap(map['loyaltyConfig']) : null,
       stats: map['stats'] != null ? VenueStats.fromMap(map['stats']) : null,
       lastBlastDate: map['lastBlastDate'] != null ? (map['lastBlastDate'] as Timestamp).toDate() : null,
+      createdAt: map['createdAt'] != null ? (map['createdAt'] as Timestamp).toDate() : null,
       latitude: map['latitude']?.toDouble(),
       longitude: map['longitude']?.toDouble(),
       assignedAdminId: map['assignedAdminId'],
@@ -254,6 +258,66 @@ class VenueModel {
       googleMapsUrl: map['googleMapsUrl'],
     );
   }
+  VenueModel copyWith({
+    String? id,
+    String? ownerEmail,
+    String? ownerId,
+    String? name,
+    String? address,
+    String? logoUrl,
+    String? linkUrl,
+    String? description,
+    String? category,
+    bool? isActive,
+    bool? isManuallyBlocked,
+    String? defaultLanguage,
+    String? timezone,
+    List<VenueTier>? tiers,
+    VenueSubscription? subscription,
+    LoyaltyConfig? loyaltyConfig,
+    VenueStats? stats,
+    DateTime? lastBlastDate,
+    DateTime? createdAt,
+    double? latitude,
+    double? longitude,
+    String? assignedAdminId,
+    String? assignedManagerId,
+    bool? emailReportsActive,
+    String? googleMapsUrl,
+  }) {
+    return VenueModel(
+      id: id ?? this.id,
+      ownerEmail: ownerEmail ?? this.ownerEmail,
+      ownerId: ownerId ?? this.ownerId,
+      name: name ?? this.name,
+      address: address ?? this.address,
+      logoUrl: logoUrl ?? this.logoUrl,
+      linkUrl: linkUrl ?? this.linkUrl,
+      description: description ?? this.description,
+      category: category ?? this.category,
+      isActive: isActive ?? this.isActive,
+      isManuallyBlocked: isManuallyBlocked ?? this.isManuallyBlocked,
+      defaultLanguage: defaultLanguage ?? this.defaultLanguage,
+      timezone: timezone ?? this.timezone,
+      tiers: tiers ?? this.tiers,
+      subscription: subscription ?? this.subscription,
+      loyaltyConfig: loyaltyConfig ?? this.loyaltyConfig,
+      stats: stats ?? this.stats,
+      lastBlastDate: lastBlastDate ?? this.lastBlastDate,
+      createdAt: createdAt ?? this.createdAt,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      assignedAdminId: assignedAdminId ?? this.assignedAdminId,
+      assignedManagerId: assignedManagerId ?? this.assignedManagerId,
+      emailReportsActive: emailReportsActive ?? this.emailReportsActive,
+      googleMapsUrl: googleMapsUrl ?? this.googleMapsUrl,
+    );
+  }
+
+  // UI Helpers
+  String? get photoUrl => logoUrl;
+  int? get totalUsers => stats.monthlyActiveUsers;
+  int? get totalRedemptions => stats.totalCheckins;
 }
 
 class VenueStats {

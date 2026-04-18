@@ -123,7 +123,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
             
             const Text(
               "ADMINISTRATIVE TEAM",
-              style: TextStyle(color: CupertinoColors.activeOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
+              style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
             ),
             const SizedBox(height: 16),
             

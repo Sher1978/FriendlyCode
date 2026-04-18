@@ -56,7 +56,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Phase 1: Network Vitals (JTBD: Monitoring Health)
-                _buildSectionHeader("NETWORK VITALS", CupertinoIcons.pulse),
+                _buildSectionHeader("NETWORK VITALS", CupertinoIcons.graph_square_fill),
                 const SizedBox(height: 16),
                 _buildVitalsGrid(isWide),
                 
@@ -275,7 +275,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
         _buildStrategicCard("Asset Forge", "Print design generator", CupertinoIcons.doc_plaintext, AppColors.accentOrange, () {
            Navigator.push(context, MaterialPageRoute(builder: (_) => const FlyerGeneratorScreen()));
         }),
-        _buildStrategicCard("Ops Config", "Email & Notification hub", CupertinoIcons.settings_bolt, AppColors.premiumGold, () {
+        _buildStrategicCard("Ops Config", "Email & Notification hub", CupertinoIcons.gear, AppColors.premiumGold, () {
            Navigator.push(context, MaterialPageRoute(builder: (_) => const GlobalEmailSettingsScreen()));
         }),
       ],

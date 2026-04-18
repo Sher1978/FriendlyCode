@@ -155,7 +155,7 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
                                     duration: const Duration(milliseconds: 200),
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: isSelected ? CupertinoColors.activeOrange : Colors.white.withOpacity(0.05),
+                                      color: isSelected ? AppColors.accentOrange : Colors.white.withOpacity(0.05),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(color: Colors.white10),
                                     ),
@@ -246,7 +246,7 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
                               ),
                             ),
                             const SizedBox(height: 32),
-                            _buildStatItem("REACHABLE", "$_curentAudienceSize", CupertinoIcons.person_2_fill, CupertinoColors.activeOrange),
+                            _buildStatItem("REACHABLE", "$_curentAudienceSize", CupertinoIcons.person_2_fill, AppColors.accentOrange),
                             const SizedBox(height: 24),
                             _buildStatItem("OPEN RATE", "82%", CupertinoIcons.eye_fill, CupertinoColors.activeBlue),
                             const SizedBox(height: 24),
@@ -308,7 +308,7 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
     return Text(
       text.toUpperCase(),
       style: const TextStyle(
-        color: CupertinoColors.activeOrange,
+        color: AppColors.accentOrange,
         fontWeight: FontWeight.w900,
         fontSize: 11,
         letterSpacing: 1.5,
@@ -370,7 +370,7 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
           Container(
             width: 8,
             height: 8,
-            decoration: const BoxDecoration(color: CupertinoColors.activeOrange, shape: BoxShape.circle),
+            decoration: const BoxDecoration(color: AppColors.accentOrange, shape: BoxShape.circle),
           ),
           const SizedBox(width: 12),
           Expanded(

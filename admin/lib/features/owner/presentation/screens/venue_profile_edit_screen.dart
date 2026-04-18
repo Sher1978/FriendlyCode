@@ -70,7 +70,7 @@ class _VenueProfileEditScreenState extends State<VenueProfileEditScreen> {
                       const Text(
                         "COVER PHOTO",
                         style: TextStyle(
-                          color: CupertinoColors.activeOrange,
+                          color: AppColors.accentOrange,
                           fontWeight: FontWeight.w800,
                           fontSize: 11,
                           letterSpacing: 1.2,
@@ -106,7 +106,7 @@ class _VenueProfileEditScreenState extends State<VenueProfileEditScreen> {
                       const Text(
                         "PORTAL LANGUAGE",
                         style: TextStyle(
-                          color: CupertinoColors.activeOrange,
+                          color: AppColors.accentOrange,
                           fontWeight: FontWeight.w800,
                           fontSize: 11,
                           letterSpacing: 1.2,

@@ -120,7 +120,7 @@ class _GlobalEmailSettingsScreenState extends State<GlobalEmailSettingsScreen> {
                   title: "Owner Alerts",
                   subtitle: "Real-time notifications for venue owners",
                   icon: CupertinoIcons.bell_fill,
-                  iconColor: CupertinoColors.activeOrange,
+                  iconColor: AppColors.accentOrange,
                   trailing: CupertinoSwitch(
                     value: enableOwnerNotifications,
                     onChanged: (v) => _updateSetting('enableOwnerNotifications', v),

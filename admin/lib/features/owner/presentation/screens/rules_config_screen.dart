@@ -152,7 +152,7 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
                     children: [
                       const Text(
                         "CORE PARAMETERS",
-                        style: TextStyle(color: CupertinoColors.activeOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
+                        style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
                       ),
                       const SizedBox(height: 24),
                       Row(
@@ -178,7 +178,7 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
                         children: [
                           const Text(
                             "DECAY STAGES",
-                            style: TextStyle(color: CupertinoColors.activeOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
+                            style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
                           ),
                           CupertinoButton(
                             padding: EdgeInsets.zero,

@@ -116,7 +116,7 @@ class _VenueSearchScreenState extends State<VenueSearchScreen> {
       ),
       body: Center(
         child: Container(
-          maxWidth: 800,
+          constraints: const BoxConstraints(maxWidth: 800),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
