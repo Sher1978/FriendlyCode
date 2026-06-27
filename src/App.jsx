@@ -17,6 +17,7 @@ const RevooB2C           = React.lazy(() => import('./RevooB2C'));
 const RevooB2B           = React.lazy(() => import('./RevooB2B'));
 const GuestDashboard     = React.lazy(() => import('./GuestDashboard'));
 const CaptiveLanding     = React.lazy(() => import('./CaptiveLanding'));
+const RevooStories       = React.lazy(() => import('./RevooStories'));
 
 import DubaiTechBadge from './DubaiTechBadge';
 
@@ -46,9 +47,10 @@ function App() {
           <Route path="/legacy/b2c" element={<MarketingB2C />} />
           <Route path="/legacy/b2b" element={<MarketingB2B />} />
 
-          {/* Multi-Brand Landing Logic */}
-          <Route path="/" element={showRevoo ? <RevooB2C /> : <MarketingB2C />} />
+          {/* Multi-Brand Landing Logic — Stories as main entry */}
+          <Route path="/" element={<RevooStories onComplete={() => window.location.replace('/test?id=demo')} />} />
           <Route path="/business" element={showRevoo ? <RevooB2B /> : <MarketingB2B />} />
+          <Route path="/legacy/b2c" element={<RevooB2C />} />
           <Route path="/map" element={<PartnerMap />} />
 
           {/* Guest QR Logic (Now REVOO) */}

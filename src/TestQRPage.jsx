@@ -2,13 +2,14 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLeaf, faRocket, faGift, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
+import { faGift, faExclamationTriangle } from '@fortawesome/free-solid-svg-icons';
 import { motion } from 'framer-motion';
 import { db, auth } from './firebase';
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { RewardCalculator } from './logic/RewardCalculator';
 import PngBattery, { getBatteryConfig } from './PngBattery';
+import RevooStories from './RevooStories';
 
 const safeStorage = {
     getItem: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -211,18 +212,9 @@ const TestQRPage = () => {
         i18n.changeLanguage(cycle[i18n.language] || 'en');
     };
 
-    // ── LOADING (iOS Dark) ──
+    // ── LOADING → RevooStories onboarding ──
     if (status === 'loading') {
-        return (
-            <div className="flex flex-col min-h-[100dvh] bg-black items-center justify-center p-6 text-white relative">
-                <div className="z-10 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-[#1C1C1E] rounded-3xl flex items-center justify-center mb-6 shadow-2xl animate-pulse">
-                        <img src="/revoo-logo.png" alt="REVOO Logo" className="w-[80%] h-[80%] object-contain" />
-                    </div>
-                    <p className="text-white/50 font-medium text-sm animate-pulse">{t('calculating_discount')}</p>
-                </div>
-            </div>
-        );
+        return <RevooStories onComplete={() => setStatus('first')} />;
     }
 
     // ── ERROR / BLOCKED (iOS Dark) ──
