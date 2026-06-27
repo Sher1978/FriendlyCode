@@ -28,7 +28,7 @@ function App() {
   return (
     <BrowserRouter>
       <React.Suspense fallback={
-        <div className="min-h-screen bg-[#000000] flex flex-col items-center justify-center gap-6">
+        <div data-build="2026-06-27-1425" className="min-h-screen bg-[#000000] flex flex-col items-center justify-center gap-6">
           <motion.div 
             animate={{ opacity: [0.4, 0.8, 0.4] }}
             transition={{ duration: 2, repeat: Infinity }}
