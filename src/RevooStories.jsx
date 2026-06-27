@@ -256,11 +256,16 @@ export default function RevooStories({ onComplete }) {
     });
   }, []);
 
+  const goNextRef = useRef(goNext);
+  useEffect(() => {
+    goNextRef.current = goNext;
+  });
+
   // Auto-advance
   useEffect(() => {
-    const t = setTimeout(goNext, DURATIONS[current]);
+    const t = setTimeout(() => goNextRef.current(), DURATIONS[current]);
     return () => clearTimeout(t);
-  }, [current, goNext]);
+  }, [current]);
 
   // Tap to advance
   const handleTap = (e) => {

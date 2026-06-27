@@ -52,7 +52,7 @@ const TestQRPage = () => {
             idx = (idx + 1) % rates.length;
             setSlotDiscount(rates[idx]);
             setSlotCapacity(capacities[idx]);
-        }, 180);
+        }, 1400);
         return () => clearInterval(interval);
     }, [guestName]);
 
@@ -230,6 +230,10 @@ const TestQRPage = () => {
         i18n.changeLanguage(cycle[i18n.language] || 'en');
     };
 
+    const handleStoriesComplete = useCallback(() => {
+        setStoriesCompleted(true);
+    }, []);
+
     // ── ERROR / BLOCKED (iOS Dark) ──
     if (status === 'error' || status === 'blocked') {
         return (
@@ -252,7 +256,7 @@ const TestQRPage = () => {
 
     // ── ONBOARDING STORIES ──
     if (!storiesCompleted) {
-        return <RevooStories onComplete={() => setStoriesCompleted(true)} />;
+        return <RevooStories onComplete={handleStoriesComplete} />;
     }
 
     // ── LOADING DATA FALLBACK ──
@@ -398,9 +402,9 @@ const TestQRPage = () => {
                         {t('vip_battery_charge_label', 'VIP Battery Charge')}
                     </p>
 
-                    {/* Massive Accent Number */}
-                    <div
-                        className="text-[56px] font-bold leading-none tracking-tighter"
+                    {/* Massive Accent Number (Slot Machine Reel or Static Number) */}
+                    <div 
+                        className="h-[60px] overflow-hidden relative w-[180px] flex items-center justify-center"
                         style={{
                             color: '#FFFFFF',
                             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
@@ -412,7 +416,32 @@ const TestQRPage = () => {
                             `
                         }}
                     >
-                        {currentDiscount}%
+                        {/* Top & Bottom Cylinder Shadow Overlays */}
+                        <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-b from-[#1C1C1E] to-transparent z-20 pointer-events-none" />
+                        <div className="absolute bottom-0 left-0 right-0 h-3 bg-gradient-to-t from-[#1C1C1E] to-transparent z-20 pointer-events-none" />
+
+                        {guestName ? (
+                            <div className="text-[56px] font-bold leading-[60px] tracking-tighter text-center">
+                                {discount}%
+                            </div>
+                        ) : (
+                            <motion.div
+                                animate={{ y: -[5, 10, 15, 20].indexOf(slotDiscount) * 60 }}
+                                transition={{ type: 'spring', stiffness: 90, damping: 13 }}
+                                className="flex flex-col items-center absolute"
+                                style={{ height: '60px' }}
+                            >
+                                {[5, 10, 15, 20].map((val) => (
+                                    <div
+                                        key={val}
+                                        className="text-[56px] font-bold leading-[60px] tracking-tighter text-center"
+                                        style={{ height: '60px' }}
+                                    >
+                                        {val}%
+                                    </div>
+                                ))}
+                            </motion.div>
+                        )}
                     </div>
                     {/* The "Discount limits" subline */}
                     <p className="text-[11px] font-medium tracking-wider opacity-60 uppercase mb-3" style={{ color: batCfg.fillColor }}>
