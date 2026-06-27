@@ -18,6 +18,7 @@ import CaptiveLanding from './CaptiveLanding';
 
 import DubaiTechBadge from './DubaiTechBadge';
 
+// Trigger build change to force new deployment hash
 function App() {
   const isLegacyDomain = window.location.hostname.includes('friendlycode.fun');
   const queryParams = new URLSearchParams(window.location.search);
