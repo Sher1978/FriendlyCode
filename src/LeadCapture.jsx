@@ -212,8 +212,8 @@ const LeadCapture = () => {
             if (effectiveUid) localStorage.setItem('effectiveUid', effectiveUid);
 
             // Final Navigation
-            console.log("Navigating to reward screen with discount:", finalDiscount);
-            navigate(`/thank-you?venueId=${venueId}`, {
+            console.log("Navigating to test screen with discount:", finalDiscount);
+            navigate(`/test?id=${venueId}`, {
                 state: {
                     guestName: (userName || 'Guest').trim(),
                     guestEmail: lowerEmail,
@@ -227,7 +227,7 @@ const LeadCapture = () => {
         } catch (e) {
             console.error("Critical error in processAuthUser:", e);
             // Fallback navigation
-            navigate(`/thank-you?venueId=${venueId}`, { 
+            navigate(`/test?id=${venueId}`, { 
                 state: { guestName: (userName || 'Guest').trim(), discountValue: discount, venueId: venueId },
                 replace: true
             });
@@ -259,38 +259,13 @@ const LeadCapture = () => {
     const handleGoogleSignIn = async () => {
         setIsGoogleLoading(true);
         try {
-            const user = auth.currentUser;
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-            if (user && user.isAnonymous) {
-                try {
-                    if (isMobile) {
-                        await linkWithRedirect(user, googleProvider);
-                    } else {
-                        await linkWithPopup(user, googleProvider);
-                    }
-                } catch (linkError) {
-                    // Logic: If linking fails because account is already in use, just sign in with that account.
-                    if (linkError.code === 'auth/credential-already-in-use') {
-                        console.log("Account already linked to another user. Switching users...");
-                        const credential = GoogleAuthProvider.credentialFromError(linkError);
-                        if (credential) {
-                            const result = await signInWithCredential(auth, credential);
-                            await processAuthUser(result.user.displayName || 'Guest', result.user.email, result.user.uid);
-                        } else {
-                            throw linkError;
-                        }
-                    } else {
-                        throw linkError;
-                    }
-                }
+            
+            // Direct sign-in (linking anonymous users is not needed and causes cross-site cookie errors)
+            if (isMobile) {
+                await signInWithRedirect(auth, googleProvider);
             } else {
-                // Normal sign in
-                if (isMobile) {
-                    await signInWithRedirect(auth, googleProvider);
-                } else {
-                    await signInWithPopup(auth, googleProvider);
-                }
+                await signInWithPopup(auth, googleProvider);
             }
         } catch (error) {
             console.error("Google Auth failed:", error);
