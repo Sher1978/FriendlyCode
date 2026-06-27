@@ -344,7 +344,7 @@ const TestQRPage = () => {
 
                     {/* VIP Status Label */}
                     <p className="text-[9px] font-bold tracking-[0.2em] text-white/30 uppercase mb-0">
-                        Your VIP Status is
+                        {t('vip_battery_charge_label', 'VIP Battery Charge')}
                     </p>
 
                     {/* Massive Accent Number */}

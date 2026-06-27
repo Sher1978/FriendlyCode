@@ -52,7 +52,7 @@ function Story1() {
           transition={{ delay: 0.3 }}
           className="text-[24px] font-bold leading-tight text-white tracking-tight"
         >
-          Your loyalty<br />becomes your discount
+          Your VIP status<br />is a living battery
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 8 }}
@@ -60,7 +60,7 @@ function Story1() {
           transition={{ delay: 0.5 }}
           className="text-[14px] text-white/50 font-medium leading-relaxed"
         >
-          Scan QR once — get a personalized VIP reward.<br />The more you visit, the more you earn.
+          The more often you visit partner venues, the higher your battery charge level and the bigger your discount!
         </motion.p>
       </div>
     </div>
@@ -83,7 +83,7 @@ function Story2() {
   }, []);
 
   const capacity = levels[levelIdx];
-  const labels = ['Base 5%', 'Level 10%', 'Level 15%', 'VIP 20%'];
+  const labels = ['Base 5% (Low Charge)', 'Level 10% (Charged)', 'Level 15% (High Charge)', 'Super VIP 20% (Full!)'];
   const colors = ['#FF3131', '#FF8800', '#FFD700', '#00FF41'];
   const color = colors[levelIdx];
 
@@ -96,7 +96,7 @@ function Story2() {
           animate={{ opacity: 1, y: 0 }}
           className="text-[22px] font-bold text-white leading-tight"
         >
-          Your status grows<br />with every visit
+          Charge the battery<br />with your visits
         </motion.h2>
       </div>
 
@@ -145,7 +145,7 @@ function Story2() {
         transition={{ delay: 0.4 }}
         className="text-[13px] text-white/40 font-medium text-center leading-relaxed"
       >
-        The battery shows your current VIP level —<br />visit tomorrow to charge it up!
+        Every visit charges your battery. If you stay away<br />too long, the charge drains and your discount melts!
       </motion.p>
     </div>
   );
@@ -198,7 +198,7 @@ function Story3({ onClaim }) {
           transition={{ delay: 0.3 }}
           className="text-[22px] font-bold text-white leading-tight"
         >
-          🎁 Your reward is<br />being calculated...
+          ⚡ Calculating your<br />battery charge...
         </motion.h2>
         <motion.p
           initial={{ opacity: 0 }}
@@ -206,7 +206,7 @@ function Story3({ onClaim }) {
           transition={{ delay: 0.5 }}
           className="text-[13px] text-white/40 font-medium"
         >
-          Almost there — checking your visit history
+          Checking your visit history to set your VIP rate
         </motion.p>
       </div>
 
