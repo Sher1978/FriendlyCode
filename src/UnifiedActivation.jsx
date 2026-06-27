@@ -158,7 +158,7 @@ const UnifiedActivation = () => {
         if (stateValue !== undefined) return stateValue;
         return parseInt(localStorage.getItem('currentDiscount')) || 10;
     });
-    const [isClaimed, setIsClaimed] = useState(false);
+    const [isClaimed, setIsClaimed] = useState(true);
     const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
     
     // Helper to get color based on discount
@@ -273,18 +273,25 @@ const UnifiedActivation = () => {
         return () => clearInterval(timer);
     }, [isClaimed, timeLeft]);
 
-    const handleClaim = async () => {
-        setIsClaimed(true);
-        // Add to history
-        const venueId = localStorage.getItem('currentVenueId');
-        if (venueId) {
-            await addDoc(collection(db, 'venues', venueId, 'redemptions'), {
-                guestName,
-                discount: discountValue,
-                timestamp: serverTimestamp()
-            });
-        }
-    };
+    useEffect(() => {
+        const autoClaim = async () => {
+            const params = new URLSearchParams(location.search);
+            const venueId = params.get('venueId') || localStorage.getItem('currentVenueId');
+            if (venueId) {
+                try {
+                    await addDoc(collection(db, 'venues', venueId, 'redemptions'), {
+                        guestName,
+                        discount: discountValue,
+                        timestamp: serverTimestamp()
+                    });
+                    console.log("Automatically logged redemption for:", guestName);
+                } catch (e) {
+                    console.warn("Auto-claim redemption logging failed:", e);
+                }
+            }
+        };
+        autoClaim();
+    }, [guestName, discountValue, location.search]);
 
     const formatTime = (seconds) => {
         const mins = Math.floor(seconds / 60);

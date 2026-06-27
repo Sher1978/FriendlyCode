@@ -58,7 +58,18 @@ function App() {
           <Route path="/legacy/b2b" element={<MarketingB2B />} />
 
           {/* Multi-Brand Landing Logic — Stories as main entry */}
-          <Route path="/" element={<RevooStories onComplete={() => window.location.replace('/test?id=demo')} />} />
+          <Route path="/" element={
+            <RevooStories onComplete={() => {
+              try {
+                localStorage.setItem('onboardingCompleted', 'true');
+              } catch (e) {
+                console.warn(e);
+              }
+              const searchParams = new URLSearchParams(window.location.search);
+              const venueId = searchParams.get('qr_venue_id') || 'demo';
+              window.location.replace(`/test?id=${venueId}`);
+            }} />
+          } />
           <Route path="/business" element={showRevoo ? <RevooB2B /> : <MarketingB2B />} />
           <Route path="/legacy/b2c" element={<RevooB2C />} />
           <Route path="/map" element={<PartnerMap />} />
