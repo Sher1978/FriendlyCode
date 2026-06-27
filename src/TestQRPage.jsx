@@ -22,7 +22,6 @@ const TestQRPage = () => {
     const [discount, setDiscount] = useState(5);
     const [venueName, setVenueName] = useState('');
     const [cooldown, setCooldown] = useState(null);
-    const [minDelayPassed, setMinDelayPassed] = useState(false);
 
     const [debugClicks, setDebugClicks] = useState(0);
     const [lastVisitDebug, setLastVisitDebug] = useState(null);
@@ -75,7 +74,6 @@ const TestQRPage = () => {
     }, [status]);
 
     useEffect(() => {
-        const timer = setTimeout(() => setMinDelayPassed(true), 1000);
         const safetyTimeoutId = setTimeout(() => {
             if (statusRef.current === 'loading') {
                 console.warn("Auth/Data fetch taking longer than expected, enabling testing mode");
@@ -204,7 +202,6 @@ const TestQRPage = () => {
 
         return () => {
             unsubscribe();
-            clearTimeout(timer);
             clearTimeout(safetyTimeoutId);
         };
     }, [location]);
@@ -215,7 +212,7 @@ const TestQRPage = () => {
     };
 
     // ── LOADING (iOS Dark) ──
-    if (status === 'loading' || !minDelayPassed) {
+    if (status === 'loading') {
         return (
             <div className="flex flex-col min-h-[100dvh] bg-black items-center justify-center p-6 text-white relative">
                 <div className="z-10 flex flex-col items-center text-center">

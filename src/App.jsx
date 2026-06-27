@@ -1,22 +1,25 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import LandingPage from './LandingPage';
-import LeadCapture from './LeadCapture';
-import UnifiedActivation from './UnifiedActivation';
-import TelegramAuth from './TelegramAuth';
-import MarketingB2C from './MarketingB2C';
-import PartnerMap from './PartnerMap';
-import MarketingB2B from './MarketingB2B';
-import Unsubscribe from './Unsubscribe';
-import NewQRPage from './NewQRPage';
-import TestQRPage from './TestQRPage';
-import RevooB2C from './RevooB2C';
-import RevooB2B from './RevooB2B';
-import GuestDashboard from './GuestDashboard';
-import CaptiveLanding from './CaptiveLanding';
+
+// Code-split: each route loads its JS chunk on demand only
+const LandingPage        = React.lazy(() => import('./LandingPage'));
+const LeadCapture        = React.lazy(() => import('./LeadCapture'));
+const UnifiedActivation  = React.lazy(() => import('./UnifiedActivation'));
+const TelegramAuth       = React.lazy(() => import('./TelegramAuth'));
+const MarketingB2C       = React.lazy(() => import('./MarketingB2C'));
+const PartnerMap         = React.lazy(() => import('./PartnerMap'));
+const MarketingB2B       = React.lazy(() => import('./MarketingB2B'));
+const Unsubscribe        = React.lazy(() => import('./Unsubscribe'));
+const NewQRPage          = React.lazy(() => import('./NewQRPage'));
+const TestQRPage         = React.lazy(() => import('./TestQRPage'));
+const RevooB2C           = React.lazy(() => import('./RevooB2C'));
+const RevooB2B           = React.lazy(() => import('./RevooB2B'));
+const GuestDashboard     = React.lazy(() => import('./GuestDashboard'));
+const CaptiveLanding     = React.lazy(() => import('./CaptiveLanding'));
 
 import DubaiTechBadge from './DubaiTechBadge';
+
 
 // Trigger build change to force new deployment hash
 function App() {
