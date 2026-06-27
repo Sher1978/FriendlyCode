@@ -325,5 +325,22 @@
     "instruction_hold": "Giữ điện thoại",
     "instruction_show": "Đưa cho nhân viên",
     "instruction_redeem": "Nhận quà",
-    "instruction_success": "Thành công!"
+    "instruction_success": "Thành công!",
+    "b2c_steps_magic": "Phép màu trong 3 bước",
+    "b2c_step_1_title_card": "QUÉT",
+    "b2c_step_1_subtitle_card": "QUÉT QR HOẶC NFC",
+    "b2c_step_1_desc_card": "Chỉ cần hướng camera vào mã QR trên bàn hoặc chạm vào thẻ NFC. Không cần tải ứng dụng.",
+    "b2c_step_2_title_card": "NHẬN",
+    "b2c_step_2_subtitle_card": "XEM PHẦN THƯỞNG",
+    "b2c_step_2_desc_card": "Trạng thái VIP và ưu đãi cá nhân của bạn hiện lên ngay lập tức. Hệ thống tự nhận diện bạn.",
+    "b2c_step_3_title_card": "DUY TRÌ VIP",
+    "b2c_step_3_subtitle_card": "GIỮ PIN ĐẦY",
+    "b2c_step_3_desc_card": "Quay lại thường xuyên hơn để giữ pin VIP luôn được sạc đầy và duy trì chiết khấu tối đa.",
+    "b2c_psy_title_part1": "Đừng để hao pin.",
+    "b2c_psy_title_part2": "Duy trì Super VIP.",
+    "b2c_psy_desc": "« Trạng thái của bạn như một viên pin thực tế. Ghé thăm thường xuyên để giữ pin ở mức 100%. Nếu lâu không ghé, pin sẽ cạn và chiết khấu VIP của bạn sẽ tan chảy. »",
+    "footer_privacy": "Bảo mật",
+    "footer_business": "Cho doanh nghiệp",
+    "footer_terms": "Điều khoản",
+    "footer_copyright": "© 2026 REVOO. Phiên bản cao cấp Dubai."
 }

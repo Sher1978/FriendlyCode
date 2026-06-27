@@ -23,6 +23,7 @@ class _VenueConfiguratorState extends State<VenueConfigurator> with SingleTicker
   late TextEditingController _nameCtrl;
   late TextEditingController _categoryCtrl;
   late TextEditingController _addressCtrl;
+  late TextEditingController _googleMapsUrlCtrl;
 
   // Loyalty Controllers
   late TextEditingController _vipWindowCtrl;
@@ -44,6 +45,7 @@ class _VenueConfiguratorState extends State<VenueConfigurator> with SingleTicker
     _nameCtrl = TextEditingController(text: widget.venue.name);
     _categoryCtrl = TextEditingController(text: widget.venue.category);
     _addressCtrl = TextEditingController(text: widget.venue.address);
+    _googleMapsUrlCtrl = TextEditingController(text: widget.venue.googleMapsUrl ?? '');
     
     final l = widget.venue.loyaltyConfig;
     _vipWindowCtrl = TextEditingController(text: l.vipWindowDays.toString());
@@ -63,6 +65,7 @@ class _VenueConfiguratorState extends State<VenueConfigurator> with SingleTicker
     _nameCtrl.dispose();
     _categoryCtrl.dispose();
     _addressCtrl.dispose();
+    _googleMapsUrlCtrl.dispose();
 
     _vipWindowCtrl.dispose();
     _degradationIntervalCtrl.dispose();
@@ -199,6 +202,7 @@ class _VenueConfiguratorState extends State<VenueConfigurator> with SingleTicker
           'name': _nameCtrl.text,
           'category': _categoryCtrl.text,
           'address': _addressCtrl.text,
+          'googleMapsUrl': _googleMapsUrlCtrl.text,
           'loyaltyConfig': updatedLoyalty.toMap(),
           'isManuallyBlocked': _manualBlock,
           'subscription.expiryDate': _subEndDate != null ? import_firestore.Timestamp.fromDate(_subEndDate!) : null,
@@ -220,6 +224,8 @@ class _VenueConfiguratorState extends State<VenueConfigurator> with SingleTicker
           _buildTextField("Category", _categoryCtrl, Icons.category_outlined),
           const SizedBox(height: 20),
           _buildTextField("Address", _addressCtrl, Icons.location_on_outlined),
+          const SizedBox(height: 20),
+          _buildTextField("Google Maps Review URL", _googleMapsUrlCtrl, Icons.map_outlined),
         ],
       ),
     );

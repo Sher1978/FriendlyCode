@@ -325,5 +325,22 @@
     "instruction_hold": "أمسك هاتفك",
     "instruction_show": "أظهر للموظف",
     "instruction_redeem": "استبدال المكافأة",
-    "instruction_success": "تم بنجاح!"
+    "instruction_success": "تم بنجاح!",
+    "b2c_steps_magic": "السحر في 3 خطوات",
+    "b2c_step_1_title_card": "امسح",
+    "b2c_step_1_subtitle_card": "امسح رمز QR أو NFC",
+    "b2c_step_1_desc_card": "وجه كاميرتك إلى رمز QR على الطاولة أو انقر فوق علامة NFC. لا تطبيقات ولا تنزيلات.",
+    "b2c_step_2_title_card": "اكتشف",
+    "b2c_step_2_subtitle_card": "شاهد مكافأتك",
+    "b2c_step_2_desc_card": "ستظهر حالة VIP والميزة الخاصة بك على الفور. يتعرف النظام عليك تلقائياً.",
+    "b2c_step_3_title_card": "ابقَ VIP",
+    "b2c_step_3_subtitle_card": "حافظ على الشحن",
+    "b2c_step_3_desc_card": "عد مراراً وتكراراً للحفاظ على شحن بطارية VIP بالكامل والاحتفاظ بأقصى حالة للمكافأة.",
+    "b2c_psy_title_part1": "لا تفقد طاقتك.",
+    "b2c_psy_title_part2": "ابقَ Super VIP.",
+    "b2c_psy_desc": "« حالتك هي بطارية حية. زرنا أكثر للحفاظ على الشحن بنسبة 100٪. إذا ابتعدت طويلاً، فستفرغ الطاقة وينصهر خصم VIP الخاص بك. »",
+    "footer_privacy": "الخصوصية",
+    "footer_business": "للأعمال",
+    "footer_terms": "الشروط",
+    "footer_copyright": "© 2026 REVOO. نسخة دبي المميزة."
 }

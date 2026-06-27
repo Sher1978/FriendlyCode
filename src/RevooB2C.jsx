@@ -111,6 +111,34 @@ const RevooB2C = () => {
     const location = useLocation();
     const { t, i18n } = useTranslation();
     const [scrolled, setScrolled] = useState(false);
+
+    const steps = [
+        {
+            id: 'scan',
+            title: t('b2c_step_1_title_card', 'SCAN'),
+            subtitle: t('b2c_step_1_subtitle_card', 'SCAN QR OR NFC'),
+            icon: faHandPointer,
+            description: t('b2c_step_1_desc_card', 'Just point your camera at the QR code on your table or tap the NFC tag.'),
+            image: '/assets/hero.png'
+        },
+        {
+            id: 'reveal',
+            title: t('b2c_step_2_title_card', 'REVEAL'),
+            subtitle: t('b2c_step_2_subtitle_card', 'SEE YOUR REWARD'),
+            icon: faBolt,
+            description: t('b2c_step_2_desc_card', 'Your VIP status and personal treat will appear instantly. The system recognizes you automatically.'),
+            showBattery: false,
+            image: '/assets/reveal_vip_status_over_shoulder.png'
+        },
+        {
+            id: 'status',
+            title: t('b2c_step_3_title_card', 'STAY VIP'),
+            subtitle: t('b2c_step_3_subtitle_card', 'KEEP CHARGED'),
+            icon: faCrown,
+            description: t('b2c_step_3_desc_card', 'Return more often to keep your VIP battery fully charged and maintain your maximum reward status.'),
+            image: '/assets/hospitality.png'
+        }
+    ];
     
     const searchParams = new URLSearchParams(location.search);
     const interceptedVenueId = searchParams.get('qr_venue_id');
@@ -172,33 +200,7 @@ const RevooB2C = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const steps = [
-        {
-            id: 'scan',
-            title: 'SCAN',
-            subtitle: 'Сканируй QR',
-            icon: faHandPointer,
-            description: 'Просто приложи телефон к NFC-метке или сканируй QR на столе. Никаких форм и ожидания.',
-            image: '/assets/hero.png'
-        },
-        {
-            id: 'reveal',
-            title: 'REVEAL',
-            subtitle: 'Увидишь награду',
-            icon: faBolt,
-            description: 'Твой VIP-статус и личная привилегия появятся мгновенно. Система узнает тебя в лицо.',
-            showBattery: false,
-            image: '/assets/reveal_vip_status_over_shoulder.png'
-        },
-        {
-            id: 'status',
-            title: 'STAY VIP',
-            subtitle: 'Держи заряд',
-            icon: faCrown,
-            description: 'Возвращайся чаще, чтобы держать заряд VIP-батареи на максимуме и сохранять статус.',
-            image: '/assets/hospitality.png'
-        }
-    ];
+
 
     return (
         <div className="min-h-screen bg-[#000000] text-white font-sans selection:bg-[#00FF41]/30 overflow-x-hidden">
@@ -244,7 +246,7 @@ const RevooB2C = () => {
                             initial={{ opacity: 0, scale: 0.8 }}
                             animate={{ opacity: 1, scale: 1 }}
                         >
-                            <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest opacity-40 text-white leading-none">STATUS</span>
+                            <span className="text-[7px] md:text-[8px] font-black uppercase tracking-widest opacity-40 text-white leading-none">{t('b2b_hud_status_label')}</span>
                             <div className="w-8 h-4 md:w-12 md:h-6 border-[1.5px] md:border-2 border-white/20 rounded-[2px] md:rounded-md p-[1px] md:p-[1.5px] relative bg-white/5 backdrop-blur-xl">
                                 <motion.div 
                                     className="h-full rounded-[1px] md:rounded-[2px]"
@@ -315,7 +317,7 @@ const RevooB2C = () => {
             <section className="py-4 md:py-32 px-6 max-w-7xl mx-auto relative">
                 <div className="text-center mb-8 md:mb-24 relative">
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-[#D4AF37] blur-[100px] opacity-10 pointer-events-none rounded-full" />
-                    <h2 className="text-3xl md:text-6xl font-black uppercase tracking-tight mb-4 relative z-10 text-white">Магия в 3 шага</h2>
+                    <h2 className="text-3xl md:text-6xl font-black uppercase tracking-tight mb-4 relative z-10 text-white">{t('b2c_steps_magic')}</h2>
                     <div className="w-24 h-1 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent mx-auto relative z-10" />
                 </div>
 
@@ -349,11 +351,11 @@ const RevooB2C = () => {
                             <FontAwesomeIcon icon={faCrown} className="text-[#D4AF37] text-4xl md:text-6xl relative z-10 drop-shadow-[0_0_20px_rgba(212,175,55,0.6)]" />
                         </div>
                         <h2 className="text-2xl md:text-7xl font-black uppercase mb-6 md:mb-8 leading-tight tracking-tighter text-white">
-                            Don’t lose your energy. <br/>
-                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37]">Stay Super VIP.</span>
+                            {t('b2c_psy_title_part1')} <br/>
+                            <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#F3E5AB] to-[#D4AF37]">{t('b2c_psy_title_part2')}</span>
                         </h2>
                         <p className="text-base md:text-xl text-white/50 font-medium max-w-3xl mx-auto leading-relaxed mb-8 md:12 italic">
-                            « Твой статус — это живая батарея. Приходи чаще, чтобы поддерживать заряд на 100%. Если ты долго не заходишь — энергия тает, и твой ВИП статус снижается ».
+                            {t('b2c_psy_desc')}
                         </p>
                         <motion.button 
                             whileHover={{ scale: 1.05, boxShadow: "0_0_50px_rgba(212,175,55,0.4)" }}
@@ -367,7 +369,7 @@ const RevooB2C = () => {
                             }}
                             className="bg-gradient-to-r from-[#1C1C1E] to-black border border-[#D4AF37]/30 text-[#D4AF37] px-8 md:px-12 py-4 md:py-5 rounded-full font-black text-sm md:text-xl uppercase tracking-[0.2em] shadow-[0_0_30px_rgba(212,175,55,0.1)] hover:border-[#D4AF37] transition-all"
                         >
-                            Become VIP
+                            {t('b2c_hero_cta_vip')}
                         </motion.button>
                     </motion.div>
                 </div>
@@ -379,12 +381,12 @@ const RevooB2C = () => {
                 <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-10">
                     <div className="text-3xl font-black uppercase tracking-tighter italic text-[#00FF41]">REVOO</div>
                     <div className="flex gap-8 text-xs font-bold uppercase tracking-widest opacity-40 text-white mt-10 md:mt-0">
-                        <a href="#" className="hover:text-[#D4AF37] transition-colors">Privacy</a>
-                        <a href="#" className="hover:text-[#D4AF37] transition-colors">Business</a>
-                        <a href="#" className="hover:text-[#D4AF37] transition-colors">Terms</a>
+                        <a href="#" className="hover:text-[#D4AF37] transition-colors">{t('footer_privacy')}</a>
+                        <a href="#" className="hover:text-[#D4AF37] transition-colors">{t('footer_business')}</a>
+                        <a href="#" className="hover:text-[#D4AF37] transition-colors">{t('footer_terms')}</a>
                     </div>
                     <div className="text-[10px] md:text-xs font-bold opacity-20 uppercase tracking-[0.4em] text-white mt-10 md:mt-0">
-                        © 2026 REVOO. Dubai Premium Edition.
+                        {t('footer_copyright')}
                     </div>
                 </div>
             </footer>

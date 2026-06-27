@@ -14,6 +14,7 @@ import TestQRPage from './TestQRPage';
 import RevooB2C from './RevooB2C';
 import RevooB2B from './RevooB2B';
 import GuestDashboard from './GuestDashboard';
+import CaptiveLanding from './CaptiveLanding';
 
 import DubaiTechBadge from './DubaiTechBadge';
 
@@ -55,6 +56,10 @@ function App() {
           <Route path="/telegram-auth" element={<TelegramAuth />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
           <Route path="/guest-dashboard" element={<GuestDashboard />} />
+
+          {/* Captive Wi-Fi Entry Point */}
+          <Route path="/wifi" element={<CaptiveLanding />} />
+          <Route path="/wifi/thank-you" element={<UnifiedActivation />} />
 
           {/* Redirects for Admin/Owner panels to sub-path handled by Flutter */}
           <Route path="/owner" element={<NavigateToAdmin path="owner" />} />

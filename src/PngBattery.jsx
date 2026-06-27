@@ -51,9 +51,17 @@ export function getBatteryConfig(capacity) {
 const TOTAL_SEGMENTS = 14;
 
 export default function PngBattery({ capacity, discount }) {
-    // Current rank-based system uses 10, 25, 50, 100
-    // We prioritize 'capacity' if provided, then 'discount', then default to 10
-    const batteryLevel = capacity ?? discount ?? 10;
+    // If capacity is explicitly provided, we use it directly.
+    // If not, we map the discount tier to the capacity tier.
+    let mappedCapacity = capacity;
+    if (mappedCapacity === undefined && discount !== undefined) {
+        if (discount >= 20) mappedCapacity = 100;
+        else if (discount >= 15) mappedCapacity = 50;
+        else if (discount >= 10) mappedCapacity = 25;
+        else mappedCapacity = 10;
+    }
+    
+    const batteryLevel = mappedCapacity ?? 10;
     const cfg = getBatteryConfig(batteryLevel);
     const uid = cfg.label;
 

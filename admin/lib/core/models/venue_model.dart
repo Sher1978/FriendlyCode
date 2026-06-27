@@ -69,6 +69,7 @@ class LoyaltyConfig {
   final int vipWindowDays;
   final int degradationIntervalDays;
   final int resetIntervalDays;
+  final int googleReviewRewardDays;
   
   final int percBase;
   final int percVip;
@@ -80,6 +81,7 @@ class LoyaltyConfig {
     this.percVip = 20,
     this.degradationIntervalDays = 7,
     this.resetIntervalDays = 30,
+    this.googleReviewRewardDays = 7,
     List<LoyaltyDecayStage>? decayStages,
   }) : decayStages = decayStages ?? const [
          LoyaltyDecayStage(days: 3, discount: 15),
@@ -92,6 +94,7 @@ class LoyaltyConfig {
     'percVip': percVip,
     'degradationIntervalDays': degradationIntervalDays,
     'resetIntervalDays': resetIntervalDays,
+    'googleReviewRewardDays': googleReviewRewardDays,
     'decayStages': decayStages.map((s) => s.toMap()).toList(),
   };
 
@@ -127,6 +130,7 @@ class LoyaltyConfig {
       percVip: map['percVip'] ?? 20,
       degradationIntervalDays: map['degradationIntervalDays'] ?? (map['degradationIntervalHours'] != null ? (map['degradationIntervalHours'] as int) ~/ 24 : 7),
       resetIntervalDays: map['resetIntervalDays'] ?? 30,
+      googleReviewRewardDays: map['googleReviewRewardDays'] ?? 7,
       decayStages: loadedStages,
     );
   }

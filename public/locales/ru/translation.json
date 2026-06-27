@@ -349,5 +349,22 @@
     "review_instruction_step_3": "Затем покажите ваш отзыв персоналу",
     "review_instruction_step_4": "Получите ваш подарок!",
     "review_instruction_button": "В ГУГЛ КАРТЫ",
-    "review_instruction_close": "ПОЗЖЕ"
+    "review_instruction_close": "ПОЗЖЕ",
+    "b2c_steps_magic": "Магия в 3 шага",
+    "b2c_step_1_title_card": "СКАНИРУЙ",
+    "b2c_step_1_subtitle_card": "СКАНИРУЙ QR ИЛИ NFC",
+    "b2c_step_1_desc_card": "Просто приложи телефон к NFC-метке или сканируй QR на столе. Никаких форм и ожидания.",
+    "b2c_step_2_title_card": "УВИДЬ",
+    "b2c_step_2_subtitle_card": "УВИДИШЬ НАГРАДУ",
+    "b2c_step_2_desc_card": "Твой VIP-статус и личная привилегия появятся мгновенно. Система узнает тебя в лицо.",
+    "b2c_step_3_title_card": "СОХРАНЯЙ",
+    "b2c_step_3_subtitle_card": "ДЕРЖИ ЗАРЯД",
+    "b2c_step_3_desc_card": "Возвращайся чаще, чтобы держать заряд VIP-батареи на максимуме и сохранять статус.",
+    "b2c_psy_title_part1": "Не теряй энергию.",
+    "b2c_psy_title_part2": "Оставайся Super VIP.",
+    "b2c_psy_desc": "« Твой статус — это живая батарея. Приходи чаще, чтобы поддерживать заряд на 100%. Если ты долго не заходишь — энергия тает, и твой ВИП статус снижается ».",
+    "footer_privacy": "Конфиденциальность",
+    "footer_business": "Для бизнеса",
+    "footer_terms": "Условия",
+    "footer_copyright": "© 2026 REVOO. Dubai Premium Edition."
 }

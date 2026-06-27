@@ -175,6 +175,75 @@ const UnifiedActivation = () => {
     const [isReviewOpen, setIsReviewOpen] = useState(false);
     const [showGiftScreen, setShowGiftScreen] = useState(false);
 
+    // ── NPS & Google Review State ──
+    const [starRating, setStarRating] = useState(0);
+    const [hoverStar, setHoverStar] = useState(0);
+    const [npsStep, setNpsStep] = useState('stars'); // 'stars' | 'complaint' | 'complaint_thanks' | 'google_offer' | 'claimed_reward'
+    const [complaintText, setComplaintText] = useState('');
+    const [isSubmittingComplaint, setIsSubmittingComplaint] = useState(false);
+    const [hasAlreadyClaimedGoogle, setHasAlreadyClaimedGoogle] = useState(() => {
+        return localStorage.getItem('googleReviewClaimed') === 'true';
+    });
+
+    const handleStarClick = (val) => {
+        setStarRating(val);
+        if (val <= 3) {
+            setNpsStep('complaint');
+        } else {
+            setNpsStep('google_offer');
+        }
+    };
+
+    const submitComplaint = async () => {
+        if (!complaintText.trim() || isSubmittingComplaint) return;
+        setIsSubmittingComplaint(true);
+        try {
+            const venueId = new URLSearchParams(location.search).get('venueId') || localStorage.getItem('currentVenueId') || 'unknown';
+            await addDoc(collection(db, 'complaints'), {
+                venueId,
+                guestName,
+                stars: starRating,
+                complaintText,
+                timestamp: serverTimestamp()
+            });
+            setNpsStep('complaint_thanks');
+        } catch(e) {
+            console.error("Complaint error:", e);
+            setNpsStep('complaint_thanks');
+        } finally {
+            setIsSubmittingComplaint(false);
+        }
+    };
+
+    const handleGoToGoogle = () => {
+        const link = venueSettings.googleReviewLink || 'https://maps.google.com';
+        window.open(link, '_blank', 'noopener,noreferrer');
+        
+        // Option 1: Trusted Smart Return
+        const start = Date.now();
+        const grantReward = () => {
+            if (Date.now() - start > 10000) {
+                localStorage.setItem('currentDiscount', '20');
+                localStorage.setItem('googleReviewClaimed', 'true');
+                setDiscountValue(20);
+                setAmbientColor('#00FF41');
+                setHasAlreadyClaimedGoogle(true);
+                setNpsStep('claimed_reward');
+                setShowGiftScreen(true);
+            }
+        };
+
+        const handleVis = () => {
+            if (document.visibilityState === 'visible') {
+                grantReward();
+                document.removeEventListener('visibilitychange', handleVis);
+            }
+        };
+        
+        document.addEventListener('visibilitychange', handleVis);
+        setTimeout(grantReward, 15000);
+    };
+
     useEffect(() => {
         const params = new URLSearchParams(location.search);
         const venueId = params.get('venueId') || localStorage.getItem('currentVenueId');
@@ -330,79 +399,109 @@ const UnifiedActivation = () => {
                 </motion.p>
             </div>
 
-            {(venueSettings.googleReviewLink) && (
-                <div className="fixed bottom-8 right-6 z-[100]">
-                    <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        animate={{ y: [0, -10, 0] }}
-                        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-                        onClick={() => setIsReviewOpen(!isReviewOpen)}
-                        className="w-14 h-14 rounded-full flex items-center justify-center text-black text-2xl relative shadow-lg"
-                        style={{ backgroundColor: ambientColor, boxShadow: `0 0 30px ${ambientColor}60` }}
-                    >
-                        <FontAwesomeIcon icon={faGift} />
-                        <span className="absolute -top-1 -right-1 flex h-4 w-4">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-4 w-4 bg-white"></span>
-                        </span>
-                    </motion.button>
+            {/* ── NPS INTERCEPT SMART GATE ── */}
+            {!hasAlreadyClaimedGoogle && venueSettings.googleReviewLink && (
+                <div className="relative z-20 w-full max-w-md mx-auto px-6 mt-6 mb-8">
+                    <div className="bg-[#1C1C1E] border border-white/10 rounded-[28px] p-6 text-center shadow-2xl relative overflow-hidden">
+                        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
 
-                    <AnimatePresence>
-                        {isReviewOpen && (
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0, x: 50, y: 50 }}
-                                animate={{ opacity: 1, scale: 1, x: 0, y: 0 }}
-                                exit={{ opacity: 0, scale: 0, x: 50, y: 50 }}
-                                className="absolute bottom-20 right-0 w-[300px] bg-[#1C1C1E] border border-white/10 rounded-[32px] p-6 shadow-[0_30px_60px_rgba(0,0,0,0.8)] overflow-hidden"
-                            >
-                                <div className="absolute top-0 right-0 p-4">
-                                    <button onClick={() => setIsReviewOpen(false)} className="text-white/20 hover:text-white transition-colors">
-                                        <svg width="14" height="14" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M1 1L11 11M11 1L1 11" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                                        </svg>
-                                    </button>
+                        {npsStep === 'stars' && (
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                                <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#D4AF37] block mb-2">
+                                    Оцените визит в {venueName || 'заведение'}
+                                </span>
+                                <div className="flex justify-center gap-3 my-4">
+                                    {[1, 2, 3, 4, 5].map((st) => (
+                                        <motion.button
+                                            key={st}
+                                            whileHover={{ scale: 1.2 }}
+                                            whileTap={{ scale: 0.9 }}
+                                            onMouseEnter={() => setHoverStar(st)}
+                                            onMouseLeave={() => setHoverStar(0)}
+                                            onClick={() => handleStarClick(st)}
+                                            className="text-3xl transition-colors focus:outline-none"
+                                            style={{ color: st <= (hoverStar || starRating) ? '#FFD700' : '#4A4A4C' }}
+                                        >
+                                            <FontAwesomeIcon icon={faStar} />
+                                        </motion.button>
+                                    ))}
                                 </div>
-                                <div className="mt-2">
-                                    <h3 className="text-[18px] font-black text-white mb-4 leading-tight uppercase tracking-tight">
-                                        {t('review_instruction_title', 'Get a Bonus Gift!')}
-                                    </h3>
-                                    
-                                    <div className="space-y-4 mb-6">
-                                        {[1, 2, 3, 4].map((step) => (
-                                            <div key={step} className="flex gap-3">
-                                                <div className="flex-shrink-0 w-5 h-5 rounded-full border border-white/20 flex items-center justify-center text-[10px] font-black text-white/40" style={{ borderColor: `${ambientColor}40` }}>
-                                                    {step}
-                                                </div>
-                                                <p className="text-[12px] font-bold text-white/80 leading-snug">
-                                                    {t(`review_instruction_step_${step}`)}
-                                                </p>
-                                            </div>
-                                        ))}
-                                    </div>
+                                <p className="text-[10px] text-white/40 font-medium">Ваше мнение помогает нам становиться лучше</p>
+                            </motion.div>
+                        )}
 
+                        {npsStep === 'complaint' && (
+                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+                                <span className="text-xs font-bold uppercase tracking-wider text-red-400 block mb-2">
+                                    Нам очень жаль! Что нам улучшить?
+                                </span>
+                                <textarea
+                                    value={complaintText}
+                                    onChange={(e) => setComplaintText(e.target.value)}
+                                    placeholder="Опишите, что пошло не так..."
+                                    rows={3}
+                                    className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-white/30 focus:outline-none focus:border-red-500 mb-4"
+                                />
+                                <div className="flex gap-2">
                                     <button
-                                        onClick={() => {
-                                            window.open(venueSettings.googleReviewLink, '_blank', 'noopener,noreferrer');
-                                            setIsReviewOpen(false);
-                                            setShowGiftScreen(true);
-                                        }}
-                                        className="w-full py-4 rounded-[18px] font-black text-[14px] uppercase tracking-widest transition-all active:scale-[0.98] shadow-lg mb-2"
-                                        style={{ backgroundColor: ambientColor, color: '#000', boxShadow: `0 10px 30px ${ambientColor}40` }}
+                                        onClick={() => setNpsStep('stars')}
+                                        className="flex-1 py-3 rounded-xl bg-white/5 text-white/50 text-xs font-bold uppercase hover:bg-white/10"
                                     >
-                                        {t('review_instruction_button', 'GO TO GOOGLE MAPS')}
+                                        Назад
                                     </button>
-                                    
                                     <button
-                                        onClick={() => setIsReviewOpen(false)}
-                                        className="w-full py-3 rounded-[15px] font-bold text-[11px] uppercase tracking-widest text-white/30 hover:text-white transition-colors"
+                                        onClick={submitComplaint}
+                                        disabled={isSubmittingComplaint || !complaintText.trim()}
+                                        className="flex-2 py-3 px-6 rounded-xl bg-red-500 text-white text-xs font-black uppercase tracking-wider shadow-lg disabled:opacity-50"
                                     >
-                                        {t('review_instruction_close', 'LATER')}
+                                        {isSubmittingComplaint ? 'Отправка...' : 'Отправить управляющему'}
                                     </button>
                                 </div>
                             </motion.div>
                         )}
-                    </AnimatePresence>
+
+                        {npsStep === 'complaint_thanks' && (
+                            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="py-4">
+                                <FontAwesomeIcon icon={faHeart} className="text-2xl text-red-500 mb-2" />
+                                <h3 className="text-sm font-bold text-white mb-1">Спасибо за ваш отзыв!</h3>
+                                <p className="text-xs text-white/50">Мы уже передали информацию руководству и обязательно исправим недочеты.</p>
+                            </motion.div>
+                        )}
+
+                        {npsStep === 'google_offer' && (
+                            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+                                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#00FF41]/10 border border-[#00FF41]/20 text-[#00FF41] text-[10px] font-black uppercase tracking-wider mb-3">
+                                    <FontAwesomeIcon icon={faGift} />
+                                    <span>Спецпредложение</span>
+                                </div>
+                                <h3 className="text-base font-black text-white mb-2 leading-tight">
+                                    Подарок за отзыв в Google Maps!
+                                </h3>
+                                <p className="text-xs text-white/70 mb-5 leading-relaxed">
+                                    Оставьте ваш отзыв на Google Картах, и мы прямо сегодня начислим вам <span className="text-[#00FF41] font-bold">максимальную VIP-скидку 20% на 7 дней</span>!
+                                </p>
+                                <button
+                                    onClick={handleGoToGoogle}
+                                    className="w-full py-4 rounded-2xl bg-[#00FF41] text-black font-black text-sm uppercase tracking-wider shadow-[0_0_25px_rgba(0,255,65,0.4)] transition-all active:scale-98"
+                                >
+                                    Оставить отзыв в Google
+                                </button>
+                                <button
+                                    onClick={() => setHasAlreadyClaimedGoogle(true)}
+                                    className="text-[10px] uppercase text-white/30 font-bold mt-4 block mx-auto hover:text-white"
+                                >
+                                    Не сейчас
+                                </button>
+                            </motion.div>
+                        )}
+
+                        {npsStep === 'claimed_reward' && (
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-2 text-[#00FF41]">
+                                <h3 className="text-sm font-black uppercase tracking-wider">Бонус активирован!</h3>
+                                <p className="text-xs text-white/60 mt-1">Максимальная скидка закреплена за вами</p>
+                            </motion.div>
+                        )}
+                    </div>
                 </div>
             )}
 

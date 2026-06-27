@@ -295,15 +295,13 @@ const NewQRPage = () => {
 
     // ── Rank-Based Battery Mapping ──
     const getMappedCapacity = (currentDiscount, config) => {
-        if (!config) return 10;
-        
-        // Extract all tiers that define the progression
-        const tiers = [
+        // Fallback: if no config, use standard 5-10-15-20 tiers
+        const tiers = config ? [
             Number(config.percBase ?? 5),
             Number(config.percDecay2 || config.percBase || 5),
             Number(config.percDecay1 || config.percBase || 5),
             Number(config.percVip ?? 20)
-        ];
+        ] : [5, 10, 15, 20];
 
         // Filter unique and sort ascending to find the rank
         const uniqueTiers = [...new Set(tiers)].sort((a, b) => a - b);
@@ -409,11 +407,18 @@ const NewQRPage = () => {
                 {/* Scrollable Container for elements (naturally scrolls on root) */}
                 <div className="flex flex-col items-center px-4 w-full max-w-md mx-auto gap-2.5 py-1">
                     
+                    {/* ── CORE VISUAL PHILOSOPHY SLOGAN ── */}
+                    <div className="w-full bg-gradient-to-r from-[#D4AF37]/15 via-[#D4AF37]/30 to-[#D4AF37]/15 border border-[#D4AF37]/30 rounded-2xl p-2.5 text-center backdrop-blur-md flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(212,175,55,0.15)]">
+                        <FontAwesomeIcon icon={faStar} className="text-[#D4AF37] text-xs animate-pulse" />
+                        <span className="text-[11px] font-black tracking-widest text-[#FFF] uppercase">Приходи чаще — плати меньше!</span>
+                        <FontAwesomeIcon icon={faStar} className="text-[#D4AF37] text-xs animate-pulse" />
+                    </div>
+
                     {/* ── GLASS BATTERY CONTAINER ── */}
                     <div className="flex flex-col items-center w-full bg-[#1C1C1E]/60 backdrop-blur-[40px] border border-white/10 rounded-[28px] p-4 shadow-2xl relative overflow-hidden flex-shrink-0">
                         <div className="absolute inset-0 border border-white/5 rounded-[28px] pointer-events-none mix-blend-overlay" />
                         <p className="text-[9px] font-bold tracking-[0.2em] text-white/30 uppercase mb-0">
-                            Your VIP Status is
+                            Ваша текущая скидка
                         </p>
                         <div
                             className="text-[56px] font-bold leading-none tracking-tighter mb-0"
@@ -425,10 +430,29 @@ const NewQRPage = () => {
                             {discount}%
                         </div>
                         <p className="text-[9px] font-medium tracking-wider opacity-40 uppercase mb-3" style={{ color: batCfg.fillColor }}>
-                            Current Rate
+                            Активна сегодня
                         </p>
                         <div className="w-full relative z-10 pointer-events-none scale-100 mb-0">
                             <PngBattery capacity={mappedCapacity} />
+                        </div>
+                    </div>
+
+                    {/* ── TOMORROW'S REWARD & COUNTDOWN WIDGET ── */}
+                    <div className="w-full grid grid-cols-2 gap-2.5 flex-shrink-0">
+                        <div className="bg-[#1C1C1E]/80 border border-white/10 rounded-[22px] p-3 flex flex-col items-center text-center shadow-lg relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-12 h-12 bg-[#00FF41]/10 rounded-full blur-xl pointer-events-none" />
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-white/40 mb-1">Завтра вас ждет</span>
+                            <span className="text-base font-black text-[#00FF41] drop-shadow-[0_0_10px_rgba(0,255,65,0.4)]">
+                                Скидка {discount >= 20 ? 20 : discount >= 15 ? 20 : discount >= 10 ? 15 : 10}%
+                            </span>
+                        </div>
+                        <div className="bg-[#1C1C1E]/80 border border-white/10 rounded-[22px] p-3 flex flex-col items-center text-center shadow-lg relative overflow-hidden">
+                            <div className="absolute top-0 right-0 w-12 h-12 bg-[#FFD700]/10 rounded-full blur-xl pointer-events-none" />
+                            <span className="text-[9px] font-extrabold uppercase tracking-wider text-white/40 mb-1">Сгорит через</span>
+                            <span className="text-sm font-black text-[#FFD700] flex items-center gap-1.5 mt-0.5">
+                                <FontAwesomeIcon icon={faClock} className="text-[11px] animate-spin" style={{ animationDuration: '10s' }} />
+                                {predictionState.secondsLeft > 0 ? `${Math.floor(predictionState.secondsLeft / 3600)}ч ${Math.floor((predictionState.secondsLeft % 3600)/60)}м` : '24ч 00м'}
+                            </span>
                         </div>
                     </div>
 

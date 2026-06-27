@@ -71,6 +71,12 @@ service cloud.firestore {
       allow read, update, delete: if isSuperAdmin() || (resource != null && resource.data.venueId != null && ownsVenue(resource.data.venueId));
     }
 
+    // 4.5 Complaints Collection (NPS < 4 stars feedback)
+    match /complaints/{complaintId} {
+      allow create: if true;
+      allow read, update, delete: if isSuperAdmin() || (resource != null && resource.data.venueId != null && ownsVenue(resource.data.venueId));
+    }
+
     // 5. Venue Requests Collection
     match /venue_requests/{requestId} {
       allow create: if isAuthenticated();

@@ -347,5 +347,22 @@
     "review_instruction_step_3": "Show your review to the staff",
     "review_instruction_step_4": "Receive your special gift!",
     "review_instruction_button": "GO TO GOOGLE MAPS",
-    "review_instruction_close": "LATER"
+    "review_instruction_close": "LATER",
+    "b2c_steps_magic": "Magic in 3 steps",
+    "b2c_step_1_title_card": "SCAN",
+    "b2c_step_1_subtitle_card": "SCAN QR OR NFC",
+    "b2c_step_1_desc_card": "Just point your camera at the QR code on your table or tap the NFC tag. No apps, no downloads.",
+    "b2c_step_2_title_card": "REVEAL",
+    "b2c_step_2_subtitle_card": "SEE YOUR REWARD",
+    "b2c_step_2_desc_card": "Your VIP status and personal treat will appear instantly. The system recognizes you automatically.",
+    "b2c_step_3_title_card": "STAY VIP",
+    "b2c_step_3_subtitle_card": "KEEP CHARGED",
+    "b2c_step_3_desc_card": "Return more often to keep your VIP battery fully charged and maintain your maximum reward status.",
+    "b2c_psy_title_part1": "Don't lose your energy.",
+    "b2c_psy_title_part2": "Stay Super VIP.",
+    "b2c_psy_desc": "« Your status is a living battery. Visit more often to keep the charge at 100%. If you stay away too long, the energy drains, and your VIP discount melts. »",
+    "footer_privacy": "Privacy",
+    "footer_business": "For Business",
+    "footer_terms": "Terms",
+    "footer_copyright": "© 2026 REVOO. Dubai Premium Edition."
 }

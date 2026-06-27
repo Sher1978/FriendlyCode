@@ -23,6 +23,7 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
   final _resetIntervalCtrl = TextEditingController();
   final _percBaseCtrl = TextEditingController();
   final _percVipCtrl = TextEditingController();
+  final _googleReviewDaysCtrl = TextEditingController();
 
   List<LoyaltyDecayStage> _decayStages = [];
 
@@ -49,6 +50,7 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
         _resetIntervalCtrl.text = config.resetIntervalDays.toString();
         _percBaseCtrl.text = config.percBase.toString();
         _percVipCtrl.text = config.percVip.toString();
+        _googleReviewDaysCtrl.text = config.googleReviewRewardDays.toString();
         
         _decayStages = List.from(config.decayStages);
       }
@@ -82,6 +84,7 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
       resetIntervalDays: int.tryParse(_resetIntervalCtrl.text) ?? 30,
       percBase: int.tryParse(_percBaseCtrl.text) ?? 10,
       percVip: int.tryParse(_percVipCtrl.text) ?? 20,
+      googleReviewRewardDays: int.tryParse(_googleReviewDaysCtrl.text) ?? 7,
       decayStages: _decayStages,
     );
 
@@ -168,6 +171,14 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
                           Expanded(child: _buildInput("VIP Window (Days)", _vipWindowCtrl)),
                           const SizedBox(width: 20),
                           Expanded(child: _buildInput("Reset (Days)", _resetIntervalCtrl)),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(child: _buildInput("Google Review VIP Days", _googleReviewDaysCtrl)),
+                          const SizedBox(width: 20),
+                          const Spacer(),
                         ],
                       ),
                       
