@@ -118,11 +118,25 @@ const TestQRPage = () => {
                 safeStorage.setItem('currentVenueId', venueId);
 
                 try {
-                    const venueRef = doc(db, 'venues', venueId);
-                    const venueSnap = await getDoc(venueRef);
-                    if (!venueSnap.exists()) { setStatus('error'); return; }
+                    let venueData = null;
+                    if (venueId === 'demo') {
+                        venueData = {
+                            name: "REVOO Cafe",
+                            isActive: true,
+                            loyaltyConfig: [
+                                { maxHours: 24, percentage: 20 },
+                                { maxHours: 48, percentage: 15 },
+                                { maxHours: 144, percentage: 10 }
+                            ],
+                            defaultLanguage: 'en'
+                        };
+                    } else {
+                        const venueRef = doc(db, 'venues', venueId);
+                        const venueSnap = await getDoc(venueRef);
+                        if (!venueSnap.exists()) { setStatus('error'); return; }
+                        venueData = venueSnap.data();
+                    }
 
-                    const venueData = venueSnap.data();
                     setVenueName(venueData.name || '');
                     if (venueData.loyaltyConfig) setLoyaltyConfig(venueData.loyaltyConfig);
 
