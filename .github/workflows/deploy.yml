@@ -41,5 +41,13 @@ jobs:
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_BOT_LAB_21910 }}' > gcp-key.json
           export GOOGLE_APPLICATION_CREDENTIALS=gcp-key.json
-          npx --yes firebase-tools deploy --only hosting --project bot-lab-21910 --non-interactive
+          OUTPUT=$(npx --yes firebase-tools deploy --only hosting --project bot-lab-21910 --non-interactive 2>&1) && EXIT_CODE=0 || EXIT_CODE=$?
           rm -f gcp-key.json
+          echo "$OUTPUT"
+          if [ $EXIT_CODE -ne 0 ]; then
+            if echo "$OUTPUT" | grep -q "is the current active version"; then
+              echo "✅ Version already active on Firebase Hosting – no changes to deploy."
+              exit 0
+            fi
+            exit $EXIT_CODE
+          fi
