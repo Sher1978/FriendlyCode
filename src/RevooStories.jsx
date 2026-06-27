@@ -235,6 +235,16 @@ export default function RevooStories({ onComplete }) {
 
   const touchStartX = useRef(null);
 
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('onboardingCompleted') === 'true') {
+        onComplete?.();
+      }
+    } catch (e) {
+      console.warn(e);
+    }
+  }, [onComplete]);
+
   const goNext = useCallback(() => {
     setCurrent(prev => {
       if (prev < 2) {

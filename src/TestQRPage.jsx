@@ -20,7 +20,9 @@ const TestQRPage = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const [status, setStatus] = useState('loading');
-    const [storiesCompleted, setStoriesCompleted] = useState(false);
+    const [storiesCompleted, setStoriesCompleted] = useState(() => {
+        return safeStorage.getItem('onboardingCompleted') === 'true';
+    });
     const [discount, setDiscount] = useState(5);
     const [venueName, setVenueName] = useState('');
     const [cooldown, setCooldown] = useState(null);
@@ -156,9 +158,18 @@ const TestQRPage = () => {
                         const displayName = userData.displayName || userData.name;
                         if (displayName) { setGuestName(displayName); safeStorage.setItem('guestName', displayName); }
                         if (userData.email) safeStorage.setItem('guestEmail', userData.email);
+                        
+                        // Force complete stories if user is logged in
+                        setStoriesCompleted(true);
+                        safeStorage.setItem('onboardingCompleted', 'true');
                     } else {
                         const savedName = safeStorage.getItem('guestName');
                         if (savedName) setGuestName(savedName);
+                        const savedEmail = safeStorage.getItem('guestEmail');
+                        if (savedEmail) {
+                            setStoriesCompleted(true);
+                            safeStorage.setItem('onboardingCompleted', 'true');
+                        }
                     }
 
                     const rawEmail = userData?.email || safeStorage.getItem('guestEmail') || '';
@@ -246,6 +257,7 @@ const TestQRPage = () => {
 
     const handleStoriesComplete = useCallback(() => {
         setStoriesCompleted(true);
+        safeStorage.setItem('onboardingCompleted', 'true');
     }, []);
 
     // ── ERROR / BLOCKED (iOS Dark) ──
@@ -268,11 +280,6 @@ const TestQRPage = () => {
         );
     }
 
-    // ── ONBOARDING STORIES ──
-    if (!storiesCompleted) {
-        return <RevooStories onComplete={handleStoriesComplete} />;
-    }
-
     // ── LOADING DATA FALLBACK ──
     if (status === 'loading') {
         return (
@@ -285,6 +292,11 @@ const TestQRPage = () => {
                 </div>
             </div>
         );
+    }
+
+    // ── ONBOARDING STORIES ──
+    if (!storiesCompleted) {
+        return <RevooStories onComplete={handleStoriesComplete} />;
     }
 
     // ── Rank-Based Battery Mapping ──
