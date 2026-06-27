@@ -2,22 +2,32 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
+// Helper to handle ChunkLoadError on new deployments
+const lazyWithRetry = (componentImport) =>
+  React.lazy(() =>
+    componentImport().catch((error) => {
+      console.error("Chunk load failed, reloading...", error);
+      window.location.reload();
+      return { default: () => null };
+    })
+  );
+
 // Code-split: each route loads its JS chunk on demand only
-const LandingPage        = React.lazy(() => import('./LandingPage'));
-const LeadCapture        = React.lazy(() => import('./LeadCapture'));
-const UnifiedActivation  = React.lazy(() => import('./UnifiedActivation'));
-const TelegramAuth       = React.lazy(() => import('./TelegramAuth'));
-const MarketingB2C       = React.lazy(() => import('./MarketingB2C'));
-const PartnerMap         = React.lazy(() => import('./PartnerMap'));
-const MarketingB2B       = React.lazy(() => import('./MarketingB2B'));
-const Unsubscribe        = React.lazy(() => import('./Unsubscribe'));
-const NewQRPage          = React.lazy(() => import('./NewQRPage'));
-const TestQRPage         = React.lazy(() => import('./TestQRPage'));
-const RevooB2C           = React.lazy(() => import('./RevooB2C'));
-const RevooB2B           = React.lazy(() => import('./RevooB2B'));
-const GuestDashboard     = React.lazy(() => import('./GuestDashboard'));
-const CaptiveLanding     = React.lazy(() => import('./CaptiveLanding'));
-const RevooStories       = React.lazy(() => import('./RevooStories'));
+const LandingPage        = lazyWithRetry(() => import('./LandingPage'));
+const LeadCapture        = lazyWithRetry(() => import('./LeadCapture'));
+const UnifiedActivation  = lazyWithRetry(() => import('./UnifiedActivation'));
+const TelegramAuth       = lazyWithRetry(() => import('./TelegramAuth'));
+const MarketingB2C       = lazyWithRetry(() => import('./MarketingB2C'));
+const PartnerMap         = lazyWithRetry(() => import('./PartnerMap'));
+const MarketingB2B       = lazyWithRetry(() => import('./MarketingB2B'));
+const Unsubscribe        = lazyWithRetry(() => import('./Unsubscribe'));
+const NewQRPage          = lazyWithRetry(() => import('./NewQRPage'));
+const TestQRPage         = lazyWithRetry(() => import('./TestQRPage'));
+const RevooB2C           = lazyWithRetry(() => import('./RevooB2C'));
+const RevooB2B           = lazyWithRetry(() => import('./RevooB2B'));
+const GuestDashboard     = lazyWithRetry(() => import('./GuestDashboard'));
+const CaptiveLanding     = lazyWithRetry(() => import('./CaptiveLanding'));
+const RevooStories       = lazyWithRetry(() => import('./RevooStories'));
 
 import DubaiTechBadge from './DubaiTechBadge';
 
