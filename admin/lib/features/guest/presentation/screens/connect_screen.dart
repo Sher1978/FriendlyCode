@@ -221,7 +221,7 @@ class _ConnectScreenState extends State<ConnectScreen> {
   }
 
 
-  Widget _buildMessengerButton(String id, IconData icon, String label, String botUrl) {
+  Widget _buildMessengerButton(String id, FaIconData icon, String label, String botUrl) {
     bool isSelected = _selectedMessenger == id;
     
     return Expanded(

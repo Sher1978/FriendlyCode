@@ -106,7 +106,7 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
                     border: Border.all(color: AppColors.title.withOpacity(0.05)),
                     boxShadow: AppColors.softShadow,
                   ),
-                  child: const Center(child: Icon(FontAwesomeIcons.arrowLeft, size: 16, color: AppColors.title)),
+                  child: const Center(child: FaIcon(FontAwesomeIcons.arrowLeft, size: 16, color: AppColors.title)),
                 ),
               ),
 
@@ -210,7 +210,7 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
 
   Widget _buildInput({
     required TextEditingController controller,
-    required IconData icon,
+    required FaIconData icon,
     required String hint,
     TextInputType? keyboardType,
   }) {
@@ -233,7 +233,7 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
           fillColor: AppColors.secondarySurface,
           hintText: hint,
           hintStyle: TextStyle(color: AppColors.title.withOpacity(0.3)),
-          prefixIcon: Icon(icon, color: AppColors.accentOrange, size: 20),
+          prefixIcon: FaIcon(icon, color: AppColors.accentOrange, size: 20),
           prefixIconConstraints: const BoxConstraints(minWidth: 60),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(24),

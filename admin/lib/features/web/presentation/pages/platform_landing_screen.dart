@@ -82,7 +82,7 @@ class PlatformLandingScreen extends StatelessWidget {
                       shape: BoxShape.circle,
                       border: Border.all(color: AppColors.accentGreen.withOpacity(0.2)),
                     ),
-                    child: const Icon(
+                    child: const FaIcon(
                       FontAwesomeIcons.leaf,
                       size: 48,
                       color: AppColors.accentGreen,
@@ -223,7 +223,7 @@ class PlatformLandingScreen extends StatelessWidget {
   Widget _buildLoginButton({
     required BuildContext context,
     required String label,
-    required IconData icon,
+    required FaIconData icon,
     required Color color,
     required VoidCallback onPressed,
   }) {
@@ -240,7 +240,7 @@ class PlatformLandingScreen extends StatelessWidget {
       ),
       child: ElevatedButton.icon(
         onPressed: onPressed,
-        icon: Icon(icon, size: 18),
+        icon: FaIcon(icon, size: 18),
         label: Text(label),
         style: ElevatedButton.styleFrom(
           backgroundColor: color,

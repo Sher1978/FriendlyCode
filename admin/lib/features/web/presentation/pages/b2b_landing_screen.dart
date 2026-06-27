@@ -60,7 +60,7 @@ class _NavBar extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(FontAwesomeIcons.leaf, color: AppColors.brandGreen, size: 24),
+              const FaIcon(FontAwesomeIcons.leaf, color: AppColors.brandGreen, size: 24),
               const SizedBox(width: 8),
               Text(
                 'Friendly Code',
@@ -427,7 +427,7 @@ class _ZeroFrictionSection extends StatelessWidget {
       color: Colors.white,
       child: Column(
         children: [
-          const Icon(FontAwesomeIcons.qrcode, size: 48, color: AppColors.brandBrown),
+          const FaIcon(FontAwesomeIcons.qrcode, size: 48, color: AppColors.brandBrown),
           const SizedBox(height: 24),
           Text(
             l10n.noAppDownload,
@@ -488,7 +488,7 @@ class _WhatYouGetSection extends StatelessWidget {
 class _FeatureCard extends StatelessWidget {
   final String title;
   final String body;
-  final IconData icon;
+  final FaIconData icon;
   final Color color;
 
   const _FeatureCard({required this.title, required this.body, required this.icon, required this.color});
@@ -513,7 +513,7 @@ class _FeatureCard extends StatelessWidget {
               color: color.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 48, color: color),
+            child: FaIcon(icon, size: 48, color: color),
           ),
           const SizedBox(height: 24),
           Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold), textAlign: TextAlign.center),

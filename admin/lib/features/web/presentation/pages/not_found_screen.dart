@@ -15,7 +15,7 @@ class NotFoundScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(FontAwesomeIcons.magnifyingGlass, size: 80, color: AppColors.brandOrange),
+              const FaIcon(FontAwesomeIcons.magnifyingGlass, size: 80, color: AppColors.brandOrange),
               const SizedBox(height: 32),
               const Text(
                 "404",

@@ -214,7 +214,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                         ),
                         child: Row(
                           children: [
-                            const Icon(FontAwesomeIcons.user, size: 12, color: ThankYouColors.text),
+                            const FaIcon(FontAwesomeIcons.user, size: 12, color: ThankYouColors.text),
                             const SizedBox(width: 8),
                             Text(
                               widget.guestName.toUpperCase(),
@@ -250,7 +250,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                               BoxShadow(color: ThankYouColors.text.withAlpha(25), blurRadius: 10, offset: const Offset(0, 4)) // 0.1 alpha
                             ],
                           ),
-                          child: const Center(child: Icon(FontAwesomeIcons.star, color: Color(0xFF4CAF50), size: 24)),
+                          child: const Center(child: FaIcon(FontAwesomeIcons.star, color: Color(0xFF4CAF50), size: 24)),
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -372,7 +372,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                                     : Row(
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          const Icon(FontAwesomeIcons.gift, size: 24),
+                                          const FaIcon(FontAwesomeIcons.gift, size: 24),
                                           const SizedBox(width: 12),
                                           Text(AppLocalizations.of(context)!.getMyGift, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
                                         ],
@@ -453,7 +453,7 @@ class _ThankYouScreenState extends State<ThankYouScreen> with SingleTickerProvid
                                                     color: Colors.white 
                                                   ),
                                                   padding: const EdgeInsets.all(8),
-                                                  child: const Icon(FontAwesomeIcons.solidHeart, color: Colors.red, size: 40)
+                                                  child: const FaIcon(FontAwesomeIcons.solidHeart, color: Colors.red, size: 40)
                                                 ),
                                               ),
                                             ),

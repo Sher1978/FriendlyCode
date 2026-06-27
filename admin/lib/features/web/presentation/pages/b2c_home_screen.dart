@@ -551,7 +551,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(FontAwesomeIcons.gift, size: 20),
+                      const FaIcon(FontAwesomeIcons.gift, size: 20),
                       const SizedBox(width: 12),
                       Text(
                         l10n.getReward,
@@ -599,7 +599,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text("Powered by ", style: TextStyle(color: Colors.grey, fontSize: 10)),
-                  const Icon(FontAwesomeIcons.bolt, size: 10, color: AppColors.premiumBurntOrange),
+                  const FaIcon(FontAwesomeIcons.bolt, size: 10, color: AppColors.premiumBurntOrange),
                   Text(
                     " Friendly Code", 
                     style: TextStyle(
@@ -710,7 +710,7 @@ class _Header extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min, // Added to prevent full width tap
               children: [
-                const Icon(FontAwesomeIcons.leaf, size: 18, color: AppColors.accentGreen),
+                const FaIcon(FontAwesomeIcons.leaf, size: 18, color: AppColors.accentGreen),
                 const SizedBox(width: 8),
                 Text(
                   "Friendly\nCode",
@@ -925,7 +925,7 @@ extension on _B2CHomeScreenState {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(FontAwesomeIcons.circleExclamation, size: 80, color: AppColors.premiumBurntOrange),
+              const FaIcon(FontAwesomeIcons.circleExclamation, size: 80, color: AppColors.premiumBurntOrange),
               const SizedBox(height: 32),
               Text(
                 l10n.venueNotFound,
