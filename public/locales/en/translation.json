@@ -292,7 +292,7 @@
     "timeline_level_1": "Level 1",
     "timeline_level_2": "Level 2",
     "timeline_base_rate": "Base Rate",
-    "timeline_within": "Within {{days}}",
+    "timeline_within": "Next {{days}}",
     "timeline_day": "day",
     "timeline_days": "days",
     "timeline_any_other_time": "Any other time",

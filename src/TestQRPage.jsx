@@ -280,10 +280,10 @@ const TestQRPage = () => {
     const formatDays = (d) => parseInt(d) === 1 ? '1 day' : `${d} days`;
 
     const timelineItems = loyaltyConfig ? [
-        { label: 'VIP Status', value: `${loyaltyConfig.percVip || 20}%`, sub: `Within ${formatDays(loyaltyConfig.vipWindowDays || 1)}`, color: '#00FF41', perc: loyaltyConfig.percVip || 20 },
-        { label: 'Level 1', value: `${loyaltyConfig.percDecay1 || 15}%`, sub: `Within ${formatDays(loyaltyConfig.tier1DecayDays || 2)}`, color: '#FFD700', perc: loyaltyConfig.percDecay1 || 15 },
-        { label: 'Level 2', value: `${loyaltyConfig.percDecay2 || 10}%`, sub: `Within ${formatDays(loyaltyConfig.tier2DecayDays || 6)}`, color: '#FF8800', perc: loyaltyConfig.percDecay2 || 10 },
-        { label: 'Base Rate', value: `${loyaltyConfig.percBase || 5}%`, sub: 'Any other time', color: '#FF3131', perc: loyaltyConfig.percBase || 5 },
+        { label: 'VIP Status', value: `${loyaltyConfig.percVip || 20}%`, sub: t('timeline_within', { days: formatDays(loyaltyConfig.vipWindowDays || 1) }), color: '#00FF41', perc: loyaltyConfig.percVip || 20 },
+        { label: 'Level 1', value: `${loyaltyConfig.percDecay1 || 15}%`, sub: t('timeline_within', { days: formatDays(loyaltyConfig.tier1DecayDays || 2) }), color: '#FFD700', perc: loyaltyConfig.percDecay1 || 15 },
+        { label: 'Level 2', value: `${loyaltyConfig.percDecay2 || 10}%`, sub: t('timeline_within', { days: formatDays(loyaltyConfig.tier2DecayDays || 6) }), color: '#FF8800', perc: loyaltyConfig.percDecay2 || 10 },
+        { label: 'Base Rate', value: `${loyaltyConfig.percBase || 5}%`, sub: t('timeline_any_other_time', 'Any other time'), color: '#FF3131', perc: loyaltyConfig.percBase || 5 },
     ].filter(item => item.perc > (loyaltyConfig.percBase || 0) || item.label === 'Base Rate')
     : [
         { label: 'Today', value: '10% Max', sub: 'Active', color: '#FF3131' },
