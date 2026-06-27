@@ -20,6 +20,7 @@ const TestQRPage = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
     const [status, setStatus] = useState('loading');
+    const [storiesCompleted, setStoriesCompleted] = useState(false);
     const [discount, setDiscount] = useState(5);
     const [venueName, setVenueName] = useState('');
     const [cooldown, setCooldown] = useState(null);
@@ -212,11 +213,6 @@ const TestQRPage = () => {
         i18n.changeLanguage(cycle[i18n.language] || 'en');
     };
 
-    // ── LOADING → RevooStories onboarding ──
-    if (status === 'loading') {
-        return <RevooStories onComplete={() => setStatus('first')} />;
-    }
-
     // ── ERROR / BLOCKED (iOS Dark) ──
     if (status === 'error' || status === 'blocked') {
         return (
@@ -233,6 +229,25 @@ const TestQRPage = () => {
                     {status === 'error' ? 'Please scan a valid QR code or contact the venue staff.' : "This venue's rewards program is currently unavailable."}
                 </p>
                 <button onClick={() => window.location.reload()} className="mt-8 px-8 py-3 bg-white text-black font-semibold rounded-2xl w-full max-w-xs active:scale-[0.98] transition-transform">RETRY</button>
+            </div>
+        );
+    }
+
+    // ── ONBOARDING STORIES ──
+    if (!storiesCompleted) {
+        return <RevooStories onComplete={() => setStoriesCompleted(true)} />;
+    }
+
+    // ── LOADING DATA FALLBACK ──
+    if (status === 'loading') {
+        return (
+            <div className="flex flex-col min-h-[100dvh] bg-black items-center justify-center p-6 text-white relative">
+                <div className="z-10 flex flex-col items-center text-center">
+                    <div className="w-20 h-20 bg-[#1C1C1E] rounded-3xl flex items-center justify-center mb-6 shadow-2xl animate-pulse">
+                        <img src="/revoo-logo.png" alt="REVOO Logo" className="w-[80%] h-[80%] object-contain" />
+                    </div>
+                    <p className="text-white/50 font-medium text-sm animate-pulse">{t('calculating_discount')}</p>
+                </div>
             </div>
         );
     }

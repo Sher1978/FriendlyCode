@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PngBattery from './PngBattery';
 
 // Duration per story (ms)
-const DURATIONS = [5000, 6000, 5000];
+const DURATIONS = [7000, 7000, 7000];
 
 // ─────────────────────────────────────────────────────
 // Story 1 — Hook: What is REVOO?
