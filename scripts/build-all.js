@@ -4,6 +4,12 @@ import path from 'path';
 
 const rootDir = process.cwd();
 
+if (process.env.CI) {
+    console.log('CI environment detected. Skipping build-all.js.');
+    process.exit(0);
+}
+
+
 function run(command, cwd = rootDir) {
     console.log(`Running: ${command} in ${cwd}`);
     execSync(command, { stdio: 'inherit', cwd });
