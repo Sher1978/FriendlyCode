@@ -38,6 +38,23 @@ const TestQRPage = () => {
 
     const [touchStart, setTouchStart] = useState(null);
     const [touchEnd, setTouchEnd] = useState(null);
+    
+    // Slot machine state for anonymous users
+    const [slotDiscount, setSlotDiscount] = useState(5);
+    const [slotCapacity, setSlotCapacity] = useState(10);
+
+    useEffect(() => {
+        if (guestName) return;
+        const rates = [5, 10, 15, 20];
+        const capacities = [10, 25, 50, 100];
+        let idx = 0;
+        const interval = setInterval(() => {
+            idx = (idx + 1) % rates.length;
+            setSlotDiscount(rates[idx]);
+            setSlotCapacity(capacities[idx]);
+        }, 180);
+        return () => clearInterval(interval);
+    }, [guestName]);
 
     const handleTouchStart = (e) => setTouchStart(e.targetTouches[0].clientX);
     const handleTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX);
@@ -274,8 +291,9 @@ const TestQRPage = () => {
     };
 
     const mappedCapacity = getMappedCapacity(discount, loyaltyConfig);
-    
-    const batCfg = getBatteryConfig(mappedCapacity);
+    const currentDiscount = guestName ? discount : slotDiscount;
+    const currentCapacity = guestName ? mappedCapacity : slotCapacity;
+    const batCfg = getBatteryConfig(currentCapacity);
 
     const formatDays = (d) => parseInt(d) === 1 ? '1 day' : `${d} days`;
 
@@ -342,12 +360,30 @@ const TestQRPage = () => {
                             </div>
                         </>
                     ) : (
-                        <button
+                        <motion.button
                             onClick={() => navigate('/activate', { state: { discount, guestName, userRole } })}
-                            className="text-[13px] font-semibold text-white bg-white/5 backdrop-blur-md px-5 py-2 rounded-full border border-white/10 mt-1 hover:bg-white/10 transition-colors"
+                            className="text-[13px] font-semibold text-white bg-white/5 backdrop-blur-md px-5 py-2 rounded-full border mt-1 hover:bg-white/10 transition-colors"
+                            animate={{ 
+                                scale: [1, 1.06, 1],
+                                boxShadow: [
+                                    '0 0 0px rgba(255,255,255,0)', 
+                                    '0 0 12px rgba(255,255,255,0.15)', 
+                                    '0 0 0px rgba(255,255,255,0)'
+                                ],
+                                borderColor: [
+                                    'rgba(255,255,255,0.1)',
+                                    'rgba(255,255,255,0.4)',
+                                    'rgba(255,255,255,0.1)'
+                                ]
+                            }}
+                            transition={{ 
+                                repeat: Infinity, 
+                                duration: 1.6, 
+                                ease: "easeInOut" 
+                            }}
                         >
                             {t('hero_please_sign_in')}
-                        </button>
+                        </motion.button>
                     )}
                 </div>
 
@@ -376,16 +412,16 @@ const TestQRPage = () => {
                             `
                         }}
                     >
-                        {discount}%
+                        {currentDiscount}%
                     </div>
                     {/* The "Discount limits" subline */}
                     <p className="text-[11px] font-medium tracking-wider opacity-60 uppercase mb-3" style={{ color: batCfg.fillColor }}>
                         Current Rate
                     </p>
 
-                        <div className="w-full relative z-10 pointer-events-none">
-                            <PngBattery capacity={mappedCapacity} />
-                        </div>
+                    <div className="w-full relative z-10 pointer-events-none">
+                        <PngBattery capacity={currentCapacity} />
+                    </div>
                 </div>
 
                 {/* iOS Settings-style Timeline Widget */}
