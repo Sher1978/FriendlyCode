@@ -13,6 +13,8 @@ import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
 import 'package:friendly_code/core/localization/locale_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/foundation.dart';
+import 'package:friendly_code/core/data/user_repository.dart';
 
 class B2CHomeScreen extends StatefulWidget {
   final String? venueId;
@@ -60,6 +62,14 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
   }
 
   Future<void> _checkVisit() async {
+    if (kIsWeb) {
+      try {
+        await FirebaseAuth.instance.getRedirectResult();
+      } catch (e) {
+        debugPrint("Error getting redirect result in B2C Home: $e");
+      }
+    }
+
     // 1. Check Auth & Sign In Anonymously if needed
     final authService = AuthService();
     User? user = authService.currentUser;
@@ -110,7 +120,12 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
         // 3a. Check User Profile (Persistence)
         if (_guestName == null) {
            try {
-             final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+             var userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+             if (!userDoc.exists && !user.isAnonymous) {
+               // Auto-sync Google user who just signed in via redirect
+               await UserRepository().syncUser(user, displayName: user.displayName, messenger: 'google');
+               userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+             }
              if (userDoc.exists) {
                final data = userDoc.data();
                if (data != null && data['name'] != null && (data['name'] as String).isNotEmpty) {
@@ -414,7 +429,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
             children: [
               // 1. Header (Brand/Venue)
               _Header(
-                venueName: 'Friendly Code',
+                venueName: 'REVOO',
                 onLogoTap: () {
                   setState(() {
                     _debugTapCount++;
@@ -601,7 +616,7 @@ class _B2CHomeScreenState extends State<B2CHomeScreen> with SingleTickerProvider
                   const Text("Powered by ", style: TextStyle(color: Colors.grey, fontSize: 10)),
                   const FaIcon(FontAwesomeIcons.bolt, size: 10, color: AppColors.premiumBurntOrange),
                   Text(
-                    " Friendly Code", 
+                    " REVOO", 
                     style: TextStyle(
                       color: AppColors.title, 
                       fontSize: 10, 
@@ -710,10 +725,10 @@ class _Header extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min, // Added to prevent full width tap
               children: [
-                const FaIcon(FontAwesomeIcons.leaf, size: 18, color: AppColors.accentGreen),
+                const FaIcon(FontAwesomeIcons.bolt, size: 18, color: AppColors.premiumBurntOrange),
                 const SizedBox(width: 8),
                 Text(
-                  "Friendly\nCode",
+                  "REVOO",
                   textAlign: TextAlign.left,
                   style: TextStyle(
                     color: AppColors.title,

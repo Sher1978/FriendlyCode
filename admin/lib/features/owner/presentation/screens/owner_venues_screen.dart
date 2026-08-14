@@ -28,7 +28,7 @@ class _OwnerVenuesScreenState extends State<OwnerVenuesScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.background,
       body: Container(
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
         child: Column(

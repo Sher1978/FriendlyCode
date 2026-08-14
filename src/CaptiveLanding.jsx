@@ -43,6 +43,11 @@ const CaptiveLanding = () => {
         setContinueUrl(dstUrl);
 
         if (mac) safeStorage.setItem('captiveClientMac', mac);
+        try {
+            sessionStorage.setItem('is_captive_redirect', 'true');
+        } catch (e) {
+            console.warn(e);
+        }
 
         const safetyTimeout = setTimeout(() => {
             if (status === 'loading') setStatus('error');
@@ -95,7 +100,7 @@ const CaptiveLanding = () => {
 
                 // Language init
                 const savedLang = safeStorage.getItem('userLanguage');
-                const targetLang = savedLang || venueData.defaultLanguage || 'ru';
+                const targetLang = savedLang || venueData.defaultLanguage || 'en';
                 if (i18n.language !== targetLang) i18n.changeLanguage(targetLang);
 
                 // User profile
@@ -165,34 +170,27 @@ const CaptiveLanding = () => {
                 timestamp: serverTimestamp()
             });
 
-            // Target destination inside app
-            const thankYouPath = `/thank-you?wifi=true&venueId=${venue.id}&discount=${discount}&mac=${encodeURIComponent(clientMac)}`;
-
-            // If Hotspot Gateway login URL exists (MikroTik / Keenetic), redirect via gateway
-            if (loginUrl && loginUrl.startsWith('http')) {
-                const fullDst = window.location.origin + thankYouPath;
-                const redirectGateway = `${loginUrl}?dst=${encodeURIComponent(fullDst)}&username=revoo_guest`;
-                window.location.href = redirectGateway;
-            } else {
-                // Direct transition inside CNA
-                navigate('/thank-you', {
-                    state: {
+            // Trigger POST /api/wifi/authorize
+            try {
+                await fetch('/api/wifi/authorize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mac: clientMac || safeStorage.getItem('captiveClientMac') || 'unknown',
                         venueId: venue.id,
-                        discountValue: discount,
-                        isWifiFlow: true,
-                        clientMac,
-                        guestName,
-                        guestEmail,
-                        userRole
-                    }
+                        discount: discount
+                    })
                 });
+            } catch (authApiErr) {
+                console.error("Failed to post /api/wifi/authorize:", authApiErr);
             }
+
+            // Target destination: redirect to active Loyalty Dashboard
+            window.location.href = `/test?id=${venue.id}`;
         } catch (e) {
             console.error("Error saving wifi session:", e);
             // Navigate fallback
-            navigate('/thank-you', {
-                state: { venueId: venue.id, discountValue: discount, isWifiFlow: true, guestName: 'Гость' }
-            });
+            window.location.href = `/test?id=${venue.id}`;
         }
     };
 
@@ -221,11 +219,47 @@ const CaptiveLanding = () => {
 
     const batCfg = getBatteryConfig(discount >= 20 ? 100 : discount >= 15 ? 50 : discount >= 10 ? 25 : 10);
 
+    const isReturning = !!guestName || !!safeStorage.getItem('guestName') || !!safeStorage.getItem('guestEmail');
+    const lang = i18n.language?.startsWith('ru') ? 'ru' : (i18n.language?.startsWith('vi') ? 'vi' : 'en');
+
+    const valueProps = {
+        new: {
+            ru: `Добро пожаловать в ${venue?.name || 'наше заведение'}! Подключитесь к нашему высокоскоростному Wi-Fi и мгновенно активируйте стартовую скидку 5%.`,
+            en: `Welcome to ${venue?.name || 'our venue'}! Connect to our high-speed Wi-Fi and instantly activate your 5% starter discount.`,
+            vi: `Chào mừng bạn đến với ${venue?.name || 'địa điểm của chúng tôi'}! Kết nối với Wi-Fi tốc độ cao của chúng tôi và kích hoạt ngay chiết khấu khởi điểm 5%.`
+        },
+        returning: {
+            ru: `С возвращением в ${venue?.name || 'наше заведение'}! Нажмите кнопку ниже, чтобы автоматически восстановить сессию Wi-Fi и применить ваш текущий статус лояльности (${discount}%).`,
+            en: `Welcome back to ${venue?.name || 'our venue'}! Click the button below to automatically restore your Wi-Fi session and apply your current loyalty status (${discount}%).`,
+            vi: `Chào mừng bạn trở lại với ${venue?.name || 'địa điểm của chúng tôi'}! Nhấp vào nút bên dưới để tự động khôi phục phiên Wi-Fi của bạn và áp dụng trạng thái trung thành hiện tại của bạn (${discount}%).`
+        },
+        badge: {
+            ru: "✨ Работает на Revoo Dubai Tech",
+            en: "✨ Powered by Revoo Dubai Tech",
+            vi: "✨ Được cung cấp bởi Revoo Dubai Tech"
+        },
+        cta: {
+            ru: "ПОДКЛЮЧИТЬСЯ К БЕСПЛАТНОМУ WI-FI",
+            en: "CONNECT TO FREE WI-FI",
+            vi: "KẾT NỐI WI-FI MIỄN PHÍ"
+        },
+        subtext: {
+            ru: "Нажимая кнопку, вы принимаете условия предоставления услуг заведения",
+            en: "By clicking the button, you accept the terms of service of the venue",
+            vi: "Bằng cách nhấp vào nút, bạn đồng ý với các điều khoản dịch vụ của địa điểm"
+        }
+    };
+
+    const valueText = isReturning ? valueProps.returning[lang] : valueProps.new[lang];
+    const badgeText = valueProps.badge[lang];
+    const ctaText = valueProps.cta[lang];
+    const footerText = valueProps.subtext[lang];
+
     return (
         <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="flex flex-col min-h-[100svh] bg-black font-sans text-white antialiased relative overflow-x-hidden p-6 justify-between"
+            className="flex flex-col min-h-[100svh] bg-black font-sans text-white antialiased relative overflow-x-hidden p-6 justify-between animate-fadeIn"
         >
             {/* Ambient Background Neon Glow */}
             <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
@@ -233,63 +267,65 @@ const CaptiveLanding = () => {
                 <div className="absolute bottom-[-10%] right-[-20vw] w-[140vw] h-[50vh] rounded-full blur-[130px] opacity-15" style={{ backgroundColor: batCfg.fillColor }} />
             </div>
 
-            {/* Top Bar */}
+            {/* Top Bar / Header Section */}
             <div className="relative z-10 flex flex-col items-center pt-6 text-center">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 border border-white/10 backdrop-blur-md mb-6">
-                    <FontAwesomeIcon icon={faWifi} className="text-xs text-[#00FF41] animate-pulse" />
-                    <span className="text-[11px] font-extrabold uppercase tracking-widest text-white/90">Free Wi-Fi Portal</span>
+                {/* Premium Glassmorphic Badge */}
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 backdrop-blur-md mb-8 shadow-[0_4px_30px_rgba(0,0,0,0.1)]">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#00FF41]">
+                        {badgeText}
+                    </span>
                 </div>
                 
-                <img src="/revoo-logo.png" className="h-[90px] w-auto object-contain mb-2" alt="REVOO" />
-                <h1 className="text-2xl font-black tracking-tight text-white/90 leading-tight">
+                {/* Venue Logo */}
+                <img 
+                    src={venue?.logoUrl || "/revoo-logo.png"} 
+                    className="h-[90px] w-auto object-contain mb-4 rounded-2xl" 
+                    onError={(e) => { e.target.src = "/revoo-logo.png"; }}
+                    alt="Logo" 
+                />
+                
+                {/* Venue Name */}
+                <h1 className="text-3xl font-black tracking-tight text-white/90 leading-tight">
                     {venue?.name || 'Заведение партнер REVOO'}
                 </h1>
-                <p className="text-xs font-semibold text-white/40 mt-1 uppercase tracking-wider">Бесплатный высокоскоростной интернет</p>
             </div>
 
-            {/* Center Hero Card */}
+            {/* Center Value Proposition Card */}
             <div className="relative z-10 my-auto py-6 flex flex-col items-center w-full max-w-sm mx-auto">
                 <div className="w-full bg-[#1C1C1E]/80 backdrop-blur-3xl border border-white/10 rounded-[32px] p-6 text-center shadow-2xl relative overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
                     
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40 block mb-2">
-                        Ваша персональная скидка
-                    </span>
-
-                    <div className="text-[64px] font-black leading-none tracking-tighter mb-2" style={{ color: '#FFF', textShadow: `0 0 25px ${batCfg.fillColor}` }}>
-                        {discount}%
-                    </div>
-
-                    <p className="text-xs font-bold uppercase tracking-wider opacity-90 mb-6" style={{ color: batCfg.fillColor }}>
-                        Статус активен при входе
+                    <p className="text-sm font-semibold text-white/80 leading-relaxed">
+                        {valueText}
                     </p>
 
-                    <div className="w-full scale-95 pointer-events-none mb-2">
+                    <div className="mt-6 scale-95 pointer-events-none">
                         <PngBattery discount={discount} />
-                    </div>
-
-                    <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-center gap-2 text-white/60 text-xs font-medium">
-                        <FontAwesomeIcon icon={faCheckCircle} className="text-[#00FF41]" />
-                        <span>Подключение даст неограниченный доступ в сеть</span>
                     </div>
                 </div>
             </div>
 
-            {/* Bottom Action CTA */}
+            {/* Bottom Action CTA Button */}
             <div className="relative z-10 w-full max-w-sm mx-auto pb-4">
                 <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleConnectAndReward}
                     disabled={isConnecting}
-                    className="w-full h-16 rounded-[22px] font-black text-black text-base uppercase tracking-wider flex items-center justify-center gap-3 shadow-[0_10px_40px_rgba(255,255,255,0.2)] transition-all"
+                    className="w-full h-16 rounded-[22px] font-black text-black text-sm uppercase tracking-wider flex items-center justify-center gap-3 shadow-[0_10px_40px_rgba(255,255,255,0.2)] transition-all"
                     style={{ backgroundColor: '#FFFFFF' }}
                 >
-                    <FontAwesomeIcon icon={faBolt} className="text-yellow-500 text-lg" />
-                    <span>{isConnecting ? 'Подключение...' : 'ПОДКЛЮЧИТЬСЯ И ПОЛУЧИТЬ СКИДКУ'}</span>
+                    <motion.div
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ repeat: Infinity, duration: 1.5 }}
+                        className="text-emerald-500"
+                    >
+                        <FontAwesomeIcon icon={faWifi} className="text-lg" />
+                    </motion.div>
+                    <span>{isConnecting ? '...' : ctaText}</span>
                 </motion.button>
                 <p className="text-[10px] text-white/30 text-center mt-3 font-medium">
-                    Нажимая кнопку, вы принимаете условия предоставления услуг заведения
+                    {footerText}
                 </p>
             </div>
         </motion.div>

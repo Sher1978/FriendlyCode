@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/l10n/app_localizations.dart';
 
 class NotFoundScreen extends StatelessWidget {
   const NotFoundScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       backgroundColor: AppColors.backgroundCream,
       body: Center(
@@ -27,17 +30,17 @@ class NotFoundScreen extends StatelessWidget {
                 ),
               ),
               Text(
-                "Page Not Found",
+                l10n.pageNotFound,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   color: AppColors.brandBrown,
                   fontWeight: FontWeight.w900,
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                "The address you typed doesn't exist or has been moved.",
+              Text(
+                l10n.pageNotFoundSub,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppColors.brandBrown, fontSize: 16),
+                style: const TextStyle(color: AppColors.brandBrown, fontSize: 16),
               ),
               const SizedBox(height: 48),
               SizedBox(
@@ -49,7 +52,7 @@ class NotFoundScreen extends StatelessWidget {
                     backgroundColor: AppColors.brandBrown,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: const Text("BACK TO HOME", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: Text(l10n.goToHome.toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],

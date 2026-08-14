@@ -90,10 +90,11 @@ const LandingPage = () => {
                     setVenueName(venueData.name || '');
 
                     // --- LANGUAGE LOGIC ---
-                    // Default to English, but switch to venue's preferred language if set
+                    const savedLang = safeStorage.getItem('userLanguage');
                     const venueLang = venueData.defaultLanguage || 'en';
-                    if (i18n.language !== venueLang) {
-                        i18n.changeLanguage(venueLang);
+                    const targetLang = savedLang || venueLang;
+                    if (i18n.language !== targetLang) {
+                        i18n.changeLanguage(targetLang);
                     }
 
                     const now = new Date();
@@ -289,6 +290,7 @@ const LandingPage = () => {
     const toggleLanguage = () => {
         const cycle = { 'en': 'ru', 'ru': 'vi', 'vi': 'en' };
         const newLang = cycle[i18n.language] || 'en';
+        safeStorage.setItem('userLanguage', newLang);
         i18n.changeLanguage(newLang);
     };
 

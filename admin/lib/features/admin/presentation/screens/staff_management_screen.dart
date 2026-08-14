@@ -18,7 +18,6 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
   bool _isSearching = false;
   Map<String, dynamic>? _searchResult;
   String? _searchResultId;
-  String? _searchError;
 
   Future<void> _performSearch() async {
     final email = _searchCtrl.text.trim().toLowerCase();
@@ -26,7 +25,6 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
 
     setState(() {
       _isSearching = true;
-      _searchError = null;
       _searchResult = null;
       _searchResultId = null;
     });
@@ -39,9 +37,9 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
 
       if (snap.docs.isEmpty) {
         setState(() {
-          _searchError = "User not found. They must sign in first.";
           _isSearching = false;
         });
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User not found. They must sign in first.')));
       } else {
         setState(() {
           _searchResultId = snap.docs.first.id;
@@ -50,10 +48,8 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
         });
       }
     } catch (e) {
-      setState(() {
-        _searchError = "Error: $e";
-        _isSearching = false;
-      });
+      setState(() => _isSearching = false);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -85,7 +81,7 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.background,
       body: Container(
         padding: const EdgeInsets.all(40),
         child: Column(

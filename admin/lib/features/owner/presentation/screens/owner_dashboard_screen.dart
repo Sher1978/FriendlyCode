@@ -9,6 +9,7 @@ import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/data/venue_repository.dart';
 import 'package:friendly_code/core/localization/locale_provider.dart';
 import 'package:friendly_code/features/owner/presentation/screens/rules_config_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/deposit_tiers_setup_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/marketing_blast_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/guest_list_screen.dart';
@@ -16,6 +17,8 @@ import 'package:friendly_code/features/owner/presentation/screens/venue_staff_sc
 import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/features/owner/presentation/screens/pos_sticker_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/deposit_action_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/deposit_analytics_screen.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:friendly_code/core/services/visit_service.dart';
 import 'package:friendly_code/core/models/visit_model.dart';
@@ -25,6 +28,7 @@ import 'package:friendly_code/core/widgets/ios_settings_group.dart';
 import 'package:friendly_code/core/widgets/ios_settings_row.dart';
 import 'package:friendly_code/features/owner/presentation/widgets/pulse_check_card.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
   final VenueModel? venue;
@@ -51,6 +55,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
 
+  StreamSubscription? _staffReqSubscription;
+
   void _subscribeToVisits(String venueId) {
     _visitSubscription?.cancel();
     _visitSubscription = _visitsService.getVisitsForVenue(venueId).listen((visits) {
@@ -68,6 +74,125 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
         }
       }
     });
+  }
+
+  void _subscribeToStaffRequests(String venueId) {
+    _staffReqSubscription?.cancel();
+    _staffReqSubscription = FirebaseFirestore.instance
+        .collection('staff_requests')
+        .where('venueId', isEqualTo: venueId)
+        .where('status', isEqualTo: 'pending')
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        final doc = snapshot.docs.first;
+        final data = doc.data();
+        if (mounted) {
+          _showOwnerRoleAssignmentDialog(doc.id, data);
+        }
+      }
+    });
+  }
+
+  void _showOwnerRoleAssignmentDialog(String reqId, Map<String, dynamic> data) {
+    String selectedRole = 'staff';
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return CupertinoAlertDialog(
+              title: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.qrcode, color: AppColors.accentGreen),
+                  SizedBox(width: 8),
+                  Text("МОЙ БИЗНЕС"),
+                ],
+              ),
+              content: Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text("Сотрудник отсканировал QR-код!\nВыберите роль для создания записи:"),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        children: [
+                          Text(data['name'] ?? 'Без имени', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                          Text(data['email'] ?? '', style: const TextStyle(fontSize: 12, color: AppColors.macosTextSecondary)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    CupertinoSegmentedControl<String>(
+                      groupValue: selectedRole,
+                      children: const {
+                        'staff': Text('Стафф', style: TextStyle(fontSize: 11)),
+                        'manager': Text('Менеджер', style: TextStyle(fontSize: 11)),
+                        'admin': Text('Админ', style: TextStyle(fontSize: 11)),
+                      },
+                      onValueChanged: (val) {
+                        setDialogState(() => selectedRole = val);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                CupertinoDialogAction(
+                  isDestructiveAction: true,
+                  child: const Text("Отклонить"),
+                  onPressed: () async {
+                    await FirebaseFirestore.instance.collection('staff_requests').doc(reqId).update({'status': 'rejected'});
+                    if (context.mounted) Navigator.pop(context);
+                  },
+                ),
+                CupertinoDialogAction(
+                  isDefaultAction: true,
+                  child: const Text("ПОДТВЕРДИТЬ РОЛЬ"),
+                  onPressed: () async {
+                    final uid = data['employeeUid'];
+                    final email = (data['email'] as String? ?? '').toLowerCase();
+                    final venueId = data['venueId'];
+
+                    if (uid != null) {
+                      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+                        'role': selectedRole,
+                        'venueId': venueId,
+                        'displayName': data['name'],
+                        'email': email,
+                        'updatedAt': FieldValue.serverTimestamp(),
+                      }, SetOptions(merge: true));
+                    }
+
+                    await FirebaseFirestore.instance.collection('staff_requests').doc(reqId).update({
+                      'status': 'approved',
+                      'assignedRole': selectedRole,
+                      'approvedAt': FieldValue.serverTimestamp(),
+                    });
+
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Сотрудник ${data['name']} успешно добавлен!"), backgroundColor: Colors.green),
+                      );
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   void _showRedemptionDialog(VisitModel visit) {
@@ -151,6 +276,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
   @override
   void dispose() {
     _visitSubscription?.cancel();
+    _staffReqSubscription?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
@@ -188,12 +314,36 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
       _lastInitializedVenueId = activeVenueId;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _subscribeToVisits(activeVenueId);
+        _subscribeToStaffRequests(activeVenueId);
         _fetchRealStats(activeVenueId);
+
+        // Auto open DepositActionScreen or GuestListScreen based on URL params
+        final searchVal = Uri.base.queryParameters['search'] ?? Uri.base.queryParameters['uid'] ?? Uri.base.queryParameters['q'];
+        final actionVal = Uri.base.queryParameters['action'];
+        if (searchVal != null && searchVal.isNotEmpty && mounted) {
+          final isDepositAction = actionVal == 'topup' || actionVal == 'deduct' || Uri.base.toString().contains('deposit');
+          if (isDepositAction) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => DepositActionScreen(
+                  initialUserId: searchVal,
+                  initialAction: actionVal,
+                ),
+              ),
+            );
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => GuestListScreen(venueId: activeVenueId)),
+            );
+          }
+        }
       });
     }
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.background,
       body: Stack(
         children: [
           // 1. Smooth Background Vibrancy
@@ -275,7 +425,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                 const Icon(Icons.storefront_outlined, size: 80, color: AppColors.premiumBurntOrange),
                 const SizedBox(height: 24),
                 Text(
-                  "Welcome to Friendly Code",
+                  "Welcome to REVOO",
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: AppColors.title,
                     fontWeight: FontWeight.bold,
@@ -315,23 +465,155 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
     final venueIds = roleProvider.venueIds;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.background,
         elevation: 0,
         centerTitle: false,
         title: _buildVenueSelector(venueIds, roleProvider),
         actions: [
-          CupertinoButton(
-            child: const Icon(CupertinoIcons.globe, color: AppColors.accentOrange, size: 22),
-            onPressed: () {
-               final provider = Provider.of<LocaleProvider>(context, listen: false);
-               final nextLocale = provider.locale.languageCode == 'en'
-                   ? const Locale('ru')
-                   : (provider.locale.languageCode == 'ru' ? const Locale('vi') : const Locale('en'));
-               provider.setLocale(nextLocale);
+          // ── 🏢 МОЙ БИЗНЕС — Quick Access ──
+          GestureDetector(
+            onTap: () {
+              if (activeVenueId != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => VenueStaffScreen(venueId: activeVenueId)),
+                );
+              }
             },
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.accentGreen.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.accentGreen.withOpacity(0.5)),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('🏢', style: TextStyle(fontSize: 14)),
+                  SizedBox(width: 6),
+                  Text(
+                    'МОЙ БИЗНЕС',
+                    style: TextStyle(
+                      color: AppColors.accentGreen,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 11,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
+          // ── 💰 ДЕПОЗИТЫ — Quick Access ──
+          GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => DepositAnalyticsScreen(venueId: activeVenueId)),
+            ),
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.accentYellow.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.accentYellow.withOpacity(0.5)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Text('💰', style: TextStyle(fontSize: 14)),
+                  SizedBox(width: 6),
+                  Text(
+                    'ДЕПОЗИТЫ',
+                    style: TextStyle(
+                      color: AppColors.accentYellow,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 11,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // ── 🎁 GIFTX — Hybrid Toggle Quick Button ──
+          if (activeVenueId != null)
+            StreamBuilder<VenueModel?>(
+              stream: _venueRepo.getVenueStream(activeVenueId),
+              builder: (context, snap) {
+                final isHybrid = snap.data?.isHybridEnabled ?? false;
+                return GestureDetector(
+                  onTap: () async {
+                    final venue = snap.data;
+                    if (venue == null) return;
+                    // Toggle hybrid mode directly
+                    await FirebaseFirestore.instance
+                        .collection('venues')
+                        .doc(activeVenueId)
+                        .update({'isHybridEnabled': !isHybrid});
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            !isHybrid ? '🎁 GiftX гибрид — ВКЛЮЧЁН' : '⭕ GiftX гибрид — отключён',
+                          ),
+                          backgroundColor: !isHybrid ? AppColors.accentGreen : Colors.grey[800],
+                          duration: const Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isHybrid
+                          ? AppColors.accentGreen.withOpacity(0.18)
+                          : Colors.white.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isHybrid
+                            ? AppColors.accentGreen.withOpacity(0.6)
+                            : Colors.white.withOpacity(0.15),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('🎁', style: const TextStyle(fontSize: 13)),
+                        const SizedBox(width: 5),
+                        Text(
+                          'GIFTX',
+                          style: TextStyle(
+                            color: isHybrid ? AppColors.accentGreen : Colors.white38,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 11,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isHybrid ? AppColors.accentGreen : Colors.white24,
+                            boxShadow: isHybrid
+                                ? [BoxShadow(color: AppColors.accentGreen.withOpacity(0.6), blurRadius: 4)]
+                                : [],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           CupertinoButton(
             child: const Icon(CupertinoIcons.plus_circle, color: AppColors.accentOrange, size: 22),
             onPressed: () async {
@@ -544,8 +826,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue))),
                   ),
                   IOSSettingsRow(
-                    title: "Staff Management",
-                    subtitle: "Manage venue staff & roles",
+                    title: "МОЙ БИЗНЕС — Персонал и QR",
+                    subtitle: "Привязка новых сотрудников и выбор роли",
                     icon: CupertinoIcons.person_badge_plus_fill,
                     iconColor: AppColors.accentGreen,
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueStaffScreen(venueId: venue.id))),
@@ -572,6 +854,20 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                     icon: CupertinoIcons.infinite,
                     iconColor: AppColors.accentOrange,
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => RulesConfigScreen(venueId: venue.id))),
+                  ),
+                  IOSSettingsRow(
+                    title: "Deposit Analytics & Reports",
+                    subtitle: "Full breakdown by users and monthly totals",
+                    icon: CupertinoIcons.chart_bar_square_fill,
+                    iconColor: AppColors.accentYellow,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DepositAnalyticsScreen(venueId: venue.id))),
+                  ),
+                  IOSSettingsRow(
+                    title: "Deposit Tiers",
+                    subtitle: "Configure deposit-based discount levels",
+                    icon: CupertinoIcons.creditcard_fill,
+                    iconColor: AppColors.accentYellow,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DepositTiersSetupScreen(venueId: venue.id))),
                   ),
                   IOSSettingsRow(
                     title: "Marketing Campaigns",

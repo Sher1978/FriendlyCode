@@ -922,4 +922,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vipTier => 'VIP';
+
+  @override
+  String get accessControlPanel => 'Access your control panel';
+
+  @override
+  String get terms => 'Terms';
+
+  @override
+  String get support => 'Support';
+
+  @override
+  String get pageNotFound => 'Page Not Found';
+
+  @override
+  String get pageNotFoundSub =>
+      'The address you typed doesn\'t exist or has been moved.';
 }

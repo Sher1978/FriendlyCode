@@ -39,8 +39,21 @@ class AuthService {
     if (kIsWeb) {
       // Web Google Sign In logic (Pure Firebase)
       final GoogleAuthProvider authProvider = GoogleAuthProvider();
-      final UserCredential userCredential = await _auth.signInWithPopup(authProvider);
-      return userCredential.user;
+      try {
+        final UserCredential userCredential = await _auth.signInWithPopup(authProvider);
+        return userCredential.user;
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'popup-closed-by-user' || e.code == 'popup-blocked' || e.code == 'cancelled-popup-request') {
+          debugPrint("Popup closed or blocked by user. Falling back to redirect: ${e.code}");
+          await _auth.signInWithRedirect(authProvider);
+          return null;
+        }
+        rethrow;
+      } catch (e) {
+        debugPrint("Google login popup error, trying redirect: $e");
+        await _auth.signInWithRedirect(authProvider);
+        return null;
+      }
     } else {
       // Mobile Google Sign In logic
       final dynamic googleUser = await _googleSignIn.signIn();

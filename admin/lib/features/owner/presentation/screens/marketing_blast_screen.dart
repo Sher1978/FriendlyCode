@@ -95,9 +95,9 @@ class _MarketingBlastScreenState extends State<MarketingBlastScreen> {
     _initAudienceSegments(l10n);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.background,
         elevation: 0,
         leading: CupertinoButton(
           padding: EdgeInsets.zero,

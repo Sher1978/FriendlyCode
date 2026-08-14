@@ -1779,6 +1779,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'VIP'**
   String get vipTier;
+
+  /// No description provided for @accessControlPanel.
+  ///
+  /// In en, this message translates to:
+  /// **'Access your control panel'**
+  String get accessControlPanel;
+
+  /// No description provided for @terms.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms'**
+  String get terms;
+
+  /// No description provided for @support.
+  ///
+  /// In en, this message translates to:
+  /// **'Support'**
+  String get support;
+
+  /// No description provided for @pageNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Page Not Found'**
+  String get pageNotFound;
+
+  /// No description provided for @pageNotFoundSub.
+  ///
+  /// In en, this message translates to:
+  /// **'The address you typed doesn\'t exist or has been moved.'**
+  String get pageNotFoundSub;
 }
 
 class _AppLocalizationsDelegate

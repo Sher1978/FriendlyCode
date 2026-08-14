@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useParams, useNavigate } from 'react-router-dom';
 
 // Helper to handle ChunkLoadError on new deployments
 const lazyWithRetry = (componentImport) =>
@@ -15,7 +15,8 @@ const lazyWithRetry = (componentImport) =>
 // Code-split: each route loads its JS chunk on demand only
 const LandingPage        = lazyWithRetry(() => import('./LandingPage'));
 const LeadCapture        = lazyWithRetry(() => import('./LeadCapture'));
-const UnifiedActivation  = lazyWithRetry(() => import('./UnifiedActivation'));
+// UnifiedActivation — статический импорт: переход на /thank-you мгновенный (6.95 KB gzip)
+import UnifiedActivation from './UnifiedActivation';
 const TelegramAuth       = lazyWithRetry(() => import('./TelegramAuth'));
 const MarketingB2C       = lazyWithRetry(() => import('./MarketingB2C'));
 const PartnerMap         = lazyWithRetry(() => import('./PartnerMap'));
@@ -28,6 +29,8 @@ const RevooB2B           = lazyWithRetry(() => import('./RevooB2B'));
 const GuestDashboard     = lazyWithRetry(() => import('./GuestDashboard'));
 const CaptiveLanding     = lazyWithRetry(() => import('./CaptiveLanding'));
 const RevooStories       = lazyWithRetry(() => import('./RevooStories'));
+const StaffJoinPage      = lazyWithRetry(() => import('./StaffJoinPage'));
+const HybridChoiceLanding = lazyWithRetry(() => import('./HybridChoiceLanding'));
 
 import DubaiTechBadge from './DubaiTechBadge';
 
@@ -57,25 +60,40 @@ function App() {
           <Route path="/legacy/b2c" element={<MarketingB2C />} />
           <Route path="/legacy/b2b" element={<MarketingB2B />} />
 
-          {/* Multi-Brand Landing Logic — Stories as main entry */}
-          <Route path="/" element={
-            <RevooStories onComplete={() => {
-              try {
-                localStorage.setItem('onboardingCompleted', 'true');
-              } catch (e) {
-                console.warn(e);
-              }
-              const searchParams = new URLSearchParams(window.location.search);
-              const venueId = searchParams.get('qr_venue_id') || 'demo';
-              window.location.replace(`/test?id=${venueId}`);
-            }} />
-          } />
+          {/* Multi-Brand Landing Logic — Stories as main entry unless deposit is active */}
+          <Route path="/" element={(() => {
+            let hasDeposit = false;
+            try {
+              const b = localStorage.getItem('cached_deposit_balance');
+              hasDeposit = b && Number(b) > 0;
+            } catch (e) {}
+
+            if (hasDeposit) {
+              return <TestQRPage />;
+            }
+
+            return (
+              <RevooStories onComplete={() => {
+                try {
+                  localStorage.setItem('onboardingCompleted', 'true');
+                } catch (e) {
+                  console.warn(e);
+                }
+                const searchParams = new URLSearchParams(window.location.search);
+                const venueId = searchParams.get('qr_venue_id') || 'demo';
+                window.location.replace(`/test?id=${venueId}`);
+              }} />
+            );
+          })()} />
           <Route path="/business" element={showRevoo ? <RevooB2B /> : <MarketingB2B />} />
           <Route path="/legacy/b2c" element={<RevooB2C />} />
           <Route path="/map" element={<PartnerMap />} />
 
           {/* Guest QR Logic (Now REVOO) */}
           <Route path="/qr" element={<NewQRPage />} />
+          <Route path="/hybrid" element={<HybridChoiceLanding />} />
+          <Route path="/hybrid-landing" element={<HybridChoiceLanding />} />
+          <Route path="/test-hybrid" element={<HybridChoiceLanding />} />
           <Route path="/test" element={<TestQRPage />} />
           <Route path="/newqr" element={<NewQRPage />} />
           <Route path="/activate" element={<LeadCapture />} />
@@ -83,10 +101,14 @@ function App() {
           <Route path="/telegram-auth" element={<TelegramAuth />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
           <Route path="/guest-dashboard" element={<GuestDashboard />} />
+          <Route path="/staff-join" element={<StaffJoinPage />} />
 
           {/* Captive Wi-Fi Entry Point */}
           <Route path="/wifi" element={<CaptiveLanding />} />
+          <Route path="/wifi-login" element={<CaptiveLanding />} />
+          <Route path="/api/wifi/login" element={<CaptiveLanding />} />
           <Route path="/wifi/thank-you" element={<UnifiedActivation />} />
+          <Route path="/v/:venueId" element={<NFCScanRedirect />} />
 
           {/* Redirects for Admin/Owner panels to sub-path handled by Flutter */}
           <Route path="/owner" element={<NavigateToAdmin path="owner" />} />
@@ -112,6 +134,24 @@ const AdminRedirect = () => {
     window.location.href = '/admin/';
   }, []);
   return <div className="min-h-screen bg-[#000000]"></div>;
+};
+
+const NFCScanRedirect = () => {
+  const { venueId } = useParams();
+  const navigate = useNavigate();
+  React.useEffect(() => {
+    navigate(`/test?id=${venueId}`, { replace: true });
+  }, [venueId, navigate]);
+  return (
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-6">
+      <motion.div 
+        animate={{ opacity: [0.4, 0.8, 0.4] }}
+        transition={{ duration: 2, repeat: Infinity }}
+      >
+        <img src="/revoo-logo.png" alt="Loading REVOO" className="w-32 opacity-80 mix-blend-screen drop-shadow-[0_0_10px_rgba(212,175,55,0.3)]" />
+      </motion.div>
+    </div>
+  );
 };
 
 export default App;

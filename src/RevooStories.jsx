@@ -237,7 +237,9 @@ export default function RevooStories({ onComplete }) {
 
   useEffect(() => {
     try {
-      if (localStorage.getItem('onboardingCompleted') === 'true') {
+      const cachedBal = localStorage.getItem('cached_deposit_balance');
+      const hasDeposit = cachedBal && Number(cachedBal) > 0;
+      if (hasDeposit || localStorage.getItem('onboardingCompleted') === 'true') {
         onComplete?.();
       }
     } catch (e) {
@@ -246,25 +248,20 @@ export default function RevooStories({ onComplete }) {
   }, [onComplete]);
 
   const goNext = useCallback(() => {
-    setCurrent(prev => {
-      if (prev < 2) {
-        setBarKey(k => k + 1);
-        return prev + 1;
-      }
+    if (current < 2) {
+      setBarKey(k => k + 1);
+      setCurrent(c => c + 1);
+    } else {
       onComplete?.();
-      return prev;
-    });
-  }, [onComplete]);
+    }
+  }, [current, onComplete]);
 
   const goPrev = useCallback(() => {
-    setCurrent(prev => {
-      if (prev > 0) {
-        setBarKey(k => k + 1);
-        return prev - 1;
-      }
-      return prev;
-    });
-  }, []);
+    if (current > 0) {
+      setBarKey(k => k + 1);
+      setCurrent(c => c - 1);
+    }
+  }, [current]);
 
   const goNextRef = useRef(goNext);
   useEffect(() => {

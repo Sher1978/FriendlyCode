@@ -4,6 +4,7 @@ import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/data/venue_repository.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/super_admin_venue_detail_screen.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:provider/provider.dart';
 
@@ -183,7 +184,12 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                                         children: [
                                           IconButton(
                                             icon: const Icon(Icons.edit_outlined, color: AppColors.body),
-                                            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: v))),
+                                            tooltip: 'Manage venue',
+                                            onPressed: () => Navigator.push(context, MaterialPageRoute(
+                                              builder: (_) => roleProvider.isSuperAdmin
+                                                  ? SuperAdminVenueDetailScreen(venue: v)
+                                                  : VenueEditorScreen(venue: v),
+                                            )),
                                           ),
                                         ],
                                       ),

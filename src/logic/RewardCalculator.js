@@ -17,27 +17,44 @@ export class RewardCalculator {
     }
 
     /**
-     * Calculates the reward based strictly on Calendar Days difference.
+     * Calculates the reward based strictly on Calendar Days difference or pinned Deposit status.
      * @param {string|null} lastVisitDateStr - The "YYYY-MM-DD" of the last active visit.
      * @param {Date} currentTime - Now.
-     * @param {Object} config - Venue config (contains percBase, percVip, vipWindowDays, etc.)
+     * @param {Object} config - Venue config (contains percBase, percVip, percDeposit, decayStages, etc.)
      * @param {string} venueTimezone - e.g. "Asia/Dubai"
      * @param {boolean} isDayActive - true if the user already activated a visit TODAY.
+     * @param {boolean} hasLockedDiscount - true if user has a pinned/locked deposit discount.
      */
-    static calculate(lastVisitDateStr, currentTime, config, venueTimezone = 'Asia/Dubai', isDayActive = false) {
+    static calculate(lastVisitDateStr, currentTime, config, venueTimezone = 'Asia/Dubai', isDayActive = false, hasLockedDiscount = false) {
+        const decayStage0 = (config?.decayStages && config.decayStages.length > 0) ? config.decayStages[0] : null;
+
         const safeConfig = {
             percBase: Number(config?.percBase ?? 5),
             percVip: Number(config?.percVip ?? 20),
-            percDecay1: Number(config?.percDecay1 ?? 15),
-            percDecay2: Number(config?.percDecay2 ?? 10),
-            vipWindowDays: Number(config?.vipWindowDays ?? 1), // default 1 day (daily visit)
-            tier1DecayDays: Number(config?.tier1DecayDays ?? 2), // default 2 days
-            tier2DecayDays: Number(config?.tier2DecayDays ?? 6), // default 6 days
+            percMedium: Number(decayStage0?.discount ?? config?.percDecay1 ?? 15),
+            percDeposit: Number(config?.percDeposit ?? 25),
+            vipWindowDays: Number(config?.vipWindowDays ?? 1), // default 1 day (tomorrow)
+            mediumDays: Number(decayStage0?.days ?? config?.tier1DecayDays ?? 7), // default 7 days for medium discount
+            depositThreshold: Number(config?.depositThreshold ?? 1000000),
         };
+
+        // If user has a locked deposit discount, return highest deposit tier
+        if (hasLockedDiscount) {
+            return {
+                discount: safeConfig.percDeposit,
+                status: 'deposit',
+                phase: 'maintenance',
+                isDayActive,
+                currentDiscount: safeConfig.percDeposit,
+                nextDiscount: safeConfig.percDeposit,
+                diffDays: 'N/A',
+                isLocked: true
+            };
+        }
 
         const todayStr = this.getVenueDateString(currentTime, venueTimezone);
 
-        // If no previous visit, user is new -> Base
+        // If no previous visit, user is new -> Minimal (Base)
         if (!lastVisitDateStr) {
             return {
                 discount: safeConfig.percBase,
@@ -46,35 +63,34 @@ export class RewardCalculator {
                 isDayActive,
                 currentDiscount: safeConfig.percBase,
                 nextDiscount: safeConfig.percVip,
-                diffDays: 'N/A'
+                diffDays: 'N/A',
+                isLocked: false
             };
         }
 
         // Calculate days difference
-        // Parse 'YYYY-MM-DD' as UTC to find difference in full 24h intervals safely
         const msPerDay = 1000 * 60 * 60 * 24;
         const todayUtc = Date.parse(todayStr + "T00:00:00Z");
         const lastVisitUtc = Date.parse(lastVisitDateStr + "T00:00:00Z");
         
         let diffDays = Math.round((todayUtc - lastVisitUtc) / msPerDay);
-        // Debug logging with current thresholds
-        console.log(`[RewardCalculator] today: ${todayStr}, last: ${lastVisitDateStr}, diff: ${diffDays}. Thresholds: VIP <= ${safeConfig.vipWindowDays}, T1 <= ${safeConfig.tier1DecayDays}, T2 <= ${safeConfig.tier2DecayDays}`);
-        
-        if (diffDays < 0) diffDays = 0; // Sanity check if timezones act weird
+        if (diffDays < 0) diffDays = 0;
+
+        console.log(`[RewardCalculator] today: ${todayStr}, last: ${lastVisitDateStr}, diff: ${diffDays}. Thresholds: VIP <= ${safeConfig.vipWindowDays}, Medium <= ${safeConfig.mediumDays}`);
 
         let todayDiscount = safeConfig.percBase;
         let status = 'reset';
 
         if (diffDays <= safeConfig.vipWindowDays) {
+            // Tier 3: Maximal discount (Visit-based)
             todayDiscount = safeConfig.percVip;
             status = 'vip';
-        } else if (diffDays <= safeConfig.tier1DecayDays) {
-            todayDiscount = safeConfig.percDecay1;
+        } else if (diffDays <= safeConfig.mediumDays) {
+            // Tier 2: Medium discount (Visit-based)
+            todayDiscount = safeConfig.percMedium;
             status = 'decay1';
-        } else if (diffDays <= safeConfig.tier2DecayDays) {
-            todayDiscount = safeConfig.percDecay2;
-            status = 'decay2';
         } else {
+            // Tier 1: Minimal discount (Visit-based)
             todayDiscount = safeConfig.percBase;
             status = 'reset';
         }
@@ -86,7 +102,8 @@ export class RewardCalculator {
             isDayActive,
             currentDiscount: todayDiscount,
             nextDiscount: safeConfig.percVip,
-            diffDays
+            diffDays,
+            isLocked: false
         };
     }
 }

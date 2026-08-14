@@ -44,8 +44,21 @@ class AuthService {
         // Force account selection prompt
         authProvider.setCustomParameters({'prompt': 'select_account'});
         
-        final UserCredential userCredential = await _auth.signInWithPopup(authProvider);
-        return userCredential.user;
+        try {
+          final UserCredential userCredential = await _auth.signInWithPopup(authProvider);
+          return userCredential.user;
+        } on FirebaseAuthException catch (e) {
+          if (e.code == 'popup-closed-by-user' || e.code == 'popup-blocked' || e.code == 'cancelled-popup-request') {
+            debugPrint("Popup closed or blocked by user. Falling back to redirect: ${e.code}");
+            await _auth.signInWithRedirect(authProvider);
+            return null;
+          }
+          rethrow;
+        } catch (e) {
+          debugPrint("Google login popup error, trying redirect: $e");
+          await _auth.signInWithRedirect(authProvider);
+          return null;
+        }
       } else {
         // Mobile logic (Android/iOS)
         final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();

@@ -118,5 +118,24 @@ void main() {
       expect(result.statusLabelKey, 'cycle_reset');
       expect(result.currentDiscount, 5);
     });
+
+    test('Locked Deposit Discount returns percDeposit tier', () {
+      final now = DateTime.now();
+      
+      final result = RewardCalculator.calculate(
+        lastActivatedDate: null,
+        currentTime: now,
+        timezone: timeZone,
+        config: config,
+        currentTierValue: 5, 
+        maxTierValue: 20,
+        baseTierValue: 5,
+        hasLockedDiscount: true,
+      );
+
+      expect(result.currentDiscount, config.percDeposit);
+      expect(result.isLocked, true);
+      expect(result.statusLabelKey, 'deposit_locked');
+    });
   });
 }

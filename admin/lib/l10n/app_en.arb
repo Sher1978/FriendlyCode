@@ -434,5 +434,10 @@
         "type": "int"
       }
     }
-  }
+  },
+  "accessControlPanel": "Access your control panel",
+  "terms": "Terms",
+  "support": "Support",
+  "pageNotFound": "Page Not Found",
+  "pageNotFoundSub": "The address you typed doesn't exist or has been moved."
 }

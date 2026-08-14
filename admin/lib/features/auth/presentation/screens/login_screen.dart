@@ -70,20 +70,7 @@ class LoginScreen extends StatelessWidget {
                       if (user != null && context.mounted) {
                         // User authenticated successfully
                         // Logic for new users vs existing users is handled in DispatcherScreen/WelcomeScreen
-                        
-                        // Check if user exists in Firestore, if not create a placeholder
-                        final userRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-                        final doc = await userRef.get();
-                        
-                        if (!doc.exists) {
-                          await userRef.set({
-                            'uid': user.uid,
-                            'email': user.email,
-                            'name': user.displayName,
-                            'role': 'user', // Default role
-                            'createdAt': FieldValue.serverTimestamp(),
-                          });
-                        }
+                        // (stub merging and document creation is done in RoleProvider.refreshRole())
 
                         // Navigate to Dispatcher (which handles routing based on venueId)
                         Navigator.pushReplacementNamed(context, '/');

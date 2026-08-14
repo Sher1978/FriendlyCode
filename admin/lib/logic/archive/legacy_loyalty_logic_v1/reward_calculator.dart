@@ -49,7 +49,7 @@ class RewardCalculator {
          final int endTimeSeconds = 24 * 3600;
          return RewardState(
             currentDiscount: previousReward,
-            nextDiscount: config.percDecay1, // After 24h maintenance, usually drops to Decay1
+            nextDiscount: config.decayStages.isNotEmpty ? config.decayStages.first.discount : config.percBase, // After maintenance, drops to first decay stage
             secondsUntilNextChange: endTimeSeconds - totalSecondsPassed,
             phase: RewardPhase.vip,
             statusLabelKey: 'valid_for',
@@ -67,8 +67,8 @@ class RewardCalculator {
     // 1. Safety Cooldown (e.g. 0-12h) - Global Rule
     // If the user returns too quickly (e.g. refreshing the page), we shouldn't punish them by dropping to Base.
     // If they had a valid reward in the anchor visit, verify it.
-    if (hoursPassed < config.safetyCooldownHours) {
-      final int endTimeSeconds = config.safetyCooldownHours * 3600;
+    if (hoursPassed < config.vipWindowDays * 24) {
+      final int endTimeSeconds = config.vipWindowDays * 24 * 3600;
       
       // Determine what they are waiting for (First tier or VIP)
       final int nextTarget = tiers.isNotEmpty ? tiers.first.percentage : config.percVip;

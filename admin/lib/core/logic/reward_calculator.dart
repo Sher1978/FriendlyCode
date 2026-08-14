@@ -29,7 +29,7 @@ class RewardState {
 }
 
 class RewardCalculator {
-  /// Calculates the reward state based on "Active Day" logic.
+  /// Calculates the reward state based on "Active Day" logic or Deposit lock status.
   static RewardState calculate({
     required DateTime? lastActivatedDate,
     required DateTime currentTime,
@@ -38,7 +38,21 @@ class RewardCalculator {
     required int currentTierValue,
     required int maxTierValue,
     required int baseTierValue,
+    bool hasLockedDiscount = false,
   }) {
+    if (hasLockedDiscount) {
+      return RewardState(
+        currentDiscount: config.percDeposit,
+        nextDiscount: config.percDeposit,
+        secondsUntilDecay: 0,
+        secondsUntilNextTier: 0,
+        phase: RewardPhase.active,
+        statusLabelKey: 'deposit_locked',
+        isLocked: true,
+        isDayActive: false,
+      );
+    }
+
     // 1. Setup Timezone
     late tz.Location location;
     try {
@@ -47,8 +61,6 @@ class RewardCalculator {
       try {
          location = tz.getLocation('Etc/GMT-3');
       } catch (e) {
-         // Fallback to UTC if even GMT-3 fails (likely in test environment without full DB)
-         // Note: ensure timezone data is initialized in main/test
          location = tz.getLocation('UTC');
       }
     }

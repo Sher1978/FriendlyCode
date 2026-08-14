@@ -77,7 +77,7 @@ class _FlyerGeneratorScreenState extends State<FlyerGeneratorScreen> {
                   child: Stack(
                     children: [
                       // Watermark / Background accents
-                      Positioned(top: -50, right: -50, child: Icon(Icons.energy_savings_leaf, size: 300, color: AppColors.brandGreen.withOpacity(0.03))),
+                      Positioned(top: -50, right: -50, child: Icon(Icons.bolt_rounded, size: 300, color: AppColors.brandOrange.withOpacity(0.03))),
                       
                       Padding(
                         padding: const EdgeInsets.all(24),
@@ -93,9 +93,9 @@ class _FlyerGeneratorScreenState extends State<FlyerGeneratorScreen> {
                                   // Brand
                                   const Row(
                                     children: [
-                                      Icon(Icons.energy_savings_leaf, color: AppColors.brandGreen, size: 24),
+                                      Icon(Icons.bolt_rounded, color: AppColors.brandOrange, size: 24),
                                       SizedBox(width: 8),
-                                      Text("Friendly Code", style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.brandBrown)),
+                                      Text("REVOO", style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.brandBrown)),
                                     ],
                                   ),
                                   const Spacer(),
@@ -221,7 +221,7 @@ class _FlyerGeneratorScreenState extends State<FlyerGeneratorScreen> {
                                     child: Column(
                                       children: [
                                         QrImageView(
-                                          data: 'https://www.friendlycode.fun',
+                                          data: 'https://revoo.win',
                                           version: QrVersions.auto,
                                           size: 80.0,
                                           backgroundColor: Colors.white,
@@ -238,7 +238,7 @@ class _FlyerGeneratorScreenState extends State<FlyerGeneratorScreen> {
                                     ),
                                  ),
                                  const SizedBox(height: 4),
-                                 const Center(child: Text("friendlycode.fun", style: TextStyle(fontSize: 10, color: AppColors.textSecondary))),
+                                 const Center(child: Text("revoo.win", style: TextStyle(fontSize: 10, color: AppColors.textSecondary))),
                                 ],
                               ),
                             ),

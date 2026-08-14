@@ -3,11 +3,19 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
+    <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
+
+    <link rel="preload" as="image" href="/revoo-logo.png" />
+    <link rel="preload" as="image" href="/assets/battery_v2_final.png" />
 
     <title>REVOO Ecosystem</title>
   </head>
-  <body>
+  <body style="background-color: #000000; color: #ffffff;">
     <div id="root">
       <style>
         body { background-color: #000000; margin: 0; }
@@ -18,7 +26,7 @@
           align-items: center;
           height: 100vh;
           background-color: #000000;
-          animation: pulse 1.5s ease-in-out infinite alternate;
+          animation: pulse 1.2s ease-in-out infinite alternate;
         }
         .initial-loader img {
           max-width: 140px;
@@ -26,7 +34,7 @@
           mix-blend-mode: screen;
           filter: drop-shadow(0 0 10px rgba(212,175,55,0.3));
         }
-        @keyframes pulse { 0% { opacity: 0.4; transform: scale(0.95); filter: brightness(0.8); } 100% { opacity: 1; transform: scale(1); filter: brightness(1.2); } }
+        @keyframes pulse { 0% { opacity: 0.4; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
       </style>
       <div class="initial-loader">
         <img src="/revoo-logo.png" alt="REVOO" />

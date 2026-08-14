@@ -262,12 +262,12 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
 
   Widget _buildStrategicGrid(bool isWide) {
     return GridView.count(
-      crossAxisCount: isWide ? 3 : 1,
+      crossAxisCount: isWide ? 4 : 1,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 16,
       crossAxisSpacing: 16,
-      childAspectRatio: isWide ? 2.5 : 3.5,
+      childAspectRatio: isWide ? 2.0 : 3.5,
       children: [
         _buildStrategicCard("Campaign Control", "Global marketing pulse", CupertinoIcons.speaker_2_fill, AppColors.accentBlue, () {
            Navigator.push(context, MaterialPageRoute(builder: (_) => const MarketingCampaignScreen()));
@@ -277,6 +277,9 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
         }),
         _buildStrategicCard("Ops Config", "Email & Notification hub", CupertinoIcons.gear, AppColors.premiumGold, () {
            Navigator.push(context, MaterialPageRoute(builder: (_) => const GlobalEmailSettingsScreen()));
+        }),
+        _buildStrategicCard("Role Assignment", "Assign user venue roles", CupertinoIcons.shield_fill, AppColors.accentGreen, () {
+           _showRoleAssignmentDialog(context);
         }),
       ],
     );
@@ -425,5 +428,378 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
     } catch (e) {
        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
     }
+  }
+
+  void _showRoleAssignmentDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => const _RoleAssignmentDialog(),
+    );
+  }
+}
+
+class _RoleAssignmentDialog extends StatefulWidget {
+  const _RoleAssignmentDialog({super.key});
+
+  @override
+  State<_RoleAssignmentDialog> createState() => _RoleAssignmentDialogState();
+}
+
+class _RoleAssignmentDialogState extends State<_RoleAssignmentDialog> {
+  String? _selectedVenueId;
+  String? _selectedRole = 'staff';
+  final TextEditingController _emailCtrl = TextEditingController();
+  final TextEditingController _nameCtrl = TextEditingController();
+  
+  bool _isSearching = false;
+  bool _searched = false;
+  bool _userFound = false;
+  String? _foundUserId;
+  String? _foundUserName;
+  
+  bool _isSaving = false;
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _searchUser() async {
+    final email = _emailCtrl.text.trim().toLowerCase();
+    if (email.isEmpty) return;
+
+    setState(() {
+      _isSearching = true;
+      _searched = false;
+      _userFound = false;
+      _foundUserId = null;
+      _foundUserName = null;
+    });
+
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (snap.docs.isNotEmpty) {
+        final doc = snap.docs.first;
+        setState(() {
+          _userFound = true;
+          _foundUserId = doc.id;
+          _foundUserName = doc.data()['displayName'] ?? doc.data()['name'] ?? 'No Name';
+        });
+      } else {
+        setState(() {
+          _userFound = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error searching user: $e")),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+          _searched = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _saveRole() async {
+    if (_selectedVenueId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select a venue")),
+      );
+      return;
+    }
+    final email = _emailCtrl.text.trim().toLowerCase();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter user email")),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      if (_userFound && _foundUserId != null) {
+        // Update existing user
+        await FirebaseFirestore.instance.collection('users').doc(_foundUserId).update({
+          'venueId': _selectedVenueId,
+          'role': _selectedRole,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("User role assigned successfully")),
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        // Create new user profile
+        final name = _nameCtrl.text.trim();
+        if (name.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Please enter a name for the new user")),
+          );
+          setState(() => _isSaving = false);
+          return;
+        }
+
+        final newUserRef = FirebaseFirestore.instance.collection('users').doc();
+        await newUserRef.set({
+          'displayName': name,
+          'email': email,
+          'role': _selectedRole,
+          'venueId': _selectedVenueId,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("New user profile created and role assigned")),
+          );
+          Navigator.pop(context);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error saving role: $e")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        width: 480,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "USER VENUE ROLE ASSIGNMENT",
+                style: TextStyle(
+                  color: AppColors.premiumGold,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Assign User Role",
+                style: TextStyle(
+                  color: AppColors.title,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // 1. SELECT VENUE
+              const Text("1. Select Venue", style: TextStyle(color: AppColors.title, fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 8),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('venues').snapshots(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const SizedBox(
+                      height: 48,
+                      child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                    );
+                  }
+                  final docs = snapshot.data!.docs;
+                  return DropdownButtonFormField<String>(
+                    dropdownColor: AppColors.surface,
+                    value: _selectedVenueId,
+                    hint: const Text("Select venue...", style: TextStyle(color: AppColors.tertiary, fontSize: 13)),
+                    style: const TextStyle(color: AppColors.title, fontSize: 13),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: AppColors.secondarySurface,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    ),
+                    items: docs.map((doc) {
+                      final name = doc['name'] ?? 'Unnamed Venue';
+                      return DropdownMenuItem(
+                        value: doc.id,
+                        child: Text(name, style: const TextStyle(color: AppColors.title)),
+                      );
+                    }).toList(),
+                    onChanged: (val) => setState(() => _selectedVenueId = val),
+                  );
+                },
+              ),
+              const SizedBox(height: 20),
+
+              // 2. USER EMAIL SEARCH/CREATE
+              const Text("2. User Email", style: TextStyle(color: AppColors.title, fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _emailCtrl,
+                      style: const TextStyle(color: AppColors.title, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: "Enter user email...",
+                        hintStyle: const TextStyle(color: AppColors.tertiary),
+                        filled: true,
+                        fillColor: AppColors.secondarySurface,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  SizedBox(
+                    height: 44,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accentGreen,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                      ),
+                      onPressed: _isSearching ? null : _searchUser,
+                      child: _isSearching
+                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text("Search", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+                    ),
+                  ),
+                ],
+              ),
+              if (_searched) ...[
+                const SizedBox(height: 12),
+                if (_userFound)
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.accentGreen.withOpacity(0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(CupertinoIcons.checkmark_circle_fill, color: AppColors.accentGreen, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Found user: $_foundUserName",
+                            style: const TextStyle(color: AppColors.title, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentOrange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.accentOrange.withOpacity(0.2)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(CupertinoIcons.info_circle_fill, color: AppColors.accentOrange, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "User not found. A new profile will be created.",
+                            style: TextStyle(color: AppColors.title, fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text("New User Name", style: TextStyle(color: AppColors.title, fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _nameCtrl,
+                    style: const TextStyle(color: AppColors.title, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: "Enter full name...",
+                      hintStyle: const TextStyle(color: AppColors.tertiary),
+                      filled: true,
+                      fillColor: AppColors.secondarySurface,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    ),
+                  ),
+                ],
+              ],
+              const SizedBox(height: 20),
+
+              // 3. SELECT ROLE
+              const Text("3. Select User Role", style: TextStyle(color: AppColors.title, fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<String>(
+                dropdownColor: AppColors.surface,
+                value: _selectedRole,
+                style: const TextStyle(color: AppColors.title, fontSize: 13),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: AppColors.secondarySurface,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'owner', child: Text("OWNER", style: TextStyle(color: AppColors.title))),
+                  DropdownMenuItem(value: 'staff', child: Text("STAFF", style: TextStyle(color: AppColors.title))),
+                  DropdownMenuItem(value: 'guest', child: Text("GUEST", style: TextStyle(color: AppColors.title))),
+                  DropdownMenuItem(value: 'admin', child: Text("ADMIN", style: TextStyle(color: AppColors.title))),
+                ],
+                onChanged: (val) => setState(() => _selectedRole = val),
+              ),
+              const SizedBox(height: 32),
+
+              // ACTIONS
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("CANCEL", style: TextStyle(color: AppColors.tertiary, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accentGreen,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    ),
+                    onPressed: _isSaving ? null : _saveRole,
+                    child: _isSaving
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text("ASSIGN ROLE", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

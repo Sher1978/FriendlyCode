@@ -346,7 +346,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get currentDiscount => 'ТЕКУЩАЯ СКИДКА';
 
   @override
-  String get offTotalBill => 'ОТ ОБЩЕГО СЧЕТА';
+  String get offTotalBill => 'СКИДКА ОТ ОБЩЕГО СЧЕТА';
 
   @override
   String get getMyGift => 'ПОЛУЧИТЬ ПОДАРОК';
@@ -617,86 +617,86 @@ class AppLocalizationsRu extends AppLocalizations {
       'для максимальной скидки ждем Вас также завтра!';
 
   @override
-  String get statusColUpper => 'STATUS';
+  String get statusColUpper => 'СТАТУС';
 
   @override
-  String get subscriptionCol => 'SUBSCRIPTION';
+  String get subscriptionCol => 'ПОДПИСКА';
 
   @override
-  String get actionsCol => 'ACTIONS';
+  String get actionsCol => 'ДЕЙСТВИЯ';
 
   @override
-  String get currentlyActive => 'Currently Active';
+  String get currentlyActive => 'Сейчас активно';
 
   @override
-  String get statusActive => 'ACTIVE';
+  String get statusActive => 'АКТИВНО';
 
   @override
-  String get statusFrozen => 'FROZEN';
+  String get statusFrozen => 'ЗАМОРОЖЕНО';
 
   @override
-  String get planPaid => 'PAID';
+  String get planPaid => 'ОПЛАЧЕНО';
 
   @override
-  String get planUnpaid => 'UNPAID';
+  String get planUnpaid => 'НЕ ОПЛАЧЕНО';
 
   @override
   String expiresAt(Object date) {
-    return 'Expires: $date';
+    return 'Истекает: $date';
   }
 
   @override
-  String get switchBtn => 'SWITCH';
+  String get switchBtn => 'ВЫБРАТЬ';
 
   @override
   String switchedTo(Object name) {
-    return 'Switched to $name';
+    return 'Переключено на $name';
   }
 
   @override
-  String get newVenue => 'New Venue';
+  String get newVenue => 'Новое заведение';
 
   @override
-  String get editVenue => 'Edit Venue';
+  String get editVenue => 'Редактировать заведение';
 
   @override
-  String get tabVenueSettings => 'Venue Settings';
+  String get tabVenueSettings => 'Настройки заведения';
 
   @override
-  String get tabStaffRbac => 'Staff & RBAC';
+  String get tabStaffRbac => 'Персонал и доступ';
 
   @override
-  String get tabDiscountStrategy => 'Discount Strategy';
+  String get tabDiscountStrategy => 'Стратегия скидок';
 
   @override
-  String get sectionBasicInfo => 'Basic Info';
+  String get sectionBasicInfo => 'Основная информация';
 
   @override
-  String get labelVenueName => 'Venue Name';
+  String get labelVenueName => 'Название заведения';
 
   @override
-  String get labelCategory => 'Category';
+  String get labelCategory => 'Категория';
 
   @override
-  String get labelAddress => 'Address';
+  String get labelAddress => 'Адрес';
 
   @override
-  String get sectionOwnership => 'Ownership';
+  String get sectionOwnership => 'Владелец';
 
   @override
-  String get labelOwnerEmail => 'Owner Email';
+  String get labelOwnerEmail => 'Email владельца';
 
   @override
-  String get labelOwnerId => 'Owner ID (Firebase UID)';
+  String get labelOwnerId => 'ID владельца (Firebase UID)';
 
   @override
-  String get sectionMedia => 'Media';
+  String get sectionMedia => 'Медиа';
 
   @override
-  String get labelLogoUrl => 'Logo URL';
+  String get labelLogoUrl => 'Ссылка на логотип';
 
   @override
-  String get labelExternalLink => 'External Link / Website';
+  String get labelExternalLink => 'Сайт / Внешняя ссылка';
 
   @override
   String get labelGoogleMapsUrl => 'Ссылка на Google Карты';
@@ -705,57 +705,57 @@ class AppLocalizationsRu extends AppLocalizations {
   String get hintGoogleMapsUrl => 'Ссылка для отзывов гостей';
 
   @override
-  String get sectionStaffAssignment => 'Staff Assignment';
+  String get sectionStaffAssignment => 'Назначение персонала';
 
   @override
-  String get labelAssignedAdmin => 'Assigned Admin';
+  String get labelAssignedAdmin => 'Назначенный администратор';
 
   @override
-  String get labelAssignedManager => 'Assigned Manager';
+  String get labelAssignedManager => 'Назначенный менеджер';
 
   @override
-  String get none => 'None';
+  String get none => 'Нет';
 
   @override
   String get rbacNotice =>
-      'Only SuperAdmins and Admins can assign staff roles from this menu.';
+      'Только суперклиенты и администраторы могут назначать роли персонала из этого меню.';
 
   @override
-  String get sectionLoyaltyRules => 'Loyalty Rules (Tiers)';
+  String get sectionLoyaltyRules => 'Правила лояльности (Уровни)';
 
   @override
   String get loyaltyRulesDesc =>
-      'Configure the max hours a guest can be gone and the percentage they earn.';
+      'Настройте максимальное время отсутствия гостя и процент скидки, который он получает.';
 
   @override
-  String get labelMaxHours => 'Max Hours';
+  String get labelMaxHours => 'Макс. часов';
 
   @override
-  String get labelPercentage => 'Percentage (%)';
+  String get labelPercentage => 'Процент скидки (%)';
 
   @override
-  String get sectionSubscriptionStatus => 'Subscription & Status';
+  String get sectionSubscriptionStatus => 'Статус подписки';
 
   @override
-  String get labelPlan => 'Plan:';
+  String get labelPlan => 'Тариф:';
 
   @override
-  String get labelPaymentStatus => 'Payment Status:';
+  String get labelPaymentStatus => 'Статус оплаты:';
 
   @override
-  String get labelExpiryDate => 'Expiry Date:';
+  String get labelExpiryDate => 'Дата истечения:';
 
   @override
   String get required => 'Обязательно';
 
   @override
-  String get errorLabel => 'Error:';
+  String get errorLabel => 'Ошибка:';
 
   @override
-  String get notSet => 'Not Set';
+  String get notSet => 'Не задано';
 
   @override
-  String get notAvailable => 'N/A';
+  String get notAvailable => 'Н/Д';
 
   @override
   String get navPricing => 'Цены';
@@ -925,4 +925,20 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get vipTier => 'VIP';
+
+  @override
+  String get accessControlPanel => 'Войдите в панель управления';
+
+  @override
+  String get terms => 'Условия';
+
+  @override
+  String get support => 'Поддержка';
+
+  @override
+  String get pageNotFound => 'Страница не найдена';
+
+  @override
+  String get pageNotFoundSub =>
+      'Адрес, который вы ввели, не существует или был перемещен.';
 }

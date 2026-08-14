@@ -46,7 +46,7 @@ class _WebPreviewCatalogState extends State<WebPreviewCatalog> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Friendly Code: Web Mockups'),
+        title: const Text('REVOO: Web Mockups'),
         backgroundColor: AppColors.brandBrown,
         foregroundColor: Colors.white,
         actions: [

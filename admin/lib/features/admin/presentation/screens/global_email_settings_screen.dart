@@ -81,7 +81,7 @@ class _GlobalEmailSettingsScreenState extends State<GlobalEmailSettingsScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.background,
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 48),
         child: Column(

@@ -12,20 +12,130 @@ import {
     faCircleCheck,
     faClock
 } from '@fortawesome/free-solid-svg-icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { auth, db } from './firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, setDoc, limit } from 'firebase/firestore';
 import { useUserStatuses } from './hooks/useUserStatuses';
 
 const GuestDashboard = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
+    const location = useLocation();
     const [userStats, setUserStats] = useState({
         totalVenues: 0,
         avgDiscount: 0,
         totalVisits: 0
     });
+    const [displayName, setDisplayName] = useState('');
+    const [userEmail, setUserEmail] = useState('');
+    const [telegramUsername, setTelegramUsername] = useState('');
+    const [isEditingTelegram, setIsEditingTelegram] = useState(false);
+    const [tempTelegram, setTempTelegram] = useState('');
+    const [currentVenue, setCurrentVenue] = useState(null);
+
+    const savedVenueId = localStorage.getItem('currentVenueId');
+
+    // 1. Fetch User Profile from Auth / LocalStorage / Firestore
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            const uid = auth.currentUser?.uid || localStorage.getItem('effectiveUid');
+            const email = auth.currentUser?.email || localStorage.getItem('guestEmail');
+            const cachedName = auth.currentUser?.displayName || localStorage.getItem('guestName') || '';
+
+            setDisplayName(cachedName || 'REVOO Guest');
+            setUserEmail(email || 'Guest Session');
+
+            let foundDoc = false;
+
+            if (uid) {
+                try {
+                    const userRef = doc(db, 'users', uid);
+                    const snap = await getDoc(userRef);
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        if (data.displayName || data.name) setDisplayName(data.displayName || data.name);
+                        if (data.email) setUserEmail(data.email);
+                        if (data.telegram) setTelegramUsername(data.telegram);
+                        foundDoc = true;
+                    }
+                } catch (err) {
+                    console.error("Error fetching user profile by UID:", err);
+                }
+            }
+
+            if (!foundDoc && email) {
+                try {
+                    const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase()), limit(1));
+                    const snap = await getDocs(q);
+                    if (!snap.empty) {
+                        const data = snap.docs[0].data();
+                        if (data.displayName || data.name) setDisplayName(data.displayName || data.name);
+                        if (data.email) setUserEmail(data.email);
+                        if (data.telegram) setTelegramUsername(data.telegram);
+                    }
+                } catch (err) {
+                    console.error("Error fetching user profile by email:", err);
+                }
+            }
+        };
+
+        fetchUserProfile();
+    }, []);
+
+    // 2. Fetch Scanned Venue info if active
+    useEffect(() => {
+        if (savedVenueId && savedVenueId !== 'demo') {
+            getDoc(doc(db, 'venues', savedVenueId)).then(snap => {
+                if (snap.exists()) {
+                    setCurrentVenue({ id: snap.id, ...snap.data() });
+                }
+            }).catch(err => console.warn("Error fetching venue info:", err));
+        }
+    }, [savedVenueId]);
+
+    // 3. Save Telegram handle to Firestore
+    const handleSaveTelegram = async () => {
+        const uid = auth.currentUser?.uid || localStorage.getItem('effectiveUid');
+        const email = auth.currentUser?.email || localStorage.getItem('guestEmail');
+
+        let cleaned = tempTelegram.trim();
+        if (cleaned && !cleaned.startsWith('@')) {
+            cleaned = '@' + cleaned;
+        }
+
+        try {
+            if (uid) {
+                const userRef = doc(db, 'users', uid);
+                await setDoc(userRef, { telegram: cleaned, updatedAt: new Date().toISOString() }, { merge: true });
+            } else if (email) {
+                const q = query(collection(db, 'users'), where('email', '==', email.toLowerCase()), limit(1));
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    await updateDoc(doc(db, 'users', snap.docs[0].id), { telegram: cleaned });
+                }
+            }
+            setTelegramUsername(cleaned);
+            setIsEditingTelegram(false);
+        } catch (err) {
+            console.error("Error updating telegram:", err);
+            alert("Error: " + err.message);
+        }
+    };
+
+    // 4. Smart Back Navigation (returns to scanned venue, never forces demo redirect)
+    const handleBack = () => {
+        if (location.state?.returnUrl) {
+            navigate(location.state.returnUrl);
+        } else if (window.history.length > 1 && document.referrer && document.referrer.includes(window.location.host)) {
+            navigate(-1);
+        } else if (savedVenueId) {
+            navigate(`/test?id=${savedVenueId}`);
+        } else {
+            navigate('/test');
+        }
+    };
+
     const { statuses, loading } = useUserStatuses(100); // Fetch more for stats computation
 
     useEffect(() => {
@@ -71,14 +181,19 @@ const GuestDashboard = () => {
             {/* Header */}
             <header className="sticky top-0 z-50 bg-black/50 backdrop-blur-xl border-b border-white/5 p-6 flex items-center justify-between">
                 <button 
-                    onClick={() => navigate('/')}
-                    className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 active:scale-95 transition-all"
+                    onClick={handleBack}
+                    className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 active:scale-95 transition-all hover:bg-white/10"
+                    title="Назад"
                 >
                     <FontAwesomeIcon icon={faArrowLeft} className="text-sm opacity-60" />
                 </button>
                 <div className="flex flex-col items-center">
-                    <h1 className="text-xs font-black uppercase tracking-[0.4em] text-[#00FF41]">Guest Panel</h1>
-                    <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Digital Ecosystem 2.0</p>
+                    <h1 className="text-xs font-black uppercase tracking-[0.4em] text-[#00FF41]">
+                        {currentVenue ? currentVenue.name : 'Guest Panel'}
+                    </h1>
+                    <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">
+                        {currentVenue ? 'Вернуться в заведение' : 'Digital Ecosystem 2.0'}
+                    </p>
                 </div>
                 <div className="w-10 h-10 rounded-full bg-[#00FF41]/10 flex items-center justify-center border border-[#00FF41]/20">
                     <FontAwesomeIcon icon={faBolt} className="text-[#00FF41] text-xs animate-pulse" />
@@ -96,20 +211,59 @@ const GuestDashboard = () => {
                     <div className="relative">
                         <div className="w-20 h-20 rounded-[28px] bg-gradient-to-br from-[#00FF41]/20 to-transparent border border-[#00FF41]/30 flex items-center justify-center shadow-[0_0_30px_rgba(0,255,65,0.1)]">
                             <span className="text-3xl font-black text-[#00FF41]">
-                                {auth.currentUser?.displayName?.[0] || 'G'}
+                                {displayName ? displayName[0].toUpperCase() : 'G'}
                             </span>
                         </div>
                         <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-lg bg-black border border-white/10 flex items-center justify-center">
                             <FontAwesomeIcon icon={faCircleCheck} className="text-[#00FF41] text-[10px]" />
                         </div>
                     </div>
-                    <div>
-                        <h2 className="text-2xl font-black tracking-tighter uppercase">
-                            {auth.currentUser?.displayName || 'REVOO Guest'}
+                    <div className="flex-1">
+                        <h2 className="text-2xl font-black tracking-tighter uppercase mb-0.5">
+                            {displayName || 'REVOO Guest'}
                         </h2>
-                        <p className="text-xs text-white/40 font-bold uppercase tracking-wider">
-                            {auth.currentUser?.email || 'Guest Session'}
+                        <p className="text-xs text-white/40 font-bold uppercase tracking-wider mb-2">
+                            {userEmail || 'Guest Session'}
                         </p>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Telegram:</span>
+                            {isEditingTelegram ? (
+                                <div className="flex items-center gap-1.5">
+                                    <input 
+                                        type="text" 
+                                        value={tempTelegram}
+                                        onChange={(e) => setTempTelegram(e.target.value)}
+                                        placeholder="@username"
+                                        className="bg-white/5 border border-white/10 rounded px-2 py-0.5 text-xs text-white outline-none w-32 focus:border-[#00FF41]/50"
+                                    />
+                                    <button 
+                                        onClick={handleSaveTelegram}
+                                        className="text-[10px] font-black text-[#00FF41] uppercase tracking-wider bg-[#00FF41]/10 px-2 py-0.5 rounded border border-[#00FF41]/20 active:scale-95 transition-all"
+                                    >
+                                        Save
+                                    </button>
+                                    <button 
+                                        onClick={() => setIsEditingTelegram(false)}
+                                        className="text-[10px] font-black text-white/40 uppercase tracking-wider bg-white/5 px-2 py-0.5 rounded border border-white/5 active:scale-95 transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-[#00FF41]">{telegramUsername || 'Not set'}</span>
+                                    <button 
+                                        onClick={() => {
+                                            setTempTelegram(telegramUsername);
+                                            setIsEditingTelegram(true);
+                                        }}
+                                        className="text-[9px] font-black text-white/40 uppercase tracking-widest border border-white/10 rounded px-1.5 py-0.5 hover:bg-white/5 active:scale-95 transition-all"
+                                    >
+                                        Edit
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </motion.section>
 

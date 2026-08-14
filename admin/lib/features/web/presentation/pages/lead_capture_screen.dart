@@ -35,10 +35,11 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
   bool get _isValid => _nameController.text.trim().isNotEmpty && _emailController.text.trim().isNotEmpty;
 
   Future<void> _submit() async {
-    if (!_isValid) return;
-
-    final name = _nameController.text.trim();
-    final email = _emailController.text.trim().toLowerCase();
+    final name = _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : 'Guest';
+    var email = _emailController.text.trim().toLowerCase();
+    if (email.isEmpty) {
+      email = 'guest_${DateTime.now().millisecondsSinceEpoch}@friendlycode.fun';
+    }
 
     // Save locally
     final prefs = await SharedPreferences.getInstance();
@@ -56,15 +57,14 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
           'email': email,
           'name': name,
-          'role': 'guest', // Explicitly mark as guest
-          'isAnonymous': true, // Helps distinguish from registered owners
+          'role': 'guest',
+          'isAnonymous': true,
           'lastSeen': FieldValue.serverTimestamp(),
-          'createdAt': FieldValue.serverTimestamp(), // This might overwrite if exists, but for anon it's fine
+          'createdAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
       }
     } catch (e) {
       debugPrint("Error saving guest data: $e");
-      // Continue anyway, local prefs are fallback
     }
 
     if (mounted) {
@@ -151,42 +151,34 @@ class _LeadCaptureScreenState extends State<LeadCaptureScreen> {
                 controller: _emailController,
                 icon: FontAwesomeIcons.envelope,
                 hint: AppLocalizations.of(context)!.emailHint,
-                keyboardType: TextInputType.emailAddress,
+                keyboardType: TextInputType.text,
               ),
 
               const Spacer(),
 
-              // Submit Button
+              // Submit Button - ALWAYS ENABLED FOR ANDROID & ALL DEVICES
               SizedBox(
                 width: double.infinity,
                 height: 64,
-                child: ListenableBuilder(
-                  listenable: Listenable.merge([_nameController, _emailController]),
-                  builder: (context, _) {
-                    final valid = _isValid;
-                    return ElevatedButton(
-                      onPressed: valid ? _submit : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.accentOrange,
-                        disabledBackgroundColor: AppColors.title.withOpacity(0.1),
-                        foregroundColor: Colors.white,
-                        disabledForegroundColor: AppColors.title.withOpacity(0.4),
-                        elevation: valid ? 8 : 0,
-                        shadowColor: AppColors.accentOrange.withOpacity(0.3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                      ),
-                      child: Text(
-                        AppLocalizations.of(context)!.getReward, 
-                        style: const TextStyle(
-                          fontSize: 20, 
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                    );
-                  },
+                child: ElevatedButton(
+                  onPressed: _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accentOrange,
+                    foregroundColor: Colors.white,
+                    elevation: 8,
+                    shadowColor: AppColors.accentOrange.withOpacity(0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                  ),
+                  child: Text(
+                    AppLocalizations.of(context)!.getReward, 
+                    style: const TextStyle(
+                      fontSize: 20, 
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
                 ),
               ),
             ],

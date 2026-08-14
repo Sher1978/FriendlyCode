@@ -16,9 +16,10 @@ import 'features/web/presentation/layout/admin_shell.dart';
 import 'firebase_options.dart';
 import 'features/web/presentation/pages/b2c_home_screen.dart';
 import 'features/web/presentation/pages/not_found_screen.dart';
+import 'features/owner/presentation/screens/deposit_action_screen.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'guest_app.dart';
-
+import 'features/web/presentation/pages/super_admin_login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,8 +47,42 @@ void main() async {
                          fragment.startsWith('/qr') || 
                          fragment.startsWith('qr');
 
+  // Check if user is opening Deposit Action Screen directly
+  final String fullUri = Uri.base.toString();
+  final bool isDepositRoute = fullUri.contains('deposit');
+
   if (isQrRoute) {
     runApp(const GuestApp());
+  } else if (isDepositRoute) {
+    Map<String, String> params = {};
+    try {
+      final uri = Uri.parse(fullUri);
+      params.addAll(uri.queryParameters);
+      if (uri.hasFragment && uri.fragment.contains('?')) {
+        final queryStr = uri.fragment.split('?').last;
+        final fragUri = Uri.parse('http://dummy.com/?$queryStr');
+        params.addAll(fragUri.queryParameters);
+      }
+    } catch (_) {}
+
+    final uid = params['uid'] ?? params['search'] ?? params['q'];
+    final action = params['action'];
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (context) => LocaleProvider()),
+          ChangeNotifierProvider(create: (context) => RoleProvider()),
+        ],
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          home: DepositActionScreen(
+            initialUserId: uid,
+            initialAction: action,
+          ),
+        ),
+      ),
+    );
   } else {
     // Otherwise, launch the full Partner App
     runApp(
@@ -105,18 +140,14 @@ class FriendlyCodeApp extends StatelessWidget {
             child: const OwnerDashboardScreen(),
           ),
         ),
-        '/admin': (context) => Consumer<RoleProvider>(
+        '/superadmin': (context) => Consumer<RoleProvider>(
           builder: (context, roleProvider, _) => AdminShell(
             role: UserRole.superAdmin,
             child: const SuperAdminDashboard(),
           ),
         ),
-        '/Superadmin': (context) => Consumer<RoleProvider>(
-          builder: (context, roleProvider, _) => AdminShell(
-            role: UserRole.superAdmin,
-            child: const SuperAdminDashboard(),
-          ),
-        ),
+        '/superadmin-login': (context) => const SuperAdminLoginScreen(),
+        '/deposit': (context) => const DepositActionScreen(),
         '/partner': (context) => const B2BLandingScreen(),
       },
       onUnknownRoute: (settings) => MaterialPageRoute(

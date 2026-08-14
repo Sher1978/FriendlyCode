@@ -108,7 +108,7 @@ class RoleProvider extends ChangeNotifier {
           if (user.email != null && user.email!.isNotEmpty) {
              final emailSnap = await FirebaseFirestore.instance
                 .collection('users')
-                .where('email', isEqualTo: user.email)
+                .where('email', isEqualTo: user.email!.trim().toLowerCase())
                 .limit(1)
                 .get();
 

@@ -104,9 +104,9 @@ class _VenueSearchScreenState extends State<VenueSearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.background,
         elevation: 0,
         leading: CupertinoButton(
           padding: EdgeInsets.zero,

@@ -33,12 +33,15 @@ class StatisticsService {
     final visitsThisMonth = allVisits.where((v) => v.timestamp.isAfter(startOfMonth));
     final monthlyActiveUsers = visitsThisMonth.map((v) => v.guestId).toSet().length;
 
-    // 5. Avg Discount (calculated from approved redemptions)
+    // 5. Avg Discount (calculated from all visits with recorded discount or defaulting to at least base discount)
     double totalDiscount = 0;
-    for (var v in redemptions) {
-      totalDiscount += v.discountValue;
+    int countWithDiscount = 0;
+    for (var v in allVisits) {
+      final val = v.discountValue > 0 ? v.discountValue : 5; // fallback to base tier 5% if unspecified
+      totalDiscount += val;
+      countWithDiscount++;
     }
-    final avgDiscount = redemptions.isNotEmpty ? (totalDiscount / redemptions.length) : 0.0;
+    final avgDiscount = countWithDiscount > 0 ? (totalDiscount / countWithDiscount) : 0.0;
 
     // 5. Avg Return Time (Logic from before or simplified)
     // Group by guest
@@ -67,31 +70,25 @@ class StatisticsService {
     final retentionRate = totalGuests > 0 ? (recurringGuests / totalGuests) * 100 : 0.0;
 
     // --- SEGMENTATION ---
-    int newGuests = 0;
-    int vipGuests = 0;
-    int lostGuests = 0;
+    int newGuests = 0;      // New: <= 2 visits
+    int regularGuests = 0;  // Regular (Постоянные): >= 3 visits
+    int lostGuests = 0;     // Lost (Потерянные): no visit in last 14 days
 
     guestVisits.forEach((guestId, history) {
-      // New: First visit was this month
-      // Or simply: history length == 1 and it was recent?
-      // User definition: "New Guests"
-      // Let's go with: Joined (First Visit) This Month
-      final firstVisit = history.first;
-      if (firstVisit.timestamp.isAfter(startOfMonth)) {
-        newGuests++;
-      }
+      final totalVisitsCount = history.length;
+      final lastVisit = history.last.timestamp;
+      final daysSinceLastVisit = now.difference(lastVisit).inDays;
 
-      // VIP: > 5 visits per month (on average or this month?)
-      // User said: "more than 5 visits per month"
-      // Let's check visits THIS month
-      final thisMonthCount = history.where((v) => v.timestamp.isAfter(startOfMonth)).length;
-      if (thisMonthCount > 5) {
-        vipGuests++;
-      }
-
-      // Lost: No visits this month AND has visited before
-      if (thisMonthCount == 0 && history.isNotEmpty) {
+      // 1. Lost check (>14 days without visit)
+      if (daysSinceLastVisit >= 14) {
         lostGuests++;
+      }
+
+      // 2. New vs Regular check
+      if (totalVisitsCount <= 2) {
+        newGuests++;
+      } else {
+        regularGuests++;
       }
     });
 
@@ -102,7 +99,7 @@ class StatisticsService {
       avgDiscount: avgDiscount,
       retentionRate: retentionRate,
       newGuestsCount: newGuests,
-      vipGuestsCount: vipGuests,
+      vipGuestsCount: regularGuests, // Regular / Constant guests mapped to VIP field
       lostGuestsCount: lostGuests,
     );
   }

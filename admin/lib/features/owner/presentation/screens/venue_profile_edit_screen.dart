@@ -1,32 +1,105 @@
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:provider/provider.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/core/widgets/image_upload_widget.dart';
+import 'package:friendly_code/core/models/venue_model.dart';
+import 'package:friendly_code/core/services/venue_service.dart';
+import 'package:friendly_code/core/auth/role_provider.dart';
 
 class VenueProfileEditScreen extends StatefulWidget {
-  const VenueProfileEditScreen({super.key});
+  final VenueModel? venue;
+  const VenueProfileEditScreen({super.key, this.venue});
 
   @override
   State<VenueProfileEditScreen> createState() => _VenueProfileEditScreenState();
 }
 
 class _VenueProfileEditScreenState extends State<VenueProfileEditScreen> {
-  final _nameCtrl = TextEditingController(text: "Safari Lounge");
-  final _descCtrl = TextEditingController(text: "Best cocktails in town.");
-  final _hoursCtrl = TextEditingController(text: "10:00 - 02:00");
-  final _instaCtrl = TextEditingController(text: "@safari_lounge");
+  late TextEditingController _nameCtrl;
+  late TextEditingController _descCtrl;
+  late TextEditingController _hoursCtrl;
+  late TextEditingController _instaCtrl;
   String _selectedLanguage = 'en';
   String? _bannerImageUrl;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.venue?.name ?? "Safari Lounge");
+    _descCtrl = TextEditingController(text: widget.venue?.description ?? "Best cocktails in town.");
+    _hoursCtrl = TextEditingController(text: "10:00 - 02:00");
+    _instaCtrl = TextEditingController(text: "@safari_lounge");
+    _selectedLanguage = widget.venue?.defaultLanguage ?? 'en';
+
+    if (widget.venue == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadVenue());
+    }
+  }
+
+  Future<void> _loadVenue() async {
+    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+    if (roleProvider.venueIds.isNotEmpty) {
+      final vId = roleProvider.venueIds.first;
+      final venue = await VenuesService().getVenueById(vId);
+      if (venue != null && mounted) {
+        setState(() {
+          _nameCtrl.text = venue.name;
+          _descCtrl.text = venue.description;
+          _selectedLanguage = venue.defaultLanguage;
+        });
+      }
+    }
+  }
+
+  Future<void> _saveChanges() async {
+    setState(() => _isSaving = true);
+    try {
+      final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+      final vId = widget.venue?.id ?? (roleProvider.venueIds.isNotEmpty ? roleProvider.venueIds.first : null);
+      if (vId != null && vId.isNotEmpty) {
+        await FirebaseFirestore.instance.collection('venues').doc(vId).set({
+          'name': _nameCtrl.text.trim(),
+          'description': _descCtrl.text.trim(),
+          'defaultLanguage': _selectedLanguage,
+        }, SetOptions(merge: true));
+      }
+      if (mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (dialogCtx) => CupertinoAlertDialog(
+            title: const Text("Success"),
+            content: Text(AppLocalizations.of(context)!.profileUpdated),
+            actions: [
+              CupertinoDialogAction(
+                child: const Text("OK"),
+                onPressed: () {
+                  Navigator.pop(dialogCtx);
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint("Error saving profile: $e");
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.background,
         elevation: 0,
         leading: CupertinoButton(
           padding: EdgeInsets.zero,
@@ -104,7 +177,7 @@ class _VenueProfileEditScreenState extends State<VenueProfileEditScreen> {
                       
                       // Language Selector
                       const Text(
-                        "PORTAL LANGUAGE",
+                        "PORTAL LANGUAGE / ЯЗЫК ПО УМОЛЧАНИЮ",
                         style: TextStyle(
                           color: AppColors.accentOrange,
                           fontWeight: FontWeight.w800,
@@ -131,6 +204,7 @@ class _VenueProfileEditScreenState extends State<VenueProfileEditScreen> {
                               DropdownMenuItem(value: 'en', child: Text("English")),
                               DropdownMenuItem(value: 'ru', child: Text("Русский")),
                               DropdownMenuItem(value: 'vi', child: Text("Tiếng Việt")),
+                              DropdownMenuItem(value: 'ar', child: Text("العربية")),
                             ],
                           ),
                         ),
@@ -141,26 +215,11 @@ class _VenueProfileEditScreenState extends State<VenueProfileEditScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: CupertinoButton.filled(
-                          onPressed: () {
-                            showCupertinoDialog(
-                              context: context,
-                              builder: (context) => CupertinoAlertDialog(
-                                title: const Text("Success"),
-                                content: Text(l10n.profileUpdated),
-                                actions: [
-                                  CupertinoDialogAction(
-                                    child: const Text("OK"),
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                      Navigator.pop(context);
-                                    },
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
+                          onPressed: _isSaving ? null : _saveChanges,
                           borderRadius: BorderRadius.circular(10),
-                          child: Text(l10n.saveChanges.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                          child: _isSaving
+                              ? const CupertinoActivityIndicator()
+                              : Text(l10n.saveChanges.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ],

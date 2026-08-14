@@ -18,13 +18,15 @@ import {
   faRobot,
   faTriangleExclamation,
   faLocationDot,
-  faStar
+  faStar,
+  faCoins
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
 import PngBattery from './PngBattery';
 import LanguageSelector from './LanguageSelector';
 import B2BContactModal from './B2BContactModal';
+import ProfitCalculator from './ProfitCalculator';
 
 
 const CRMSegmentationGraphic = () => {
@@ -133,8 +135,8 @@ const GoogleReviewsGraphic = () => {
                         <FontAwesomeIcon icon={faLocationDot} />
                     </div>
                     <div>
-                        <div className="text-[10px] font-black text-slate-800 leading-none">{t('b2b_reviews_google_maps')}</div>
-                        <div className="text-[8px] font-bold text-slate-400">{t('b2b_reviews_verified')}</div>
+                        <div className="text-[10px] font-black text-slate-800 leading-none">{t('b2b_reviews_google_maps', 'GOOGLE MAPS')}</div>
+                        <div className="text-[8px] font-bold text-slate-400">{t('b2b_reviews_verified', '100+ Проверенных отзывов')}</div>
                     </div>
                 </motion.div>
 
@@ -159,7 +161,7 @@ const GoogleReviewsGraphic = () => {
                     transition={{ delay: 0.7 }}
                     className="text-white font-black text-2xl tracking-tighter"
                 >
-                    5.0 <span className="text-white/30 text-sm font-bold uppercase tracking-widest ml-1">{t('b2b_reviews_rating_label')}</span>
+                    5.0 <span className="text-white/30 text-sm font-bold uppercase tracking-widest ml-1">{t('b2b_reviews_rating_label', 'РЕЙТИНГ')}</span>
                 </motion.div>
             </div>
 
@@ -206,7 +208,7 @@ const RevooB2B = () => {
     useEffect(() => {
         const timer = setInterval(() => {
             setActiveCardIdx((prev) => (prev + 1) % 3);
-        }, 5000); // Auto-scroll every 5 seconds
+        }, 3500); // Auto-scroll every 3.5 seconds
         return () => clearInterval(timer);
     }, []);
 
@@ -253,12 +255,14 @@ const RevooB2B = () => {
                     </div>
                     <div className="flex items-center gap-3 md:gap-6">
                         <LanguageSelector />
-                        <button 
-                            onClick={() => setIsContactModalOpen(true)}
-                            className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-6 py-2 rounded-full text-xs md:text-sm font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)] whitespace-nowrap"
+                        <a 
+                            href="https://t.me/revoogiftx_bot"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-6 py-2 rounded-full text-xs md:text-sm font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_20px_rgba(212,175,55,0.3)] whitespace-nowrap inline-flex items-center justify-center cursor-pointer"
                         >
-                            {t('b2b_form_whatsapp_btn')}
-                        </button>
+                            {t('b2b_form_whatsapp_btn', 'ПОДАТЬ ЗАЯВКУ')}
+                        </a>
                     </div>
                 </div>
             </nav>
@@ -277,7 +281,7 @@ const RevooB2B = () => {
                         <p className="text-base md:text-lg text-white/70 font-medium mb-10 max-w-xl leading-relaxed">
                             {t('b2b_hero_sub_new')}
                         </p>
-                        <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
                             <motion.button
                                 whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(212, 175, 55, 0.4)" }}
                                 whileTap={{ scale: 0.95 }}
@@ -361,6 +365,11 @@ const RevooB2B = () => {
                 </div>
             </section>
 
+            {/* PROFIT GROWTH CALCULATOR SIMULATOR SECTION */}
+            <section className="relative z-10 border-b border-white/5 py-12 bg-black/60">
+                <ProfitCalculator onOpenContactModal={() => setIsContactModalOpen(true)} />
+            </section>
+
             {/* SECTION 2: THE ECONOMIC DIAGNOSIS (Экономика «Дырявого ведра») */}
             <section className="py-24 px-6 relative z-10 border-b border-white/5">
                 <div className="max-w-7xl mx-auto text-center mb-16">
@@ -410,14 +419,14 @@ const RevooB2B = () => {
                     <div className="flex flex-col gap-8">
                         <div className="p-8 rounded-[40px] bg-white/5 border border-[#00FF41]/20 backdrop-blur-xl relative group hover:bg-[#00FF41]/5 transition-all">
                             <div className="absolute top-6 right-8 text-[#00FF41] font-black text-2xl animate-pulse">90%</div>
-                            <h4 className="text-[#00FF41] text-2xl font-black mb-1 leading-none uppercase">{t('b2b_diag_retained_title')}</h4>
+                            <h4 className="text-[#00FF41] text-2xl font-black mb-1 leading-none uppercase">{t('b2b_diag_retained_title', 'УДЕРЖАНО С REVOO')}</h4>
                             <p className="text-white/40 text-[11px] uppercase font-bold tracking-[0.2em] mb-4 italic">{t('b2b_diag_retained_sub')}</p>
                             <p className="text-white/70 text-base leading-relaxed font-medium">{t('b2b_diag_retained_text')}</p>
                         </div>
 
                         <div className="p-8 rounded-[40px] bg-white/5 border border-red-500/20 backdrop-blur-xl relative group hover:bg-red-500/5 transition-all">
                             <div className="absolute top-6 right-8 text-[#FF3B30] font-black text-2xl">83%</div>
-                            <h4 className="text-[#FF3B30] text-2xl font-black mb-1 leading-none uppercase">{t('b2b_diag_lost_title')}</h4>
+                            <h4 className="text-[#FF3B30] text-2xl font-black mb-1 leading-none uppercase">{t('b2b_diag_lost_title', 'ПОТЕРЯНО БЕЗ REVOO')}</h4>
                             <p className="text-white/40 text-[11px] uppercase font-bold tracking-[0.2em] mb-4 italic">{t('b2b_diag_lost_sub')}</p>
                             <p className="text-white/70 text-base leading-relaxed font-medium">{t('b2b_diag_lost_text')}</p>
                         </div>
@@ -535,28 +544,13 @@ const RevooB2B = () => {
                                 {t('b2b_science_pillar_1_text')}
                             </p>
                             
-                            {/* Schematic Balance visual */}
-                            <div className="mt-auto h-48 bg-black/40 rounded-[32px] border border-white/5 flex items-center justify-center relative overflow-hidden p-6 group-hover:border-[#D4AF37]/30 transition-colors">
-                                <svg viewBox="0 0 200 100" className="w-full h-full opacity-60">
-                                    <line x1="20" y1="80" x2="180" y2="80" stroke="white" strokeWidth="1" strokeDasharray="4 4" />
-                                    <motion.path 
-                                        d="M100,80 L60,30" 
-                                        stroke="#FF3B30" strokeWidth="3" 
-                                        initial={{ pathLength: 0 }}
-                                        whileInView={{ pathLength: 1 }}
-                                        transition={{ duration: 1.5 }}
-                                    />
-                                    <motion.path 
-                                        d="M100,80 L140,55" 
-                                        stroke="#D4AF37" strokeWidth="3" 
-                                        initial={{ pathLength: 0 }}
-                                        whileInView={{ pathLength: 1 }}
-                                        transition={{ duration: 1.5, delay: 0.5 }}
-                                    />
-                                    <circle cx="100" cy="80" r="4" fill="white" />
-                                    <text x="50" y="20" fill="#FF3B30" fontSize="10" fontWeight="black" className="uppercase tracking-widest">{t('b2b_diag_lost_title')} (x2)</text>
-                                    <text x="135" y="45" fill="#D4AF37" fontSize="10" fontWeight="black" className="uppercase tracking-widest">{t('b2b_diag_retained_title')} (x1)</text>
-                                </svg>
+                            {/* Photorealistic Human Image for Loss Aversion */}
+                            <div className="mt-auto rounded-[32px] overflow-hidden border border-white/10 relative h-56 group-hover:border-[#D4AF37]/40 transition-all shadow-2xl">
+                                <img src="/science-loss-aversion.png" alt="Kahneman Loss Aversion" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                                <span className="absolute bottom-3 left-4 text-[10px] font-mono font-black uppercase text-[#D4AF37] tracking-widest bg-black/70 backdrop-blur-md px-3 py-1 rounded-full border border-[#D4AF37]/30">
+                                    Loss Aversion (x2 Emotional Impact)
+                                </span>
                             </div>
                         </div>
                     </motion.div>
@@ -588,25 +582,13 @@ const RevooB2B = () => {
                                 ))}
                             </div>
                             
-                            {/* Schematic Circle visual */}
-                            <div className="mt-auto h-48 bg-black/40 rounded-[32px] border border-white/5 flex items-center justify-center relative p-4 group-hover:border-[#D4AF37]/30 transition-colors overflow-hidden">
-                                <svg viewBox="0 0 100 100" className="h-full">
-                                    <circle cx="50" cy="50" r="35" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
-                                    <motion.circle 
-                                        cx="50" cy="50" r="35" 
-                                        fill="none" stroke="#D4AF37" strokeWidth="2" 
-                                        strokeDasharray="54.95 219.8"
-                                        animate={{ rotate: 360 }}
-                                        transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                                    />
-                                    <g className="text-[4px] font-black uppercase fill-white/20">
-                                        <text x="50" y="22" textAnchor="middle">{t('b2b_science_pillar_2_trigger')}</text>
-                                        <text x="78" y="50" textAnchor="middle" transform="rotate(90 78,50)">{t('b2b_science_pillar_2_action')}</text>
-                                        <text x="50" y="78" textAnchor="middle">{t('b2b_science_pillar_2_reward')}</text>
-                                        <text x="22" y="50" textAnchor="middle" transform="rotate(-90 22,50)">{t('b2b_science_pillar_2_invest')}</text>
-                                    </g>
-                                    <circle cx="50" cy="15" r="2" fill="#D4AF37" className="animate-pulse" />
-                                </svg>
+                            {/* Photorealistic Human Image for Hook Model */}
+                            <div className="mt-auto rounded-[32px] overflow-hidden border border-white/10 relative h-56 group-hover:border-[#D4AF37]/40 transition-all shadow-2xl">
+                                <img src="/science-hook-model.png" alt="The Hook Model Habit Loop" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                                <span className="absolute bottom-3 left-4 text-[10px] font-mono font-black uppercase text-[#D4AF37] tracking-widest bg-black/70 backdrop-blur-md px-3 py-1 rounded-full border border-[#D4AF37]/30">
+                                    The Habit Loop (Nir Eyal)
+                                </span>
                             </div>
                         </div>
                     </motion.div>
@@ -624,20 +606,13 @@ const RevooB2B = () => {
                                 {t('b2b_science_pillar_3_text')}
                             </p>
                             
-                            {/* Schematic Spike visual */}
-                            <div className="mt-auto h-48 bg-black/40 rounded-[32px] border border-white/5 flex items-center justify-center p-8 group-hover:border-[#D4AF37]/30 transition-colors">
-                                <svg viewBox="0 0 200 60" className="w-full h-full overflow-visible">
-                                    <motion.path 
-                                        d="M0,45 L40,45 L50,10 L65,50 L85,45 L115,45 L125,5 L145,55 L170,45 L200,45" 
-                                        fill="none" stroke="#D4AF37" strokeWidth="2"
-                                        initial={{ pathLength: 0 }}
-                                        whileInView={{ pathLength: 1 }}
-                                        transition={{ duration: 2 }}
-                                    />
-                                    <circle cx="50" cy="10" r="3" fill="#00FF41" className="animate-ping" />
-                                    <circle cx="125" cy="5" r="3" fill="#00FF41" className="animate-ping" />
-                                    <text x="135" y="10" fill="#00FF41" fontSize="8" fontWeight="black" className="uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">{t('b2b_science_pillar_3').split('. ')[1]}</text>
-                                </svg>
+                            {/* Photorealistic Human Image for Dopamine Reward */}
+                            <div className="mt-auto rounded-[32px] overflow-hidden border border-white/10 relative h-56 group-hover:border-[#00FF41]/40 transition-all shadow-2xl">
+                                <img src="/vip_pov_celebration_final.jpg" alt="Dopamine Variable Reward" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                                <span className="absolute bottom-3 left-4 text-[10px] font-mono font-black uppercase text-[#00FF41] tracking-widest bg-black/70 backdrop-blur-md px-3 py-1 rounded-full border border-[#00FF41]/30">
+                                    Variable Dopamine Reward
+                                </span>
                             </div>
                         </div>
                     </motion.div>
@@ -656,89 +631,13 @@ const RevooB2B = () => {
                                 {t('b2b_science_pillar_4_text')}
                             </p>
                             
-                            {/* Specific Mario Bounce SVG (Yellow Line, Green Ball, P-Block) */}
-                            <div className="mt-auto h-56 bg-black/40 rounded-[32px] border border-white/5 flex items-center justify-center p-4 group-hover:border-yellow-500/30 transition-colors overflow-hidden relative">
-                                <svg viewBox="0 0 200 100" className="w-full h-full">
-                                    {/* Grid Lines */}
-                                    <defs>
-                                        <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                                            <path d="M 10 0 L 0 0 0 10" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5"/>
-                                        </pattern>
-                                    </defs>
-                                    <rect width="200" height="100" fill="url(#grid)" />
-
-                                    {/* Yellow Floor Line */}
-                                    <line x1="0" y1="85" x2="200" y2="85" stroke="#FACC15" strokeWidth="2" strokeDasharray="1 4" className="opacity-20" />
-                                    <line x1="0" y1="85" x2="200" y2="85" stroke="#FACC15" strokeWidth="0.5" />
-
-                                    {/* P-Shaped Block (Barrier) */}
-                                        <motion.g 
-                                            initial={{ x: 140, y: 35 }}
-                                            animate={{ 
-                                                y: animationCycle === 2 ? 140 : 35,
-                                                opacity: animationCycle === 2 ? 0 : 1
-                                            }}
-                                            transition={{ 
-                                                duration: 0.4, 
-                                                type: "spring",
-                                                stiffness: 200,
-                                                damping: 20
-                                            }}
-                                        >
-                                        <rect width="16" height="50" fill="#1C1C1E" stroke="#FF3B30" strokeWidth="1.5" rx="2" />
-                                        <text x="8" y="28" fill="#FF3B30" fontSize="10" fontWeight="black" textAnchor="middle" className="font-mono">P</text>
-                                        <motion.div 
-                                            animate={{ opacity: [0.3, 0.6, 0.3] }}
-                                            transition={{ duration: 1, repeat: Infinity }}
-                                            className="w-full h-full bg-[#FF3B30]/20 blur-sm rounded"
-                                        />
-                                    </motion.g>
-
-                                    {/* Motion Path (Purely Visual) */}
-                                    <path d="M 20 80 Q 80 10, 140 80" fill="none" stroke="white" strokeWidth="0.5" strokeDasharray="2 2" opacity="0.1" />
-
-                                    {/* Green Bouncing Ball */}
-                                    <motion.circle 
-                                        key={animationCycle}
-                                        r="6" 
-                                        fill="#4ADE80" 
-                                        stroke="#14532D" 
-                                        strokeWidth="1.5"
-                                        animate={animationCycle === 1 ? { 
-                                            cx: [20, 75, 134, 134],
-                                            cy: [80, 5, 80, 80],
-                                        } : {
-                                            cx: [20, 100, 180],
-                                            cy: [80, 5, 80],
-                                        }}
-                                        transition={{ 
-                                            duration: 1.5,
-                                            repeat: Infinity,
-                                            repeatDelay: 0.1,
-                                            times: animationCycle === 1 ? [0, 0.4, 0.8, 1] : [0, 0.5, 1],
-                                            ease: "easeInOut"
-                                        }}
-                                    />
-
-                                    {/* Impact Effect (Only in Cycle 1) */}
-                                    {animationCycle === 1 && (
-                                        <motion.circle 
-                                            cx="140" cy="80" r="10"
-                                            animate={{ scale: [0, 1.5], opacity: [0.8, 0] }}
-                                            transition={{ duration: 0.4, repeat: Infinity, repeatDelay: 1.4 }}
-                                            fill="#FF3B30"
-                                            className="blur-sm"
-                                        />
-                                    )}
-
-                                    {/* Status Labels */}
-                                    <text x="20" y="20" fill="white" fillOpacity="0.3" fontSize="6" fontWeight="black" className="uppercase tracking-[0.2em] font-mono">
-                                        {animationCycle === 1 ? t('b2b_friction_barrier') : t('b2b_friction_sync')}
-                                    </text>
-                                    <text x="180" y="95" fill={animationCycle === 1 ? "#FF3B30" : "#00FF41"} fontSize="8" fontWeight="black" textAnchor="end" className="uppercase tracking-widest font-mono">
-                                        {animationCycle === 1 ? t('b2b_friction_blocked') : t('b2b_friction_flow')}
-                                    </text>
-                                </svg>
+                            {/* Photorealistic Human Image for Zero Friction BJ Fogg */}
+                            <div className="mt-auto rounded-[32px] overflow-hidden border border-white/10 relative h-56 group-hover:border-[#00FF41]/40 transition-all shadow-2xl">
+                                <img src="/paying_with_iphone_v3.png" alt="Zero Friction Mobile Tap" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                                <span className="absolute bottom-3 left-4 text-[10px] font-mono font-black uppercase text-[#00FF41] tracking-widest bg-black/70 backdrop-blur-md px-3 py-1 rounded-full border border-[#00FF41]/30">
+                                    Zero Friction (0.5 sec NFC/QR)
+                                </span>
                             </div>
                         </div>
                     </motion.div>
@@ -910,23 +809,10 @@ const RevooB2B = () => {
                                     id: 'stamps',
                                     title: t('b2b_matrix_val_stamps'),
                                     subtitle: "Low Retention",
-                                    icon: (
-                                        <div className="relative w-full h-36 bg-black/40 rounded-3xl border border-white/5 flex items-center justify-center overflow-hidden mb-6 group-hover:border-white/20 transition-all">
-                                            {/* Blueprint Grid */}
-                                            <div className="absolute inset-0 opacity-[0.05] bg-[linear-gradient(rgba(255,255,255,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.2)_1px,transparent_1px)] bg-[size:10px_10px]" />
-                                            
-                                            <div className="relative flex items-center justify-center">
-                                                <svg width="120" height="80" viewBox="0 0 120 80">
-                                                    <rect x="20" y="10" width="80" height="60" rx="4" fill="none" stroke="white" strokeWidth="1" strokeOpacity="0.3" />
-                                                    <circle cx="40" cy="30" r="10" stroke="white" strokeWidth="1" fill="none" strokeOpacity="0.2" />
-                                                    <circle cx="80" cy="30" r="10" stroke="white" strokeWidth="1" fill="none" strokeOpacity="0.2" />
-                                                    <circle cx="40" cy="55" r="10" stroke="#FF3B30" strokeWidth="1.5" fill="none" />
-                                                    <path d="M 35 55 L 45 55 M 40 50 L 40 60" stroke="#FF3B30" strokeWidth="1.5" opacity="0.5" />
-                                                    {/* Churn Arrow */}
-                                                    <path d="M 90 20 Q 110 40, 90 60" stroke="#FF3B30" strokeWidth="2" fill="none" markerEnd="url(#arrow)" />
-                                                </svg>
-                                                <div className="absolute top-1 text-[8px] text-[#FF3B30] font-black uppercase tracking-widest opacity-60">High Churn</div>
-                                            </div>
+                                    cardBorderClass: "border-2 border-red-500/80 shadow-[0_0_30px_rgba(239,68,68,0.25)] bg-red-950/20",
+                                    headerTag: (
+                                        <div className="px-3.5 py-1.5 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] font-black uppercase tracking-widest mb-4 inline-block">
+                                            БУМАЖНЫЕ КАРТЫ (ВЫСОКИЙ ОТТОК)
                                         </div>
                                     ),
                                     isPremium: false,
@@ -941,22 +827,10 @@ const RevooB2B = () => {
                                     id: 'apps',
                                     title: t('b2b_matrix_val_apps'),
                                     subtitle: "High Friction",
-                                    icon: (
-                                        <div className="relative w-full h-36 bg-black/40 rounded-3xl border border-white/5 flex items-center justify-center overflow-hidden mb-6 group-hover:border-white/20 transition-all">
-                                            <div className="absolute inset-0 opacity-[0.05] bg-[linear-gradient(rgba(255,255,255,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.2)_1px,transparent_1px)] bg-[size:10px_10px]" />
-                                            
-                                            <div className="relative flex items-center justify-center">
-                                                <svg width="120" height="80" viewBox="0 0 120 80">
-                                                    <rect x="45" y="10" width="30" height="60" rx="4" fill="none" stroke="white" strokeWidth="1" strokeOpacity="0.3" />
-                                                    <rect x="50" y="20" width="20" height="4" rx="1" fill="white" fillOpacity="0.1" />
-                                                    <rect x="50" y="30" width="20" height="20" rx="1" fill="#FF3B30" fillOpacity="0.2" stroke="#FF3B30" strokeWidth="1" />
-                                                    <text x="60" y="43" textAnchor="middle" fill="#FF3B30" fontSize="8" fontWeight="black" className="font-mono">80%</text>
-                                                    <text x="60" y="52" textAnchor="middle" fill="#FF3B30" fontSize="4" fontWeight="black" className="uppercase tracking-widest">Reject</text>
-                                                    {/* Friction barrier */}
-                                                    <path d="M 30 10 L 30 70" stroke="#FF3B30" strokeWidth="2" strokeDasharray="4 4" />
-                                                </svg>
-                                                <div className="absolute left-10 text-[8px] text-[#FF3B30] font-black uppercase tracking-widest opacity-60 rotate-[-90deg]">Friction Barrier</div>
-                                            </div>
+                                    cardBorderClass: "border-2 border-red-500/80 shadow-[0_0_30px_rgba(239,68,68,0.25)] bg-red-950/20",
+                                    headerTag: (
+                                        <div className="px-3.5 py-1.5 rounded-full bg-red-500/20 border border-red-500/40 text-red-400 text-[10px] font-black uppercase tracking-widest mb-4 inline-block">
+                                            ПРИЛОЖЕНИЯ (ТРЕНИЕ 80%)
                                         </div>
                                     ),
                                     isPremium: false,
@@ -971,31 +845,10 @@ const RevooB2B = () => {
                                     id: 'revoo',
                                     title: "REVOO",
                                     subtitle: "Maximum Energy",
-                                    icon: (
-                                        <div className="relative w-full h-36 bg-[#00FF41]/5 rounded-3xl border border-[#00FF41]/30 flex items-center justify-center overflow-hidden mb-6 group-hover:bg-[#00FF41]/10 transition-all shadow-[inset_0_0_20px_rgba(0,255,65,0.1)]">
-                                            {/* Energy Pulse Visual */}
-                                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(0,255,65,0.15)_0%,transparent_70%)] animate-pulse" />
-                                            
-                                            <div className="relative flex flex-col items-center justify-center">
-                                                <svg width="140" height="80" viewBox="0 0 140 80">
-                                                    <rect x="20" y="25" width="100" height="30" rx="8" fill="none" stroke="#00FF41" strokeWidth="2" />
-                                                    <motion.rect 
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: "90%" }}
-                                                        transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
-                                                        x="25" y="30" width="90" height="20" rx="4" fill="#00FF41" fillOpacity="0.8" 
-                                                    />
-                                                    <rect x="120" y="35" width="4" height="10" rx="1" fill="#00FF41" fillOpacity="0.5" />
-                                                    {/* Flow arrows */}
-                                                    <motion.path 
-                                                        d="M 10 40 L 130 40" 
-                                                        stroke="#00FF41" strokeWidth="1" strokeDasharray="4 4"
-                                                        animate={{ strokeDashoffset: -20 }}
-                                                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                                    />
-                                                </svg>
-                                                <div className="text-[10px] text-[#00FF41] font-black uppercase tracking-[0.3em] mt-2 animate-pulse">Zero Friction Flow</div>
-                                            </div>
+                                    cardBorderClass: "border-2 border-[#00FF41] shadow-[0_0_40px_rgba(0,255,65,0.35)] bg-[#00FF41]/10 ring-2 ring-[#00FF41]/30",
+                                    headerTag: (
+                                        <div className="px-3.5 py-1.5 rounded-full bg-[#00FF41]/20 border border-[#00FF41]/50 text-[#00FF41] text-[10px] font-black uppercase tracking-widest mb-4 inline-block animate-pulse">
+                                            REVOO (0.5 СЕК | МАКС УДЕРЖАНИЕ)
                                         </div>
                                     ),
                                     isPremium: true,
@@ -1009,31 +862,29 @@ const RevooB2B = () => {
                             ].map((card, idx) => (
                                 <div 
                                     key={idx} 
-                                    className={`relative overflow-hidden transition-all hover:translate-y-[-8px] p-8 flex flex-col rounded-[48px] border border-white/10 group
-                                        ${card.isPremium ? 'bg-white/10 border-[#00FF41]/30 shadow-[0_20px_40px_rgba(0,0,0,0.4)] ring-1 ring-[#00FF41]/20' : 'bg-white/5 backdrop-blur-xl'}
-                                    `}
+                                    className={`relative overflow-hidden transition-all hover:translate-y-[-8px] p-8 flex flex-col rounded-[44px] group ${card.cardBorderClass}`}
                                 >
-                                    <div className="mb-4">
-                                        {card.icon}
+                                    <div className="mb-2">
+                                        {card.headerTag}
                                     </div>
 
                                     <div className="flex items-center gap-4 mb-6 relative z-10">
                                         <div>
                                             <h4 className={`text-2xl font-black uppercase tracking-tight ${card.isPremium ? 'text-[#00FF41]' : 'text-white'}`}>{card.title}</h4>
-                                            <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">{card.subtitle}</p>
+                                            <p className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">{card.subtitle}</p>
                                         </div>
                                     </div>
 
                                     <div className="space-y-4 relative z-10">
                                         {card.features.map((feat, fIdx) => (
-                                            <div key={fIdx} className="p-4 rounded-2xl bg-black/20 border border-white/5 flex flex-col gap-1">
+                                            <div key={fIdx} className="p-4 rounded-2xl bg-black/40 border border-white/5 flex flex-col gap-1">
                                                 <div className="flex justify-between items-center">
                                                     <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{feat.label}</span>
                                                     <span>
                                                         {feat.status === 'positive' ? '✅' : feat.status === 'negative' ? '❌' : '⛔'}
                                                     </span>
                                                 </div>
-                                                <p className={`text-xs md:text-sm font-bold leading-tight ${card.isPremium ? 'text-white' : 'text-white/60'}`}>
+                                                <p className={`text-xs md:text-sm font-bold leading-tight ${card.isPremium ? 'text-white' : 'text-white/70'}`}>
                                                     {feat.value}
                                                 </p>
                                             </div>
@@ -1042,7 +893,7 @@ const RevooB2B = () => {
 
                                     {card.isPremium && (
                                         <div className="mt-auto pt-4 relative z-10">
-                                            <div className="bg-[#00FF41]/10 rounded-2xl p-4 border border-[#00FF41]/20 text-center">
+                                            <div className="bg-[#00FF41]/20 rounded-2xl p-3.5 border border-[#00FF41]/40 text-center">
                                                 <span className="text-[10px] font-black text-[#00FF41] uppercase tracking-[0.2em]">Competitive Advantage: 10x</span>
                                             </div>
                                         </div>
@@ -1052,14 +903,14 @@ const RevooB2B = () => {
                         </div>
 
 
-                        {/* Mobile Stack: Swipable Deck */}
-                        <div className="md:hidden relative mt-24 h-[600px] w-full flex items-center justify-center perspective-[1000px]">
+                        {/* Mobile Stack: Auto-Scrolling Deck */}
+                        <div className="md:hidden relative mt-16 h-[580px] w-full flex items-center justify-center perspective-[1000px]">
                             {[
                                 {
                                     id: 'revoo',
                                     title: "REVOO",
                                     subtitle: "Maximum Energy",
-                                    icon: "⚡",
+                                    cardBorderClass: "border-2 border-[#00FF41] shadow-[0_0_35px_rgba(0,255,65,0.35)] bg-[#0B1A11]",
                                     isPremium: true,
                                     features: [
                                         { label: t('b2b_matrix_friction'), value: t('b2b_matrix_val_revoo_friction'), status: 'positive' },
@@ -1072,7 +923,7 @@ const RevooB2B = () => {
                                     id: 'stamps',
                                     title: "PAPER CARDS",
                                     subtitle: "Low Retention",
-                                    icon: "🏷️",
+                                    cardBorderClass: "border-2 border-red-500/80 shadow-[0_0_25px_rgba(239,68,68,0.25)] bg-[#1A0B0B]",
                                     isPremium: false,
                                     features: [
                                         { label: t('b2b_matrix_friction'), value: t('b2b_matrix_val_friction_paper'), status: 'neutral' },
@@ -1085,7 +936,7 @@ const RevooB2B = () => {
                                     id: 'apps',
                                     title: "APP SOLUTIONS",
                                     subtitle: "High Friction",
-                                    icon: "📱",
+                                    cardBorderClass: "border-2 border-red-500/80 shadow-[0_0_25px_rgba(239,68,68,0.25)] bg-[#1A0B0B]",
                                     isPremium: false,
                                     features: [
                                         { label: t('b2b_matrix_friction'), value: t('b2b_matrix_val_friction_apps'), status: 'negative' },
@@ -1101,10 +952,8 @@ const RevooB2B = () => {
                                     dragConstraints={{ left: 0, right: 0 }}
                                     onDragEnd={(_, info) => {
                                         if (info.offset.x < -100) {
-                                            // Swipe Left: Move to bottom of stack
                                             setActiveCardIdx((prev) => (prev + 1) % 3);
                                         } else if (info.offset.x > 100) {
-                                            // Swipe Right: Move previous card back to top
                                             setActiveCardIdx((prev) => (prev - 1 + 3) % 3);
                                         }
                                     }}
@@ -1115,50 +964,36 @@ const RevooB2B = () => {
                                         zIndex: 3 - ((idx - activeCardIdx + 3) % 3),
                                         opacity: 1
                                     }}
-                                    className={`absolute w-[85vw] p-8 flex flex-col gap-8 shadow-2xl touch-none overflow-hidden rounded-3xl border border-white/10
-                                        ${card.isPremium ? 'bg-black border-[#00FF41]/30 text-[#00FF41]' : 'bg-white/5 backdrop-blur-xl text-white'}
-                                    `}
+                                    transition={{ duration: 0.5, ease: "easeOut" }}
+                                    className={`absolute w-[88vw] max-w-sm p-6 flex flex-col gap-5 shadow-2xl touch-none overflow-hidden rounded-3xl ${card.cardBorderClass}`}
                                 >
-                                    {/* Schematic Battery for REVOO Card */}
-                                    {card.id === 'revoo' && (
-
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2 w-3 h-32 bg-black border border-[#00FF41]/20 rounded-md overflow-hidden flex flex-col-reverse p-0.5 opacity-30">
-                                                <motion.div 
-                                                    animate={{ height: ['20%', '100%', '20%'] }} 
-                                                    transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-                                                    className="w-full bg-[#00FF41] shadow-[0_0_10px_rgba(0,255,65,0.5)] rounded-sm"
-                                                />
-                                            </div>
-                                    )}
-
-                                    <div className="flex items-center gap-4 relative z-10">
-                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${card.isPremium ? 'bg-[#00FF41]/20' : 'bg-white/10'}`}>
-                                            {card.icon}
-                                        </div>
+                                    <div className="flex items-center gap-3 relative z-10">
+                                        <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${card.isPremium ? 'bg-[#00FF41]/20 text-[#00FF41] border border-[#00FF41]/40' : 'bg-red-500/20 text-red-400 border border-red-500/40'}`}>
+                                            {card.isPremium ? 'RECOMMENDED' : 'HIGH CHURN'}
+                                        </span>
                                         <div>
-                                            <h4 className={`font-black uppercase tracking-tight ${card.isPremium ? '' : 'text-white'}`}>{card.title}</h4>
-                                            <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">{card.subtitle}</p>
+                                            <h4 className={`font-black uppercase tracking-tight text-lg ${card.isPremium ? 'text-[#00FF41]' : 'text-white'}`}>{card.title}</h4>
                                         </div>
                                     </div>
 
-                                    <div className="space-y-4 relative z-10">
+                                    <div className="space-y-3 relative z-10">
                                         {card.features.map((feat, fIdx) => (
-                                            <div key={fIdx} className="p-4 rounded-2xl bg-black/20 border border-white/5 flex flex-col gap-1">
+                                            <div key={fIdx} className="p-3 rounded-xl bg-black/40 border border-white/5 flex flex-col gap-0.5">
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{feat.label}</span>
+                                                    <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{feat.label}</span>
                                                     <span>
                                                         {feat.status === 'positive' ? '✅' : feat.status === 'negative' ? '❌' : '⛔'}
                                                     </span>
                                                 </div>
-                                                <p className={`text-xs font-bold leading-tight ${card.isPremium ? 'text-white' : 'text-white/60'}`}>
+                                                <p className={`text-xs font-bold leading-tight ${card.isPremium ? 'text-white' : 'text-white/70'}`}>
                                                     {feat.value}
                                                 </p>
                                             </div>
                                         ))}
                                     </div>
                                     
-                                    <div className="mt-auto text-center text-[10px] text-white/20 font-bold uppercase tracking-widest relative z-10">
-                                        {t('swipe_hint', 'Swipe to explore')}
+                                    <div className="mt-auto text-center text-[9px] text-white/30 font-bold uppercase tracking-widest relative z-10">
+                                        {t('swipe_hint', 'Auto-scrolling deck • Drag to swipe')}
                                     </div>
                                 </motion.div>
                             ))}
@@ -1190,7 +1025,6 @@ const RevooB2B = () => {
                         { icon: faShieldHalved, title: t('b2b_analytics_ai_title'), text: t('b2b_analytics_ai_text') }
                     ].map((item, idx) => (
                         <div key={idx} className="bg-white/5 backdrop-blur-2xl border border-[rgba(0,255,65,0.15)] p-8 rounded-3xl flex flex-col items-center text-center shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] hover:border-[#00FF41]/40 transition-all group">
-                            {/* Glass Orb Container for Icons */}
                             <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-6 shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)] group-hover:bg-[#00FF41]/20 transition-all">
                                 <FontAwesomeIcon icon={item.icon} className="text-2xl text-[#00FF41]" />
                             </div>
@@ -1210,40 +1044,102 @@ const RevooB2B = () => {
                             whileInView={{ opacity: 1, scale: 1 }}
                             className="text-3xl md:text-5xl font-black uppercase tracking-tight mb-4"
                         >
-                            {t('b2b_tools_h2')}
+                            {t('b2b_tools_h2', 'ИНСТРУМЕНТЫ ДЛЯ ВЛАДЕЛЬЦА')}
                         </motion.h2>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-                        {/* CRM Tool */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-8">
+                        {/* Tool 1: POS-FREE ZERO FRICTION SETUP */}
                         <motion.div 
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            className="bg-white/5 backdrop-blur-3xl border border-white/10 p-10 rounded-[48px] relative group hover:border-[#00FF41]/30 transition-all overflow-hidden flex flex-col items-center text-center"
+                            className="bg-white/5 backdrop-blur-3xl border border-white/10 p-8 md:p-10 rounded-[44px] relative group hover:border-[#00FF41]/40 transition-all overflow-hidden flex flex-col justify-between text-left"
                         >
-                            <CRMSegmentationGraphic />
-                            
-                            <h3 className="text-2xl font-black text-white uppercase mb-4 tracking-tight">{t('b2b_tools_crm_title')}</h3>
-                            <p className="text-white/60 text-lg leading-relaxed font-medium">
-                                {t('b2b_tools_crm_text')}
-                            </p>
+                            <div>
+                                <div className="w-14 h-14 rounded-2xl bg-[#00FF41]/10 border border-[#00FF41]/30 flex items-center justify-center text-[#00FF41] text-2xl mb-6 shadow-[0_0_20px_rgba(0,255,65,0.2)]">
+                                    <FontAwesomeIcon icon={faBan} />
+                                </div>
+                                
+                                <h3 className="text-xl md:text-2xl font-black text-white uppercase mb-4 tracking-tight">
+                                    БЕЗ POS-ИНТЕГРАЦИЙ & СЛОЖНЫХ НАСТРОЕК
+                                </h3>
+                                <p className="text-white/60 text-sm md:text-base leading-relaxed font-medium mb-6">
+                                    Никакого взаимодействия с кассовым софтом, обучения персонала или замены терминалов. Запуск за 15 минут — гости сканируют NFC/QR прямо на столах. Это максимально упрощает использование и исключает сбои.
+                                </p>
+                            </div>
+
+                            <div className="bg-[#00FF41]/10 p-3.5 rounded-2xl border border-[#00FF41]/30 text-[#00FF41] text-xs font-mono font-bold">
+                                ⚡ 0 минут обучения персонала | 0 ошибок кассиров
+                            </div>
                         </motion.div>
 
-                        {/* Google Reviews Tool */}
+                        {/* Tool 2: GOOGLE REVIEWS ON AUTOPILOT */}
                         <motion.div 
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.1 }}
-                            className="bg-white/5 backdrop-blur-3xl border border-white/10 p-10 rounded-[48px] relative group hover:border-blue-500/30 transition-all overflow-hidden flex flex-col items-center text-center"
+                            className="bg-white/5 backdrop-blur-3xl border border-white/10 p-8 md:p-10 rounded-[44px] relative group hover:border-blue-500/40 transition-all overflow-hidden flex flex-col justify-between text-left"
                         >
-                            <GoogleReviewsGraphic />
-                            
-                            <h3 className="text-2xl font-black text-white uppercase mb-4 tracking-tight">{t('b2b_tools_reviews_title')}</h3>
-                            <p className="text-white/60 text-lg leading-relaxed font-medium">
-                                {t('b2b_tools_reviews_text')}
-                            </p>
+                            <div>
+                                <GoogleReviewsGraphic />
+                                
+                                <h3 className="text-xl md:text-2xl font-black text-white uppercase mb-4 tracking-tight">
+                                    GOOGLE REVIEWS НА АВТОПИЛОТЕ
+                                </h3>
+                                <p className="text-white/60 text-sm md:text-base leading-relaxed font-medium mb-6">
+                                    Автоматический сбор 5-звездочных отзывов на Google Maps в момент максимального дофаминового вознаграждения гостя. Высокий рейтинг привлекает постоянный поток новых гостей без расходов на маркетинговые агентства.
+                                </p>
+                            </div>
+
+                            <div className="bg-blue-500/10 p-3.5 rounded-2xl border border-blue-500/30 text-blue-300 text-xs font-mono font-bold">
+                                ⭐ Рейтинг 5.0 | Максимальная конверсия в реальные отзывы
+                            </div>
                         </motion.div>
                     </div>
+
+                    {/* Tool 3: DEPOSIT MECHANICS & STARBUCKS BENCHMARK */}
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="max-w-5xl mx-auto bg-gradient-to-r from-amber-950/40 via-black to-amber-950/20 backdrop-blur-3xl border-2 border-[#D4AF37]/50 p-8 md:p-12 rounded-[48px] relative overflow-hidden group shadow-[0_0_40px_rgba(212,175,55,0.15)] text-left"
+                    >
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-[#D4AF37]/10 rounded-full blur-[100px] pointer-events-none" />
+                        
+                        <div className="flex flex-col lg:flex-row items-center gap-8 justify-between relative z-10">
+                            <div className="space-y-4 max-w-2xl">
+                                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#D4AF37]/15 border border-[#D4AF37]/40 text-[#D4AF37] text-xs font-black uppercase tracking-widest">
+                                    <FontAwesomeIcon icon={faCoins} />
+                                    <span>МЕХАНИКА ДЕПОЗИТОВ & БЕСПРОЦЕНТНЫЙ КРЕДИТ</span>
+                                </div>
+                                
+                                <h3 className="text-2xl md:text-4xl font-black text-white uppercase tracking-tight leading-tight">
+                                    Гости вносят депозиты — заведение получает бесплатный оборотный капитал
+                                </h3>
+                                
+                                <p className="text-white/70 text-base md:text-lg leading-relaxed font-medium">
+                                    Гости фиксируют максимальные скидки и VIP-статусы, внося деньги на баланс заранее. Заведение получает мгновенные бесплатные деньги («кредит с 0% процентной ставкой») и надежно привязывает клиентов к вашему заведению на месяцы вперед.
+                                </p>
+                            </div>
+
+                            {/* STARBUCKS BENCHMARK CALLOUT CARD */}
+                            <div className="w-full lg:w-80 bg-black/80 p-6 rounded-3xl border border-[#D4AF37]/40 space-y-3 shadow-2xl flex-shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 font-black text-xl">
+                                        ☕
+                                    </div>
+                                    <div>
+                                        <span className="text-[10px] font-mono font-black uppercase tracking-widest text-[#D4AF37]">КЕЙС STARBUCKS</span>
+                                        <h4 className="text-sm font-black text-white">$1.6+ МЛРД ДЕПОЗИТОВ</h4>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-white/70 leading-relaxed font-medium">
+                                    Starbucks удерживает более <strong className="text-amber-300 font-bold">$1.6 миллиарда</strong> неиспользованных авансовых депозитов клиентов, фактически превратившись в банк с 0% процентной ставкой благодаря механике депозитов!
+                                </p>
+                            </div>
+                        </div>
+                    </motion.div>
+
                 </div>
             </section>
 
@@ -1264,14 +1160,14 @@ const RevooB2B = () => {
                         <p className="text-white/70 text-base md:text-lg font-medium mb-10 max-w-2xl mx-auto relative z-10 leading-relaxed">
                             {t('b2b_guarantee_text')}
                         </p>
-                        <motion.button
-                            whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(212, 175, 55, 0.4)" }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => setIsContactModalOpen(true)}
-                            className="bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-10 py-5 rounded-full font-black text-sm md:text-base uppercase tracking-[0.2em] relative z-10 w-full md:w-auto shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:shadow-[0_0_40px_rgba(212,175,55,0.4)]"
+                        <a
+                            href="https://t.me/revoogiftx_bot"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black px-10 py-5 rounded-full font-black text-sm md:text-base uppercase tracking-[0.2em] relative z-10 w-full md:w-auto shadow-[0_0_20px_rgba(212,175,55,0.2)] hover:shadow-[0_0_40px_rgba(212,175,55,0.4)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
                         >
-                            {t('b2b_final_cta')}
-                        </motion.button>
+                            {t('b2b_final_cta', 'ПОДАТЬ ЗАЯВКУ В TELEGRAM')}
+                        </a>
                     </motion.div>
                 </div>
             </section>

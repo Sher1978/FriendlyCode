@@ -60,10 +60,10 @@ class _NavBar extends StatelessWidget {
         children: [
           Row(
             children: [
-              const FaIcon(FontAwesomeIcons.leaf, color: AppColors.brandGreen, size: 24),
+              const FaIcon(FontAwesomeIcons.bolt, color: AppColors.brandOrange, size: 24),
               const SizedBox(width: 8),
               Text(
-                'Friendly Code',
+                'REVOO',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: AppColors.brandBrown,
                       fontWeight: FontWeight.bold,

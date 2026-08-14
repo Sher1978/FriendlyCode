@@ -542,17 +542,17 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String fullActivationPeriod(Object end, Object start) {
-    return 'Full Activation Period: $start - $end';
+    return 'Thời gian hoạt động đầy đủ: $start - $end';
   }
 
   @override
   String expiryPeriod(Object end) {
-    return 'Expiry Period: $end';
+    return 'Thời hạn: $end';
   }
 
   @override
   String daysRemaining(Object days) {
-    return '$days days remaining';
+    return 'Còn $days ngày';
   }
 
   @override
@@ -618,142 +618,142 @@ class AppLocalizationsVi extends AppLocalizations {
       'Để duy trì ưu đãi tối đa, hãy ghé thăm chúng tôi vào ngày mai nữa!';
 
   @override
-  String get statusColUpper => 'STATUS';
+  String get statusColUpper => 'TRẠNG THÁI';
 
   @override
-  String get subscriptionCol => 'SUBSCRIPTION';
+  String get subscriptionCol => 'ĐĂNG KÝ';
 
   @override
-  String get actionsCol => 'ACTIONS';
+  String get actionsCol => 'HÀNH ĐỘNG';
 
   @override
-  String get currentlyActive => 'Currently Active';
+  String get currentlyActive => 'Hiện đang hoạt động';
 
   @override
-  String get statusActive => 'ACTIVE';
+  String get statusActive => 'ĐANG HOẠT ĐỘNG';
 
   @override
-  String get statusFrozen => 'FROZEN';
+  String get statusFrozen => 'ĐÃ ĐÓNG BĂNG';
 
   @override
-  String get planPaid => 'PAID';
+  String get planPaid => 'ĐÃ THANH TOÁN';
 
   @override
-  String get planUnpaid => 'UNPAID';
+  String get planUnpaid => 'CHƯA THANH TOÁN';
 
   @override
   String expiresAt(Object date) {
-    return 'Expires: $date';
+    return 'Hết hạn: $date';
   }
 
   @override
-  String get switchBtn => 'SWITCH';
+  String get switchBtn => 'CHUYỂN';
 
   @override
   String switchedTo(Object name) {
-    return 'Switched to $name';
+    return 'Đã chuyển sang $name';
   }
 
   @override
-  String get newVenue => 'New Venue';
+  String get newVenue => 'Địa điểm mới';
 
   @override
-  String get editVenue => 'Edit Venue';
+  String get editVenue => 'Chỉnh sửa địa điểm';
 
   @override
-  String get tabVenueSettings => 'Venue Settings';
+  String get tabVenueSettings => 'Cài đặt địa điểm';
 
   @override
-  String get tabStaffRbac => 'Staff & RBAC';
+  String get tabStaffRbac => 'Nhân viên & RBAC';
 
   @override
-  String get tabDiscountStrategy => 'Discount Strategy';
+  String get tabDiscountStrategy => 'Chiến lược giảm giá';
 
   @override
-  String get sectionBasicInfo => 'Basic Info';
+  String get sectionBasicInfo => 'Thông tin cơ bản';
 
   @override
-  String get labelVenueName => 'Venue Name';
+  String get labelVenueName => 'Tên địa điểm';
 
   @override
-  String get labelCategory => 'Category';
+  String get labelCategory => 'Danh mục';
 
   @override
-  String get labelAddress => 'Address';
+  String get labelAddress => 'Địa chỉ';
 
   @override
-  String get sectionOwnership => 'Ownership';
+  String get sectionOwnership => 'Quyền sở hữu';
 
   @override
-  String get labelOwnerEmail => 'Owner Email';
+  String get labelOwnerEmail => 'Email chủ sở hữu';
 
   @override
-  String get labelOwnerId => 'Owner ID (Firebase UID)';
+  String get labelOwnerId => 'ID chủ sở hữu (Firebase UID)';
 
   @override
-  String get sectionMedia => 'Media';
+  String get sectionMedia => 'Phương tiện truyền thông';
 
   @override
-  String get labelLogoUrl => 'Logo URL';
+  String get labelLogoUrl => 'URL Logo';
 
   @override
-  String get labelExternalLink => 'External Link / Website';
+  String get labelExternalLink => 'Liên kết ngoài / Website';
 
   @override
-  String get labelGoogleMapsUrl => 'Google Maps Business URL';
+  String get labelGoogleMapsUrl => 'URL doanh nghiệp trên Google Maps';
 
   @override
-  String get hintGoogleMapsUrl => 'Link for guest reviews';
+  String get hintGoogleMapsUrl => 'Liên kết để khách để lại đánh giá';
 
   @override
-  String get sectionStaffAssignment => 'Staff Assignment';
+  String get sectionStaffAssignment => 'Phân công nhân sự';
 
   @override
-  String get labelAssignedAdmin => 'Assigned Admin';
+  String get labelAssignedAdmin => 'Admin được chỉ định';
 
   @override
-  String get labelAssignedManager => 'Assigned Manager';
+  String get labelAssignedManager => 'Quản lý được chỉ định';
 
   @override
-  String get none => 'None';
+  String get none => 'Không có';
 
   @override
   String get rbacNotice =>
-      'Only SuperAdmins and Admins can assign staff roles from this menu.';
+      'Chỉ có SuperAdmin và Admin mới có thể gán vai trò nhân viên từ menu này.';
 
   @override
-  String get sectionLoyaltyRules => 'Loyalty Rules (Tiers)';
+  String get sectionLoyaltyRules => 'Quy tắc khách hàng thân thiết (Hạng)';
 
   @override
   String get loyaltyRulesDesc =>
-      'Configure the max hours a guest can be gone and the percentage they earn.';
+      'Cấu hình số giờ tối đa khách có thể rời đi và tỷ lệ phần trăm họ nhận được.';
 
   @override
-  String get labelMaxHours => 'Max Hours';
+  String get labelMaxHours => 'Số giờ tối đa';
 
   @override
-  String get labelPercentage => 'Percentage (%)';
+  String get labelPercentage => 'Tỷ lệ (%)';
 
   @override
-  String get sectionSubscriptionStatus => 'Subscription & Status';
+  String get sectionSubscriptionStatus => 'Đăng ký & Trạng thái';
 
   @override
-  String get labelPlan => 'Plan:';
+  String get labelPlan => 'Gói cước:';
 
   @override
-  String get labelPaymentStatus => 'Payment Status:';
+  String get labelPaymentStatus => 'Trạng thái thanh toán:';
 
   @override
-  String get labelExpiryDate => 'Expiry Date:';
+  String get labelExpiryDate => 'Ngày hết hạn';
 
   @override
-  String get required => 'Обязательно';
+  String get required => 'Bắt buộc';
 
   @override
-  String get errorLabel => 'Error:';
+  String get errorLabel => 'Lỗi:';
 
   @override
-  String get notSet => 'Not Set';
+  String get notSet => 'Chưa đặt';
 
   @override
   String get notAvailable => 'N/A';
@@ -926,4 +926,20 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get vipTier => 'VIP';
+
+  @override
+  String get accessControlPanel => 'Truy cập bảng điều khiển';
+
+  @override
+  String get terms => 'Điều khoản';
+
+  @override
+  String get support => 'Hỗ trợ';
+
+  @override
+  String get pageNotFound => 'Không tìm thấy trang';
+
+  @override
+  String get pageNotFoundSub =>
+      'Địa chỉ bạn nhập không tồn tại hoặc đã bị di chuyển.';
 }

@@ -6,13 +6,22 @@ import '../../../../core/auth/role_provider.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../../core/localization/locale_provider.dart';
-import '../layout/admin_shell.dart';
+import '../../../owner/presentation/screens/deposit_action_screen.dart';
+
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PlatformLandingScreen extends StatelessWidget {
   const PlatformLandingScreen({super.key});
 
   Future<void> _handleLogin(BuildContext context, bool requireAdmin) async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      if (requireAdmin) {
+        await prefs.setString('active_portal_mode', 'superadmin');
+      } else {
+        await prefs.setString('active_portal_mode', 'owner');
+      }
+
       final authService = AuthService();
       final user = await authService.signInWithGoogle();
 
@@ -20,9 +29,23 @@ class PlatformLandingScreen extends StatelessWidget {
         final roleProvider = Provider.of<RoleProvider>(context, listen: false);
         await roleProvider.refreshRole();
 
-        if (requireAdmin) {
+        final fullUri = Uri.base.toString();
+        final search = Uri.base.queryParameters['search'] ?? Uri.base.queryParameters['uid'] ?? Uri.base.queryParameters['q'];
+        final action = Uri.base.queryParameters['action'];
+
+        if (fullUri.contains('deposit') || (search != null && search.isNotEmpty)) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => DepositActionScreen(
+                initialUserId: search,
+                initialAction: action,
+              ),
+            ),
+          );
+        } else if (requireAdmin) {
           if (roleProvider.currentRole == UserRole.superAdmin) {
-            Navigator.pushReplacementNamed(context, '/admin');
+            Navigator.pushReplacementNamed(context, '/superadmin');
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -75,22 +98,14 @@ class PlatformLandingScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // 1. Branding (Premium Logo)
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.accentGreen.withOpacity(0.2)),
-                    ),
-                    child: const FaIcon(
-                      FontAwesomeIcons.leaf,
-                      size: 48,
-                      color: AppColors.accentGreen,
-                    ),
+                  Image.asset(
+                    'assets/images/logo.png',
+                    height: 80,
+                    fit: BoxFit.contain,
                   ),
                   const SizedBox(height: 32),
                   Text(
-                    'FRIENDLY CODE',
+                    'REVOO',
                     style: Theme.of(context).textTheme.displayLarge?.copyWith(
                           color: AppColors.title,
                           fontWeight: FontWeight.w900,
@@ -137,7 +152,7 @@ class PlatformLandingScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          "Access your control panel",
+                          l10n.accessControlPanel,
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: AppColors.body,
@@ -145,7 +160,7 @@ class PlatformLandingScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 40),
                         
-                        // Owner Dashboard Button
+                        // Owner Dashboard Button (Primary)
                         _buildLoginButton(
                           context: context,
                           label: l10n.ownerDashboard,
@@ -154,15 +169,21 @@ class PlatformLandingScreen extends StatelessWidget {
                           onPressed: () => _handleLogin(context, false),
                         ),
                         
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
                         
-                        // Admin Console Button
-                        _buildLoginButton(
-                          context: context,
-                          label: 'Super Admin Console',
-                          icon: FontAwesomeIcons.shieldHalved,
-                          color: AppColors.premiumGold,
-                          onPressed: () => _handleLogin(context, true),
+                        // Dedicated Super Admin Login Link
+                        TextButton.icon(
+                          onPressed: () => Navigator.pushNamed(context, '/superadmin-login'),
+                          icon: const FaIcon(FontAwesomeIcons.shieldHalved, size: 13, color: AppColors.premiumGold),
+                          label: Text(
+                            l10n.adminConsole,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.45),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -176,15 +197,15 @@ class PlatformLandingScreen extends StatelessWidget {
                     children: [
                       _buildFooterLink(l10n.navPricing),
                       const SizedBox(width: 24),
-                      _buildFooterLink("Terms"),
+                      _buildFooterLink(l10n.terms),
                       const SizedBox(width: 24),
-                      _buildFooterLink("Support"),
+                      _buildFooterLink(l10n.support),
                     ],
                   ),
                   
                   const SizedBox(height: 48),
                   Text(
-                    '© 2026 Friendly Code Platform',
+                    '© 2026 REVOO Platform',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppColors.tertiary,
                         ),

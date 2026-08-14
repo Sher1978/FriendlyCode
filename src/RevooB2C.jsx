@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import PngBattery from './PngBattery';
 import LanguageSelector from './LanguageSelector';
-import { auth } from './firebase';
+import { auth, db } from './firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -154,6 +155,19 @@ const RevooB2C = () => {
     }, []);
 
     useEffect(() => {
+        if (interceptedVenueId) {
+            getDoc(doc(db, 'venues', interceptedVenueId)).then(snap => {
+                if (snap.exists()) {
+                    const data = snap.data();
+                    const savedLang = localStorage.getItem('userLanguage');
+                    const targetLang = savedLang || data.defaultLanguage || 'en';
+                    if (i18n.language !== targetLang) i18n.changeLanguage(targetLang);
+                }
+            }).catch(e => console.warn("Venue lang fetch error:", e));
+        }
+    }, [interceptedVenueId, i18n]);
+
+    useEffect(() => {
         const checkReturnGuest = (currentUser) => {
             const storedName = localStorage.getItem('guestName');
             const storedEmail = localStorage.getItem('guestEmail');
@@ -231,7 +245,10 @@ const RevooB2C = () => {
                             ].map(lang => (
                                 <button
                                     key={lang.code}
-                                    onClick={() => i18n.changeLanguage(lang.code)}
+                                    onClick={() => {
+                                        try { localStorage.setItem('userLanguage', lang.code); } catch(e) {}
+                                        i18n.changeLanguage(lang.code);
+                                    }}
                                     className={`w-7 h-7 md:w-9 md:h-9 flex items-center justify-center rounded-full transition-all duration-300 ${i18n.language === lang.code ? 'bg-[#D4AF37] scale-110 shadow-[0_0_15px_rgba(212,175,55,0.4)]' : 'bg-white/5 hover:bg-white/10 opacity-60 hover:opacity-100'}`}
                                     title={lang.code.toUpperCase()}
                                 >

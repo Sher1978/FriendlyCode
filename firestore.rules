@@ -36,13 +36,7 @@ service cloud.firestore {
     // 1. Users Collection
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow write: if request.auth.uid == userId || isSuperAdmin() || (
-        isOwner() && (
-          // Allow owner to manage users assigned to their venue
-          (request.resource.data.venueId != null && ownsVenue(request.resource.data.venueId)) ||
-          (resource != null && resource.data.venueId != null && ownsVenue(resource.data.venueId))
-        )
-      );
+      allow write, create, update: if isAuthenticated();
     }
 
     // 2. Venues Collection
@@ -68,23 +62,50 @@ service cloud.firestore {
     // 4. Leads Collection (B2B and B2C tracking)
     match /leads/{leadId} {
       allow create: if true;
-      allow read, update, delete: if isSuperAdmin() || (resource != null && resource.data.venueId != null && ownsVenue(resource.data.venueId));
+      allow read, update, delete: if isAuthenticated();
+    }
+
+    match /b2b_leads/{leadId} {
+      allow create: if true;
+      allow read, update, delete: if isAuthenticated();
     }
 
     // 4.5 Complaints Collection (NPS < 4 stars feedback)
     match /complaints/{complaintId} {
       allow create: if true;
-      allow read, update, delete: if isSuperAdmin() || (resource != null && resource.data.venueId != null && ownsVenue(resource.data.venueId));
+      allow read, update, delete: if isAuthenticated();
     }
 
     // 5. Venue Requests Collection
     match /venue_requests/{requestId} {
       allow create: if isAuthenticated();
-      allow read, delete: if isAuthenticated() && (
-        request.auth.uid == resource.data.userId ||
-        ownsVenue(resource.data.venueId) ||
-        isSuperAdmin()
-      );
+      allow read, delete: if isAuthenticated();
+    }
+
+    // 6. Deposit Tiers Collection
+    match /deposit_tiers/{tierId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // 7. Deposit Transactions Collection
+    match /deposit_transactions/{transactionId} {
+      allow read: if isAuthenticated();
+      allow create, write: if isAuthenticated();
+    }
+
+    // 8. POS Sessions Collection (State Machine)
+    match /pos_sessions/{sessionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isSuperAdmin() || ownsVenue(resource.data.venueId) || isAssignedToVenue(resource.data.venueId);
+    }
+
+    // 9. Notifications Collection
+    match /notifications/{notificationId} {
+      allow create: if true;
+      allow read, update, delete: if isAuthenticated();
     }
   }
 }
+

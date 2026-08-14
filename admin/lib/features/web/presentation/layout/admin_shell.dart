@@ -16,6 +16,7 @@ import 'package:friendly_code/features/admin/presentation/widgets/notification_b
 import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/global_email_settings_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/my_team_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/venue_role_assignment_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/billing_screen.dart';
 
 class AdminShell extends StatefulWidget {
@@ -63,9 +64,12 @@ class _AdminShellState extends State<AdminShell> {
           const Center(child: Text("No Billing Access", style: TextStyle(color: AppColors.title))),
 
       if (widget.role == UserRole.superAdmin)
-          GlobalEmailSettingsScreen(),
+          GlobalEmailSettingsScreen(), // 4: Email Setup
 
-      GeneralSettingsScreen(), // Settings (Index 5 for SuperAdmin, 4 otherwise)
+      if (widget.role == UserRole.superAdmin)
+          const VenueRoleAssignmentScreen(), // 5: Role Assignment
+
+      GeneralSettingsScreen(), // Settings (Index 6 for SuperAdmin, 4 otherwise)
     ];
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -187,7 +191,7 @@ class _AdminShellState extends State<AdminShell> {
                     backgroundColor: Color(0x661C1C1E),
                     iconTheme: const IconThemeData(color: Colors.white),
                     elevation: 0,
-                    title: const Text("FRIENDLY CODE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
+                    title: const Text("REVOO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
                   )
                 : null,
               drawer: !isDesktop ? Drawer(child: _buildSidebar(isMobile: true)) : null,
@@ -251,7 +255,6 @@ class _AdminShellState extends State<AdminShell> {
                     'assets/images/logo.png',
                     height: 48,
                     fit: BoxFit.contain,
-                    color: Colors.white, // Tint logo white for dark mode if it's transparent PNG
                   ),
                 ),
               
@@ -272,8 +275,11 @@ class _AdminShellState extends State<AdminShell> {
               if (widget.role == UserRole.superAdmin)
                  _buildNavItem(4, Icons.email_outlined, "Email Setup", isMobile: isMobile),
 
+              if (widget.role == UserRole.superAdmin)
+                 _buildNavItem(5, Icons.manage_accounts_outlined, "Roles", isMobile: isMobile),
+
               const Spacer(),
-              _buildNavItem(widget.role == UserRole.superAdmin ? 5 : 4, Icons.settings_outlined, "Settings", isMobile: isMobile),
+              _buildNavItem(widget.role == UserRole.superAdmin ? 6 : 4, Icons.settings_outlined, "Settings", isMobile: isMobile),
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: InkWell(

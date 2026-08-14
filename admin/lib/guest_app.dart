@@ -30,7 +30,7 @@ class _GuestAppContent extends StatelessWidget {
     final localeProvider = Provider.of<LocaleProvider>(context);
 
     return MaterialApp(
-      title: 'Friendly Code Guest',
+      title: 'REVOO Guest',
       locale: localeProvider.locale,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,

@@ -52,7 +52,7 @@ class _MarketingCampaignScreenState extends State<MarketingCampaignScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text("Create Marketing Campaign", style: TextStyle(fontWeight: FontWeight.w900, color: AppColors.title)),
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColors.title),
       ),

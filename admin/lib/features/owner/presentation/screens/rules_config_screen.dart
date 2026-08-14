@@ -23,14 +23,31 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
   final _resetIntervalCtrl = TextEditingController();
   final _percBaseCtrl = TextEditingController();
   final _percVipCtrl = TextEditingController();
+  final _percMediumCtrl = TextEditingController();
+  final _mediumDaysCtrl = TextEditingController();
+  final _percDepositCtrl = TextEditingController();
+  final _depositThresholdCtrl = TextEditingController();
   final _googleReviewDaysCtrl = TextEditingController();
-
-  List<LoyaltyDecayStage> _decayStages = [];
 
   @override
   void initState() {
     super.initState();
     _loadVenue();
+  }
+
+  @override
+  void dispose() {
+    _vipWindowCtrl.dispose();
+    _degradationIntervalCtrl.dispose();
+    _resetIntervalCtrl.dispose();
+    _percBaseCtrl.dispose();
+    _percVipCtrl.dispose();
+    _percMediumCtrl.dispose();
+    _mediumDaysCtrl.dispose();
+    _percDepositCtrl.dispose();
+    _depositThresholdCtrl.dispose();
+    _googleReviewDaysCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _loadVenue() async {
@@ -50,9 +67,13 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
         _resetIntervalCtrl.text = config.resetIntervalDays.toString();
         _percBaseCtrl.text = config.percBase.toString();
         _percVipCtrl.text = config.percVip.toString();
+        _percDepositCtrl.text = config.percDeposit.toString();
+        _depositThresholdCtrl.text = config.depositThreshold.toStringAsFixed(0);
         _googleReviewDaysCtrl.text = config.googleReviewRewardDays.toString();
-        
-        _decayStages = List.from(config.decayStages);
+
+        final mediumStage = config.decayStages.isNotEmpty ? config.decayStages[0] : const LoyaltyDecayStage(days: 7, discount: 15);
+        _percMediumCtrl.text = mediumStage.discount.toString();
+        _mediumDaysCtrl.text = mediumStage.days.toString();
       }
     } catch (e) {
       debugPrint("Error loading rules: $e");
@@ -61,43 +82,95 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
     }
   }
 
-  void _addDecayStage() {
-    setState(() {
-      _decayStages.add(const LoyaltyDecayStage(days: 7, discount: 10));
-    });
-  }
-
-  void _removeDecayStage(int index) {
-    setState(() {
-      _decayStages.removeAt(index);
-    });
-  }
-
   Future<void> _saveConfig() async {
     if (widget.venueId == null || _venue == null) return;
     
-    _decayStages.sort((a, b) => a.days.compareTo(b.days));
+    final List<LoyaltyDecayStage> parsedStages = [
+      LoyaltyDecayStage(
+        days: int.tryParse(_mediumDaysCtrl.text) ?? 7,
+        discount: int.tryParse(_percMediumCtrl.text) ?? 15,
+      )
+    ];
 
     final updatedConfig = LoyaltyConfig(
-      vipWindowDays: int.tryParse(_vipWindowCtrl.text) ?? 2,
+      vipWindowDays: int.tryParse(_vipWindowCtrl.text) ?? 1,
       degradationIntervalDays: int.tryParse(_degradationIntervalCtrl.text) ?? 7,
       resetIntervalDays: int.tryParse(_resetIntervalCtrl.text) ?? 30,
-      percBase: int.tryParse(_percBaseCtrl.text) ?? 10,
+      percBase: int.tryParse(_percBaseCtrl.text) ?? 5,
       percVip: int.tryParse(_percVipCtrl.text) ?? 20,
+      percDeposit: int.tryParse(_percDepositCtrl.text) ?? 25,
+      depositThreshold: double.tryParse(_depositThresholdCtrl.text) ?? 1000000.0,
       googleReviewRewardDays: int.tryParse(_googleReviewDaysCtrl.text) ?? 7,
-      decayStages: _decayStages,
+      decayStages: parsedStages,
     );
 
     try {
-      await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
+      final depositTiersSnap = await FirebaseFirestore.instance
+          .collection('deposit_tiers')
+          .where('venueId', isEqualTo: widget.venueId)
+          .get();
+      final existingLevels = depositTiersSnap.docs.map((doc) => doc.data()['tierLevel'] ?? doc.data()['tier_level']).toSet();
+
+      final batch = FirebaseFirestore.instance.batch();
+
+      // Update venue loyaltyConfig
+      batch.update(FirebaseFirestore.instance.collection('venues').doc(widget.venueId), {
         'loyaltyConfig': updatedConfig.toMap(),
       });
+
+      // Synchronize deposit_tiers automatically
+      for (int level = 1; level <= 4; level++) {
+        final docId = "${widget.venueId}_$level";
+        final docRef = FirebaseFirestore.instance.collection('deposit_tiers').doc(docId);
+        
+        int discount = 5;
+        double defaultThreshold = 0.0;
+        if (level == 1) {
+          discount = updatedConfig.percDeposit;
+          defaultThreshold = updatedConfig.depositThreshold;
+        } else if (level == 2) {
+          discount = updatedConfig.percVip;
+          defaultThreshold = 0.0;
+        } else if (level == 3) {
+          discount = updatedConfig.decayStages.isNotEmpty ? updatedConfig.decayStages[0].discount : 15;
+          defaultThreshold = 0.0;
+        } else if (level == 4) {
+          discount = updatedConfig.percBase;
+          defaultThreshold = 0.0;
+        }
+
+        if (existingLevels.contains(level)) {
+          batch.update(docRef, {
+            'discountPercentage': discount,
+            'discount_percentage': discount,
+            'minBalanceThreshold': defaultThreshold,
+            'min_balance_threshold': defaultThreshold,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        } else {
+          batch.set(docRef, {
+            'id': docId,
+            'venueId': widget.venueId,
+            'venue_id': widget.venueId,
+            'tierLevel': level,
+            'tier_level': level,
+            'minBalanceThreshold': defaultThreshold,
+            'min_balance_threshold': defaultThreshold,
+            'discountPercentage': discount,
+            'discount_percentage': discount,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+
+      await batch.commit();
+
       if (mounted) {
         showCupertinoDialog(
           context: context,
           builder: (context) => CupertinoAlertDialog(
-            title: const Text("Success"),
-            content: const Text("Loyalty rules updated successfully."),
+            title: const Text("Успешно"),
+            content: const Text("Правила лояльности и 4 типа скидок успешно обновлены."),
             actions: [
               CupertinoDialogAction(child: const Text("OK"), onPressed: () => Navigator.pop(context)),
             ],
@@ -115,9 +188,9 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: AppColors.background,
         elevation: 0,
         leading: CupertinoButton(
           padding: EdgeInsets.zero,
@@ -134,7 +207,7 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Loyalty Rules",
+                  "Настройка 4 типов скидок",
                   style: TextStyle(
                     color: AppColors.macosTextPrimary,
                     fontSize: 34,
@@ -144,7 +217,7 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  "Configure tiers, decay algorithms, and reward percentages.",
+                  "Управляйте процентами и сроками действия для всех 4 ступеней программы лояльности.",
                   style: TextStyle(color: AppColors.macosTextSecondary.withOpacity(0.7), fontSize: 15),
                 ),
                 const SizedBox(height: 48),
@@ -153,27 +226,114 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // 1. МИНИМАЛЬНАЯ СКИДКА
                       const Text(
-                        "CORE PARAMETERS",
+                        "1. МИНИМАЛЬНАЯ СКИДКА (БЕССРОЧНАЯ)",
                         style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "Выдается при первом визите или после истечения срока действия других скидок. Действует всегда.",
+                        style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 12),
+                      ),
+                      const SizedBox(height: 16),
                       Row(
                         children: [
-                          Expanded(child: _buildInput("Base Discount %", _percBaseCtrl)),
+                          Expanded(child: _buildInput("Минимальная скидка %", _percBaseCtrl)),
                           const SizedBox(width: 20),
-                          Expanded(child: _buildInput("VIP Discount %", _percVipCtrl)),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text("Срок действия", style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 10),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.05),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: AppColors.macosDivider),
+                                  ),
+                                  child: const Text("Бессрочно (преднастроено)", style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 24),
+                      
+                      const SizedBox(height: 32),
+
+                      // 2. СРЕДНЯЯ СКИДКА
+                      const Text(
+                        "2. СРЕДНЯЯ СКИДКА (ЗА ВИЗИТЫ)",
+                        style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "Выдается если клиент не успел прийти на следующий день, но вернулся в течение указанного срока.",
+                        style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 12),
+                      ),
+                      const SizedBox(height: 16),
                       Row(
                         children: [
-                          Expanded(child: _buildInput("VIP Window (Days)", _vipWindowCtrl)),
+                          Expanded(child: _buildInput("Средняя скидка %", _percMediumCtrl)),
                           const SizedBox(width: 20),
-                          Expanded(child: _buildInput("Reset (Days)", _resetIntervalCtrl)),
+                          Expanded(child: _buildInput("Срок действия (Дней)", _mediumDaysCtrl)),
                         ],
                       ),
-                      const SizedBox(height: 24),
+
+                      const SizedBox(height: 32),
+                      
+                      // 3. МАКСИМАЛЬНАЯ СКИДКА ЗА ВИЗИТ
+                      const Text(
+                        "3. МАКСИМАЛЬНАЯ СКИДКА (ЗА ВИЗИТ НА СЛЕДУЮЩИЙ ДЕНЬ)",
+                        style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "Выдается гостю, если он возвращается на следующий день. Мотивирует совершать повторные визиты.",
+                        style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 12),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(child: _buildInput("Максимальная скидка за визит %", _percVipCtrl)),
+                          const SizedBox(width: 20),
+                          Expanded(child: _buildInput("Окно возврата (Дней, по умолч. 1)", _vipWindowCtrl)),
+                        ],
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // 4. САМАЯ МАКСИМАЛЬНАЯ (ДЕПОЗИТНАЯ) СКИДКА
+                      const Text(
+                        "4. САМАЯ МАКСИМАЛЬНАЯ СКИДКА (ЗА ДЕПОЗИТ)",
+                        style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        "Выдается ТОЛЬКО за внесение указанной суммы депозита. Официант делает отметку и скидка закрепляется на неопределенный срок.",
+                        style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 12),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(child: _buildInput("Самая макс. скидка %", _percDepositCtrl)),
+                          const SizedBox(width: 20),
+                          Expanded(child: _buildInput("Сумма депозита для закрепления", _depositThresholdCtrl)),
+                        ],
+                      ),
+
+                      const SizedBox(height: 32),
+                      
+                      // GOOGLE MAPS MARKETING
+                      const Text(
+                        "GOOGLE MAPS MARKETING",
+                        style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
+                      ),
+                      const SizedBox(height: 16),
                       Row(
                         children: [
                           Expanded(child: _buildInput("Google Review VIP Days", _googleReviewDaysCtrl)),
@@ -182,66 +342,6 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
                         ],
                       ),
                       
-                      const SizedBox(height: 40),
-                      
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            "DECAY STAGES",
-                            style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
-                          ),
-                          CupertinoButton(
-                            padding: EdgeInsets.zero,
-                            onPressed: _addDecayStage,
-                            child: const Row(
-                              children: [
-                                Icon(CupertinoIcons.plus_circle_fill, size: 16),
-                                SizedBox(width: 6),
-                                Text("Add Stage", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      ...List.generate(_decayStages.length, (index) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: _buildNumericField(
-                                  "After X days", 
-                                  _decayStages[index].days.toString(),
-                                  (val) => setState(() {
-                                    final d = int.tryParse(val) ?? _decayStages[index].days;
-                                    _decayStages[index] = LoyaltyDecayStage(days: d, discount: _decayStages[index].discount);
-                                  }),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: _buildNumericField(
-                                  "Discount drops to %", 
-                                  _decayStages[index].discount.toString(),
-                                  (val) => setState(() {
-                                    final ds = int.tryParse(val) ?? _decayStages[index].discount;
-                                    _decayStages[index] = LoyaltyDecayStage(days: _decayStages[index].days, discount: ds);
-                                  }),
-                                ),
-                              ),
-                              CupertinoButton(
-                                padding: const EdgeInsets.only(left: 12),
-                                child: const Icon(CupertinoIcons.trash, color: CupertinoColors.systemRed, size: 20),
-                                onPressed: () => _removeDecayStage(index),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                      
                       const SizedBox(height: 48),
 
                       SizedBox(
@@ -249,7 +349,7 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
                         child: CupertinoButton.filled(
                           onPressed: _saveConfig,
                           borderRadius: BorderRadius.circular(10),
-                          child: const Text("SAVE CHANGES", style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Text("СОХРАНИТЬ ИЗМЕНЕНИЯ", style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
                     ],
@@ -301,21 +401,5 @@ class _RulesConfigScreenState extends State<RulesConfigScreen> {
       ],
     );
   }
-
-  Widget _buildNumericField(String hint, String initialValue, ValueChanged<String> onChanged) {
-    return CupertinoTextField(
-      placeholder: hint,
-      placeholderStyle: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 13),
-      onChanged: onChanged,
-      controller: TextEditingController(text: initialValue)..selection = TextSelection.collapsed(offset: initialValue.length),
-      keyboardType: TextInputType.number,
-      style: const TextStyle(color: Colors.white, fontSize: 13),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.macosDivider),
-      ),
-    );
-  }
 }
+

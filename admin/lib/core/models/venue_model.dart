@@ -75,17 +75,21 @@ class LoyaltyConfig {
   final int percVip;
   final List<LoyaltyDecayStage> decayStages;
 
+  final int percDeposit;
+  final double depositThreshold;
+
   const LoyaltyConfig({
-    this.vipWindowDays = 2,
+    this.vipWindowDays = 1,
     this.percBase = 5,
     this.percVip = 20,
     this.degradationIntervalDays = 7,
     this.resetIntervalDays = 30,
     this.googleReviewRewardDays = 7,
     List<LoyaltyDecayStage>? decayStages,
+    this.percDeposit = 25,
+    this.depositThreshold = 1000000.0,
   }) : decayStages = decayStages ?? const [
-         LoyaltyDecayStage(days: 3, discount: 15),
-         LoyaltyDecayStage(days: 10, discount: 10),
+         LoyaltyDecayStage(days: 7, discount: 15),
        ];
 
   Map<String, dynamic> toMap() => {
@@ -96,6 +100,8 @@ class LoyaltyConfig {
     'resetIntervalDays': resetIntervalDays,
     'googleReviewRewardDays': googleReviewRewardDays,
     'decayStages': decayStages.map((s) => s.toMap()).toList(),
+    'percDeposit': percDeposit,
+    'depositThreshold': depositThreshold,
   };
 
   factory LoyaltyConfig.fromMap(Map<String, dynamic> map) {
@@ -119,19 +125,20 @@ class LoyaltyConfig {
 
     if (loadedStages.isEmpty) {
         loadedStages = const [
-         LoyaltyDecayStage(days: 3, discount: 15),
-         LoyaltyDecayStage(days: 10, discount: 10),
+         LoyaltyDecayStage(days: 7, discount: 15),
        ];
     }
 
     return LoyaltyConfig(
-      vipWindowDays: map['vipWindowDays'] ?? (map['vipWindowHours'] != null ? (map['vipWindowHours'] as int) ~/ 24 : 2),
+      vipWindowDays: map['vipWindowDays'] ?? (map['vipWindowHours'] != null ? (map['vipWindowHours'] as int) ~/ 24 : 1),
       percBase: map['percBase'] ?? 5,
       percVip: map['percVip'] ?? 20,
       degradationIntervalDays: map['degradationIntervalDays'] ?? (map['degradationIntervalHours'] != null ? (map['degradationIntervalHours'] as int) ~/ 24 : 7),
       resetIntervalDays: map['resetIntervalDays'] ?? 30,
       googleReviewRewardDays: map['googleReviewRewardDays'] ?? 7,
       decayStages: loadedStages,
+      percDeposit: map['percDeposit'] ?? 25,
+      depositThreshold: (map['depositThreshold'] ?? 1000000.0).toDouble(),
     );
   }
 }
@@ -165,6 +172,11 @@ class VenueModel {
   final String? assignedManagerId;
   final bool emailReportsActive;
   final String? googleMapsUrl;
+  final bool hasCaptiveWifi;
+  final String wifiSsid;
+  final int wifiSpeedMbps;
+  final bool isHybridEnabled;
+  final String? giftxUrl;
 
   VenueModel({
     required this.id,
@@ -192,6 +204,11 @@ class VenueModel {
     this.assignedManagerId,
     this.emailReportsActive = false,
     this.googleMapsUrl,
+    this.hasCaptiveWifi = false,
+    this.wifiSsid = 'Revo_Free_WiFi',
+    this.wifiSpeedMbps = 100,
+    this.isHybridEnabled = false,
+    this.giftxUrl,
   }) : 
     tiers = tiers ?? [],
     subscription = subscription ?? VenueSubscription(),
@@ -230,6 +247,11 @@ class VenueModel {
       'assignedManagerId': assignedManagerId,
       'emailReportsActive': emailReportsActive,
       'googleMapsUrl': googleMapsUrl,
+      'has_captive_wifi': hasCaptiveWifi,
+      'wifi_ssid': wifiSsid,
+      'wifi_speed_mbps': wifiSpeedMbps,
+      'isHybridEnabled': isHybridEnabled,
+      'giftxUrl': giftxUrl,
     };
   }
 
@@ -260,6 +282,11 @@ class VenueModel {
       assignedManagerId: map['assignedManagerId'],
       emailReportsActive: map['emailReportsActive'] ?? false,
       googleMapsUrl: map['googleMapsUrl'],
+      hasCaptiveWifi: map['has_captive_wifi'] ?? false,
+      wifiSsid: map['wifi_ssid'] ?? 'Revo_Free_WiFi',
+      wifiSpeedMbps: map['wifi_speed_mbps'] ?? 100,
+      isHybridEnabled: map['isHybridEnabled'] ?? false,
+      giftxUrl: map['giftxUrl'],
     );
   }
   VenueModel copyWith({
@@ -288,6 +315,11 @@ class VenueModel {
     String? assignedManagerId,
     bool? emailReportsActive,
     String? googleMapsUrl,
+    bool? hasCaptiveWifi,
+    String? wifiSsid,
+    int? wifiSpeedMbps,
+    bool? isHybridEnabled,
+    String? giftxUrl,
   }) {
     return VenueModel(
       id: id ?? this.id,
@@ -315,6 +347,11 @@ class VenueModel {
       assignedManagerId: assignedManagerId ?? this.assignedManagerId,
       emailReportsActive: emailReportsActive ?? this.emailReportsActive,
       googleMapsUrl: googleMapsUrl ?? this.googleMapsUrl,
+      hasCaptiveWifi: hasCaptiveWifi ?? this.hasCaptiveWifi,
+      wifiSsid: wifiSsid ?? this.wifiSsid,
+      wifiSpeedMbps: wifiSpeedMbps ?? this.wifiSpeedMbps,
+      isHybridEnabled: isHybridEnabled ?? this.isHybridEnabled,
+      giftxUrl: giftxUrl ?? this.giftxUrl,
     );
   }
 

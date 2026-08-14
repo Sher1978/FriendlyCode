@@ -12,6 +12,7 @@ import '../../features/web/presentation/pages/b2c_home_screen.dart';
 import '../../features/web/presentation/pages/platform_landing_screen.dart';
 import '../../features/guest/presentation/screens/success_screen.dart';
 import '../../features/onboarding/presentation/screens/welcome_screen.dart';
+import '../../features/owner/presentation/screens/deposit_action_screen.dart';
 
 class DispatcherScreen extends StatefulWidget {
   const DispatcherScreen({super.key});
@@ -43,6 +44,14 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
   }
 
   Future<void> _checkToken() async {
+    if (kIsWeb) {
+      try {
+        await FirebaseAuth.instance.getRedirectResult();
+      } catch (e) {
+        debugPrint("Error getting redirect result in Dispatcher: $e");
+      }
+    }
+
     // Wait for Firebase Auth to initialize
     await Future.delayed(const Duration(seconds: 1)); 
     
@@ -54,7 +63,7 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
           // 1. Refresh global role & venue list
           await Provider.of<RoleProvider>(context, listen: false).refreshRole();
           
-          // 2. Navigate based on assigned data or just go to dashboard
+          // Always navigate logged in users to Dashboard, preserving query parameters
           _navigateToDashboard();
         } catch (e) {
           debugPrint("Dispatcher error: $e");
@@ -79,13 +88,39 @@ class _DispatcherScreenState extends State<DispatcherScreen> {
     );
   }
 
-  void _navigateToDashboard() {
+  Future<void> _navigateToDashboard() async {
     final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+    final prefs = await SharedPreferences.getInstance();
+    final portalMode = prefs.getString('active_portal_mode') ?? 'owner';
+
+    final search = Uri.base.queryParameters['search'];
+    final action = Uri.base.queryParameters['action'];
     
-    if (roleProvider.isSuperAdmin) {
-      Navigator.pushReplacementNamed(context, '/admin');
+    String extraQuery = '';
+    if (search != null && search.isNotEmpty) {
+      extraQuery = '?search=$search${action != null ? '&action=$action' : ''}';
+    }
+
+    final fullUrl = Uri.base.toString();
+    if (fullUrl.contains('deposit')) {
+      final uid = Uri.base.queryParameters['uid'] ?? Uri.base.queryParameters['search'] ?? Uri.base.queryParameters['q'];
+      final action = Uri.base.queryParameters['action'];
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DepositActionScreen(
+            initialUserId: uid,
+            initialAction: action,
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (portalMode == 'superadmin' && roleProvider.isSuperAdmin) {
+      Navigator.pushReplacementNamed(context, '/superadmin$extraQuery');
     } else {
-      Navigator.pushReplacementNamed(context, '/owner');
+      Navigator.pushReplacementNamed(context, '/owner$extraQuery');
     }
   }
 

@@ -27,23 +27,49 @@
       },
       {
         "source": "/Superadmin",
-        "destination": "/admin/admin",
+        "destination": "/admin/superadmin",
         "type": 301
       },
       {
         "source": "/superadmin",
-        "destination": "/admin/admin",
+        "destination": "/admin/superadmin",
         "type": 301
       }
     ],
     "rewrites": [
       {
+        "source": "/deposit",
+        "destination": "/admin/index.html"
+      },
+      {
         "source": "/admin/**",
         "destination": "/admin/index.html"
       },
       {
+        "source": "/api/wifi/authorize",
+        "function": "wifiAuthorize"
+      },
+      {
+        "source": "/api/user/hotspots-map",
+        "function": "hotspotsMap"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "/index.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
+      },
+      {
+        "source": "/admin/index.html",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+        ]
       }
     ],
     "predeploy": [

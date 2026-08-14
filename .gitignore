@@ -61,3 +61,4 @@ skills-lock.json
 # Assets
 admin/assets/images/dubai-bg.jpg
 checkDuplicates.mjs
+.vercel

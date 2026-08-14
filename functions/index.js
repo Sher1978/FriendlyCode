@@ -1,4 +1,4 @@
-const { onDocumentUpdated } = require("firebase-functions/v2/firestore");
+const { onDocumentUpdated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { logger } = require("firebase-functions");
@@ -11,7 +11,7 @@ admin.initializeApp();
 const db = admin.firestore();
 
 const { Resend } = require("resend");
-const resend = new Resend("re_hhcZAqvV_PrA1srdegsuaoqkQEVZoGCNc");
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 // SuperAdmin Chat ID
 const SUPER_ADMIN_CHAT_ID = "YOUR_SUPER_ADMIN_CHAT_ID"; // Replace with actual ID or logic to fetch
@@ -59,6 +59,158 @@ exports.generateTelegramLink = onCall(async (request) => {
 
     return { url: `https://t.me/FriendIycode_bot?start=auth_${code}` };
 });
+
+/**
+ * Helper: Calculate user discount tier based on deposit balance
+ */
+async function calculateUserDiscountTier(userId, venueId) {
+    // 1. Fetch user data
+    const userDoc = await db.collection("users").doc(userId).get();
+    let depositBalance = 0;
+    let hasLockedDiscount = false;
+    if (userDoc.exists) {
+        const userData = userDoc.data();
+        depositBalance = Number(userData.deposit_balance ?? 0);
+        hasLockedDiscount = userData.hasLockedDiscount === true;
+    }
+
+    let discountPercentage = 5; // Default fallback base discount
+    let depositThreshold = 1000000;
+    let percDeposit = 25;
+
+    // Fetch venue loyalty config
+    try {
+        const venueDoc = await db.collection("venues").doc(venueId).get();
+        if (venueDoc.exists) {
+            const venueData = venueDoc.data();
+            const config = venueData.loyaltyConfig || {};
+            discountPercentage = Number(config.percBase ?? 5);
+            percDeposit = Number(config.percDeposit ?? 25);
+            depositThreshold = Number(config.depositThreshold ?? 1000000);
+        }
+    } catch (e) {
+        logger.error("Error fetching venue base discount:", e);
+    }
+
+    if (hasLockedDiscount || depositBalance >= depositThreshold) {
+        return { 
+            tier_level: 1, 
+            discount_percentage: percDeposit, 
+            min_balance_threshold: depositThreshold, 
+            tierLevel: 1, 
+            discountPercentage: percDeposit, 
+            minBalanceThreshold: depositThreshold,
+            isLocked: true
+        };
+    }
+
+    return { 
+        tier_level: 4, 
+        discount_percentage: discountPercentage, 
+        min_balance_threshold: 0, 
+        tierLevel: 4, 
+        discountPercentage: discountPercentage, 
+        minBalanceThreshold: 0,
+        isLocked: false
+    };
+}
+
+/**
+ * Cloud Function: Trigger customer check-in and alert Telegram group
+ */
+exports.triggerCustomerCheckin = onCall(async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) {
+        throw new HttpsError("unauthenticated", "User must be logged in.");
+    }
+    
+    const { venueId } = request.data;
+    if (!venueId) {
+        throw new HttpsError("invalid-argument", "Missing venueId.");
+    }
+
+    try {
+        // Fetch user data
+        const userDoc = await db.collection("users").doc(uid).get();
+        if (!userDoc.exists) {
+            throw new HttpsError("not-found", "User not found.");
+        }
+        const userData = userDoc.data();
+        const depositBalance = Number(userData.deposit_balance ?? 0);
+
+        // Fetch venue data
+        const venueDoc = await db.collection("venues").doc(venueId).get();
+        if (!venueDoc.exists) {
+            throw new HttpsError("not-found", "Venue not found.");
+        }
+        const venueData = venueDoc.data();
+        const telegramGroupId = venueData.telegram_group_id || venueData.telegramGroupId;
+        const currency = venueData.currency || "VND";
+        const venueName = venueData.name || "Venue";
+
+        // Calculate dynamic tier
+        const tierInfo = await calculateUserDiscountTier(uid, venueId);
+        
+        // Update user's current discount tier
+        await db.collection("users").doc(uid).update({
+            current_discount_tier: tierInfo.tierLevel
+        });
+
+        if (!telegramGroupId) {
+            logger.warn(`No Telegram group linked for venue ${venueId}`);
+            return { success: false, reason: "No Telegram group linked." };
+        }
+
+        // Generate a unique session ID
+        const sessionRef = db.collection("pos_sessions").doc();
+        const sessionId = sessionRef.id;
+
+        // Save session state
+        await sessionRef.set({
+            sessionId,
+            userId: uid,
+            userName: userData.displayName || userData.name || "Guest",
+            userPhone: userData.phone || userData.contactInfo || "No Phone",
+            venueId,
+            venueName,
+            currency,
+            depositBalance,
+            discountPercentage: tierInfo.discountPercentage,
+            tierLevel: tierInfo.tierLevel,
+            status: "pending",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        // If deposit balance is 0, we suggest standard loyalty checkout
+        if (depositBalance <= 0) {
+            const message = `🟡 <b>[CHECK-IN (Zero Balance)]</b>\n\n👤 <b>Customer:</b> ${userData.displayName || userData.name || "Guest"} (${userData.phone || userData.contactInfo || "No Phone"})\n💳 <b>Deposit Balance:</b> 0.00 ${currency}\n🔥 <b>Active Discount:</b> ${tierInfo.discountPercentage}%\n📍 Standard loyalty checkout suggested (no deposit balance).`;
+            await sendTelegramMessage(telegramGroupId, message);
+            return { success: true, sessionId, zeroBalance: true };
+        }
+
+        // Send check-in alert to group with transition to Bot DM
+        const message = `🟢 <b>[VIP CHECK-IN]</b>\n\n👤 <b>Customer:</b> ${userData.displayName || userData.name || "Guest"} (${userData.phone || userData.contactInfo || "No Phone"})\n💳 <b>Deposit Balance:</b> ${depositBalance.toFixed(2)} ${currency}\n🔥 <b>Active Discount:</b> ${tierInfo.discountPercentage}%\n📍 <i>Нажмите кнопку ниже для ввода суммы чека в личных сообщениях бота:</i>`;
+        
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    {
+                        text: "💵 Ввести сумму чека в боте / Enter Check Amount",
+                        url: `https://t.me/FriendIycode_bot?start=debit_${sessionId}`
+                    }
+                ]
+            ]
+        };
+
+        await sendTelegramMessageWithKeyboard(telegramGroupId, message, keyboard);
+        return { success: true, sessionId };
+    } catch (e) {
+        logger.error("Error in triggerCustomerCheckin:", e);
+        throw new HttpsError("internal", e.message || String(e));
+    }
+});
+
 
 /**
  * Secures the Discount Calculation logic on the server.
@@ -300,6 +452,38 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
             }
         }
 
+        // 4c. Guest Loyalty Perk Reminder via Telegram Bot
+        try {
+            let guestChatId = null;
+            if (uid && uid !== 'anonymous') {
+                const guestDoc = await db.collection("users").doc(uid).get();
+                if (guestDoc.exists) {
+                    guestChatId = guestDoc.data().telegramChatId || guestDoc.data().telegram_chat_id;
+                }
+            } else if (visitGuestEmail) {
+                const guestSnap = await db.collection("users").where("email", "==", visitGuestEmail.toLowerCase()).limit(1).get();
+                if (!guestSnap.empty) {
+                    guestChatId = guestSnap.docs[0].data().telegramChatId || guestSnap.docs[0].data().telegram_chat_id;
+                }
+            }
+
+            if (guestChatId) {
+                const sortedTiers = (venueData.tiers && Array.isArray(venueData.tiers) && venueData.tiers.length > 0)
+                    ? [...venueData.tiers].sort((a, b) => b.discountPercent - a.discountPercent)
+                    : [{ discountPercent: 20, maxHours: 24 }, { discountPercent: 15, maxHours: 72 }, { discountPercent: 10, maxHours: 168 }];
+                
+                const topTier = sortedTiers[0];
+                const tgGuestMsg = `☀️ <b>Спасибо за визит в ${venueName}!</b>\n\n` +
+                    `🔥 <b>Ваша скидка при повторном визите завтра:</b> ${topTier.discountPercent}%\n` +
+                    `✨ В течение 3 дней: ${sortedTiers[1]?.discountPercent || 15}%\n` +
+                    `🌿 В течение недели: ${sortedTiers[2]?.discountPercent || 10}%\n\n` +
+                    `Ждем вас снова! 😄☕`;
+                await sendTelegramMessage(guestChatId, tgGuestMsg).catch(e => logger.warn("Guest Telegram welcome error:", e));
+            }
+        } catch (e) {
+            logger.warn("Error sending guest Telegram visit notification:", e);
+        }
+
         // 4b. Owner Notification Email
         if (ownerEmail && emailControls.enableOwnerNotifications !== false && venueData.emailReportsActive === true) {
             const { data, error } = await resend.emails.send({
@@ -430,12 +614,401 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
     }
 });
 
+/**
+ * Instant Report on Deposit Transaction (CREDIT & DEBIT)
+ * Trigger: onDocumentCreated in deposit_transactions/{txId}
+ */
+exports.onDepositTransactionCreated = onDocumentCreated("deposit_transactions/{txId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+
+    const txData = snapshot.data();
+    const isCredit = txData.transactionType === 'CREDIT' || txData.type === 'CREDIT';
+    const isDebit = txData.transactionType === 'DEBIT' || txData.type === 'DEBIT';
+
+    const { venueId, userId, userName, guestName, guestEmail, amount, totalCredit, bonusPercent, bonusAmount, finalAmount, newBalance, balanceAfter, staffTelegramUsername, staffName } = txData;
+
+    try {
+        let venueName = "REVOO Venue";
+        let currency = "VND";
+        let ownerEmail = null;
+        let telegramGroupId = null;
+
+        if (venueId) {
+            const venueDoc = await db.collection("venues").doc(venueId).get();
+            if (venueDoc.exists) {
+                const venueData = venueDoc.data();
+                venueName = venueData.name || "REVOO Venue";
+                currency = venueData.currency || "VND";
+                ownerEmail = venueData.ownerEmail;
+                telegramGroupId = venueData.telegram_group_id || venueData.telegramGroupId;
+            }
+        }
+
+        // ── 1. HANDLE DEPOSIT CREDIT (TOP-UP) ──────────────────────────────────
+        if (isCredit) {
+            let targetEmail = guestEmail;
+            let targetName = guestName || userName || "Уважаемый гость";
+            const creditAmount = Number(amount || totalCredit || 0);
+            const currentNewBalance = Number(newBalance || balanceAfter || 0);
+            const bPercent = Number(bonusPercent || 0);
+            const bAmount = Number(bonusAmount || 0);
+
+            // If guest email is missing, lookup user profile by UID
+            if (!targetEmail && userId) {
+                const userDoc = await db.collection("users").doc(userId).get();
+                if (userDoc.exists) {
+                    const uData = userDoc.data();
+                    targetEmail = uData.email || uData.guestEmail;
+                    if (!targetName || targetName === "Уважаемый гость") {
+                        targetName = uData.displayName || uData.name || targetName;
+                    }
+                }
+            }
+
+            // A. Send Telegram Alert to Group
+            if (telegramGroupId) {
+                const tgMsg = `💳 <b>ПОПОЛНЕНИЕ ДЕПОЗИТА</b>\n\n` +
+                    `👤 <b>Клиент:</b> ${targetName}\n` +
+                    `💰 <b>Сумма внесения:</b> +${creditAmount.toLocaleString()} ${currency}\n` +
+                    (bPercent > 0 ? `🎁 <b>Бонус:</b> +${bPercent}% (+${bAmount.toLocaleString()} ${currency})\n` : '') +
+                    `✅ <b>Новый баланс депозита:</b> ${currentNewBalance.toLocaleString()} ${currency}\n` +
+                    `👨💼 <b>Сотрудник:</b> ${staffName || staffTelegramUsername || 'Персонал'}`;
+                await sendTelegramMessage(telegramGroupId, tgMsg).catch(e => logger.error("Telegram credit report error:", e));
+            }
+
+            // B. Send Custom Branded Email to Guest with Web Page & QR Code
+            if (targetEmail) {
+                const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`https://bot-lab-21910.web.app/admin/#/deposit?uid=${userId || targetEmail}&action=deduct`)}`;
+                const guestWebPageUrl = `https://bot-lab-21910.web.app/`;
+
+                const { data: emailRes, error: emailErr } = await resend.emails.send({
+                    from: "REVOO Deposit <no-reply@friendlycode.fun>",
+                    to: [targetEmail],
+                    subject: `💰 Ваш депозит в ${venueName} пополнен! Ваш баланс и QR-код`,
+                    html: `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="utf-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        </head>
+                        <body style="margin: 0; padding: 0; background-color: #0A0A0C; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
+                            <div style="max-width: 540px; margin: 0 auto; padding: 32px 16px; background-color: #0A0A0C;">
+                                
+                                {/* Header Badge */}
+                                <div style="text-align: center; margin-bottom: 24px;">
+                                    <div style="display: inline-block; background: rgba(212, 175, 55, 0.15); border: 1px solid rgba(212, 175, 55, 0.4); padding: 6px 18px; border-radius: 20px; color: #D4AF37; font-size: 11px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase;">
+                                        ⚡ REVOO WALLET &bull; DEPOSIT CONFIRMATION
+                                    </div>
+                                </div>
+
+                                {/* Main Container */}
+                                <div style="background-color: #1C1C1E; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 28px; padding: 32px 24px; text-align: center; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);">
+                                    
+                                    <h1 style="color: #FFFFFF; font-size: 24px; font-weight: 800; margin: 0 0 8px 0; line-height: 1.2;">
+                                        Поздравляем, ${targetName}!
+                                    </h1>
+                                    <p style="color: rgba(255, 255, 255, 0.7); font-size: 14px; margin: 0 0 28px 0; line-height: 1.5;">
+                                        Ваш депозитный баланс в заведении <strong style="color: #FFFFFF;">${venueName}</strong> успешно пополнен.
+                                    </p>
+
+                                    {/* Balance Display Box */}
+                                    <div style="background: linear-gradient(135deg, rgba(0, 255, 65, 0.15) 0%, rgba(0, 204, 51, 0.05) 100%); border: 1px solid rgba(0, 255, 65, 0.3); border-radius: 24px; padding: 24px; margin-bottom: 28px;">
+                                        <span style="font-size: 11px; font-weight: 900; color: #00FF41; text-transform: uppercase; letter-spacing: 1px;">Текущий баланс депозита</span>
+                                        <div style="font-size: 38px; font-weight: 900; color: #FFFFFF; margin: 8px 0 4px 0; tracking-tight: -1px;">
+                                            ${currentNewBalance.toLocaleString()} <span style="font-size: 16px; color: rgba(255, 255, 255, 0.5); font-weight: 600;">${currency}</span>
+                                        </div>
+                                        <div style="font-size: 12px; color: #00FF41; font-weight: 700;">
+                                            🎉 МАКСИМАЛЬНЫЙ VIP-УРОВЕНЬ АКТИВЕН
+                                        </div>
+                                    </div>
+
+                                    {/* Transaction Details */}
+                                    <div style="background-color: rgba(0, 0, 0, 0.4); border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.08); padding: 18px 20px; margin-bottom: 28px; text-align: left;">
+                                        <table width="100%" cellpadding="6" cellspacing="0" style="font-size: 13px; color: rgba(255, 255, 255, 0.8);">
+                                            <tr>
+                                                <td style="color: rgba(255, 255, 255, 0.5);">Сумма взноса:</td>
+                                                <td style="text-align: right; font-weight: 700; color: #FFFFFF;">+${creditAmount.toLocaleString()} ${currency}</td>
+                                            </tr>
+                                            ${bPercent > 0 ? `
+                                            <tr>
+                                                <td style="color: rgba(255, 255, 255, 0.5);">Бонус заведения (+${bPercent}%):</td>
+                                                <td style="text-align: right; font-weight: 700; color: #00FF41;">+${bAmount.toLocaleString()} ${currency}</td>
+                                            </tr>` : ''}
+                                            <tr>
+                                                <td style="color: rgba(255, 255, 255, 0.5); border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 8px;">Дата пополнения:</td>
+                                                <td style="text-align: right; font-weight: 700; color: #FFFFFF; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 8px;">${new Date().toLocaleDateString('ru-RU')}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+
+                                    {/* Embedded Personal QR Code */}
+                                    <div style="background-color: #FFFFFF; padding: 18px; border-radius: 24px; display: inline-block; margin-bottom: 16px; box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);">
+                                        <img src="${qrCodeUrl}" width="190" height="190" alt="Ваш персональный QR-код депозита" style="display: block; margin: 0 auto; border: 0;" />
+                                    </div>
+
+                                    <p style="font-size: 12px; font-weight: 700; color: rgba(255, 255, 255, 0.6); margin: 0 0 28px 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        Покажите этот QR-код официанту для списания чека
+                                    </p>
+
+                                    {/* Action CTA Link */}
+                                    <div>
+                                        <a href="${guestWebPageUrl}" target="_blank" style="display: block; background: #00FF41; color: #000000; padding: 16px 24px; border-radius: 18px; text-decoration: none; font-weight: 900; font-size: 15px; box-shadow: 0 10px 30px rgba(0, 255, 65, 0.3);">
+                                            📱 Открыть мой баланс и QR-код
+                                        </a>
+                                    </div>
+
+                                </div>
+
+                                {/* Footer */}
+                                <div style="text-align: center; margin-top: 32px; font-size: 11px; color: rgba(255, 255, 255, 0.3); font-weight: 600;">
+                                    &copy; ${new Date().getFullYear()} REVOO &bull; FRIENDLY CODE SYSTEM
+                                </div>
+
+                            </div>
+                        </body>
+                        </html>
+                    `
+                });
+
+                if (emailErr) {
+                    logger.error("Error sending deposit credit email:", emailErr);
+                } else {
+                    logger.info(`Deposit credit email sent successfully to ${targetEmail} (MessageId: ${emailRes?.id})`);
+                }
+            } else {
+                logger.warn(`No target email found for deposit credit tx ${event.params.txId}`);
+            }
+
+            // C. Send Telegram DM to Guest
+            try {
+                let guestChatId = null;
+                if (userId) {
+                    const uDoc = await db.collection("users").doc(userId).get();
+                    if (uDoc.exists) {
+                        guestChatId = uDoc.data().telegramChatId || uDoc.data().telegram_chat_id;
+                    }
+                } else if (targetEmail) {
+                    const uSnap = await db.collection("users").where("email", "==", targetEmail.toLowerCase()).limit(1).get();
+                    if (!uSnap.empty) {
+                        guestChatId = uSnap.docs[0].data().telegramChatId || uSnap.docs[0].data().telegram_chat_id;
+                    }
+                }
+
+                if (guestChatId) {
+                    const tgCreditMsg = `💰 <b>ВАШ ДЕПОЗИТ В ${venueName.toUpperCase()} ПОПОЛНЕН!</b>\n\n` +
+                        `👤 <b>Гость:</b> ${targetName}\n` +
+                        `➕ <b>Пополнение:</b> +${creditAmount.toLocaleString()} ${currency}\n` +
+                        (bPercent > 0 ? `🎁 <b>Бонус заведения (+${bPercent}%):</b> +${bAmount.toLocaleString()} ${currency}\n` : '') +
+                        `💳 <b>Новый баланс депозита:</b> ${currentNewBalance.toLocaleString()} ${currency}\n` +
+                        `🎉 <b>МАКСИМАЛЬНЫЙ VIP-УРОВЕНЬ АКТИВЕН</b>\n\n` +
+                        `📱 Ваш QR-код для списания чека: https://bot-lab-21910.web.app/`;
+                    await sendTelegramMessage(guestChatId, tgCreditMsg).catch(e => logger.warn("Guest Telegram credit report error:", e));
+                }
+            } catch (tgErr) {
+                logger.warn("Error sending guest Telegram credit report:", tgErr);
+            }
+        }
+
+        // ── 2. HANDLE DEPOSIT DEBIT (DEDUCTION) ────────────────────────────────
+        if (isDebit) {
+            const previousBalance = (balanceAfter + finalAmount);
+
+            // A. Send report to Telegram Group
+            if (telegramGroupId) {
+                const tgReport = `💳 <b>ОТЧЕТ О СПИСАНИИ ДЕПОЗИТА</b>\n\n` +
+                    `👤 <b>Клиент:</b> ${userName}\n` +
+                    `💰 <b>Текущий депозит (до):</b> ${previousBalance.toLocaleString()} ${currency}\n` +
+                    `🧾 <b>Списанная сумма чека:</b> ${finalAmount.toLocaleString()} ${currency}\n` +
+                    `✅ <b>Новый баланс депозита:</b> ${balanceAfter.toLocaleString()} ${currency}\n` +
+                    `👨💼 <b>Сотрудник:</b> @${staffTelegramUsername || 'staff'}`;
+                await sendTelegramMessage(telegramGroupId, tgReport);
+            }
+
+            // B. Send report to Owner Email
+            if (ownerEmail) {
+                await resend.emails.send({
+                    from: "Friendly Code <no-reply@friendlycode.fun>",
+                    to: [ownerEmail],
+                    subject: `🧾 Deposit Deduction Report - ${venueName}`,
+                    html: `
+                        <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 30px; background-color: #000; color: #FFF; border-radius: 20px;">
+                            <h2 style="color: #D4AF37; margin-bottom: 20px;">🧾 Отчет о списании депозита</h2>
+                            <p style="font-size: 16px; margin-bottom: 10px;">Заведение: <strong>${venueName}</strong></p>
+                            <hr style="border-color: #333; margin: 20px 0;" />
+                            <table width="100%" cellpadding="8" style="font-size: 15px;">
+                                <tr><td style="color: #888;">Имя клиента:</td><td style="font-weight: bold;">${userName}</td></tr>
+                                <tr><td style="color: #888;">Баланс до списания:</td><td style="font-weight: bold;">${previousBalance.toLocaleString()} ${currency}</td></tr>
+                                <tr><td style="color: #888;">Списано (сумма чека):</td><td style="color: #FF3131; font-weight: bold;">-${finalAmount.toLocaleString()} ${currency}</td></tr>
+                                <tr><td style="color: #888;">Остаток депозита:</td><td style="color: #00FF41; font-weight: bold;">${balanceAfter.toLocaleString()} ${currency}</td></tr>
+                                <tr><td style="color: #888;">Сотрудник:</td><td style="font-weight: bold;">@${staffTelegramUsername || 'staff'}</td></tr>
+                            </table>
+                        </div>
+                    `
+                });
+            }
+
+            // C. Send Email Notification to Guest (Deduction + Low Balance Warning)
+            let targetEmail = guestEmail;
+            let targetName = guestName || userName || "Уважаемый гость";
+            const deductedAmount = Number(finalAmount || amount || 0);
+            const currentBalanceAfter = Number(balanceAfter ?? 0);
+            const prevBal = Number(previousBalance || (currentBalanceAfter + deductedAmount));
+
+            if (!targetEmail && userId) {
+                const userDoc = await db.collection("users").doc(userId).get();
+                if (userDoc.exists) {
+                    const uData = userDoc.data();
+                    targetEmail = uData.email || uData.guestEmail;
+                    if (!targetName || targetName === "Уважаемый гость") {
+                        targetName = uData.displayName || uData.name || targetName;
+                    }
+                }
+            }
+
+            if (targetEmail) {
+                // Calculate if remaining balance is 20% or less of previous deposit
+                const isLowBalance = currentBalanceAfter <= 0 || (prevBal > 0 && (currentBalanceAfter / prevBal) <= 0.20);
+                const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`https://bot-lab-21910.web.app/admin/#/deposit?uid=${userId || targetEmail}&action=deduct`)}`;
+                const guestWebPageUrl = `https://bot-lab-21910.web.app/`;
+
+                const subject = isLowBalance
+                    ? `⚠️ Ваш депозит в ${venueName} на исходе (${currentBalanceAfter.toLocaleString()} ${currency})! Пополните, чтобы сохранить VIP-скидку`
+                    : `🧾 Списание по чеку в ${venueName}. Остаток депозита: ${currentBalanceAfter.toLocaleString()} ${currency}`;
+
+                await resend.emails.send({
+                    from: "REVOO Deposit <no-reply@friendlycode.fun>",
+                    to: [targetEmail],
+                    subject: subject,
+                    html: `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="utf-8">
+                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        </head>
+                        <body style="margin: 0; padding: 0; background-color: #0A0A0C; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
+                            <div style="max-width: 540px; margin: 0 auto; padding: 32px 16px; background-color: #0A0A0C;">
+                                
+                                {/* Header Badge */}
+                                <div style="text-align: center; margin-bottom: 24px;">
+                                    <div style="display: inline-block; background: ${isLowBalance ? 'rgba(255, 49, 49, 0.15)' : 'rgba(0, 255, 65, 0.15)'}; border: 1px solid ${isLowBalance ? 'rgba(255, 49, 49, 0.4)' : 'rgba(0, 255, 65, 0.4)'}; padding: 6px 18px; border-radius: 20px; color: ${isLowBalance ? '#FF3131' : '#00FF41'}; font-size: 11px; font-weight: 900; letter-spacing: 1.5px; text-transform: uppercase;">
+                                        ${isLowBalance ? '⚠️ LOW BALANCE WARNING &bull; REVOO WALLET' : '🧾 CHECK DEDUCTION &bull; REVOO WALLET'}
+                                    </div>
+                                </div>
+
+                                {/* Main Container */}
+                                <div style="background-color: #1C1C1E; border: 1px solid ${isLowBalance ? 'rgba(255, 49, 49, 0.3)' : 'rgba(255, 255, 255, 0.1)'}; border-radius: 28px; padding: 32px 24px; text-align: center; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);">
+                                    
+                                    <h1 style="color: #FFFFFF; font-size: 22px; font-weight: 800; margin: 0 0 8px 0; line-height: 1.2;">
+                                        Здравствуйте, ${targetName}!
+                                    </h1>
+                                    <p style="color: rgba(255, 255, 255, 0.7); font-size: 14px; margin: 0 0 24px 0; line-height: 1.5;">
+                                        С вашего депозита в заведении <strong style="color: #FFFFFF;">${venueName}</strong> успешно произведено списание по чеку.
+                                    </p>
+
+                                    {/* Low Balance Warning Banner */}
+                                    ${isLowBalance ? `
+                                    <div style="background: linear-gradient(135deg, rgba(255, 49, 49, 0.2) 0%, rgba(255, 136, 0, 0.1) 100%); border: 1.5px solid rgba(255, 49, 49, 0.5); border-radius: 22px; padding: 20px; margin-bottom: 24px; text-align: center;">
+                                        <div style="font-size: 28px; margin-bottom: 6px;">⚠️</div>
+                                        <div style="font-size: 15px; font-weight: 900; color: #FF3131; margin-bottom: 6px;">
+                                            Остаток депозита равен или менее 20%!
+                                        </div>
+                                        <div style="font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, 0.9); line-height: 1.5;">
+                                            Пополните депозит при следующем визите в <strong>${venueName}</strong>, чтобы зафиксировать ваш VIP-максимум и не потерять скидку!
+                                        </div>
+                                    </div>` : ''}
+
+                                    {/* Deduction & Balance Table Box */}
+                                    <div style="background-color: rgba(0, 0, 0, 0.5); border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.08); padding: 20px; margin-bottom: 28px; text-align: left;">
+                                        <table width="100%" cellpadding="8" cellspacing="0" style="font-size: 14px; color: rgba(255, 255, 255, 0.9);">
+                                            <tr>
+                                                <td style="color: rgba(255, 255, 255, 0.5);">Баланс до списания:</td>
+                                                <td style="text-align: right; font-weight: 700; color: #FFFFFF;">${prevBal.toLocaleString()} ${currency}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="color: rgba(255, 255, 255, 0.5);">Списано (сумма чека):</td>
+                                                <td style="text-align: right; font-weight: 900; color: #FF3131;">-${deductedAmount.toLocaleString()} ${currency}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="color: rgba(255, 255, 255, 0.5); border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px;">Остаток депозита:</td>
+                                                <td style="text-align: right; font-weight: 900; color: ${isLowBalance ? '#FF3131' : '#00FF41'}; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px; font-size: 16px;">
+                                                    ${currentBalanceAfter.toLocaleString()} ${currency}
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+
+                                    {/* Embedded Personal QR Code */}
+                                    <div style="background-color: #FFFFFF; padding: 18px; border-radius: 24px; display: inline-block; margin-bottom: 16px; box-shadow: 0 10px 30px rgba(255, 255, 255, 0.1);">
+                                        <img src="${qrCodeUrl}" width="190" height="190" alt="Ваш персональный QR-код депозита" style="display: block; margin: 0 auto; border: 0;" />
+                                    </div>
+
+                                    <p style="font-size: 12px; font-weight: 700; color: rgba(255, 255, 255, 0.6); margin: 0 0 28px 0; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        Покажите этот QR-код официанту для списания чека или пополнения
+                                    </p>
+
+                                    {/* Action CTA Link */}
+                                    <div>
+                                        <a href="${guestWebPageUrl}" target="_blank" style="display: block; background: ${isLowBalance ? '#FFD700' : '#00FF41'}; color: #000000; padding: 16px 24px; border-radius: 18px; text-decoration: none; font-weight: 900; font-size: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);">
+                                            ${isLowBalance ? '💰 Пополнить депозит в заведении' : '📱 Открыть мой баланс и QR-код'}
+                                        </a>
+                                    </div>
+
+                                </div>
+
+                                {/* Footer */}
+                                <div style="text-align: center; margin-top: 32px; font-size: 11px; color: rgba(255, 255, 255, 0.3); font-weight: 600;">
+                                    &copy; ${new Date().getFullYear()} REVOO &bull; FRIENDLY CODE SYSTEM
+                                </div>
+
+                            </div>
+                        </body>
+                        </html>
+                    `
+                }).catch(e => logger.error("Error sending guest deduction email:", e));
+            }
+
+            // D. Send Telegram DM to Guest for Debit / Deduction
+            try {
+                let guestChatId = null;
+                if (userId) {
+                    const uDoc = await db.collection("users").doc(userId).get();
+                    if (uDoc.exists) {
+                        guestChatId = uDoc.data().telegramChatId || uDoc.data().telegram_chat_id;
+                    }
+                } else if (targetEmail) {
+                    const uSnap = await db.collection("users").where("email", "==", targetEmail.toLowerCase()).limit(1).get();
+                    if (!uSnap.empty) {
+                        guestChatId = uSnap.docs[0].data().telegramChatId || uSnap.docs[0].data().telegram_chat_id;
+                    }
+                }
+
+                if (guestChatId) {
+                    const tgDebitMsg = `🧾 <b>СПИСАНИЕ С ДЕПОЗИТА ПО ЧЕКУ</b>\n\n` +
+                        `📍 <b>Заведение:</b> ${venueName}\n` +
+                        `💸 <b>Списано по чеку:</b> -${deductedAmount.toLocaleString()} ${currency}\n` +
+                        `💳 <b>Остаток депозита:</b> ${currentBalanceAfter.toLocaleString()} ${currency}\n` +
+                        (isLowBalance ? `\n⚠️ <b>Внимание: Баланс на исходе (менее 20%)!</b> Пополните депозит, чтобы сохранить VIP-скидку.` : '') +
+                        `\n📱 Открыть QR-код и баланс: https://bot-lab-21910.web.app/`;
+                    await sendTelegramMessage(guestChatId, tgDebitMsg).catch(e => logger.warn("Guest Telegram debit report error:", e));
+                }
+            } catch (tgErr) {
+                logger.warn("Error sending guest Telegram debit report:", tgErr);
+            }
+        }
+    } catch (e) {
+        logger.error("Error in onDepositTransactionCreated handler:", e);
+    }
+});
+
 const { onRequest } = require("firebase-functions/v2/https");
 
 /**
  * TELEGRAM BOT LOGIC
  */
-const TELEGRAM_TOKEN = "8222060761:AAFkRFuWhsW-SEKYr_eZjgtMK1PBzC4Fgfk";
+const TELEGRAM_TOKEN = "8222060761:AAGTrFc7bLQ6VPrfvxDiIIH37-7tN0UpZzY";
 
 /**
  * Webhook for Telegram. Set this URL with the Telegram API:
@@ -445,24 +1018,271 @@ exports.telegramWebhook = onRequest(async (req, res) => {
     try {
         const update = req.body;
 
-        // Ensure we have a message
+        // ==========================================
+        // 1. CALLBACK QUERY HANDLER
+        // ==========================================
+        if (update.callback_query) {
+            const callbackQuery = update.callback_query;
+            const callbackQueryId = callbackQuery.id;
+            const callbackData = callbackQuery.data;
+            const chatId = callbackQuery.message.chat.id;
+            const messageId = callbackQuery.message.message_id;
+            const fromUser = callbackQuery.from;
+            const username = (fromUser.username || "").toLowerCase();
+
+            if (!username) {
+                await answerCallbackQuery(callbackQueryId, "⛔️ Access Denied: Telegram Username required.", true);
+                res.sendStatus(200);
+                return;
+            }
+
+            // Identify Venue
+            let venueSnap = await db.collection("venues").where("telegram_group_id", "==", String(chatId)).get();
+            if (venueSnap.empty) {
+                venueSnap = await db.collection("venues").where("telegramGroupId", "==", String(chatId)).get();
+            }
+            if (venueSnap.empty) {
+                venueSnap = await db.collection("venues").where("telegram_group_id", "==", Number(chatId)).get();
+            }
+            if (venueSnap.empty) {
+                venueSnap = await db.collection("venues").where("telegramGroupId", "==", Number(chatId)).get();
+            }
+
+            if (venueSnap.empty) {
+                await answerCallbackQuery(callbackQueryId, "⛔️ Error: Group chat is not linked to any venue.", true);
+                res.sendStatus(200);
+                return;
+            }
+
+            const venueDoc = venueSnap.docs[0];
+            const venueId = venueDoc.id;
+
+            // Security Check: Validate staff
+            const staffSnap = await db.collection("users")
+                .where("role", "==", "staff")
+                .where("venueId", "==", venueId)
+                .where("telegram_username", "==", username)
+                .get();
+
+            if (staffSnap.empty) {
+                await answerCallbackQuery(callbackQueryId, "⛔️ Access Denied: Your Telegram username is not registered in Revoo staff settings.", true);
+                res.sendStatus(200);
+                return;
+            }
+
+            // Handle callback types
+            if (callbackData === "POS_SHOW_HELP") {
+                const helpMsg = `📋 <b>Справка и команды бота Revoo:</b>\n\n` +
+                    `1️⃣ <b>Привязка группы</b> (для владельца):\n` +
+                    `<code>/register_venue [ID_заведения]</code>\n\n` +
+                    `2️⃣ <b>Пополнение депозита гостя</b> (для сотрудников):\n` +
+                    `<code>/deposit [телефон/email/ID] [сумма]</code>\n\n` +
+                    `3️⃣ <b>Списание депозита при визите</b>:\n` +
+                    `При визите гостя бот присылает сообщение с кнопкой перехода в личку бота для безопасного ввода суммы чека.\n\n` +
+                    `💡 <i>Важно: Юзернеймы сотрудников (@username) должны быть внесены в кабинете админа в разделе «Staff Management».</i>`;
+                await answerCallbackQuery(callbackQueryId, "Справка по командам", false);
+                await sendTelegramMessage(chatId, helpMsg);
+                res.sendStatus(200);
+                return;
+            }
+            else if (callbackData.startsWith("POS_ENTER_CHECK_")) {
+                const parts = callbackData.replace("POS_ENTER_CHECK_", "").split("_");
+                const userId = parts[0];
+                const sessionId = parts[1];
+
+                const sessionDoc = await db.collection("pos_sessions").doc(sessionId).get();
+                if (!sessionDoc.exists) {
+                    await answerCallbackQuery(callbackQueryId, "❌ Session not found.", true);
+                    res.sendStatus(200);
+                    return;
+                }
+
+                const sessionData = sessionDoc.data();
+                if (sessionData.status !== "pending") {
+                    await answerCallbackQuery(callbackQueryId, "⚠️ Check amount already entered.", true);
+                    res.sendStatus(200);
+                    return;
+                }
+
+                await db.collection("pos_sessions").doc(sessionId).update({
+                    status: "awaiting_check_amount",
+                    staffUsername: username,
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+
+                await answerCallbackQuery(callbackQueryId, "Entering check amount...", false);
+                await sendTelegramMessage(chatId, `@${fromUser.username || fromUser.first_name}, please reply with the check amount (numbers only) for customer ${sessionData.userName}:`);
+            } 
+            else if (callbackData.startsWith("POS_CONFIRM_DEBIT_")) {
+                const isMax = callbackData.startsWith("POS_CONFIRM_DEBIT_MAX_");
+                const sessionId = callbackData.replace(isMax ? "POS_CONFIRM_DEBIT_MAX_" : "POS_CONFIRM_DEBIT_", "");
+
+                const sessionDoc = await db.collection("pos_sessions").doc(sessionId).get();
+                if (!sessionDoc.exists) {
+                    await answerCallbackQuery(callbackQueryId, "❌ Session not found.", true);
+                    res.sendStatus(200);
+                    return;
+                }
+
+                const sessionData = sessionDoc.data();
+                if (sessionData.status !== "waiting_confirmation") {
+                    await answerCallbackQuery(callbackQueryId, "❌ Invalid session status.", true);
+                    res.sendStatus(200);
+                    return;
+                }
+
+                const userRef = db.collection("users").doc(sessionData.userId);
+                let finalDebitedAmount = 0;
+                let balanceAfter = 0;
+
+                try {
+                    await db.runTransaction(async (transaction) => {
+                        const userDoc = await transaction.get(userRef);
+                        if (!userDoc.exists) throw new Error("Customer profile not found.");
+
+                        const currentBalance = Number(userDoc.data().deposit_balance ?? 0);
+                        const debitAmount = isMax ? currentBalance : Number(sessionData.finalDebit);
+
+                        if (!isMax && debitAmount > currentBalance) {
+                            throw new Error("Insufficient deposit balance.");
+                        }
+
+                        finalDebitedAmount = debitAmount;
+                        balanceAfter = currentBalance - debitAmount;
+
+                        transaction.update(userRef, { deposit_balance: balanceAfter });
+
+                        const transactionRef = db.collection("deposit_transactions").doc();
+                        transaction.set(transactionRef, {
+                            id: transactionRef.id,
+                            userId: sessionData.userId,
+                            userName: sessionData.userName,
+                            venueId: sessionData.venueId,
+                            venueName: sessionData.venueName,
+                            staffTelegramUsername: username,
+                            transactionType: "DEBIT",
+                            originalCheckAmount: sessionData.checkAmount,
+                            discountPercentageApplied: sessionData.discountPercentage,
+                            discountAmountSaved: sessionData.discountAmount,
+                            finalAmount: finalDebitedAmount,
+                            balanceAfter: balanceAfter,
+                            createdAt: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                    });
+
+                    // Recalculate dynamic tier
+                    const tierInfo = await calculateUserDiscountTier(sessionData.userId, venueId);
+                    await userRef.update({ current_discount_tier: tierInfo.tierLevel });
+
+                    await answerCallbackQuery(callbackQueryId, "✅ Debit Approved!", false);
+                    await editTelegramMessage(
+                        chatId, 
+                        messageId, 
+                        `✅ <b>DEBIT APPROVED</b>\n\n👤 <b>Customer:</b> ${sessionData.userName}\n💸 <b>Debited:</b> ${finalDebitedAmount.toFixed(2)} ${sessionData.currency}\n💰 <b>Final Balance:</b> ${balanceAfter.toFixed(2)} ${sessionData.currency}\n🔥 <b>Dynamic Tier:</b> Tier ${tierInfo.tierLevel} (${tierInfo.discountPercentage}% OFF)\n👨💼 <b>Processed by:</b> @${username}`
+                    );
+
+                    await db.collection("pos_sessions").doc(sessionId).update({
+                        status: "completed",
+                        finalDebit: finalDebitedAmount,
+                        balanceAfter: balanceAfter,
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    // Notify venue group chat if transaction was done in staff DM
+                    try {
+                        const vDoc = await db.collection("venues").doc(sessionData.venueId).get();
+                        if (vDoc.exists) {
+                            const groupChatId = vDoc.data().telegram_group_id || vDoc.data().telegramGroupId;
+                            if (groupChatId && String(groupChatId) !== String(chatId)) {
+                                const groupReport = `✅ <b>[СПИСАНИЕ ДЕПОЗИТА ПРОВЕДЕНО]</b>\n\n👤 <b>Гость:</b> ${sessionData.userName}\n💸 <b>Списано с депозита:</b> ${finalDebitedAmount.toFixed(2)} ${sessionData.currency}\n💰 <b>Остаток депозита:</b> ${balanceAfter.toFixed(2)} ${sessionData.currency}\n👨💼 <b>Сотрудник:</b> @${username}`;
+                                await sendTelegramMessage(groupChatId, groupReport);
+                            }
+                        }
+                    } catch (grpErr) {
+                        logger.error("Error sending debit report to group chat:", grpErr);
+                    }
+                } catch (txErr) {
+                    logger.error("POS transaction failed", txErr);
+                    await answerCallbackQuery(callbackQueryId, `❌ Transaction Failed: ${txErr.message}`, true);
+                }
+            } 
+            else if (callbackData.startsWith("POS_CANCEL_DEBIT_")) {
+                const sessionId = callbackData.replace("POS_CANCEL_DEBIT_", "");
+
+                await db.collection("pos_sessions").doc(sessionId).update({
+                    status: "cancelled",
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+
+                await answerCallbackQuery(callbackQueryId, "Transaction cancelled.", false);
+                await editTelegramMessage(chatId, messageId, `❌ <b>TRANSACTION CANCELLED</b>\n\n👨💼 <b>Processed by:</b> @${username}`);
+            }
+
+            res.sendStatus(200);
+            return;
+        }
+
+        // Automatic welcome message when bot is added to a group
+        if (update.message && update.message.new_chat_members) {
+            const welcomeMsg = `👋 <b>Добро пожаловать в бот лояльности Revoo!</b>\n\n` +
+                `Чтобы привязать эту группу к вашему заведению, отправьте команду:\n` +
+                `• <code>/register_venue [ID_заведения]</code>\n\n` +
+                `<i>ID заведения вы можете скопировать в кабинете администратора.</i>`;
+            const keyboard = {
+                inline_keyboard: [
+                    [
+                        { text: "❓ Справка по командам", callback_data: "POS_SHOW_HELP" }
+                    ]
+                ]
+            };
+            await sendTelegramMessageWithKeyboard(update.message.chat.id, welcomeMsg, keyboard);
+            res.sendStatus(200);
+            return;
+        }
+
         if (!update.message || !update.message.text) {
-            res.sendStatus(200); // Just acknowledge
+            res.sendStatus(200);
             return;
         }
 
         const text = update.message.text;
         const chatId = update.message.chat.id;
+        const fromUser = update.message.from;
+        const username = (fromUser.username || "").toLowerCase();
 
-        // COMMAND: /start <uid> OR /start auth_{code}
-        // Example: /start 7u4h5j3k2... OR /start auth_123456
+        // 2a. COMMAND: /start
         if (text.startsWith("/start")) {
             const parts = text.split(" ");
             if (parts.length > 1) {
                 const param = parts[1].trim();
 
-                if (param.startsWith("auth_")) {
-                    // LINKING FLOW
+                if (param.startsWith("debit_")) {
+                    const sessionId = param.replace("debit_", "").trim();
+                    const sessionDoc = await db.collection("pos_sessions").doc(sessionId).get();
+                    if (!sessionDoc.exists) {
+                        await sendTelegramMessage(chatId, "❌ Сессия списания не найдена.");
+                        res.sendStatus(200);
+                        return;
+                    }
+                    const sessionData = sessionDoc.data();
+                    if (sessionData.status !== "pending" && sessionData.status !== "awaiting_check_amount") {
+                        await sendTelegramMessage(chatId, "⚠️ Сумма чека для этой сессии уже введена или обработана.");
+                        res.sendStatus(200);
+                        return;
+                    }
+
+                    await db.collection("pos_sessions").doc(sessionId).update({
+                        status: "awaiting_check_amount",
+                        staffChatId: chatId,
+                        staffUsername: username || "staff",
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    const promptMsg = `💰 <b>Списание депозита клиента</b>\n\n👤 <b>Гость:</b> ${sessionData.userName}\n💳 <b>Баланс депозита:</b> ${sessionData.depositBalance.toFixed(2)} ${sessionData.currency}\n🔥 <b>Скидка:</b> ${sessionData.discountPercentage}%\n\nПожалуйста, введите сумму чека (только цифры):`;
+                    await sendTelegramMessage(chatId, promptMsg);
+                    res.sendStatus(200);
+                    return;
+                } else if (param.startsWith("auth_")) {
                     const code = param.split("_")[1];
                     const codeDoc = await db.collection("telegram_codes").doc(code).get();
 
@@ -471,7 +1291,6 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                         if (Date.now() > expiresAt) {
                             await sendTelegramMessage(chatId, "❌ Code expired. Please generate a new one.");
                         } else {
-                            // Link User
                             await db.collection("users").doc(uid).set({
                                 telegramChatId: chatId,
                                 telegramUsername: update.message.chat.username || "Unknown",
@@ -479,7 +1298,6 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                                 lastSeen: new Date().toISOString()
                             }, { merge: true });
 
-                            // Cleanup
                             await db.collection("telegram_codes").doc(code).delete();
                             await sendTelegramMessage(chatId, "✅ Account Linked! You will now receive notifications here.");
                             logger.info(`Linked telegram chat ${chatId} to user ${uid} via auth code.`);
@@ -488,9 +1306,7 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                         await sendTelegramMessage(chatId, "❌ Invalid code.");
                     }
                 } else {
-                    // LEGACY UID CONNECTION (Keep for backward compatibility if needed)
                     const uid = param;
-                    // 1. Link Chat ID to User in Firestore
                     const userRef = db.collection("users").doc(uid);
                     await userRef.set({
                         telegramChatId: chatId,
@@ -498,17 +1314,17 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                         lastSeen: new Date().toISOString()
                     }, { merge: true });
 
-                    // 2. Send Welcome Message
                     await sendTelegramMessage(chatId, "✅ You are now connected! I'll send your discounts here.");
                     logger.info(`Linked telegram chat ${chatId} to user ${uid}`);
                 }
             } else {
                 await sendTelegramMessage(chatId, "👋 Hello! Please connect via the FriendlyCode app.");
             }
+            res.sendStatus(200);
+            return;
         }
 
-        // COMMAND: /register_venue <venue_id>
-        // Used by Business Owners to link a Group Chat to their Venue
+        // 2b. COMMAND: /register_venue
         if (text.startsWith("/register_venue")) {
             const parts = text.split(" ");
             if (parts.length > 1) {
@@ -517,14 +1333,252 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                 const venueDoc = await venueRef.get();
 
                 if (venueDoc.exists) {
-                    await venueRef.update({ telegramGroupId: chatId });
-                    await sendTelegramMessage(chatId, `✅ **Success!**\n\nThis group is now linked to **${venueDoc.data().name}**.\nWe will notify you here when new guests scan.`);
+                    await venueRef.update({ 
+                        telegramGroupId: String(chatId),
+                        telegram_group_id: String(chatId)
+                    });
+                    
+                    const successMessage = `✅ <b>Группа успешно привязана к заведению: ${venueDoc.data().name}</b>!\n\n` +
+                        `📋 <b>Доступные команды бота:</b>\n` +
+                        `• <code>/deposit [телефон/email/ID] [сумма]</code> — Пополнить баланс депозита гостя.\n` +
+                        `• <code>/register_venue [ID_заведения]</code> — Перепривязать группу к другому заведению.\n` +
+                        `• <code>/help</code> — Показать список доступных команд.\n\n` +
+                        `🔔 Бот будет автоматически присылать уведомления в эту группу при каждом сканировании гостей, предлагая сотрудникам ввести сумму чека для применения скидки.`;
+                    
+                    await sendTelegramMessage(chatId, successMessage);
                     logger.info(`Linked Telegram Group ${chatId} to Venue ${venueId}`);
                 } else {
-                    await sendTelegramMessage(chatId, `❌ **Error:** Venue ID not found.\nPlease check the ID and try again.`);
+                    await sendTelegramMessage(chatId, `❌ <b>Error:</b> Venue ID not found.\nPlease check the ID and try again.`);
                 }
             } else {
                 await sendTelegramMessage(chatId, "⚠️ Usage: `/register_venue <VENUE_ID>`");
+            }
+            res.sendStatus(200);
+            return;
+        }
+
+        // 2e. COMMAND: /help
+        if (text.startsWith("/help")) {
+            const helpMessage = `📋 <b>Доступные команды бота Revoo:</b>\n\n` +
+                `• <code>/deposit [телефон/email/ID_гостя] [сумма]</code> — Пополнить баланс депозита гостя (доступно сотрудникам заведения).\n` +
+                `• <code>/register_venue [ID_заведения]</code> — Привязать текущую группу к заведению (доступно владельцам).\n` +
+                `• <code>/help</code> — Показать эту справку.\n\n` +
+                `🔔 При каждом сканировании QR-кода гостем, бот пришлет уведомление с кнопкой для ввода суммы чека сотрудником.`;
+            await sendTelegramMessage(chatId, helpMessage);
+            res.sendStatus(200);
+            return;
+        }
+
+        // Identify Venue for this chat
+        let venueSnap = await db.collection("venues").where("telegram_group_id", "==", String(chatId)).get();
+        if (venueSnap.empty) {
+            venueSnap = await db.collection("venues").where("telegramGroupId", "==", String(chatId)).get();
+        }
+        if (venueSnap.empty) {
+            venueSnap = await db.collection("venues").where("telegram_group_id", "==", Number(chatId)).get();
+        }
+        if (venueSnap.empty) {
+            venueSnap = await db.collection("venues").where("telegramGroupId", "==", Number(chatId)).get();
+        }
+
+        const isVenueGroup = !venueSnap.empty;
+        const venueDoc = isVenueGroup ? venueSnap.docs[0] : null;
+        const venueId = venueDoc ? venueDoc.id : null;
+
+        // 2c. COMMAND: /deposit
+        if (text.startsWith("/deposit")) {
+            if (!isVenueGroup) {
+                await sendTelegramMessage(chatId, "⚠️ Error: This group chat is not linked to any venue.");
+                res.sendStatus(200);
+                return;
+            }
+
+            if (!username) {
+                await sendTelegramMessage(chatId, "⛔️ Access Denied: Telegram username required.");
+                res.sendStatus(200);
+                return;
+            }
+
+            // Security Check
+            const staffSnap = await db.collection("users")
+                .where("role", "==", "staff")
+                .where("venueId", "==", venueId)
+                .where("telegram_username", "==", username)
+                .get();
+
+            if (staffSnap.empty) {
+                await sendTelegramMessage(chatId, "⛔️ Access Denied: Your Telegram username is not registered in Revoo staff settings.");
+                res.sendStatus(200);
+                return;
+            }
+
+            const parts = text.split(" ");
+            if (parts.length < 3) {
+                await sendTelegramMessage(chatId, "⚠️ Usage: `/deposit [phone_or_email_or_uid] [amount]`");
+                res.sendStatus(200);
+                return;
+            }
+
+            const target = parts[1].trim();
+            const amount = parseFloat(parts[2].trim());
+
+            if (isNaN(amount) || amount <= 0) {
+                await sendTelegramMessage(chatId, "⚠️ Invalid amount. Must be a positive number.");
+                res.sendStatus(200);
+                return;
+            }
+
+            // Find User
+            let userSnap = await db.collection("users").where("email", "==", target.toLowerCase()).get();
+            if (userSnap.empty) {
+                userSnap = await db.collection("users").where("phone", "==", target).get();
+            }
+            if (userSnap.empty) {
+                userSnap = await db.collection("users").where("contactInfo", "==", target).get();
+            }
+            if (userSnap.empty) {
+                userSnap = await db.collection("users").where("displayName", "==", target).get();
+            }
+
+            let userRef = null;
+            let userData = null;
+
+            if (!userSnap.empty) {
+                userRef = userSnap.docs[0].ref;
+                userData = userSnap.docs[0].data();
+            } else {
+                // Try direct doc ref
+                const directDoc = await db.collection("users").doc(target).get();
+                if (directDoc.exists) {
+                    userRef = directDoc.ref;
+                    userData = directDoc.data();
+                }
+            }
+
+            if (!userRef) {
+                await sendTelegramMessage(chatId, `❌ Customer "${target}" not found. Ensure they have signed in and registered.`);
+                res.sendStatus(200);
+                return;
+            }
+
+            let newBalance = 0;
+            await db.runTransaction(async (transaction) => {
+                const currentDoc = await transaction.get(userRef);
+                const currentBalance = Number(currentDoc.data().deposit_balance ?? 0);
+                newBalance = currentBalance + amount;
+
+                transaction.update(userRef, { deposit_balance: newBalance });
+
+                const transactionRef = db.collection("deposit_transactions").doc();
+                transaction.set(transactionRef, {
+                    id: transactionRef.id,
+                    userId: userRef.id,
+                    userName: userData.displayName || userData.name || "Guest",
+                    venueId,
+                    venueName: venueDoc.data().name || "Venue",
+                    staffTelegramUsername: username,
+                    transactionType: "CREDIT",
+                    finalAmount: amount,
+                    balanceAfter: newBalance,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+            });
+
+            // Recalculate dynamic tier
+            const tierInfo = await calculateUserDiscountTier(userRef.id, venueId);
+            await userRef.update({ current_discount_tier: tierInfo.tierLevel });
+
+            await sendTelegramMessage(
+                chatId,
+                `💰 <b>[DEPOSIT SUCCESSFUL]</b>\n\n👤 <b>Customer:</b> ${userData.displayName || userData.name || "Guest"}\n📥 <b>Credited:</b> ${amount.toFixed(2)} ${venueDoc.data().currency || "VND"}\n💳 <b>New Balance:</b> ${newBalance.toFixed(2)} ${venueDoc.data().currency || "VND"}\n🔥 <b>Current Tier:</b> Tier ${tierInfo.tierLevel} (${tierInfo.discountPercentage}% OFF)`
+            );
+            res.sendStatus(200);
+            return;
+        }
+
+        // 2d. NUMERIC CHECK AMOUNT INPUT REPLIES
+        const numericVal = parseFloat(text.trim());
+        if (username && !isNaN(numericVal) && numericVal > 0) {
+            // Find active session awaiting check amount
+            let activeSessionSnap = await db.collection("pos_sessions")
+                .where("status", "==", "awaiting_check_amount")
+                .where("staffChatId", "==", chatId)
+                .orderBy("updatedAt", "desc")
+                .limit(1)
+                .get();
+
+            if (activeSessionSnap.empty) {
+                activeSessionSnap = await db.collection("pos_sessions")
+                    .where("status", "==", "awaiting_check_amount")
+                    .where("staffUsername", "==", username)
+                    .orderBy("updatedAt", "desc")
+                    .limit(1)
+                    .get();
+            }
+
+            if (!activeSessionSnap.empty) {
+                const sessionDoc = activeSessionSnap.docs[0];
+                const sessionData = sessionDoc.data();
+                const checkAmount = numericVal;
+
+                const discountAmount = checkAmount * (sessionData.discountPercentage / 100);
+                const finalDebit = checkAmount - discountAmount;
+
+                const roundedDiscountAmount = Math.round(discountAmount * 100) / 100;
+                const roundedFinalDebit = Math.round(finalDebit * 100) / 100;
+
+                // Check balance
+                const customerDoc = await db.collection("users").doc(sessionData.userId).get();
+                const customerBalance = Number(customerDoc.data().deposit_balance ?? 0);
+
+                if (roundedFinalDebit > customerBalance) {
+                    const diff = roundedFinalDebit - customerBalance;
+                    const warnMessage = `⚠️ <b>Недостаточно депозита!</b>\n\n👤 <b>Гость:</b> ${sessionData.userName}\n• Сумма чека: ${checkAmount.toFixed(2)} ${sessionData.currency}\n• Скидка (${sessionData.discountPercentage}%): -${roundedDiscountAmount.toFixed(2)} ${sessionData.currency}\n• К списанию с депозита: ${roundedFinalDebit.toFixed(2)} ${sessionData.currency}\n💳 Текущий баланс: ${customerBalance.toFixed(2)} ${sessionData.currency}\n❌ Не хватает: ${diff.toFixed(2)} ${sessionData.currency}\n\nСписать максимальный остаток баланса (${customerBalance.toFixed(2)} ${sessionData.currency}) или отменить?`;
+                    
+                    const keyboard = {
+                        inline_keyboard: [
+                            [
+                                { text: "✅ Списать весь баланс", callback_data: `POS_CONFIRM_DEBIT_MAX_${sessionDoc.id}` },
+                                { text: "❌ Отмена", callback_data: `POS_CANCEL_DEBIT_${sessionDoc.id}` }
+                            ]
+                        ]
+                    };
+
+                    await db.collection("pos_sessions").doc(sessionDoc.id).update({
+                        status: "waiting_confirmation",
+                        checkAmount: checkAmount,
+                        discountAmount: customerBalance * (sessionData.discountPercentage / 100),
+                        finalDebit: customerBalance,
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    await sendTelegramMessageWithKeyboard(chatId, warnMessage, keyboard);
+                    res.sendStatus(200);
+                    return;
+                } else {
+                    const confirmMessage = `🧾 <b>ПОДТВЕРЖДЕНИЕ СПИСАНИЯ</b>\n\n👤 <b>Гость:</b> ${sessionData.userName}\n• Сумма чека: ${checkAmount.toFixed(2)} ${sessionData.currency}\n• Скидка (${sessionData.discountPercentage}%): -${roundedDiscountAmount.toFixed(2)} ${sessionData.currency}\n• <b>К СПИСАНИЮ:</b> ${roundedFinalDebit.toFixed(2)} ${sessionData.currency}\n💰 <b>Остаток депозита:</b> ${(customerBalance - roundedFinalDebit).toFixed(2)} ${sessionData.currency}\n👨💼 <b>Сотрудник:</b> @${username}`;
+                    
+                    const keyboard = {
+                        inline_keyboard: [
+                            [
+                                { text: "✅ Подтвердить списание", callback_data: `POS_CONFIRM_DEBIT_${sessionDoc.id}` },
+                                { text: "❌ Отменить", callback_data: `POS_CANCEL_DEBIT_${sessionDoc.id}` }
+                            ]
+                        ]
+                    };
+
+                    await db.collection("pos_sessions").doc(sessionDoc.id).update({
+                        status: "waiting_confirmation",
+                        checkAmount: checkAmount,
+                        discountAmount: roundedDiscountAmount,
+                        finalDebit: roundedFinalDebit,
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    await sendTelegramMessageWithKeyboard(chatId, confirmMessage, keyboard);
+                    res.sendStatus(200);
+                    return;
+                }
             }
         }
 
@@ -534,6 +1588,7 @@ exports.telegramWebhook = onRequest(async (req, res) => {
         res.sendStatus(500);
     }
 });
+
 
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 
@@ -685,7 +1740,6 @@ exports.sendBulkCampaign = onCall(async (request) => {
         throw new HttpsError("unauthenticated", "User must be logged in.");
     }
 
-    // Check if user is admin or superadmin
     const userDoc = await db.collection("users").doc(uid).get();
     const role = userDoc.exists ? userDoc.data().role : "";
     if (role !== "admin" && role !== "superadmin" && role !== "owner") {
@@ -697,20 +1751,35 @@ exports.sendBulkCampaign = onCall(async (request) => {
             .where("isUnsubscribed", "!=", true)
             .get();
 
-        const recipients = usersSnapshot.docs
-            .map(doc => ({
-                email: doc.data().email,
-                name: doc.data().name || "Guest"
-            }))
-            .filter(r => r.email);
+        const recipients = usersSnapshot.docs.map(doc => ({
+            id: doc.id,
+            email: doc.data().email,
+            telegramChatId: doc.data().telegramChatId || doc.data().telegram_chat_id,
+            name: doc.data().displayName || doc.data().name || "Guest"
+        }));
 
+        let sentEmailCount = 0;
+        let sentTelegramCount = 0;
+
+        // 1. Telegram Dual-Channel Broadcast
+        const tgRecipients = recipients.filter(r => r.telegramChatId);
+        for (const r of tgRecipients) {
+            try {
+                const tgMsg = `📣 <b>${title}</b>\n\n${text}${actionLink ? `\n\n🔗 <a href="${actionLink}">Подробнее / Learn More</a>` : ''}`;
+                await sendTelegramMessage(r.telegramChatId, tgMsg);
+                sentTelegramCount++;
+            } catch (tgErr) {
+                logger.warn(`Telegram bulk broadcast error for chatId ${r.telegramChatId}:`, tgErr);
+            }
+        }
+
+        // 2. Email Dual-Channel Broadcast
+        const emailRecipients = recipients.filter(r => r.email);
         const batchSize = 100;
-        let sentCount = 0;
 
-        for (let i = 0; i < recipients.length; i += batchSize) {
-            const batch = recipients.slice(i, i + batchSize);
+        for (let i = 0; i < emailRecipients.length; i += batchSize) {
+            const batch = emailRecipients.slice(i, i + batchSize);
 
-            // Map each recipient to an individual email for Resend Batch
             const emailRequests = batch.map(r => ({
                 from: "Friendly Code <no-reply@friendlycode.fun>",
                 to: [r.email],
@@ -745,18 +1814,12 @@ exports.sendBulkCampaign = onCall(async (request) => {
             const { data, error } = await resend.batch.send(emailRequests);
             if (error) {
                 logger.error("Batch send error", error);
-                // Log partial failure
-                await db.collection("email_logs").add({
-                    type: "bulk_campaign_error",
-                    error: error.message,
-                    timestamp: admin.firestore.FieldValue.serverTimestamp()
-                });
             } else {
-                sentCount += batch.length;
+                sentEmailCount += batch.length;
             }
         }
 
-        // Save campaign record with results
+        // Save campaign record with dual channel results
         await db.collection("campaigns").add({
             title,
             text,
@@ -764,17 +1827,19 @@ exports.sendBulkCampaign = onCall(async (request) => {
             actionLink,
             sentAt: admin.firestore.FieldValue.serverTimestamp(),
             recipientsCount: recipients.length,
-            successCount: sentCount
+            successEmailCount: sentEmailCount,
+            successTelegramCount: sentTelegramCount,
+            totalSuccessCount: sentEmailCount + sentTelegramCount
         });
 
-        return { status: "success", count: sentCount };
+        return { 
+            status: "success", 
+            emailCount: sentEmailCount, 
+            telegramCount: sentTelegramCount, 
+            totalCount: sentEmailCount + sentTelegramCount 
+        };
     } catch (err) {
         logger.error("Bulk campaign failed", err);
-        await db.collection("email_logs").add({
-            type: "bulk_campaign_fatal",
-            error: err.message,
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
-        });
         throw new HttpsError("internal", err.message);
     }
 });
@@ -791,6 +1856,47 @@ async function sendTelegramMessage(chatId, text) {
         body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'HTML' })
     });
 }
+
+/**
+ * Helper to send Telegram Messages with Keyboard
+ */
+async function sendTelegramMessageWithKeyboard(chatId, text, keyboard) {
+    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+    await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'HTML', reply_markup: keyboard })
+    });
+}
+
+/**
+ * Helper to edit Telegram Messages
+ */
+async function editTelegramMessage(chatId, messageId, text, keyboard = null) {
+    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/editMessageText`;
+    const body = { chat_id: chatId, message_id: messageId, text: text, parse_mode: 'HTML' };
+    if (keyboard) {
+        body.reply_markup = keyboard;
+    }
+    await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+}
+
+/**
+ * Helper to answer callback queries
+ */
+async function answerCallbackQuery(callbackQueryId, text, showAlert = false) {
+    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/answerCallbackQuery`;
+    await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ callback_query_id: callbackQueryId, text: text, show_alert: showAlert })
+    });
+}
+
 
 /**
  * SuperAdmin Notification: New User Registration
@@ -944,36 +2050,96 @@ exports.discountDecayReminder = onSchedule({
                 const sortedTiers = tiers.map(t => t.discountPercent).sort((a, b) => b - a);
                 const nextTier = sortedTiers.length > 1 ? sortedTiers[1] : 15;
 
-                // Send Reminder Email
-                const html = `
-                    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: auto; padding: 40px; background-color: #FFF8E1; border-radius: 24px; color: #4E342E; text-align: center;">
-                        <span style="font-size: 40px; display: block; margin-bottom: 10px;">⏳</span>
-                        <h1 style="font-size: 24px; font-weight: 900; margin-bottom: 20px; color: #D32F2F;">Your maximum discount is expiring soon!</h1>
-                        <p style="font-size: 16px; line-height: 1.6; margin-bottom: 30px;">
-                            Dear <strong>${candidate.guestName}</strong>,<br/>
-                            Your <strong>${maxTier}%</strong> discount at <strong>${venueName}</strong> is only valid until the end of today!
-                        </p>
-                        <div style="background: #ffffff; padding: 30px; border-radius: 20px; border: 1px solid rgba(78, 52, 46, 0.1); margin-bottom: 30px;">
-                            <p style="font-size: 16px; margin-bottom: 15px; color: #795548; font-weight: bold;">Exactly at midnight, it will drop to:</p>
-                            <span style="font-size: 56px; font-weight: 900; color: #E68A00; line-height: 1;">${nextTier}%</span>
+                // Detect Venue Language (defaulting to venue's setting or English)
+                const lang = (venueData.language || venueData.locale || 'ru').toLowerCase();
+                
+                let subject = `⚠️ Твоя скидка ${maxTier}% в ${venueName} сгорит завтра! ☕✨`;
+                let bodyHtml = '';
+
+                if (lang.startsWith('vi')) {
+                    subject = `⚠️ Ưu đãi ${maxTier}% tại ${venueName} sẽ giảm vào ngày mai! 🏃‍♂️`;
+                    bodyHtml = `
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: auto; padding: 36px; background-color: #000000; border-radius: 28px; color: #FFFFFF; text-align: center; border: 1px solid #333;">
+                            <span style="font-size: 48px; display: block; margin-bottom: 12px;">☕✨</span>
+                            <h1 style="font-size: 26px; font-weight: 900; margin-bottom: 16px; color: #FFD700;">Ưu đãi VIP của bạn sắp hết hạn!</h1>
+                            <p style="font-size: 16px; line-height: 1.6; margin-bottom: 24px; color: #CCCCCC;">
+                                Chào <strong>${candidate.guestName}</strong>! Mức giảm giá <strong>${maxTier}%</strong> tại <strong>${venueName}</strong> sẽ giảm xuống <strong>${nextTier}%</strong> vào ngày mai!
+                            </p>
+                            <div style="background: rgba(255, 215, 0, 0.1); padding: 24px; border-radius: 20px; border: 1px solid rgba(255, 215, 0, 0.3); margin-bottom: 24px;">
+                                <p style="font-size: 14px; margin-bottom: 8px; color: #AAAAAA; text-transform: uppercase; font-weight: bold;">Ngày mai sẽ giảm còn:</p>
+                                <span style="font-size: 52px; font-weight: 900; color: #00FF41; line-height: 1;">${nextTier}%</span>
+                            </div>
+                            <p style="font-size: 15px; font-weight: 700; color: #FFFFFF; background-color: #1C1C1E; padding: 18px; border-radius: 16px;">
+                                🏃‍♂️ Ghé thăm chúng tôi hôm nay để gia hạn mức giảm giá tối đa nhé! 😉☕
+                            </p>
                         </div>
-                        <p style="font-size: 16px; font-weight: 600; color: #4E342E; background-color: rgba(230, 138, 0, 0.1); padding: 20px; border-radius: 12px;">
-                            🏃‍♂️ Make sure to visit us today to reset your timer and keep your maximum discount! 😉✨
-                        </p>
-                    </div>
-                `;
+                    `;
+                } else if (lang.startsWith('en')) {
+                    subject = `⚠️ Your ${maxTier}% perk at ${venueName} cools down tomorrow! ☕✨`;
+                    bodyHtml = `
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: auto; padding: 36px; background-color: #000000; border-radius: 28px; color: #FFFFFF; text-align: center; border: 1px solid #333;">
+                            <span style="font-size: 48px; display: block; margin-bottom: 12px;">☕✨</span>
+                            <h1 style="font-size: 26px; font-weight: 900; margin-bottom: 16px; color: #FFD700;">Your VIP Discount is Expiring!</h1>
+                            <p style="font-size: 16px; line-height: 1.6; margin-bottom: 24px; color: #CCCCCC;">
+                                Hey <strong>${candidate.guestName}</strong>! Your <strong>${maxTier}%</strong> discount at <strong>${venueName}</strong> drops to <strong>${nextTier}%</strong> tomorrow!
+                            </p>
+                            <div style="background: rgba(255, 215, 0, 0.1); padding: 24px; border-radius: 20px; border: 1px solid rgba(255, 215, 0, 0.3); margin-bottom: 24px;">
+                                <p style="font-size: 14px; margin-bottom: 8px; color: #AAAAAA; text-transform: uppercase; font-weight: bold;">Tomorrow it drops to:</p>
+                                <span style="font-size: 52px; font-weight: 900; color: #00FF41; line-height: 1;">${nextTier}%</span>
+                            </div>
+                            <p style="font-size: 15px; font-weight: 700; color: #FFFFFF; background-color: #1C1C1E; padding: 18px; border-radius: 16px;">
+                                🏃‍♂️ Pop in today to keep your maximum discount alive! 😉☕
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    // Default Russian (Friendly light tone)
+                    bodyHtml = `
+                        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: auto; padding: 36px; background-color: #000000; border-radius: 28px; color: #FFFFFF; text-align: center; border: 1px solid #333;">
+                            <span style="font-size: 48px; display: block; margin-bottom: 12px;">☕✨</span>
+                            <h1 style="font-size: 26px; font-weight: 900; margin-bottom: 16px; color: #FFD700;">Твоя VIP-скидка скучает!</h1>
+                            <p style="font-size: 16px; line-height: 1.6; margin-bottom: 24px; color: #CCCCCC;">
+                                Привет, <strong>${candidate.guestName}</strong>! Напоминаем, что твоя максимальная скидка <strong>${maxTier}%</strong> в <strong>${venueName}</strong> уже завтра станет <strong>${nextTier}%</strong>!
+                            </p>
+                            <div style="background: rgba(212, 175, 55, 0.15); padding: 24px; border-radius: 20px; border: 1px solid rgba(212, 175, 55, 0.4); margin-bottom: 24px;">
+                                <p style="font-size: 13px; margin-bottom: 8px; color: #AAAAAA; text-transform: uppercase; font-weight: bold; letter-spacing: 1px;">Завтра сумма скидки станет:</p>
+                                <span style="font-size: 52px; font-weight: 900; color: #00FF41; line-height: 1;">${nextTier}%</span>
+                            </div>
+                            <p style="font-size: 15px; font-weight: 700; color: #FFFFFF; background-color: #1C1C1E; padding: 18px; border-radius: 16px;">
+                                🏃‍♂️ Забегай к нам сегодня на чашечку кофе или обед, чтобы мгновенно обнулить таймер и сохранить максимум! 😉☕💛
+                            </p>
+                        </div>
+                    `;
+                }
 
                 const { error } = await resend.emails.send({
                     from: "Friendly Code <no-reply@friendlycode.fun>",
                     to: [candidate.email],
-                    subject: `⚠️ Your ${maxTier}% discount at ${venueName} expires today!`,
-                    html: html
+                    subject: subject,
+                    html: bodyHtml
                 });
 
                 if (error) {
                     logger.error("Resend reminder error:", error);
                 } else {
                     logger.info(`Sent discount drop reminder to ${candidate.email} for venue ${candidate.venueId}`);
+                }
+
+                // Send Telegram DM alert if candidate has Telegram connected
+                try {
+                    let guestChatId = null;
+                    const uSnap = await db.collection("users").where("email", "==", candidate.email.toLowerCase()).limit(1).get();
+                    if (!uSnap.empty) {
+                        guestChatId = uSnap.docs[0].data().telegramChatId || uSnap.docs[0].data().telegram_chat_id;
+                    }
+                    if (guestChatId) {
+                        const tgDecayMsg = `⚠️ <b>Твоя скидка ${maxTier}% в ${venueName} сгорит завтра!</b> ☕✨\n\n` +
+                            `Привет, <b>${candidate.guestName}</b>! Твоя максимальная скидка ${maxTier}% в ${venueName} уже завтра станет <b>${nextTier}%</b>.\n\n` +
+                            `🏃‍♂️ Забегай к нам сегодня, чтобы обнулить таймер и сохранить максимум! 😉☕`;
+                        await sendTelegramMessage(guestChatId, tgDecayMsg).catch(e => logger.warn("Telegram decay alert error:", e));
+                    }
+                } catch (tgDecayErr) {
+                    logger.warn("Error sending Telegram discount decay alert:", tgDecayErr);
                 }
             }
         }
@@ -1054,5 +2220,295 @@ exports.subscriptionExpiryReminder = onSchedule({
         }
     } catch (err) {
         logger.error("Error in subscriptionExpiryReminder: ", err);
+    }
+});
+
+/**
+ * Endpoint to authorize a MAC address for captive Wi-Fi gateway.
+ */
+exports.wifiAuthorize = onRequest(async (req, res) => {
+    // Enable CORS
+    res.set("Access-Control-Allow-Origin", "*");
+    if (req.method === "OPTIONS") {
+        res.set("Access-Control-Allow-Methods", "POST");
+        res.set("Access-Control-Allow-Headers", "Content-Type");
+        res.status(204).send("");
+        return;
+    }
+
+    if (req.method !== "POST") {
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+
+    const { mac, venueId, discount } = req.body || {};
+
+    if (!mac || !venueId) {
+        res.status(400).send("Missing required parameters: mac and venueId");
+        return;
+    }
+
+    try {
+        await db.collection("wifi_authorizations").add({
+            mac,
+            venueId,
+            discount: discount || 5,
+            authorizedAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: "active"
+        });
+
+        logger.info(`MAC address ${mac} authorized for venue ${venueId}`);
+
+        res.status(200).json({
+            success: true,
+            message: `Device ${mac} authorized for VIP Wi-Fi access.`
+        });
+    } catch (e) {
+        logger.error("Error authorizing Wi-Fi client:", e);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+/**
+ * GET API endpoint: /api/user/hotspots-map
+ * Calculates personalized discount mapping and Wi-Fi speed specs for map markers.
+ */
+exports.hotspotsMap = onRequest(async (req, res) => {
+    // Enable CORS
+    res.set("Access-Control-Allow-Origin", "*");
+    if (req.method === "OPTIONS") {
+        res.set("Access-Control-Allow-Methods", "GET");
+        res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+        res.status(204).send("");
+        return;
+    }
+
+    if (req.method !== "GET") {
+        res.status(405).send("Method Not Allowed");
+        return;
+    }
+
+    let userId = null;
+    let userEmail = null;
+    let depositBalance = 0;
+
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+        const token = authHeader.split("Bearer ")[1];
+        try {
+            const decodedToken = await admin.auth().verifyIdToken(token);
+            userId = decodedToken.uid;
+            
+            // Fetch user doc
+            const userDoc = await db.collection("users").doc(userId).get();
+            if (userDoc.exists) {
+                const userData = userDoc.data();
+                userEmail = userData.email;
+                depositBalance = Number(userData.deposit_balance ?? 0);
+            }
+        } catch (e) {
+            logger.error("Error verifying ID token:", e);
+        }
+    }
+
+    try {
+        const venuesSnapshot = await db.collection("venues").where("isActive", "==", true).get();
+        const results = [];
+
+        for (const venueDoc of venuesSnapshot.docs) {
+            const venueId = venueDoc.id;
+            const venueData = venueDoc.data();
+            
+            const latitude = venueData.latitude;
+            const longitude = venueData.longitude;
+            if (latitude === undefined || longitude === undefined || latitude === null || longitude === null) {
+                continue;
+            }
+
+            let userDiscount = 5;
+            let tierLevel = 4;
+
+            if (userId) {
+                if (depositBalance > 0) {
+                    const tiersSnapshot = await db.collection("deposit_tiers")
+                        .where("venueId", "==", venueId)
+                        .orderBy("minBalanceThreshold", "desc")
+                        .get();
+                    let matched = false;
+                    tiersSnapshot.forEach(doc => {
+                        if (!matched) {
+                            const tier = doc.data();
+                            if (depositBalance >= (tier.minBalanceThreshold ?? 0)) {
+                                userDiscount = tier.discountPercentage ?? 5;
+                                tierLevel = tier.tierLevel ?? 4;
+                                matched = true;
+                            }
+                        }
+                    });
+                }
+
+                if (depositBalance <= 0 && userEmail) {
+                    const visitsSnapshot = await db.collection("visits")
+                        .where("guestEmail", "==", userEmail)
+                        .where("venueId", "==", venueId)
+                        .orderBy("timestamp", "desc")
+                        .limit(10)
+                        .get();
+
+                    if (!visitsSnapshot.empty) {
+                        const visits = [];
+                        visitsSnapshot.forEach(doc => {
+                            const data = doc.data();
+                            if (data.timestamp) {
+                                visits.push(data.timestamp.toDate());
+                            }
+                        });
+                        
+                        visits.sort((a, b) => b - a);
+                        const lastVisit = visits[0];
+                        const diffTime = Math.abs(Date.now() - lastVisit.getTime());
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        const config = venueData.loyaltyConfig || {};
+                        const vipWindowDays = config.vipWindowDays ?? 2;
+                        const decayStages = config.decayStages || [
+                            { days: 3, discount: 15 },
+                            { days: 10, discount: 10 }
+                        ];
+                        const percBase = config.percBase ?? 5;
+                        const percVip = config.percVip ?? 20;
+
+                        if (diffDays <= vipWindowDays) {
+                            userDiscount = percVip;
+                            tierLevel = 1;
+                        } else {
+                            let decayMatched = false;
+                            const sortedStages = [...decayStages].sort((a, b) => a.days - b.days);
+                            for (const stage of sortedStages) {
+                                if (diffDays <= stage.days) {
+                                    userDiscount = stage.discount;
+                                    if (stage.discount >= 15) {
+                                        tierLevel = 2;
+                                    } else if (stage.discount >= 10) {
+                                        tierLevel = 3;
+                                    } else {
+                                        tierLevel = 4;
+                                    }
+                                    decayMatched = true;
+                                    break;
+                                }
+                            }
+                            if (!decayMatched) {
+                                userDiscount = percBase;
+                                tierLevel = 4;
+                            }
+                        }
+                    }
+                }
+            }
+
+            results.push({
+                venue_id: venueId,
+                name: venueData.name || "",
+                latitude: Number(latitude),
+                longitude: Number(longitude),
+                wifi_speed_mbps: Number(venueData.wifi_speed_mbps ?? 100),
+                user_discount_percentage: Number(userDiscount),
+                tier_level: Number(tierLevel),
+                google_maps_url: venueData.googleMapsUrl || venueData.google_maps_url || `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`
+            });
+        }
+
+        res.status(200).json(results);
+    } catch (e) {
+        logger.error("Error in hotspotsMap function:", e);
+        res.status(500).send("Internal Server Error");
+    }
+});
+
+/**
+ * Resolves short Google Maps URLs to their redirect target and extracts lat/lng coords via regex.
+ */
+async function resolveMapsCoordinates(url) {
+    let finalUrl = url;
+    
+    // Check if it's a shortened link
+    if (url.includes("maps.app.goo.gl") || url.includes("goo.gl/maps") || url.includes("t.co") || url.includes("bit.ly")) {
+        try {
+            const response = await fetch(url, {
+                method: "GET",
+                headers: {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                }
+            });
+            finalUrl = response.url;
+            logger.info(`Resolved short Google Maps URL ${url} to ${finalUrl}`);
+        } catch (e) {
+            logger.error(`Error resolving redirect for URL ${url}:`, e);
+        }
+    }
+
+    // Extraction patterns
+    const patternA = /@(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const patternB = /[?&](?:q|ll)=(-?\d+\.\d+),(-?\d+\.\d+)/;
+    const patternC = /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/;
+
+    let match = finalUrl.match(patternA);
+    if (!match) match = finalUrl.match(patternB);
+    if (!match) match = finalUrl.match(patternC);
+
+    let coords = null;
+    if (match) {
+        const latitude = parseFloat(match[1]);
+        const longitude = parseFloat(match[2]);
+        if (latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180) {
+            coords = { latitude, longitude };
+        }
+    }
+    return { coords, resolvedUrl: finalUrl };
+}
+
+/**
+ * Triggers on venue create/update to unshorten googleMapsUrl and backfill coordinates.
+ */
+exports.onVenueWritten = onDocumentWritten("venues/{venueId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+
+    const data = snapshot.after.data();
+    const prevData = snapshot.before ? snapshot.before.data() : null;
+
+    if (!data) return;
+
+    const googleMapsUrl = data.googleMapsUrl || data.google_maps_url;
+    const prevGoogleMapsUrl = prevData ? (prevData.googleMapsUrl || prevData.google_maps_url) : null;
+
+    const hasUrlChanged = googleMapsUrl !== prevGoogleMapsUrl;
+    const needsCoordinates = data.latitude === undefined || data.longitude === undefined || data.latitude === null || data.longitude === null;
+
+    if (googleMapsUrl && (hasUrlChanged || needsCoordinates)) {
+        try {
+            const { coords, resolvedUrl } = await resolveMapsCoordinates(googleMapsUrl);
+            const updateData = {};
+            
+            if (coords) {
+                const { latitude, longitude } = coords;
+                if (data.latitude !== latitude || data.longitude !== longitude) {
+                    updateData.latitude = latitude;
+                    updateData.longitude = longitude;
+                }
+            }
+            
+            if (resolvedUrl && resolvedUrl !== googleMapsUrl) {
+                updateData.googleReviewLink = resolvedUrl;
+            }
+            
+            if (Object.keys(updateData).length > 0) {
+                logger.info(`Automatically updating venue ${event.params.venueId} with:`, updateData);
+                await snapshot.after.ref.update(updateData);
+            }
+        } catch (e) {
+            logger.error("Error resolving venue coordinates from Google Maps URL:", e);
+        }
     }
 });

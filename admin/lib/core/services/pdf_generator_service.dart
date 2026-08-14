@@ -36,7 +36,7 @@ class PdfGeneratorService {
                 child: pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text("Friendly Code", style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.orange)),
+                    pw.Text("REVOO", style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold, color: PdfColors.orange)),
                     pw.Text("Performance Report", style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
                   ],
                 ),
@@ -94,7 +94,7 @@ class PdfGeneratorService {
               
               pw.Spacer(),
               pw.Center(
-                child: pw.Text("Powered by Friendly Code", style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey)),
+                child: pw.Text("Powered by REVOO", style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey)),
               ),
             ],
           );
