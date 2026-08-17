@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faClock, faUser, faStar, faGift, faHeart } from '@fortawesome/free-solid-svg-icons';
+import { faClock, faUser, faStar, faGift, faHeart, faChevronUp } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db, auth } from './firebase';
-import { collection, addDoc, serverTimestamp, doc, getDoc, getDocs, query, orderBy, where, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc, getDocs, query, orderBy, where, onSnapshot, updateDoc } from 'firebase/firestore';
 import UserMenu from './UserMenu';
 import ScanInstructionAnimation from './ScanInstructionAnimation';
 import { convertToGoogleReviewUrl } from './logic/googleMaps';
+import giftxBox3D from './assets/giftx-box-3d.png';
 
 
 // VIP Storage Wrappers to prevent SecurityErrors when storage is blocked (incognito/Telegram)
@@ -36,8 +37,9 @@ const VipGiftTeaser = ({ tiers, ambientColor, discountValue, minDiscount = 5, ma
                 const label = days === 1 ? '1 DAY' : `${days} DAYS`;
                 
                 let tierColor = '#FFD700'; // Default gold for intermediate levels
-                if (t.percentage <= minDiscount) tierColor = '#FF3131'; // Minimal discount = Red
-                else if (t.percentage >= maxDiscount) tierColor = '#00FF41'; // Maximum regular discount = Green
+                if (t.percentage >= maxDiscount) tierColor = '#00FF41'; // Maximum regular discount = Green
+                else if (t.percentage >= 10) tierColor = '#FFD700'; // 10% and intermediate = Gold
+                else tierColor = '#FFAA00'; // < 10% = Amber
                 
                 return { pct: t.percentage, label, color: tierColor };
             });
@@ -166,29 +168,94 @@ const UnifiedActivation = () => {
         return location.state?.guestName || params.get('guestName') || safeStorage.getItem('guestName') || 'Guest';
     });
     const [discountValue, setDiscountValue] = useState(() => {
-        const stateValue = location.state?.discountValue;
-        if (stateValue !== undefined) return stateValue;
-        return parseInt(safeStorage.getItem('currentDiscount')) || 10;
+        const params = new URLSearchParams(location.search);
+        const stateValue = location.state?.discountValue ?? params.get('discount');
+        if (stateValue !== undefined && stateValue !== null && !isNaN(Number(stateValue)) && Number(stateValue) > 0) {
+            return Number(stateValue);
+        }
+        const cached = parseInt(safeStorage.getItem('currentDiscount'));
+        return (!isNaN(cached) && cached > 0) ? cached : 10;
     });
 
-    // Helper to get color based on discount (Red for min, Green for max, Gold for intermediate)
-    const getTierColor = (val) => {
-        const minD = venueSettings?.minDiscount ?? 5;
-        const maxD = venueSettings?.maxDiscount ?? 20;
-        
-        if (val <= minD) return '#FF3131'; // Minimal discount - Red
-        if (val >= maxD) return '#00FF41'; // Maximum regular discount - Green
-        return '#FFD700'; // All intermediate levels between max and min - Gold
+    // Helper to get color based on deposit percentage threshold
+    const getDepositColorTheme = (balance, settings) => {
+        const targetDeposit = settings?.initialDeposit || settings?.depositTarget || settings?.depositMaxAmount || 1000000;
+        const pct = Math.min(100, Math.max(0, (balance / targetDeposit) * 100));
+
+        if (pct > 60) {
+            return {
+                pct,
+                color: '#00FF41', // Emerald Green (> 60%)
+                borderClass: 'border-[#00FF41]/60 shadow-[0_0_40px_rgba(0,255,65,0.25)]',
+                textClass: 'text-[#00FF41]',
+                badgeBg: 'bg-[#00FF41]/10 border-[#00FF41]/30 text-[#00FF41]',
+                qrGlow: '0 0 24px 4px rgba(0, 255, 65, 0.4)',
+                qrBorder: '1.5px solid rgba(0, 255, 65, 0.6)',
+                isLow: false
+            };
+        } else if (pct > 40) {
+            return {
+                pct,
+                color: '#FFD700', // Gold (> 40%)
+                borderClass: 'border-[#FFD700]/60 shadow-[0_0_40px_rgba(255,215,0,0.25)]',
+                textClass: 'text-[#FFD700]',
+                badgeBg: 'bg-[#FFD700]/10 border-[#FFD700]/30 text-[#FFD700]',
+                qrGlow: '0 0 24px 4px rgba(255, 215, 0, 0.4)',
+                qrBorder: '1.5px solid rgba(255, 215, 0, 0.6)',
+                isLow: false
+            };
+        } else if (pct > 20) {
+            return {
+                pct,
+                color: '#FACC15', // Yellow (> 20%)
+                borderClass: 'border-[#FACC15]/60 shadow-[0_0_40px_rgba(250,204,21,0.25)]',
+                textClass: 'text-[#FACC15]',
+                badgeBg: 'bg-[#FACC15]/10 border-[#FACC15]/30 text-[#FACC15]',
+                qrGlow: '0 0 24px 4px rgba(250, 204, 21, 0.4)',
+                qrBorder: '1.5px solid rgba(250, 204, 21, 0.6)',
+                isLow: false
+            };
+        } else {
+            return {
+                pct,
+                color: '#FF3131', // Red (< 20%)
+                borderClass: 'border-[#FF3131] shadow-[0_0_50px_rgba(255,49,49,0.4)]',
+                textClass: 'text-[#FF3131]',
+                badgeBg: 'bg-[#FF3131]/20 border-[#FF3131]/60 text-[#FF3131]',
+                qrGlow: '0 0 24px 6px rgba(255, 49, 49, 0.6)',
+                qrBorder: '2px solid rgba(255, 49, 49, 0.8)',
+                isLow: true
+            };
+        }
     };
 
-    const [ambientColor, setAmbientColor] = useState('#FF3131');
-    const [tiers, setTiers] = useState([]);
-    const [venueSettings, setVenueSettings] = useState({ loyaltyInterval: 1, googleReviewLink: '', minDiscount: 5, maxDiscount: 20 });
+    // Helper to get color based on discount (Green for max, Gold for >= 10%, Amber for < 10%)
+    const getTierColor = (val) => {
+        const maxD = venueSettings?.maxDiscount ?? 20;
+        
+        if (val >= maxD) return '#00FF41'; // Maximum regular discount - Green
+        if (val >= 10) return '#FFD700'; // 10% and intermediate levels - Gold
+        return '#FFAA00'; // < 10% - Amber
+    };
 
-    // Keep ambientColor in sync with discountValue and venueSettings
+    const [ambientColor, setAmbientColor] = useState('#FFD700');
+    const [tiers, setTiers] = useState([]);
+    const [venueSettings, setVenueSettings] = useState({ loyaltyInterval: 1, googleReviewLink: '', giftxUrl: '', minDiscount: 5, maxDiscount: 20 });
+    const [depositBalance, setDepositBalance] = useState(() => {
+        const cached = safeStorage.getItem('cached_deposit_balance');
+        return cached ? Number(cached) : 0;
+    });
+
+    // Keep ambientColor in sync with depositBalance or discountValue
     useEffect(() => {
-        setAmbientColor(getTierColor(discountValue));
-    }, [discountValue, venueSettings]);
+        if (depositBalance > 0) {
+            const theme = getDepositColorTheme(depositBalance, venueSettings);
+            setAmbientColor(theme.color);
+        } else {
+            setAmbientColor(getTierColor(discountValue));
+        }
+    }, [depositBalance, discountValue, venueSettings]);
+
     const [isReviewOpen, setIsReviewOpen] = useState(false);
     const [showGiftScreen, setShowGiftScreen] = useState(false);
 
@@ -201,12 +268,8 @@ const UnifiedActivation = () => {
     const [hasAlreadyClaimedGoogle, setHasAlreadyClaimedGoogle] = useState(() => {
         return safeStorage.getItem('googleReviewClaimed') === 'true';
     });
-    const [showPromoModal, setShowPromoModal] = useState(false);
+    const [promoModalState, setPromoModalState] = useState('hidden'); // 'hidden' | 'expanded' | 'collapsed'
     const [userProfile, setUserProfile] = useState(null);
-    const [depositBalance, setDepositBalance] = useState(() => {
-        const cached = safeStorage.getItem('cached_deposit_balance');
-        return cached ? Number(cached) : 0;
-    });
     const [activeVenueId, setActiveVenueId] = useState('');
     const [depositNotification, setDepositNotification] = useState({ show: false, balance: 0, addedAmount: 0 });
 
@@ -326,6 +389,7 @@ const UnifiedActivation = () => {
                     setVenueSettings({
                         loyaltyInterval: data.loyaltyInterval || 1,
                         googleReviewLink: data.googleReviewLink || data.googleMapsUrl || data.linkUrl || '',
+                        giftxUrl: data.giftxUrl || '',
                         minDiscount: minPerc,
                         maxDiscount: maxPerc,
                         depositDiscount: depPerc
@@ -400,10 +464,10 @@ const UnifiedActivation = () => {
             }
         });
 
-        // Trigger promo modal after 1.5s delay
+        // Trigger promo modal after ~10s delay
         const timer = setTimeout(() => {
-            setShowPromoModal(true);
-        }, 1500);
+            setPromoModalState('expanded');
+        }, 10000);
 
         return () => {
             if (unsubscribeUserDoc) unsubscribeUserDoc();
@@ -473,20 +537,27 @@ const UnifiedActivation = () => {
             <div className="absolute bottom-[10%] right-[-20vw] w-[140vw] h-[50vh] rounded-[100%] blur-[120px] pointer-events-none opacity-[0.15]" style={{ backgroundColor: ambientColor }} />
 
             {/* Header / Nav */}
-            <div className="pt-6 px-6 flex justify-between items-center z-50 w-full">
+            <div className="pt-6 px-6 flex justify-between items-center z-50 w-full max-w-md mx-auto">
                 <UserMenu 
                     user={auth.currentUser}
-                    venue={{ name: venueName }}
-                    activeStatuses={[]} 
                     isGuestView={true}
+                    venueColor={ambientColor}
                     trigger={
-                        <div className="flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/5 cursor-pointer active:scale-95 transition-all">
-                            <FontAwesomeIcon icon={faUser} className="text-[10px] text-white/50" />
-                            <span className="text-[11px] font-semibold tracking-wide text-white">{guestName}</span>
+                        <div className="flex items-center gap-2 bg-white/10 px-3.5 py-1.5 rounded-full backdrop-blur-xl border border-white/10 cursor-pointer active:scale-95 transition-all text-white">
+                            <FontAwesomeIcon icon={faUser} className="text-xs text-white/70" />
+                            <span className="text-[12px] font-bold tracking-wide text-white truncate max-w-[120px]">{guestName}</span>
                         </div>
                     }
                 />
-                <div />
+                <button
+                    onClick={() => {
+                        const vId = activeVenueId || safeStorage.getItem('currentVenueId') || 'demo';
+                        navigate(`/test?id=${vId}`);
+                    }}
+                    className="bg-white/10 hover:bg-white/20 backdrop-blur-xl px-3.5 py-1.5 rounded-full text-xs font-bold text-white border border-white/10 active:scale-95 transition-all uppercase shadow-lg"
+                >
+                    {t('back', 'Назад')}
+                </button>
             </div>
 
             <div className="flex-grow flex flex-col items-center justify-start pt-12 px-6 relative z-10 w-full max-w-md mx-auto -mt-4">
@@ -523,44 +594,67 @@ const UnifiedActivation = () => {
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
 
                     {depositBalance > 0 ? (
-                        /* ── SCENARIO 2: DEPOSIT HOLDER VIEW (Deposit QR + Balance, NO discount %, NO battery) ── */
-                        <>
-                            <span className="relative z-10 text-[11px] font-extrabold uppercase tracking-widest text-[#D4AF37]">
-                                💰 {t('current_deposit_balance', { defaultValue: 'Текущий баланс депозита' })}
-                            </span>
-
-                            <div className="relative z-10 my-3">
-                                <span className="text-[40px] sm:text-[44px] font-black leading-none text-white tracking-tight drop-shadow-[0_2px_10px_rgba(212,175,55,0.3)]">
-                                    {depositBalance.toLocaleString()} <span className="text-base font-medium text-white/50">₫</span>
-                                </span>
-                            </div>
-
-                            <div className="mt-4 relative z-10">
-                                <div className="flex flex-col items-center gap-3">
-                                    {/* Gold border pulse */}
-                                    <div className="relative">
-                                        <div
-                                            className="absolute inset-[-6px] rounded-[22px] pointer-events-none"
-                                            style={{ boxShadow: `0 0 24px 4px ${ambientColor}55`, border: `1.5px solid ${ambientColor}60` }}
-                                        />
-                                        <div className="bg-white rounded-[18px] p-3 shadow-2xl">
-                                            <img
-                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=156x156&data=${encodeURIComponent(
-                                                    `https://bot-lab-21910.web.app/admin/deposit?search=${auth.currentUser?.uid || auth.currentUser?.email || ''}&action=topup`
-                                                )}`}
-                                                alt="Deposit QR"
-                                                className="w-[156px] h-[156px] block"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col items-center gap-1.5 mt-1">
-                                        <span style={{ color: ambientColor }} className="text-[10px] font-black uppercase tracking-[0.2em]">
-                                            {t('deposit_qr_code', { defaultValue: '💰 QR-КОД ДЛЯ ВНЕСЕНИЯ / СПИСАНИЯ ДЕПОЗИТА' })}
+                        /* ── SCENARIO 2: DEPOSIT HOLDER VIEW (Color-coded based on deposit percentage) ── */
+                        (() => {
+                            const depTheme = getDepositColorTheme(depositBalance, venueSettings);
+                            return (
+                                <>
+                                    <div className="flex items-center justify-center gap-2 mb-1">
+                                        <span className={`relative z-10 text-[11px] font-extrabold uppercase tracking-widest px-3 py-1 rounded-full border ${depTheme.badgeBg}`}>
+                                            💰 {t('current_deposit_balance', { defaultValue: 'Текущий баланс депозита' })} ({Math.round(depTheme.pct)}%)
                                         </span>
                                     </div>
-                                </div>
-                            </div>
-                        </>
+
+                                    <div className="relative z-10 my-3">
+                                        <span className="text-[40px] sm:text-[44px] font-black leading-none text-white tracking-tight drop-shadow-[0_2px_15px_rgba(255,255,255,0.2)]">
+                                            {depositBalance.toLocaleString()} <span className="text-base font-medium text-white/50">₫</span>
+                                        </span>
+                                    </div>
+
+                                    <div className="mt-4 relative z-10">
+                                        <div className="flex flex-col items-center gap-3">
+                                            <div className="relative">
+                                                <div
+                                                    className="absolute inset-[-6px] rounded-[22px] pointer-events-none transition-all duration-500"
+                                                    style={{ boxShadow: depTheme.qrGlow, border: depTheme.qrBorder }}
+                                                />
+                                                <div className="bg-white rounded-[18px] p-3 shadow-2xl">
+                                                    <img
+                                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=156x156&data=${encodeURIComponent(
+                                                            `https://bot-lab-21910.web.app/admin/deposit?search=${auth.currentUser?.uid || auth.currentUser?.email || ''}&action=topup`
+                                                        )}`}
+                                                        alt="Deposit QR"
+                                                        className="w-[156px] h-[156px] block"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-center gap-1.5 mt-1">
+                                                <span style={{ color: depTheme.color }} className="text-[10px] font-black uppercase tracking-[0.2em]">
+                                                    {t('deposit_qr_code', { defaultValue: '💰 QR-КОД ДЛЯ ВНЕСЕНИЯ / СПИСАНИЯ ДЕПОЗИТА' })}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* ⚠️ LOW BALANCE WARNING NOTICE (< 20%) */}
+                                    {depTheme.isLow && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: 8 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="mt-4 p-3.5 bg-gradient-to-r from-red-950/90 via-red-900/80 to-red-950/90 border-2 border-red-500/90 rounded-2xl text-center shadow-[0_0_30px_rgba(255,49,49,0.5)]"
+                                        >
+                                            <div className="flex items-center justify-center gap-1.5 text-red-400 font-black text-xs uppercase tracking-wider mb-1">
+                                                <span className="text-base animate-bounce">⚠️</span>
+                                                <span>НЕОБХОДИМО ПОПОЛНИТЬ ДЕПОЗИТ</span>
+                                            </div>
+                                            <p className="text-[11px] text-white font-semibold leading-relaxed">
+                                                Баланс вашего депозита менее 20% ({Math.round(depTheme.pct)}%). Пополните депозит у официанта, чтобы сохранить закреплённую скидку и статус!
+                                            </p>
+                                        </motion.div>
+                                    )}
+                                </>
+                            );
+                        })()
                     ) : (
                         /* ── SCENARIO 1: REGULAR DISCOUNT VIEW (Discount % + Battery, NO deposit QR) ── */
                         <>
@@ -642,32 +736,46 @@ const UnifiedActivation = () => {
                 )}
             </AnimatePresence>
 
-            {/* ── VIP STATUS BOOST DIALOG ── */}
+            {/* ── VIP STATUS BOOST DIALOG (EXPANDED MODAL WITH SWIPE-DOWN COLLAPSE) ── */}
             <AnimatePresence>
-                {showPromoModal && (
+                {promoModalState === 'expanded' && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 z-[150] flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-md"
                     >
-                        {/* Click backdrop to close */}
-                        <div className="absolute inset-0" onClick={() => setShowPromoModal(false)} />
+                        {/* Click backdrop to collapse */}
+                        <div className="absolute inset-0" onClick={() => setPromoModalState('collapsed')} />
 
                         <motion.div
-                            initial={{ y: 100, scale: 0.95 }}
+                            initial={{ y: "100%", scale: 0.95 }}
                             animate={{ y: 0, scale: 1 }}
-                            exit={{ y: 100, scale: 0.95 }}
+                            exit={{ y: "100%", scale: 0.95 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                            className="bg-[#1C1C1E]/95 border border-white/10 rounded-[32px] p-6 text-center shadow-2xl relative overflow-hidden w-full max-w-sm z-10"
+                            drag="y"
+                            dragConstraints={{ top: 0, bottom: 300 }}
+                            dragElastic={0.2}
+                            onDragEnd={(e, info) => {
+                                if (info.offset.y > 60 || info.velocity.y > 200) {
+                                    setPromoModalState('collapsed');
+                                }
+                            }}
+                            className="bg-[#1C1C1E]/95 border border-white/10 rounded-t-[32px] sm:rounded-[32px] p-6 text-center shadow-2xl relative overflow-hidden w-full max-w-sm z-10 touch-pan-y"
                         >
+                            {/* Drag handle pill */}
+                            <div 
+                                onClick={() => setPromoModalState('collapsed')}
+                                className="w-12 h-1 bg-white/30 rounded-full mx-auto mb-4 cursor-pointer hover:bg-white/50 transition-colors"
+                            />
+
                             {/* Inner ambient glow */}
                             <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
                             <div className="absolute top-0 right-0 w-24 h-24 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
                             {/* Close Button */}
                             <button
-                                onClick={() => setShowPromoModal(false)}
+                                onClick={() => setPromoModalState('collapsed')}
                                 className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white flex items-center justify-center text-xs transition-colors"
                             >
                                 ✕
@@ -692,7 +800,7 @@ const UnifiedActivation = () => {
                                     <button
                                         onClick={() => {
                                             handleGoToGoogle();
-                                            setShowPromoModal(false);
+                                            setPromoModalState('collapsed');
                                         }}
                                         className="w-full py-3.5 rounded-xl bg-[#00FF41] text-black font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,255,65,0.3)] transition-all active:scale-95"
                                     >
@@ -724,7 +832,7 @@ const UnifiedActivation = () => {
                                     </p>
 
                                     <button
-                                        onClick={() => setShowPromoModal(false)}
+                                        onClick={() => setPromoModalState('collapsed')}
                                         className="w-full py-3.5 rounded-xl bg-[#D4AF37] text-black font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(212,175,55,0.3)] transition-all active:scale-95"
                                     >
                                         {t('close')}
@@ -732,6 +840,52 @@ const UnifiedActivation = () => {
                                 </>
                             )}
                         </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ── COLLAPSED DEPOSIT BOTTOM STRIP (CAN BE SWIPED UP OR TAPPED TO EXPAND) ── */}
+            <AnimatePresence>
+                {promoModalState === 'collapsed' && (
+                    <motion.div
+                        initial={{ y: 80, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 80, opacity: 0 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+                        drag="y"
+                        dragConstraints={{ top: -100, bottom: 0 }}
+                        dragElastic={0.2}
+                        onDragEnd={(e, info) => {
+                            if (info.offset.y < -25 || info.velocity.y < -100) {
+                                setPromoModalState('expanded');
+                            }
+                        }}
+                        onClick={() => setPromoModalState('expanded')}
+                        className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[170] w-[calc(100%-32px)] max-w-sm cursor-pointer select-none"
+                    >
+                        <div className="bg-[#1C1C1E]/95 border-2 border-[#D4AF37]/60 rounded-2xl p-3.5 backdrop-blur-2xl shadow-[0_10px_30px_rgba(212,175,55,0.3)] flex items-center justify-between gap-3 relative overflow-hidden group hover:border-[#D4AF37] transition-all">
+                            {/* Gold Glow */}
+                            <div className="absolute top-0 right-0 w-28 h-28 bg-[#D4AF37]/15 rounded-full blur-xl pointer-events-none" />
+                            
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-9 h-9 rounded-xl bg-[#D4AF37]/20 border border-[#D4AF37]/40 flex items-center justify-center text-[#D4AF37] text-sm shrink-0">
+                                    <FontAwesomeIcon icon={faGift} className="animate-pulse" />
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">
+                                        💰 VIP Deposit QR
+                                    </span>
+                                    <span className="text-xs font-bold text-white truncate">
+                                        {t('permanent_vip_title', { percent: venueSettings.depositDiscount || venueSettings.maxDiscount || 20 })}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-1 text-[#D4AF37] font-black text-[11px] uppercase tracking-wider shrink-0 bg-[#D4AF37]/10 px-2.5 py-1 rounded-xl border border-[#D4AF37]/30">
+                                <span>{t('expand', 'Открыть')}</span>
+                                <FontAwesomeIcon icon={faChevronUp} className="text-[9px] animate-bounce" />
+                            </div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -756,16 +910,16 @@ const UnifiedActivation = () => {
                 )}
             </AnimatePresence>
 
-            {/* ── FLOATING COLLAPSED GOOGLE MAPS REVIEW BADGE (GOOGLE STARS STYLE) ── */}
-            {(!showPromoModal && (!hasAlreadyClaimedGoogle && venueSettings.googleReviewLink)) && (
+            {/* ── FLOATING COLLAPSED GOOGLE MAPS REVIEW BADGE (LEFT CORNER) ── */}
+            {(promoModalState !== 'expanded' && (!hasAlreadyClaimedGoogle && venueSettings.googleReviewLink)) && (
                 <motion.div
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     exit={{ scale: 0, opacity: 0 }}
                     whileHover={{ scale: 1.08 }}
                     whileTap={{ scale: 0.92 }}
-                    onClick={() => setShowPromoModal(true)}
-                    className="fixed bottom-6 right-6 z-[160] cursor-pointer flex items-center justify-center"
+                    onClick={() => setPromoModalState('expanded')}
+                    className="fixed bottom-6 left-6 z-[160] cursor-pointer flex items-center justify-center"
                     title="Оставить отзыв в Google Maps"
                 >
                     {/* Google Maps Outer Glow */}
@@ -779,6 +933,49 @@ const UnifiedActivation = () => {
                                 <span key={i} className="text-[#FBBC04] text-[6px]">★</span>
                             ))}
                         </div>
+                    </div>
+                </motion.div>
+            )}
+
+            {/* ── FLOATING GIFTX WIDGET BUTTON (RIGHT CORNER WITH MAGENTA GLOW & SHAKING ANIMATION) ── */}
+            {(promoModalState !== 'expanded' && venueSettings.giftxUrl) && (
+                <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    whileHover={{ scale: 1.08 }}
+                    whileTap={{ scale: 0.92 }}
+                    onClick={() => window.open(venueSettings.giftxUrl, '_blank', 'noopener,noreferrer')}
+                    className="fixed bottom-6 right-6 z-[160] cursor-pointer flex items-center justify-center"
+                    title="GiftX"
+                >
+                    {/* Crimson/Magenta Outer Glow */}
+                    <div className="absolute inset-0 rounded-full bg-[#FF2A85]/50 blur-md animate-pulse" />
+                    
+                    {/* Main Circular Badge with Magenta Border & Glassmorphism */}
+                    <div className="w-14 h-14 rounded-full bg-[#1C1C1E] border-2 border-[#FF2A85] backdrop-blur-xl flex flex-col items-center justify-center shadow-[0_8px_25px_rgba(255,42,133,0.6)] relative z-10 overflow-hidden">
+                        <motion.div
+                            animate={{
+                                scale: [1.0, 1.15, 1.0],
+                                filter: [
+                                    'drop-shadow(0 0 6px rgba(255,42,133,0.6))',
+                                    'drop-shadow(0 0 20px rgba(255,42,133,1.0))',
+                                    'drop-shadow(0 0 6px rgba(255,42,133,0.6))'
+                                ]
+                            }}
+                            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                            className="flex items-center justify-center"
+                        >
+                            <motion.img
+                                src={giftxBox3D}
+                                alt="GiftX"
+                                animate={{
+                                    rotate: [0, 2, -2.5, 3, -1.5, 2.5, -3, 1.5, -2, 0]
+                                }}
+                                transition={{ duration: 0.2, repeat: Infinity, ease: "linear" }}
+                                className="w-9 h-9 object-contain pointer-events-none"
+                            />
+                        </motion.div>
                     </div>
                 </motion.div>
             )}
