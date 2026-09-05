@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db, auth } from './firebase';
-import { collection, addDoc, serverTimestamp, doc, getDoc, getDocs, query, orderBy, where, onSnapshot, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc, getDocs, query, orderBy, where, onSnapshot, updateDoc, limit } from 'firebase/firestore';
 import UserMenu from './UserMenu';
 import ScanInstructionAnimation from './ScanInstructionAnimation';
 import { convertToGoogleReviewUrl } from './logic/googleMaps';
@@ -272,7 +272,7 @@ const UnifiedActivation = () => {
     const [promoModalState, setPromoModalState] = useState('hidden'); // 'hidden' | 'expanded' | 'collapsed'
     const [userProfile, setUserProfile] = useState(null);
     const [activeVenueId, setActiveVenueId] = useState('');
-    const [depositNotification, setDepositNotification] = useState({ show: false, balance: 0, addedAmount: 0 });
+    const [txNotification, setTxNotification] = useState({ show: false, type: 'CREDIT', amount: 0, balance: 0, id: '' });
 
     const handleStarClick = (val) => {
         setStarRating(val);
@@ -422,10 +422,15 @@ const UnifiedActivation = () => {
 
         // Set up auth changes & real-time onSnapshot user profile listener
         let unsubscribeUserDoc = null;
+        let unsubscribeTx = null;
         const unsubscribeAuth = auth.onAuthStateChanged((user) => {
             if (unsubscribeUserDoc) {
                 unsubscribeUserDoc();
                 unsubscribeUserDoc = null;
+            }
+            if (unsubscribeTx) {
+                unsubscribeTx();
+                unsubscribeTx = null;
             }
             if (user) {
                 unsubscribeUserDoc = onSnapshot(doc(db, 'users', user.uid), (userSnap) => {
@@ -448,15 +453,6 @@ const UnifiedActivation = () => {
                         safeStorage.setItem('cached_deposit_balance', String(newBalance));
 
                         setUserProfile((prevProfile) => {
-                            const prevBalance = Number(prevProfile?.deposit_balance ?? 0);
-                            // If deposit balance increased (admin topped up deposit)
-                            if (prevProfile !== null && newBalance > prevBalance) {
-                                setDepositNotification({
-                                    show: true,
-                                    balance: newBalance,
-                                    addedAmount: newBalance - prevBalance
-                                });
-                            }
                             return userData;
                         });
                         
@@ -473,6 +469,38 @@ const UnifiedActivation = () => {
                     console.error("Error listening to user profile in UnifiedActivation:", err);
                     setIsDataLoaded(true);
                 });
+
+                unsubscribeTx = onSnapshot(
+                    query(collection(db, 'deposit_transactions'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'), limit(1)),
+                    (txSnap) => {
+                        if (!txSnap.empty) {
+                            const docSnap = txSnap.docs[0];
+                            const tx = docSnap.data();
+                            const txId = docSnap.id;
+                            
+                            const shownTxs = JSON.parse(safeStorage.getItem('shown_tx_ids') || '[]');
+                            if (!shownTxs.includes(txId)) {
+                                const createdAt = tx.createdAt?.toDate ? tx.createdAt.toDate() : (tx.createdAt ? new Date(tx.createdAt) : new Date());
+                                const now = new Date();
+                                const diffMinutes = (now.getTime() - createdAt.getTime()) / 60000;
+                                
+                                if (diffMinutes < 15) {
+                                    setTxNotification({
+                                        show: true,
+                                        type: tx.transactionType || tx.type || 'CREDIT',
+                                        amount: Number(tx.finalAmount ?? tx.totalCredit ?? tx.amount ?? 0),
+                                        balance: tx.newBalance || tx.balanceAfter || 0,
+                                        id: txId
+                                    });
+                                }
+                                
+                                shownTxs.push(txId);
+                                safeStorage.setItem('shown_tx_ids', JSON.stringify(shownTxs.slice(-20))); // Keep last 20
+                            }
+                        }
+                    },
+                    (err) => console.warn("Error listening to tx:", err)
+                );
             } else {
                 setUserProfile(null);
                 setIsDataLoaded(true);
@@ -486,6 +514,7 @@ const UnifiedActivation = () => {
 
         return () => {
             if (unsubscribeUserDoc) unsubscribeUserDoc();
+            if (unsubscribeTx) unsubscribeTx();
             unsubscribeAuth();
             clearTimeout(timer);
         };
@@ -719,9 +748,9 @@ const UnifiedActivation = () => {
                 </motion.p>
             </div>
 
-            {/* ── DEPOSIT TOP-UP CONFIRMATION POPUP ── */}
+            {/* ── TRANSACTION NOTIFICATION POPUP ── */}
             <AnimatePresence>
-                {depositNotification.show && (
+                {txNotification.show && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -732,30 +761,58 @@ const UnifiedActivation = () => {
                             initial={{ scale: 0.8, y: 20 }}
                             animate={{ scale: 1, y: 0 }}
                             exit={{ scale: 0.8, y: 20 }}
-                            className="bg-[#1C1C1E] border-2 border-[#00FF41] rounded-[32px] p-6 text-center shadow-[0_0_50px_rgba(0,255,65,0.3)] relative overflow-hidden w-full max-w-sm"
+                            className={`bg-[#1C1C1E] border-2 rounded-[32px] p-6 text-center shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden w-full max-w-sm ${
+                                txNotification.type === 'CREDIT' ? 'border-[#00FF41] shadow-[0_0_50px_rgba(0,255,65,0.3)]' : 'border-rose-500 shadow-[0_0_50px_rgba(244,63,94,0.3)]'
+                            }`}
                         >
-                            <div className="w-16 h-16 rounded-full bg-[#00FF41]/20 border border-[#00FF41]/40 flex items-center justify-center text-3xl mx-auto mb-4 animate-bounce">
-                                💰
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 animate-bounce ${
+                                txNotification.type === 'CREDIT' ? 'bg-[#00FF41]/20 border border-[#00FF41]/40' : 'bg-rose-500/20 border border-rose-500/40'
+                            }`}>
+                                {txNotification.type === 'CREDIT' ? '💰' : '📉'}
                             </div>
                             <h3 className="text-2xl font-black text-white mb-2 leading-tight">
-                                {t('deposit_topped_up')}
+                                {txNotification.type === 'CREDIT' ? t('deposit_topped_up', 'Депозит пополнен!') : t('deposit_deducted', 'Списание с депозита')}
                             </h3>
                             <p className="text-sm font-medium text-white/70 mb-4">
-                                {t('deposit_topup_success_sub')}
+                                {txNotification.type === 'CREDIT' 
+                                    ? t('deposit_topup_success_sub', 'Ваш счет успешно пополнен')
+                                    : t('deposit_deduction_success_sub', 'Сумма списана по вашему чеку')}
                             </p>
-                            <div className="bg-[#00FF41]/10 border border-[#00FF41]/30 rounded-2xl p-4 mb-6">
-                                <span className="text-xs uppercase tracking-widest text-[#00FF41] font-bold block mb-1">
-                                    {t('current_deposit_balance')}
-                                </span>
-                                <span className="text-3xl font-black text-white">
-                                    {depositNotification.balance.toLocaleString()} ₫
-                                </span>
+                            
+                            <div className="flex justify-center gap-3 mb-6">
+                                <div className={`border rounded-2xl p-4 flex flex-col w-1/2 ${
+                                    txNotification.type === 'CREDIT' ? 'bg-[#00FF41]/10 border-[#00FF41]/30' : 'bg-rose-500/10 border-rose-500/30'
+                                }`}>
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${
+                                        txNotification.type === 'CREDIT' ? 'text-[#00FF41]' : 'text-rose-400'
+                                    }`}>
+                                        {txNotification.type === 'CREDIT' ? 'Пополнено' : 'Списано'}
+                                    </span>
+                                    <span className="text-xl font-black text-white">
+                                        {txNotification.type === 'CREDIT' ? '+' : '-'}{txNotification.amount.toLocaleString()} ₫
+                                    </span>
+                                </div>
+                                <div className={`border rounded-2xl p-4 flex flex-col w-1/2 ${
+                                    txNotification.type === 'CREDIT' ? 'bg-[#00FF41]/10 border-[#00FF41]/30' : 'bg-rose-500/10 border-rose-500/30'
+                                }`}>
+                                    <span className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${
+                                        txNotification.type === 'CREDIT' ? 'text-[#00FF41]' : 'text-rose-400'
+                                    }`}>
+                                        Баланс
+                                    </span>
+                                    <span className="text-xl font-black text-white">
+                                        {txNotification.balance.toLocaleString()} ₫
+                                    </span>
+                                </div>
                             </div>
+
                             <button
-                                onClick={() => setDepositNotification({ show: false, balance: 0, addedAmount: 0 })}
-                                className="w-full py-4 rounded-2xl bg-[#00FF41] text-black font-black text-sm uppercase tracking-wider shadow-[0_0_20px_rgba(0,255,65,0.4)] active:scale-95 transition-transform"
+                                onClick={() => setTxNotification({ show: false, type: 'CREDIT', amount: 0, balance: 0, id: '' })}
+                                className={`w-full py-4 rounded-2xl text-black font-black text-sm uppercase tracking-wider shadow-[0_0_20px_rgba(0,0,0,0.4)] active:scale-95 transition-transform ${
+                                    txNotification.type === 'CREDIT' ? 'bg-[#00FF41] shadow-[0_0_20px_rgba(0,255,65,0.4)]' : 'bg-rose-500 text-white shadow-[0_0_20px_rgba(244,63,94,0.4)]'
+                                }`}
                             >
-                                {t('great')}
+                                {t('great', 'Отлично')}
                             </button>
                         </motion.div>
                     </motion.div>
