@@ -2,8 +2,9 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faGift, faExclamationTriangle, faStar, faClock, faUser, faWallet, faChartPie, faTimes, faArrowUp, faArrowDown, faWifi, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { faGift, faExclamationTriangle, faStar, faClock, faUser, faWallet, faChartPie, faTimes, faArrowUp, faArrowDown, faWifi, faChevronRight, faReceipt, faBolt } from '@fortawesome/free-solid-svg-icons';
 import UserMenu from './UserMenu';
+import LanguageSwitcher from './LanguageSwitcher';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db, auth, functions } from './firebase';
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc, onSnapshot, updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -11,8 +12,10 @@ import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { RewardCalculator } from './logic/RewardCalculator';
 import PngBattery, { getBatteryConfig } from './PngBattery';
+import LoadingBatteryScreen from './LoadingBatteryScreen';
 import RevooStories from './RevooStories';
 import { convertToGoogleReviewUrl } from './logic/googleMaps';
+import giftxBox3D from './assets/giftx-box-3d.png';
 
 const safeStorage = {
     getItem: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -32,6 +35,8 @@ const TestQRPage = () => {
     const isDataReadyRef = useRef(false);
     const discountReadyRef = useRef(false);
     const depositReadyRef = useRef(false);
+    const prevBalRef = useRef(null);
+
     const [storiesCompleted, setStoriesCompleted] = useState(() => {
         try {
             const cachedBal = safeStorage.getItem('cached_deposit_balance');
@@ -57,6 +62,13 @@ const TestQRPage = () => {
     const [liveSecondsLeft, setLiveSecondsLeft] = useState(0);
     const [depositBalance, setDepositBalance] = useState(() => {
         try {
+            const searchParams = new URLSearchParams(window.location.search);
+            const depParam = searchParams.get('deposit');
+            if (depParam === 'true' || depParam === '1' || Number(depParam) > 0) {
+                return Number(depParam) > 1 ? Number(depParam) : 5000000;
+            }
+            const guestEmail = safeStorage.getItem('guestEmail');
+            if (!guestEmail) return 0;
             const cached = safeStorage.getItem('cached_deposit_balance');
             return cached ? Number(cached) : 0;
         } catch (e) {
@@ -110,20 +122,16 @@ const TestQRPage = () => {
     const statusRef = useRef(status);
     useEffect(() => { 
         statusRef.current = status;
-        // Optimization: if we are in TestQRPage and loading takes too long, 
-        // we might want to manually set a timeout-based fallback to 'active' 
-        // if we are just testing the UI.
     }, [status]);
 
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
-        const rawId = searchParams.get('id') || searchParams.get('v') || 'default_venue';
+        const rawId = searchParams.get('id') || searchParams.get('v') || searchParams.get('venueId') || searchParams.get('venue_id') || 'default_venue';
         const venueId = rawId.startsWith('3D') && rawId.length > 10 ? rawId.substring(2) : rawId;
         
         safeStorage.setItem('currentVenueId', venueId);
         setActiveVenueId(venueId);
 
-        // --- PRELOAD VENUE NAME FROM CACHE (no early render) ---
         const cachedVenueRaw = safeStorage.getItem(`venue_cache_${venueId}`);
         const cachedName = safeStorage.getItem('guestName');
         if (cachedName) setGuestName(cachedName);
@@ -131,14 +139,13 @@ const TestQRPage = () => {
         if (cachedVenueRaw) {
             try {
                 const cachedVenue = JSON.parse(cachedVenueRaw);
-                setVenueName(cachedVenue.name || '');
+                const nameToSet = cachedVenue.id === 'default_venue' ? 'Unknown' : (cachedVenue.name || 'Unknown');
+                setVenueName(nameToSet);
                 if (cachedVenue.loyaltyConfig) setLoyaltyConfig(cachedVenue.loyaltyConfig);
                 setVenueData(cachedVenue);
-                // NOTE: We do NOT setStatus('first') here — we wait for full data
             } catch (e) {}
         }
 
-        // Absolute safety timeout: never block user longer than 3 seconds
         const safetyTimeoutId = setTimeout(() => {
             if (!isDataReadyRef.current) {
                 console.warn("Safety timeout: forcing data-ready state");
@@ -149,11 +156,6 @@ const TestQRPage = () => {
 
         let unsubscribeUser = null;
 
-        // NOTE: Background venue fetch removed — loyaltyConfig must only be set ONCE
-        // inside checkUserAndVenue() before the gate opens (setStatus='first').
-        // A post-render setLoyaltyConfig causes getMappedCapacity() to re-run
-        // and the battery to repaint with different values after the screen is visible.
-
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 try { await signInAnonymously(auth); } catch (e) {
@@ -162,14 +164,41 @@ const TestQRPage = () => {
                 }
                 return;
             }
-            clearTimeout(safetyTimeoutId);
 
             const checkUserAndVenue = async () => {
                 try {
                     let venueData = null;
                     let userData = null;
 
-                    if (venueId === 'demo') {
+                    const userRef = doc(db, 'users', user.uid);
+                    const userSnap = await getDoc(userRef);
+                    userData = userSnap.exists() ? userSnap.data() : null;
+
+                    let targetVenueId = venueId;
+                    if ((!targetVenueId || targetVenueId === 'default_venue' || targetVenueId === 'demo') && userData?.deposit_venue_id) {
+                        targetVenueId = userData.deposit_venue_id;
+                    }
+
+                    if (targetVenueId && targetVenueId !== 'demo') {
+                        const venueRef = doc(db, 'venues', targetVenueId);
+                        const venueSnap = await getDoc(venueRef);
+                        if (venueSnap.exists()) {
+                            venueData = venueSnap.data();
+                        } else {
+                            const qSlug = query(collection(db, 'venues'), where('slug', '==', targetVenueId));
+                            const qSlugSnap = await getDocs(qSlug);
+                            if (!qSlugSnap.empty) {
+                                venueData = qSlugSnap.docs[0].data();
+                            } else if (userData?.deposit_venue_id) {
+                                const depVenueSnap = await getDoc(doc(db, 'venues', userData.deposit_venue_id));
+                                if (depVenueSnap.exists()) {
+                                    venueData = depVenueSnap.data();
+                                }
+                            }
+                        }
+                    }
+
+                    if (!venueData && (targetVenueId === 'demo' || !targetVenueId)) {
                         venueData = {
                             name: "REVOO Cafe",
                             isActive: true,
@@ -181,29 +210,17 @@ const TestQRPage = () => {
                             defaultLanguage: 'en',
                             currency: 'VND'
                         };
-                        const userRef = doc(db, 'users', user.uid);
-                        const userSnap = await getDoc(userRef);
-                        userData = userSnap.exists() ? userSnap.data() : null;
-                    } else {
-                        const venueRef = doc(db, 'venues', venueId);
-                        const userRef = doc(db, 'users', user.uid);
-                        
-                        // PARALLEL FETCH
-                        const [venueSnap, userSnap] = await Promise.all([
-                            getDoc(venueRef),
-                            getDoc(userRef)
-                        ]);
-
-                        if (!venueSnap.exists()) { 
-                            if (statusRef.current === 'loading') setStatus('first');
-                            return; 
-                        }
-                        venueData = venueSnap.data();
-                        userData = userSnap.exists() ? userSnap.data() : null;
-                        safeStorage.setItem(`venue_cache_${venueId}`, JSON.stringify(venueData));
                     }
 
-                    setVenueName(venueData.name || '');
+                    if (!venueData) { 
+                        if (statusRef.current === 'loading') setStatus('first');
+                        return; 
+                    }
+
+                    const nameToSet = activeVenueId === 'default_venue' ? 'Unknown' : (venueData.name || 'Unknown');
+                    setVenueName(nameToSet);
+                    if (venueData.name) safeStorage.setItem('currentVenueName', venueData.name);
+                    safeStorage.setItem(`venue_cache_${venueId}`, JSON.stringify(venueData));
                     if (venueData.loyaltyConfig) setLoyaltyConfig(venueData.loyaltyConfig);
 
                     const savedLang = safeStorage.getItem('userLanguage');
@@ -233,10 +250,8 @@ const TestQRPage = () => {
                         }
                     }
 
-                    // --- DEPOSIT SETUP & REAL-TIME LISTENER ---
                     setVenueCurrency(venueData.currency || 'VND');
 
-                    // 1. Fetch deposit tiers
                     const qTiers = query(
                         collection(db, 'deposit_tiers'), 
                         where('venueId', '==', venueId)
@@ -246,15 +261,14 @@ const TestQRPage = () => {
                         setDepositTiers(fetchedTiers);
                     }).catch(err => console.error("Error fetching deposit tiers:", err));
 
-                    // 2. Listen to user document in real time
-                    // FIRST snapshot resolves depositReady, subsequent ones just update
                     let isFirstDepositSnapshot = true;
-                    unsubscribeUser = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
+                    const targetUid = user.uid;
+                    const listenUid = targetUid;
+                    unsubscribeUser = onSnapshot(doc(db, 'users', listenUid), (docSnap) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
                             setUserProfile(data);
 
-                            // Venue-strict deposit lookup
                             let balance = 0;
                             if (data.deposit_balances && data.deposit_balances[venueId] !== undefined) {
                                 balance = Number(data.deposit_balances[venueId] || 0);
@@ -267,15 +281,16 @@ const TestQRPage = () => {
                                 balance = Number(data.deposit_balance || 0);
                             }
 
+
+                            prevBalRef.current = balance;
+
                             setDepositBalance(balance);
                             safeStorage.setItem('cached_deposit_balance', String(balance));
                             setCurrentDiscountTier(Number(data.current_discount_tier ?? 4));
 
-                            // Mark deposit as resolved after first snapshot
                             if (isFirstDepositSnapshot) {
                                 isFirstDepositSnapshot = false;
                                 depositReadyRef.current = true;
-                                // If discount is already ready, unlock UI
                                 if (discountReadyRef.current && !isDataReadyRef.current) {
                                     isDataReadyRef.current = true;
                                     setIsDataReady(true);
@@ -283,7 +298,6 @@ const TestQRPage = () => {
                                 }
                             }
 
-                            // Trigger scan check-in (only once per session)
                             if (balance > 0 && !safeSessionStorage.getItem(`checkin_triggered_${venueId}`)) {
                                 safeSessionStorage.setItem(`checkin_triggered_${venueId}`, 'true');
                                 const checkinFn = httpsCallable(functions, 'triggerCustomerCheckin');
@@ -294,7 +308,8 @@ const TestQRPage = () => {
                                 });
                             }
                         } else {
-                            // No user doc — deposit is 0, mark ready
+                            setDepositBalance(0);
+                            safeStorage.removeItem('cached_deposit_balance');
                             if (isFirstDepositSnapshot) {
                                 isFirstDepositSnapshot = false;
                                 depositReadyRef.current = true;
@@ -315,22 +330,30 @@ const TestQRPage = () => {
                     const todayStr = RewardCalculator.getVenueDateString(now, tz);
                     let debugInfo = { email: email || 'No Email', uid: user.uid, venueId, todayDate: todayStr, lastVisitDisplay: 'Никогда', daysAgoStr: 'Никогда', history: 'Нет', isDayActive: false, discountToday: 5, diffDays: 'N/A' };
 
-                    // Fetch visits by UID or Email
                     let visitDocs = [];
                     try {
-                        if (user?.uid) {
-                            const qUidVisits = query(collection(db, 'visits'), where('uid', '==', user.uid), where('venueId', '==', venueId), orderBy('timestamp', 'desc'), limit(15));
+                        const uidsToTry = [user?.uid, targetUid].filter(Boolean);
+                        for (const currentUid of uidsToTry) {
+                            if (visitDocs.length > 0) break;
+                            const qUidVisits = query(collection(db, 'visits'), where('uid', '==', currentUid), where('venueId', '==', venueId));
                             const querySnapUid = await getDocs(qUidVisits);
                             if (!querySnapUid.empty) {
                                 visitDocs = querySnapUid.docs;
                             }
                         }
                         if (visitDocs.length === 0 && email) {
-                            const qEmailVisits = query(collection(db, 'visits'), where('guestEmail', '==', email), where('venueId', '==', venueId), orderBy('timestamp', 'desc'), limit(15));
+                            const qEmailVisits = query(collection(db, 'visits'), where('guestEmail', '==', email), where('venueId', '==', venueId));
                             const querySnapEmail = await getDocs(qEmailVisits);
                             if (!querySnapEmail.empty) {
                                 visitDocs = querySnapEmail.docs;
                             }
+                        }
+                        if (visitDocs.length > 0) {
+                            visitDocs.sort((a, b) => {
+                                const tA = a.data().timestamp?.seconds || (a.data().timestamp?.toDate ? Math.floor(a.data().timestamp.toDate().getTime() / 1000) : 0);
+                                const tB = b.data().timestamp?.seconds || (b.data().timestamp?.toDate ? Math.floor(b.data().timestamp.toDate().getTime() / 1000) : 0);
+                                return tB - tA;
+                            });
                         }
                     } catch (errVisits) {
                         console.warn("Visits query error:", errVisits);
@@ -356,10 +379,9 @@ const TestQRPage = () => {
                             lastVisitDateStr = uniqueDays[0].dateStr;
                         }
 
-                        result = RewardCalculator.calculate(lastVisitDateStr, now, venueData.loyaltyConfig, tz, isDayActive, userProfile?.hasLockedDiscount || false);
+                        result = RewardCalculator.calculate(lastVisitDateStr, now, venueData.loyaltyConfig, tz, isDayActive, userProfile?.hasLockedDiscount || false, venueData.baseDiscount || 5);
                         calculatedDiscount = result.discount;
 
-                        // Find exact date/time of first visit TODAY and last visit of PREVIOUS days
                         const todayVisitsDocs = visitDocs.filter(d => {
                           const dt = d.data().timestamp?.toDate();
                           return dt && RewardCalculator.getVenueDateString(dt, tz) === todayStr;
@@ -392,6 +414,7 @@ const TestQRPage = () => {
                             setLiveSecondsLeft(secondsLeft);
                         }
 
+                        const debugDays = uniqueDays.map(d => d.dateStr);
                         debugInfo = { 
                             ...debugInfo, 
                             todayDate: todayStr,
@@ -404,12 +427,11 @@ const TestQRPage = () => {
 
                         if (result.status === 'cooldown') setCooldown({ hoursPassed: result.hoursPassed, required: venueData.loyaltyConfig?.safetyCooldownHours || 12 });
                     } else {
-                        result = RewardCalculator.calculate(null, now, venueData.loyaltyConfig, tz, false, userProfile?.hasLockedDiscount || false);
+                        result = RewardCalculator.calculate(null, now, venueData.loyaltyConfig, tz, false, userProfile?.hasLockedDiscount || false, venueData.baseDiscount || 5);
                         calculatedDiscount = result.discount;
                         debugInfo.diffDays = result.diffDays ?? 'N/A';
                     }
 
-                    // Auto-record visit for today upon QR scan/check-in
                     if (venueId && venueId !== 'demo' && user) {
                         const autoLogKey = `auto_logged_${venueId}_${todayStr}_${user.uid}`;
                         if (!safeSessionStorage.getItem(autoLogKey)) {
@@ -433,9 +455,7 @@ const TestQRPage = () => {
                     const secondsLeft = result?.secondsUntilDecay || 0;
                     setPredictionState({ percent: calculatedDiscount, secondsLeft, label: result?.status || 'new', isBase: calculatedDiscount <= 5, isMax: calculatedDiscount >= 20 });
                     setLiveSecondsLeft(secondsLeft);
-                    // Mark discount as calculated
                     discountReadyRef.current = true;
-                    // If deposit snapshot already arrived, unlock UI
                     if (depositReadyRef.current && !isDataReadyRef.current) {
                         isDataReadyRef.current = true;
                         setIsDataReady(true);
@@ -444,7 +464,6 @@ const TestQRPage = () => {
                 } catch (e) {
                     console.error("Error in checkUserAndVenue:", e);
                     setLastVisitDebug({ error: e.message || String(e) });
-                    // On error, unlock immediately with whatever we have
                     if (!isDataReadyRef.current) {
                         isDataReadyRef.current = true;
                         setIsDataReady(true);
@@ -465,32 +484,46 @@ const TestQRPage = () => {
     const [isReviewPending, setIsReviewPending] = useState(false);
     const [showReviewSuccessModal, setShowReviewSuccessModal] = useState(false);
 
-    const getNextTierProgress = () => {
-        if (depositTiers.length === 0) return { progress: 0, nextThreshold: 0, nextDiscount: 0, isMax: false };
-        
-        const sortedTiers = [...depositTiers].sort((a, b) => a.minBalanceThreshold - b.minBalanceThreshold);
-        const nextTier = sortedTiers.find(t => t.minBalanceThreshold > depositBalance);
-        
-        if (!nextTier) {
-            return { progress: 100, nextThreshold: 0, nextDiscount: 0, isMax: true };
+    const [showSmartReviewModal, setShowSmartReviewModal] = useState(false);
+    const [npsStep, setNpsStep] = useState('stars');
+    const [starRating, setStarRating] = useState(0);
+    const [hoverStar, setHoverStar] = useState(0);
+    const [complaintText, setComplaintText] = useState('');
+    const [isSubmittingComplaint, setIsSubmittingComplaint] = useState(false);
+
+    const handleStarClick = (val) => {
+        setStarRating(val);
+        if (val <= 3) {
+            setNpsStep('complaint');
+        } else {
+            setNpsStep('google_offer');
         }
-        
-        const currentTier = [...sortedTiers].reverse().find(t => t.minBalanceThreshold <= depositBalance);
-        const currentThreshold = currentTier ? currentTier.minBalanceThreshold : 0;
-        
-        const range = nextTier.minBalanceThreshold - currentThreshold;
-        const progress = range > 0 ? ((depositBalance - currentThreshold) / range) * 100 : 0;
-        
-        return {
-            progress: Math.min(100, Math.max(0, progress)),
-            nextThreshold: nextTier.minBalanceThreshold,
-            nextDiscount: nextTier.discountPercentage,
-            isMax: false
-        };
+    };
+
+    const submitComplaint = async () => {
+        if (!complaintText.trim() || isSubmittingComplaint) return;
+        setIsSubmittingComplaint(true);
+        try {
+            const currentVenueId = activeVenueId || safeStorage.getItem('currentVenueId') || 'unknown';
+            await addDoc(collection(db, 'complaints'), {
+                venueId: currentVenueId,
+                guestName: guestName || 'Guest',
+                stars: starRating,
+                complaintText,
+                timestamp: serverTimestamp()
+            });
+            setNpsStep('complaint_thanks');
+        } catch(e) {
+            console.error("Complaint error:", e);
+            setNpsStep('complaint_thanks');
+        } finally {
+            setIsSubmittingComplaint(false);
+        }
     };
 
     const handleWriteGoogleReview = (url) => {
         if (!url) return;
+        setShowSmartReviewModal(false);
         const reviewUrl = convertToGoogleReviewUrl(url);
         window.open(reviewUrl, '_blank', 'noopener,noreferrer');
         setIsReviewPending(true);
@@ -512,7 +545,6 @@ const TestQRPage = () => {
                         [`googleReviews.${currentVenue}`]: 'completed',
                         [`googleReviewCompletedAt.${currentVenue}`]: nowIso
                     });
-                    console.log("Google review status updated in Firestore after 10s.");
                 } catch (err) {
                     console.error("Error updating review status in Firestore:", err);
                 }
@@ -536,27 +568,73 @@ const TestQRPage = () => {
 
     useEffect(() => {
         const uid = auth.currentUser?.uid;
-        const email = userProfile?.email || safeStorage.getItem('guestEmail');
-        if (!uid && !email) return;
+        const effectiveUid = safeStorage.getItem('effectiveUid') || userProfile?.id;
+        const email = (userProfile?.email || safeStorage.getItem('guestEmail') || '').toLowerCase();
+        if (!uid && !effectiveUid && !email) return;
 
-        const targetId = uid || email;
-        const qTx = query(
-            collection(db, 'deposit_transactions'),
-            where('userId', '==', targetId)
-        );
+        const targetId = effectiveUid || uid || email;
+
+        let qTx;
+        if (email) {
+            qTx = query(collection(db, 'deposit_transactions'), where('guestEmail', '==', email));
+        } else {
+            qTx = query(collection(db, 'deposit_transactions'), where('userId', '==', targetId));
+        }
+
+        let isInitialTxLoad = true;
 
         const unsubTx = onSnapshot(qTx, (snap) => {
-            const txList = snap.docs.map(doc => ({
+            let txList = snap.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
             }));
-            // Sort by timestamp in JavaScript to prevent missing index errors
+            
+            const currentVenue = activeVenueId || safeStorage.getItem('currentVenueId') || venueId || 'demo';
+            txList = txList.filter(tx => !tx.venueId || tx.venueId === currentVenue || currentVenue === 'demo');
+
             txList.sort((a, b) => {
                 const tA = a.createdAt?.seconds || (a.createdAt?.toDate ? Math.floor(a.createdAt.toDate().getTime() / 1000) : 0);
                 const tB = b.createdAt?.seconds || (b.createdAt?.toDate ? Math.floor(b.createdAt.toDate().getTime() / 1000) : 0);
                 return tB - tA;
             });
             setTransactions(txList);
+
+            // Lazy retrofit for missing timestamps
+            txList.forEach(tx => {
+                if (!tx.createdAt && !tx.timestamp) {
+                    const defaultDate = new Date();
+                    defaultDate.setHours(12, 0, 0, 0);
+                    updateDoc(doc(db, 'deposit_transactions', tx.id), {
+                        createdAt: defaultDate,
+                        timestamp: defaultDate
+                    }).catch(console.warn);
+                } else if (!tx.createdAt) {
+                    updateDoc(doc(db, 'deposit_transactions', tx.id), {
+                        createdAt: tx.timestamp
+                    }).catch(console.warn);
+                } else if (!tx.timestamp) {
+                    updateDoc(doc(db, 'deposit_transactions', tx.id), {
+                        timestamp: tx.createdAt
+                    }).catch(console.warn);
+                }
+            });
+
+            if (txList.length > 0) {
+                const latestTx = txList[0];
+                const rawBal = latestTx.newBalance ?? latestTx.balanceAfter;
+                if (rawBal !== undefined && rawBal !== null) {
+                    const latestBal = Number(rawBal);
+                    if (!isNaN(latestBal)) {
+                        if (!isInitialTxLoad || prevBalRef.current === null) {
+                            prevBalRef.current = latestBal;
+                            setDepositBalance(latestBal);
+                            safeStorage.setItem('cached_deposit_balance', String(latestBal));
+                        }
+                    }
+                }
+            }
+            
+            isInitialTxLoad = false;
         }, (err) => {
             console.error("Error loading transactions:", err);
         });
@@ -564,19 +642,11 @@ const TestQRPage = () => {
         return () => unsubTx();
     }, [auth.currentUser?.uid, userProfile?.email, depositBalance]);
 
-    const toggleLanguage = () => {
-        const cycle = { 'en': 'ru', 'ru': 'vi', 'vi': 'en' };
-        const newLang = cycle[i18n.language] || 'en';
-        safeStorage.setItem('userLanguage', newLang);
-        i18n.changeLanguage(newLang);
-    };
-
     const handleStoriesComplete = useCallback(() => {
         setStoriesCompleted(true);
         safeStorage.setItem('onboardingCompleted', 'true');
     }, []);
 
-    // Живой обратный отсчёт таймера
     useEffect(() => {
         if (liveSecondsLeft <= 0) return;
         const interval = setInterval(() => {
@@ -588,7 +658,6 @@ const TestQRPage = () => {
         return () => clearInterval(interval);
     }, [liveSecondsLeft > 0]);
 
-    // ── ERROR / BLOCKED (iOS Dark) ──
     if (status === 'error' || status === 'blocked') {
         return (
             <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6 text-center text-white">
@@ -608,27 +677,22 @@ const TestQRPage = () => {
         );
     }
 
-    // ── LOADING DATA FALLBACK ──
     if (status === 'loading') {
-        return (
-            <div className="flex flex-col min-h-[100dvh] bg-black items-center justify-center p-6 text-white relative">
-                <div className="z-10 flex flex-col items-center text-center">
-                    <div className="w-20 h-20 bg-[#1C1C1E] rounded-3xl flex items-center justify-center mb-6 shadow-2xl animate-pulse">
-                        <img src="/revoo-logo.png" alt="REVOO Logo" className="w-[80%] h-[80%] object-contain" />
-                    </div>
-                    <p className="text-white/50 font-medium text-sm animate-pulse">{t('calculating_discount')}</p>
-                </div>
-            </div>
-        );
+        return <LoadingBatteryScreen />;
     }
 
-    // ── ONBOARDING STORIES (Strictly bypassed for active deposit holders) ──
-    // Guard: only show/skip stories AFTER we know the real depositBalance
-    if (isDataReady && !storiesCompleted && depositBalance <= 0) {
+    const searchParams = new URLSearchParams(window.location.search);
+    const hasDepositQuery = searchParams.get('deposit') === 'true' || searchParams.get('deposit') === '1' || Number(searchParams.get('deposit')) > 0;
+    const isUserLoggedIn = Boolean((auth.currentUser && !auth.currentUser.isAnonymous && (auth.currentUser.email || userProfile?.email || safeStorage.getItem('guestEmail'))) || hasDepositQuery);
+    const hasGoogleReviewConfigured = Boolean(venueData?.googleReviewLink || venueData?.googleMapsUrl);
+    const hasCompletedReview = userProfile?.googleReviews?.[activeVenueId] === 'completed' || safeStorage.getItem('googleReviewClaimed') === 'true' || safeStorage.getItem(`googleReviewClaimed_${activeVenueId}`) === 'true';
+    
+    const isDepositActive = ((isUserLoggedIn && depositBalance > 0) || hasDepositQuery) && (!hasGoogleReviewConfigured || hasCompletedReview);
+
+    if (isDataReady && !storiesCompleted && !isDepositActive) {
         return <RevooStories onComplete={handleStoriesComplete} />;
     }
 
-    // ── Rank-Based Battery Mapping ──
     const getMappedCapacity = (currentDiscount, config) => {
         let sortedTiers = [];
         if (config) {
@@ -658,19 +722,17 @@ const TestQRPage = () => {
         const minVal = sortedTiers[0];
         const maxVal = sortedTiers[sortedTiers.length - 1];
 
-        if (val <= minVal) return 10; // Lowest/Base Tier = Red
-        if (val >= maxVal) return 100; // Highest/VIP Tier = Green
+        if (val <= minVal) return 10;
+        if (val >= maxVal) return 100;
 
-        // Find position in relative range
         const index = sortedTiers.indexOf(val);
         if (index !== -1) {
             const ratio = index / (sortedTiers.length - 1);
-            if (ratio <= 0.34) return 25; // Orange
-            if (ratio <= 0.67) return 50; // Yellow
-            return 100; // Green
+            if (ratio <= 0.34) return 25;
+            if (ratio <= 0.67) return 50;
+            return 100;
         }
 
-        // Interpolation fallback
         if (val < sortedTiers[Math.floor(sortedTiers.length / 2)]) return 25;
         return 50;
     };
@@ -737,206 +799,38 @@ const TestQRPage = () => {
         }
     }
 
-    const displayDiscount = depositBalance > 0 
+    const displayDiscount = isDepositActive 
         ? (activeTier?.discountPercentage || discount) 
         : (isReviewDiscountActive ? maxDiscount : discount);
 
     const currentDiscount = displayDiscount;
     const mappedCapacity = getMappedCapacity(displayDiscount, loyaltyConfig);
-    const currentCapacity = mappedCapacity;
+
+    let depositCapacity = 100;
+    if (isDepositActive) {
+        let maxThreshold = 1000000;
+        if (depositTiers && depositTiers.length > 0) {
+            const maxFromTiers = Math.max(...depositTiers.map(t => Number(t.minBalanceThreshold || t.threshold || 0)).filter(p => p > 0));
+            if (maxFromTiers > 0) maxThreshold = maxFromTiers;
+        } else if (venueData?.depositConfig?.maxThreshold) {
+            maxThreshold = Number(venueData.depositConfig.maxThreshold);
+        }
+        
+        const ratio = depositBalance / maxThreshold;
+        if (ratio >= 0.75) {
+            depositCapacity = 100;
+        } else if (ratio >= 0.40) {
+            depositCapacity = 50;
+        } else if (ratio >= 0.20) {
+            depositCapacity = 25;
+        } else {
+            depositCapacity = 10;
+        }
+    }
+
+    const currentCapacity = isDepositActive ? depositCapacity : mappedCapacity;
     const batCfg = getBatteryConfig(currentCapacity);
 
-    const formatDays = (d) => parseInt(d) === 1 ? '1 day' : `${d} days`;
-
-    // Таймер: форматирование живого остатка
-    const formatCountdown = (secs) => {
-        if (secs <= 0) return '24ч 00м';
-        const h = Math.floor(secs / 3600);
-        const m = Math.floor((secs % 3600) / 60);
-        const s = secs % 60;
-        if (h > 0) return `${h}ч ${String(m).padStart(2, '0')}м`;
-        return `${String(m).padStart(2, '0')}м ${String(s).padStart(2, '0')}с`;
-    };
-
-    // Определение вида текущей скидки (депозит, гугл карты, регулярная)
-    const getDiscountTypeInfo = () => {
-        if (depositBalance > 0) {
-            return {
-                type: 'deposit',
-                badge: i18n.language?.startsWith('ru') ? '💰 За депозит' : '💰 Deposit',
-                title: i18n.language?.startsWith('ru') ? 'Скидка по депозиту' : 'Deposit Discount',
-                subtitle: i18n.language?.startsWith('ru') 
-                    ? `Активирован Тир ${currentDiscountTier} (Баланс: ${depositBalance.toLocaleString()} ${venueCurrency})`
-                    : `Tier ${currentDiscountTier} Active (Balance: ${depositBalance.toLocaleString()} ${venueCurrency})`,
-                color: '#D4AF37',
-                bgClass: 'from-[#D4AF37]/25 via-[#D4AF37]/10 to-black/40',
-                borderClass: 'border-[#D4AF37]/50',
-                textClass: 'text-[#D4AF37]',
-                icon: faWallet
-            };
-        }
-
-        if (isReviewDiscountActive && reviewCompDate) {
-            let remainingStr = '';
-            if (reviewMsLeft > 0) {
-                remainingStr = i18n.language?.startsWith('ru') 
-                    ? `Осталось действовать: ${reviewDaysLeft}д. ${reviewHoursLeft}ч.` 
-                    : `Expires in: ${reviewDaysLeft}d ${reviewHoursLeft}h`;
-            } else {
-                remainingStr = i18n.language?.startsWith('ru') ? 'Срок действия истекает сегодня' : 'Expires today';
-            }
-
-            return {
-                type: 'google_review',
-                badge: i18n.language?.startsWith('ru') ? '⭐ За Google Отзыв' : '⭐ Google Maps Review',
-                title: i18n.language?.startsWith('ru') ? 'Скидка за отзыв на Картах' : 'Google Maps Review Reward',
-                subtitle: remainingStr,
-                color: '#4285F4',
-                bgClass: 'from-[#4285F4]/25 via-[#4285F4]/10 to-black/40',
-                borderClass: 'border-[#4285F4]/50',
-                textClass: 'text-[#4285F4]',
-                icon: faStar
-            };
-        }
-
-        // Regular visit discount
-        let tierName = t('tier_base', 'Base');
-        if (loyaltyConfig && Array.isArray(loyaltyConfig)) {
-            const sorted = [...loyaltyConfig]
-                .filter(c => Number(c.percentage || c.percent || c.discount || 0) > 0)
-                .sort((a, b) => Number(b.percentage || b.percent || b.discount) - Number(a.percentage || a.percent || a.discount));
-            const index = sorted.findIndex(t => Number(t.percentage || t.percent || t.discount) === displayDiscount);
-            if (index === 0) tierName = t('tier_vip', 'VIP');
-            else if (index > 0) tierName = t('tier_n', { n: index, defaultValue: `Tier ${index}` });
-            else tierName = t('tier_base', 'Base');
-        } else if (loyaltyConfig) {
-            const vip = Number(loyaltyConfig.percVip);
-            const medium = (loyaltyConfig.percDecay1 !== undefined && loyaltyConfig.percDecay1 !== null)
-                ? Number(loyaltyConfig.percDecay1)
-                : ((loyaltyConfig.percMedium !== undefined && loyaltyConfig.percMedium !== null)
-                    ? Number(loyaltyConfig.percMedium)
-                    : (loyaltyConfig.decayStages?.[0]?.discount !== undefined ? Number(loyaltyConfig.decayStages[0].discount) : null));
-            const decay2 = (loyaltyConfig.percDecay2 !== undefined && loyaltyConfig.percDecay2 !== null)
-                ? Number(loyaltyConfig.percDecay2)
-                : (loyaltyConfig.decayStages?.[1]?.discount !== undefined ? Number(loyaltyConfig.decayStages[1].discount) : null);
-            const base = Number(loyaltyConfig.percBase ?? 0);
-
-            if (displayDiscount === vip) tierName = t('tier_vip', 'VIP');
-            else if (displayDiscount === medium) tierName = t('tier_n', { n: 1, defaultValue: 'Tier 1' });
-            else if (displayDiscount === decay2) tierName = t('tier_n', { n: 2, defaultValue: 'Tier 2' });
-            else if (displayDiscount === base) tierName = t('tier_base', 'Base');
-            else {
-                if (displayDiscount >= 20) tierName = t('tier_vip', 'VIP');
-                else if (displayDiscount >= 15) tierName = t('tier_n', { n: 1, defaultValue: 'Tier 1' });
-                else if (displayDiscount >= 10) tierName = t('tier_n', { n: 2, defaultValue: 'Tier 2' });
-                else tierName = t('tier_base', 'Base');
-            }
-        }
-
-        return {
-            type: 'regular',
-            badge: t('badge_regular', { tier: tierName, defaultValue: `🔄 Regular (${tierName})` }),
-            title: t('title_regular', { tier: tierName, defaultValue: `Regular Loyalty (${tierName})` }),
-            subtitle: t('subtitle_regular', 'Based on visit frequency'),
-            color: batCfg.fillColor || '#00FF41',
-            bgClass: 'from-[#00FF41]/20 via-[#00FF41]/5 to-black/40',
-            borderClass: 'border-[#00FF41]/30',
-            textClass: 'text-emerald-400',
-            icon: faGift
-        };
-    };
-
-    // Таймлайн уровней скидок — строится динамически из DB
-    const timelineItems = (() => {
-        if (!loyaltyConfig) return [
-            { label: 'Today', value: '–', sub: 'No config', color: '#FF3131' },
-        ];
-
-        if (Array.isArray(loyaltyConfig)) {
-            // Формат массива: [{ maxHours, percentage }, ...]
-            const sorted = [...loyaltyConfig]
-                .filter(c => Number(c.percentage || c.percent || c.discount || 0) > 0)
-                .sort((a, b) => Number(b.percentage || b.percent || b.discount) - Number(a.percentage || a.percent || a.discount));
-
-            const colors = ['#00FF41', '#FFD700', '#FF8800', '#FF3131'];
-            const labels = ['VIP Status', 'Level 1', 'Level 2', 'Base Rate'];
-
-            return sorted.map((tier, index) => {
-                const perc = Number(tier.percentage || tier.percent || tier.discount || 0);
-                const hours = Number(tier.maxHours || (tier.days ? tier.days * 24 : 0));
-                const days = Math.round(hours / 24);
-                return {
-                    label: labels[index] || `Level ${index}`,
-                    value: `${perc}%`,
-                    sub: days > 0 ? t('timeline_within', { days: formatDays(days) }) : t('timeline_any_other_time', 'Any other time'),
-                    color: colors[index] || '#FF3131',
-                    perc
-                };
-            });
-        }
-
-        // Формат объекта: { percVip, percDecay1, percMedium, percDecay2, percBase, decayStages, ... }
-        const base = Number(loyaltyConfig.percBase ?? 0);
-        const vip = loyaltyConfig.percVip !== undefined ? Number(loyaltyConfig.percVip) : null;
-        
-        const medium = (loyaltyConfig.percDecay1 !== undefined && loyaltyConfig.percDecay1 !== null)
-            ? Number(loyaltyConfig.percDecay1)
-            : ((loyaltyConfig.percMedium !== undefined && loyaltyConfig.percMedium !== null)
-                ? Number(loyaltyConfig.percMedium)
-                : (loyaltyConfig.decayStages?.[0]?.discount !== undefined ? Number(loyaltyConfig.decayStages[0].discount) : null));
-
-        const decay2 = (loyaltyConfig.percDecay2 !== undefined && loyaltyConfig.percDecay2 !== null)
-            ? Number(loyaltyConfig.percDecay2)
-            : (loyaltyConfig.decayStages?.[1]?.discount !== undefined ? Number(loyaltyConfig.decayStages[1].discount) : null);
-
-        const items = [];
-
-        if (vip !== null && vip > base) {
-            const vipDays = loyaltyConfig.vipWindowDays || (loyaltyConfig.vipWindowHours ? Math.round(loyaltyConfig.vipWindowHours / 24) : 1);
-            items.push({
-                label: 'VIP Status',
-                value: `${vip}%`,
-                sub: t('timeline_within', { days: formatDays(vipDays) }),
-                color: '#00FF41',
-                perc: vip
-            });
-        }
-
-        if (medium !== null && medium > base && medium !== vip) {
-            const mediumDays = loyaltyConfig.mediumDays || loyaltyConfig.tier1DecayDays || (loyaltyConfig.decayStages?.[0]?.days) || 7;
-            items.push({
-                label: 'Level 1',
-                value: `${medium}%`,
-                sub: t('timeline_within', { days: formatDays(mediumDays) }),
-                color: '#FFD700',
-                perc: medium
-            });
-        }
-
-        if (decay2 !== null && decay2 > base && decay2 !== medium && decay2 !== vip) {
-            const decay2Days = loyaltyConfig.tier2DecayDays || (loyaltyConfig.decayStages?.[1]?.days) || 14;
-            items.push({
-                label: 'Level 2',
-                value: `${decay2}%`,
-                sub: t('timeline_within', { days: formatDays(decay2Days) }),
-                color: '#FF8800',
-                perc: decay2
-            });
-        }
-
-        // Base Rate — всегда показываем
-        items.push({
-            label: 'Base Rate',
-            value: `${base}%`,
-            sub: t('timeline_any_other_time', 'Any other time'),
-            color: '#FF3131',
-            perc: base
-        });
-
-        return items;
-    })();
-
-    // ── MAIN (iOS 26 Style Dark Mode) ──
     return (
         <motion.div
             initial={{ opacity: 0 }}
@@ -948,201 +842,85 @@ const TestQRPage = () => {
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
         >
-            {/* Ambient Background Glow Arrays (optimized for vivid mobile visibility) */}
             <div className="absolute top-[-10%] left-[-20vw] w-[140vw] h-[60vh] rounded-[100%] blur-[100px] pointer-events-none opacity-[0.25] mix-blend-screen" style={{ backgroundColor: batCfg.fillColor }} />
             <div className="absolute bottom-[10%] right-[-20vw] w-[140vw] h-[50vh] rounded-[100%] blur-[120px] pointer-events-none opacity-[0.15]" style={{ backgroundColor: batCfg.fillColor }} />
 
-            {/* ── TOP HEADER SECTION (No Cover Image) ── */}
-            <div className="relative w-full z-20 pt-4 pb-2 px-4 flex items-center justify-between gap-2 max-w-md mx-auto">
-                {/* Left: User Profile / Menu Trigger */}
-                <div className="flex-shrink-0">
-                    <UserMenu 
-                        user={auth.currentUser}
-                        isGuestView={true}
-                        venueColor={batCfg.fillColor}
-                        trigger={
-                            <div className="flex items-center gap-2 bg-black/50 hover:bg-black/70 backdrop-blur-xl px-3.5 py-1.5 rounded-full border border-white/20 cursor-pointer active:scale-95 transition-all shadow-lg">
-                                <FontAwesomeIcon icon={faUser} className="text-[11px] text-white/70" />
-                                <span className="text-[12px] font-bold tracking-wide text-white">{t('menu_guest_dashboard', 'Profile')}</span>
-                            </div>
-                        }
-                    />
+            <div 
+                className="relative w-full z-20 pb-2 px-4 flex items-center justify-between max-w-md mx-auto min-h-[48px] transition-all"
+                style={{
+                    paddingTop: 'max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 16px)'
+                }}
+            >
+                <div className="w-10 h-10 flex-shrink-0 flex items-center justify-start z-20">
+                    {isUserLoggedIn ? (
+                        <UserMenu 
+                            user={auth.currentUser}
+                            isGuestView={true}
+                            venueColor={batCfg.fillColor}
+                            trigger={
+                                <div className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-xl border border-white/20 flex items-center justify-center cursor-pointer active:scale-95 transition-all shadow-lg text-white/80 hover:text-white">
+                                    <FontAwesomeIcon icon={faUser} className="text-sm" />
+                                </div>
+                            }
+                        />
+                    ) : (
+                        <div 
+                            className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-xl border border-white/20 flex items-center justify-center cursor-pointer active:scale-95 transition-all shadow-lg text-white/80 hover:text-white"
+                            onClick={() => navigate('/activate', { state: { returnTo: 'profile', fromProfile: true, discount, guestName, userRole, venueId: activeVenueId } })}
+                        >
+                            <FontAwesomeIcon icon={faUser} className="text-sm" />
+                        </div>
+                    )}
                 </div>
 
-                {/* Center: Venue Name Enlarged */}
-                <div className="flex flex-col items-center text-center flex-1 min-w-0 px-1">
-                    <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-tight truncate max-w-full drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+                <div 
+                    className="absolute left-1/2 -translate-x-1/2 max-w-[calc(100%-110px)] flex flex-col items-center text-center cursor-pointer select-none active:opacity-75 transition-opacity z-10 pt-1"
+                    onClick={() => setDebugClicks(c => c + 1)}
+                >
+                    <span className="text-[11px] font-bold text-white/50 uppercase tracking-[0.1em] mb-1.5 whitespace-nowrap">
+                        {t('glad_to_see_you_in', 'РАДЫ ВИДЕТЬ ВАС В')}
+                    </span>
+                    <h1 className="text-[22px] sm:text-[26px] font-black tracking-tight text-white leading-[1.1] truncate max-w-full drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
                         {venueName || "REVOO VENUE"}
                     </h1>
                 </div>
 
-                {/* Right: Language Toggle */}
-                <div className="flex-shrink-0">
-                    <button
-                        onClick={toggleLanguage}
-                        className="bg-black/50 hover:bg-black/70 backdrop-blur-xl px-3.5 py-1.5 rounded-full text-xs font-bold text-white border border-white/20 active:scale-95 transition-all uppercase shadow-lg"
-                    >
-                        {(i18n.resolvedLanguage || i18n.language || 'en').substring(0, 2).toUpperCase()}
-                    </button>
+                <div className="w-10 h-10 flex-shrink-0 flex items-center justify-end z-20">
+                    <LanguageSwitcher />
                 </div>
             </div>
 
-            {/* Main Content Area */}
             <div className="flex flex-col items-center justify-start mt-1 px-6 pb-[140px] w-full max-w-md mx-auto z-10 gap-2.5" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
 
-                {/* Hero / Guest Welcome Greeting */}
-                <div className="text-center flex flex-col items-center -mt-1 mb-1">
-                    {guestName ? (
-                        <div 
-                            className="text-sm font-semibold tracking-tight text-white/80 flex items-center gap-1.5"
-                            onClick={() => setDebugClicks(c => c + 1)}
-                        >
+                {guestName && (
+                    <div 
+                        className="text-center flex flex-col items-center -mt-1 mb-1 cursor-pointer select-none"
+                        onClick={() => setDebugClicks(c => c + 1)}
+                    >
+                        <div className="text-sm font-semibold tracking-tight text-white/80 flex items-center gap-1.5">
                             <span>{t('hero_welcome_back', 'Welcome Back!')}</span>
                             <span className="text-amber-400 font-extrabold">{guestName}</span>
                         </div>
-                    ) : (
-                        <motion.button
-                            onClick={() => navigate('/activate', { state: { discount, guestName, userRole } })}
-                            className="text-[13px] font-semibold text-white bg-white/5 backdrop-blur-md px-5 py-2 rounded-full border mt-1 hover:bg-white/10 transition-colors"
-                            animate={{ 
-                                scale: [1, 1.06, 1],
-                                boxShadow: [
-                                    '0 0 0px rgba(255,255,255,0)', 
-                                    '0 0 12px rgba(255,255,255,0.15)', 
-                                    '0 0 0px rgba(255,255,255,0)'
-                                ],
-                                borderColor: [
-                                    'rgba(255,255,255,0.1)',
-                                    'rgba(255,255,255,0.4)',
-                                    'rgba(255,255,255,0.1)'
-                                ]
-                            }}
-                            transition={{ 
-                                repeat: Infinity, 
-                                duration: 1.6, 
-                                ease: "easeInOut" 
-                            }}
-                        >
-                            {t('hero_please_sign_in')}
-                        </motion.button>
-                    )}
-                </div>
-
-                {/* ── SCENARIO A: REGULAR GUEST WITHOUT DEPOSIT (Slogan + Discount Type Banner) ── */}
-                {depositBalance <= 0 && (
-                    <>
-                        {/* ── ACTIVE DISCOUNT TYPE BANNER ── */}
-                        {(() => {
-                            const discountInfo = getDiscountTypeInfo();
-                            return (
-                                <div className={`w-full bg-gradient-to-r ${discountInfo.bgClass} bg-[#1C1C1E]/90 backdrop-blur-2xl border ${discountInfo.borderClass} rounded-[24px] p-3.5 flex items-center justify-between shadow-2xl flex-shrink-0 relative overflow-hidden transition-all`}>
-                                    <div className="flex items-center gap-3.5 z-10 min-w-0">
-                                        <div 
-                                            className="w-11 h-11 rounded-2xl flex items-center justify-center text-base shadow-lg flex-shrink-0"
-                                            style={{ 
-                                                backgroundColor: `${discountInfo.color}25`,
-                                                border: `1px solid ${discountInfo.color}50`,
-                                                color: discountInfo.color 
-                                            }}
-                                        >
-                                            <FontAwesomeIcon icon={discountInfo.icon} />
-                                        </div>
-                                        <div className="flex flex-col text-left min-w-0">
-                                            <div className="flex items-center gap-2 mb-0.5">
-                                                <span className="text-[10px] font-black uppercase tracking-widest text-white/50">
-                                                    {t('title_discount_type', 'Discount Type')}
-                                                </span>
-                                            </div>
-                                            <span className="text-xs font-black text-white leading-tight truncate">
-                                                {discountInfo.title}
-                                            </span>
-                                            <span className="text-[11px] font-bold text-white/70 mt-0.5 truncate">
-                                                {discountInfo.subtitle}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-col items-end pl-2 z-10 flex-shrink-0">
-                                        <span className="text-2xl font-black tracking-tight drop-shadow-md" style={{ color: discountInfo.color }}>
-                                            {displayDiscount}%
-                                        </span>
-                                        <span 
-                                            className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border mt-0.5"
-                                            style={{ 
-                                                backgroundColor: `${discountInfo.color}15`,
-                                                borderColor: `${discountInfo.color}40`,
-                                                color: discountInfo.color 
-                                            }}
-                                        >
-                                            {discountInfo.type === 'deposit' ? t('badge_type_deposit', 'Deposit') : (discountInfo.type === 'google_review' ? t('badge_type_review', 'Google Maps') : t('badge_type_regular', 'Regular'))}
-                                        </span>
-                                    </div>
-                                </div>
-                            );
-                        })()}
-                    </>
+                    </div>
                 )}
 
-                {/* ── GOOGLE MAPS REVIEW PROMO BANNER ── */}
-                {(venueData?.googleReviewLink || venueData?.googleMapsUrl) && !isReviewDiscountActive && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="w-full bg-gradient-to-r from-[#4285F4]/20 via-[#34A853]/10 to-[#FBBC04]/20 bg-[#1C1C1E]/90 backdrop-blur-2xl border border-[#4285F4]/40 rounded-[28px] p-4 flex items-center justify-between gap-3 shadow-2xl relative overflow-hidden flex-shrink-0"
-                    >
-                        <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-11 h-11 rounded-2xl bg-[#4285F4]/20 border border-[#4285F4]/40 flex items-center justify-center text-[#4285F4] text-lg shadow-lg flex-shrink-0">
-                                <FontAwesomeIcon icon={faStar} className="animate-pulse" />
-                            </div>
-                            <div className="flex flex-col min-w-0 text-left">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-[#4285F4]">
-                                    {i18n.language?.startsWith('ru') ? '⭐ Бонус за отзыв' : '⭐ Review Bonus'}
-                                </span>
-                                <span className="text-xs font-black text-white leading-tight truncate">
-                                    {i18n.language?.startsWith('ru') ? `Получить скидку ${maxDiscount}% на 7 дней` : `Get ${maxDiscount}% off for 7 days`}
-                                </span>
-                                <span className="text-[10px] font-medium text-white/60 mt-0.5 truncate">
-                                    {i18n.language?.startsWith('ru') ? 'Оставьте отзыв на Картах Google' : 'Leave a review on Google Maps'}
-                                </span>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => handleWriteGoogleReview(venueData.googleReviewLink || venueData.googleMapsUrl)}
-                            disabled={isReviewPending}
-                            className="px-4 py-2.5 bg-[#4285F4] hover:bg-[#3367D6] text-white font-black text-[11px] uppercase tracking-wider rounded-xl shadow-lg active:scale-95 transition-all flex-shrink-0 flex items-center gap-1.5"
-                        >
-                            {isReviewPending ? (
-                                <span>10 сек...</span>
-                            ) : (
-                                <>
-                                    <span>{i18n.language?.startsWith('ru') ? 'Отзыв' : 'Review'}</span>
-                                    <FontAwesomeIcon icon={faChevronRight} className="text-[9px]" />
-                                </>
-                            )}
-                        </button>
-                    </motion.div>
-                )}
-
-                {/* ── CONDITIONAL DISPLAY: DEPOSIT HOLDER vs REGULAR BATTERY ── */}
-                {depositBalance > 0 ? (
-                    /* ── DEPOSIT HOLDER VIEW (No battery, personal QR code for deduction) ── */
+                {isDepositActive ? (
                     <div className="flex flex-col items-center w-full bg-[#1C1C1E]/80 backdrop-blur-[40px] border border-[#D4AF37]/40 rounded-[28px] p-5 shadow-2xl relative overflow-hidden flex-shrink-0 text-center">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/10 rounded-full blur-2xl pointer-events-none" />
 
                         <div className="flex items-center gap-2 mb-1">
                             <FontAwesomeIcon icon={faWallet} className="text-[#D4AF37] text-sm" />
-                            <span className="text-xs font-extrabold uppercase tracking-widest text-[#D4AF37]">Ваш баланс депозита</span>
+                            <span className="text-xs font-extrabold uppercase tracking-widest text-[#D4AF37]">{t('deposit_balance_title', 'Your Deposit Balance')}</span>
                         </div>
 
                         <div className="text-4xl font-black text-white tracking-tight mb-4 drop-shadow-[0_2px_10px_rgba(212,175,55,0.3)]">
                             {depositBalance.toLocaleString()} <span className="text-sm font-medium text-white/50">{venueCurrency}</span>
                         </div>
 
-                        {/* Personal QR Code for Staff to Deduct Bill */}
                         <div className="bg-white p-3 rounded-2xl shadow-xl mb-3 border border-white/20">
                             <img 
                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
-                                    `https://bot-lab-21910.web.app/admin/#/deposit?uid=${auth.currentUser?.uid || auth.currentUser?.email || ''}&action=deduct`
+                                    `https://bot-lab-21910.web.app/admin/deposit?search=${auth.currentUser?.uid || userProfile?.id || userProfile?.email || auth.currentUser?.email || safeStorage.getItem('effectiveUid') || safeStorage.getItem('guestEmail') || guestName || ''}&action=deduct`
                                 )}`}
                                 alt="Personal Deposit QR"
                                 className="w-[160px] h-[160px] block mx-auto"
@@ -1150,24 +928,19 @@ const TestQRPage = () => {
                         </div>
                         
                         <p className="text-[11px] font-bold text-white/70 tracking-wide uppercase">
-                            Покажите этот QR-код официанту для списания чека
+                            {t('show_qr_instruction', 'Show this QR code to staff to deduct your bill')}
                         </p>
                     </div>
                 ) : (
-                    /* ── GLASS BATTERY CONTAINER (Modern Floating Card) ── */
                     <div className="flex flex-col items-center w-full bg-[#1C1C1E]/60 backdrop-blur-[40px] border border-white/10 rounded-[28px] p-4 shadow-2xl relative overflow-hidden">
-                        
-                        {/* Inner highlight ring */}
                         <div className="absolute inset-0 border border-white/5 rounded-[28px] pointer-events-none mix-blend-overlay"></div>
 
-                        {/* VIP Status Label */}
-                        <p className="text-[9px] font-bold tracking-[0.2em] text-white/30 uppercase mb-0">
-                            {t('vip_battery_charge_label', 'VIP Battery Charge')}
+                        <p className="text-[28px] sm:text-[32px] font-black tracking-tight text-white uppercase mb-3 mt-6 drop-shadow-[0_2px_8px_rgba(255,255,255,0.3)] text-center leading-tight">
+                            ВАША СКИДКА СЕГОДНЯ
                         </p>
 
-                        {/* Massive Accent Number */}
                         <div 
-                            className="h-[60px] overflow-hidden relative w-[180px] flex items-center justify-center"
+                            className="h-[60px] overflow-hidden relative w-[180px] flex items-center justify-center mb-6"
                             style={{
                                 color: '#FFFFFF',
                                 fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"',
@@ -1197,24 +970,88 @@ const TestQRPage = () => {
                                 {currentDiscount}%
                             </motion.div>
                         </div>
-                        {(() => {
-                            const dInfo = getDiscountTypeInfo();
-                            return (
-                                <div className="px-3.5 py-1 rounded-full border border-white/15 bg-white/5 flex items-center gap-1.5 mb-3 shadow-sm backdrop-blur-md">
-                                    <span className="text-[10px] font-bold tracking-wider uppercase text-white/90">
-                                        {dInfo.badge}
-                                    </span>
-                                </div>
-                            );
-                        })()}
+
 
                         <div className="w-full relative z-10 pointer-events-none">
                             <PngBattery capacity={currentCapacity} />
                         </div>
+
+                        {(() => {
+                            let sortedTiers = [3, 5, 7];
+                            if (loyaltyConfig) {
+                                if (Array.isArray(loyaltyConfig)) {
+                                    const percs = loyaltyConfig.map(c => Number(c.percentage || c.percent || 0)).filter(p => p > 0);
+                                    if (percs.length > 0) sortedTiers = [...new Set(percs)].sort((a, b) => a - b);
+                                } else {
+                                    const percs = [
+                                        Number(loyaltyConfig.percBase),
+                                        Number(loyaltyConfig.percDecay2),
+                                        Number(loyaltyConfig.percDecay1),
+                                        Number(loyaltyConfig.percVip)
+                                    ].filter(p => !isNaN(p) && p > 0);
+                                    if (percs.length > 0) sortedTiers = [...new Set(percs)].sort((a, b) => a - b);
+                                }
+                            }
+                            const maxTier = sortedTiers[sortedTiers.length - 1] || 10;
+                            const minTier = sortedTiers[0] || 3;
+                            const midTier = sortedTiers.length > 2 ? sortedTiers[Math.floor((sortedTiers.length - 1) / 2)] : (sortedTiers[1] || minTier);
+                            
+                            const xDays = loyaltyConfig?.mediumDays || loyaltyConfig?.tier1DecayDays || (loyaltyConfig?.decayStages?.[0]?.days) || 7;
+
+                            return (
+                                <div className="mt-8 pt-6 border-t border-white/10 w-full flex flex-col items-stretch text-left relative z-10 gap-3 mb-1">
+                                    <p className="text-sm font-bold text-white text-center mb-1 drop-shadow-md">
+                                        {t('the_more_you_visit_the_higher_discount', 'ЧЕМ ЧАЩЕ ПРИХОДИТЕ ТЕМ ВЫШЕ СКИДКА')}
+                                    </p>
+                                    
+                                    <div className="flex items-center justify-between bg-black/40 p-4 rounded-[20px] border border-[#00FF41]/30 shadow-[0_0_15px_rgba(0,255,65,0.1)] relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-[#00FF41]/10 blur-xl rounded-full" />
+                                        <div className="flex flex-col gap-1 z-10">
+                                            <span className="text-[13px] font-black text-white/95 uppercase tracking-wider">ВАША СКИДКА ЗАВТРА</span>
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                                <div className="w-[24px] h-[10px] border border-[#00FF41]/50 rounded-[3px] p-[1px] flex items-center relative">
+                                                    <div className="h-full bg-[#00FF41] rounded-[1px] w-full shadow-[0_0_5px_#00FF41]"></div>
+                                                    <div className="absolute -right-[3px] w-[2px] h-[5px] bg-[#00FF41]/50 rounded-r-[1px]"></div>
+                                                </div>
+                                                <span className="text-[10px] font-extrabold text-[#00FF41] uppercase tracking-wider">МАКСИМУМ</span>
+                                            </div>
+                                        </div>
+                                        <span className="text-[34px] font-black text-[#00FF41] drop-shadow-[0_0_10px_rgba(0,255,65,0.4)] z-10 leading-none">{maxTier}%</span>
+                                    </div>
+
+                                    <div className="flex items-center justify-between bg-black/20 p-3.5 rounded-[16px] border border-amber-400/20 shadow-inner px-4">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-[11px] font-bold text-white/70 uppercase tracking-wider">ЧЕРЕЗ {xDays} ДНЕЙ</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-[18px] h-[8px] border border-amber-400/50 rounded-[2px] p-[1px] flex items-center relative">
+                                                    <div className="h-full bg-amber-400 rounded-[1px] w-[60%] shadow-[0_0_5px_rgba(251,191,36,1)]"></div>
+                                                    <div className="absolute -right-[3px] w-[2px] h-[4px] bg-amber-400/50 rounded-r-[1px]"></div>
+                                                </div>
+                                                <span className="text-[9px] font-bold text-amber-400/80 uppercase tracking-wider">СРЕДНЯЯ</span>
+                                            </div>
+                                        </div>
+                                        <span className="text-2xl font-black text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.3)] leading-none">{midTier}%</span>
+                                    </div>
+
+                                    <div className="flex items-center justify-between bg-black/20 p-3.5 rounded-[16px] border border-[#FF3131]/20 shadow-inner px-4">
+                                        <div className="flex flex-col gap-1">
+                                            <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">СКИДКА ВСЕГДА</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-[18px] h-[8px] border border-[#FF3131]/50 rounded-[2px] p-[1px] flex items-center relative">
+                                                    <div className="h-full bg-[#FF3131] rounded-[1px] w-[20%] shadow-[0_0_5px_rgba(255,49,49,1)]"></div>
+                                                    <div className="absolute -right-[3px] w-[2px] h-[4px] bg-[#FF3131]/50 rounded-r-[1px]"></div>
+                                                </div>
+                                                <span className="text-[9px] font-bold text-[#FF3131]/80 uppercase tracking-wider">БАЗОВАЯ</span>
+                                            </div>
+                                        </div>
+                                        <span className="text-xl font-black text-[#FF3131] drop-shadow-[0_0_8px_rgba(255,49,49,0.3)] leading-none">{minTier}%</span>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
                 )}
 
-                {/* ── VIP WI-FI BANNER ── */}
                 {venueData?.has_captive_wifi && (
                     <>
                         <motion.div 
@@ -1237,10 +1074,10 @@ const TestQRPage = () => {
                             
                             <div className="flex flex-col flex-1">
                                 <span className="font-bold text-[13px] text-white leading-tight">
-                                    {i18n.language?.startsWith('ru') ? "📶 В этом заведении работает VIP Wi-Fi" : (i18n.language?.startsWith('vi') ? "📶 Wi-Fi VIP có sẵn tại địa điểm này" : "📶 VIP Wi-Fi is available at this venue")}
+                                     {t('vip_wifi_banner', '📶 VIP Wi-Fi is available at this venue')}
                                 </span>
                                 <span className="text-[10px] text-white/55 font-medium mt-0.5">
-                                    {i18n.language?.startsWith('ru') ? `Сеть: ${venueData.wifi_ssid || 'Revo_Free_WiFi'} | Без пароля` : (i18n.language?.startsWith('vi') ? `Mạng: ${venueData.wifi_ssid || 'Revo_Free_WiFi'} | Không mật khẩu` : `Network: ${venueData.wifi_ssid || 'Revo_Free_WiFi'} | No password`)}
+                                     {t('wifi_network_no_pass', { ssid: venueData.wifi_ssid || 'Revo_Free_WiFi', defaultValue: `Network: ${venueData.wifi_ssid || 'Revo_Free_WiFi'} | No password` })}
                                 </span>
                             </div>
                             
@@ -1274,21 +1111,16 @@ const TestQRPage = () => {
                                                 <FontAwesomeIcon icon={faWifi} className="text-lg" />
                                             </div>
                                             <h3 className="text-lg font-black tracking-tight text-white mb-3">
-                                                {i18n.language?.startsWith('ru') ? "Подключение к VIP Wi-Fi" : (i18n.language?.startsWith('vi') ? "Kết nối với Wi-Fi VIP" : "Connect to VIP Wi-Fi")}
+                                                {t('connect_vip_wifi', 'Connect to VIP Wi-Fi')}
                                             </h3>
                                             <p className="text-xs text-white/70 leading-relaxed mb-6">
-                                                {i18n.language?.startsWith('ru') 
-                                                    ? `Как подключиться: Откройте настройки Wi-Fi вашего смартфона, выберите открытую сеть "${venueData.wifi_ssid || 'Revo_Free_WiFi'}", и система автоматически авторизует ваше устройство с сохранением всех ваших скидок и депозитов.`
-                                                    : (i18n.language?.startsWith('vi')
-                                                        ? `Cách kết nối: Mở cài đặt Wi-Fi trên điện thoại của bạn, chọn mạng mở "${venueData.wifi_ssid || 'Revo_Free_WiFi'}" và hệ thống sẽ tự động ủy quyền cho thiết bị của bạn trong khi vẫn giữ nguyên tất cả các khoản chiết khấu và tiền gửi của bạn.`
-                                                        : `How to connect: Open your smartphone's Wi-Fi settings, select the open network "${venueData.wifi_ssid || 'Revo_Free_WiFi'}", and the system will automatically authorize your device while preserving all your discounts and deposits.`
-                                                    )}
+                                                {t('wifi_instruction_popup', { ssid: venueData.wifi_ssid || 'Revo_Free_WiFi', defaultValue: `How to connect: Open your phone's Wi-Fi settings, select open network "${venueData.wifi_ssid || 'Revo_Free_WiFi'}", and access will authorize automatically.` })}
                                             </p>
                                             <button
                                                 onClick={() => setShowWifiModal(false)}
                                                 className="w-full py-3.5 bg-white text-black font-extrabold rounded-[18px] text-xs uppercase tracking-wider active:scale-[0.98] transition-transform"
                                             >
-                                                {i18n.language?.startsWith('ru') ? "Понятно" : (i18n.language?.startsWith('vi') ? "Đã hiểu" : "Got it")}
+                                                {t('got_it', 'Got it')}
                                             </button>
                                         </div>
                                     </motion.div>
@@ -1298,8 +1130,7 @@ const TestQRPage = () => {
                     </>
                 )}
 
-                {/* ── DEPOSIT WALLET CARD ── */}
-                {depositBalance > 0 && (
+                {isDepositActive && (
                     <div className="w-full bg-[#1C1C1E]/60 backdrop-blur-[40px] border border-white/10 rounded-[28px] p-5 shadow-2xl relative overflow-hidden flex flex-col flex-shrink-0">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2">
@@ -1315,37 +1146,9 @@ const TestQRPage = () => {
                             {depositBalance.toLocaleString()} <span className="text-xs font-medium text-white/50">{venueCurrency}</span>
                         </div>
 
-                        {/* Next Tier Progress */}
-                        {(() => {
-                            const progressInfo = getNextTierProgress();
-                            return (
-                                <div className="flex flex-col gap-2">
-                                    <div className="flex justify-between items-center text-[10px] text-white/40 font-bold uppercase tracking-wider">
-                                        {progressInfo.isMax ? (
-                                            <span className="text-emerald-400">🎉 Maximum tier unlocked</span>
-                                        ) : (
-                                            <>
-                                                <span>Next tier: {progressInfo.nextThreshold.toLocaleString()} {venueCurrency}</span>
-                                                <span>{progressInfo.progress.toFixed(0)}%</span>
-                                            </>
-                                        )}
-                                    </div>
-                                    {!progressInfo.isMax && (
-                                        <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                                            <div 
-                                                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full" 
-                                                style={{ width: `${progressInfo.progress}%`, transition: 'width 0.5s ease-out' }} 
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })()}
-
-                        {/* History Button */}
                         <button 
                             onClick={() => setIsHistoryOpen(true)}
-                            className="mt-4 w-full py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-xs font-bold text-white/70 flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
+                            className="w-full py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl text-xs font-bold text-white/70 flex items-center justify-center gap-2 transition-colors active:scale-[0.98]"
                         >
                             <FontAwesomeIcon icon={faChartPie} />
                             View Wallet History
@@ -1353,120 +1156,48 @@ const TestQRPage = () => {
                     </div>
                 )}
 
-                    {/* ── TOMORROW'S UPGRADE & VISIT OFFER CARD (Hidden for active deposit holders) ── */}
-                    {depositBalance <= 0 && (
-                        <div className="w-full bg-[#1C1C1E]/80 backdrop-blur-3xl border border-emerald-500/40 rounded-[28px] p-5 shadow-2xl relative overflow-hidden flex flex-col flex-shrink-0">
-                            {/* Subtle ambient glow */}
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-[#00FF41]/10 rounded-full blur-2xl pointer-events-none" />
-
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-xl bg-[#00FF41]/20 border border-[#00FF41]/30 flex items-center justify-center text-[#00FF41]">
-                                        <FontAwesomeIcon icon={faClock} className="text-sm" />
-                                    </div>
-                                    <span className="text-xs font-black uppercase tracking-wider text-emerald-400">Предложение визита</span>
-                                </div>
-                                <div className="bg-[#00FF41]/10 border border-[#00FF41]/30 rounded-full px-3 py-1">
-                                    <span className="text-[10px] font-black text-[#00FF41] uppercase tracking-widest">Макс. выгода</span>
-                                </div>
-                            </div>
-
-                            <div className="text-base font-black text-white mb-1.5 leading-snug">
-                                Вернись завтра за максимальной скидкой {maxDiscount}%!
-                            </div>
-                            <p className="text-[11px] font-medium text-white/70 leading-relaxed mb-4">
-                                Приходи к нам завтра и твоя скидка автоматически вырастет до максимальной. Чем регулярнее визиты, тем выше твой ВИП статус!
-                            </p>
-
-                            {/* 2-Column Tomorrow Discount & Timer Display */}
-                            <div className="grid grid-cols-2 gap-3 pt-1">
-                                <div className="bg-black/50 border border-emerald-500/30 rounded-2xl p-3.5 flex flex-col items-center justify-center text-center shadow-inner">
-                                    <span className="text-[9px] font-extrabold uppercase tracking-wider text-white/50 mb-1">Завтра вас ждет</span>
-                                    <motion.span 
+                {isDepositActive && (() => {
+                    const giftxUrl = venueData?.giftxUrl || 'https://giftx.app';
+                    return (
+                        <div className="w-full flex items-center justify-start my-2 pl-1 flex-shrink-0">
+                            <motion.div
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.96 }}
+                                onClick={() => window.open(giftxUrl, '_blank', 'noopener,noreferrer')}
+                                className="cursor-pointer flex items-center gap-2.5 bg-[#1C1C1E]/95 border-2 border-[#FF2A85]/60 rounded-2xl px-3.5 py-2 backdrop-blur-2xl shadow-[0_10px_25px_rgba(255,42,133,0.35)] h-[56px] select-none group hover:border-[#FF2A85] transition-all max-w-[220px]"
+                                title="GiftX"
+                            >
+                                <div className="absolute top-0 left-0 w-24 h-24 bg-[#FF2A85]/15 rounded-full blur-xl pointer-events-none" />
+                                
+                                <div className="w-9 h-9 rounded-xl bg-[#1C1C1E] border border-[#FF2A85] flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(255,42,133,0.5)] relative z-10 overflow-hidden">
+                                    <motion.img
+                                        src={giftxBox3D}
+                                        alt="GiftX"
                                         animate={{
-                                            scale: [1, 1.08, 1],
-                                            textShadow: [
-                                                '0 0 10px rgba(0,255,65,0.5), 0 0 20px rgba(0,255,65,0.3)',
-                                                '0 0 20px rgba(0,255,65,0.9), 0 0 35px rgba(0,255,65,0.7)',
-                                                '0 0 10px rgba(0,255,65,0.5), 0 0 20px rgba(0,255,65,0.3)'
-                                            ]
+                                            rotate: [0, 2, -2.5, 3, -1.5, 2.5, -3, 1.5, -2, 0]
                                         }}
-                                        transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-                                        className="text-3xl font-black text-[#00FF41] leading-none mt-0.5 inline-block"
-                                    >
-                                        {maxDiscount}%
-                                    </motion.span>
+                                        transition={{ duration: 0.2, repeat: Infinity, ease: "linear" }}
+                                        className="w-6 h-6 object-contain pointer-events-none"
+                                    />
                                 </div>
 
-                                <div className="bg-black/50 border border-amber-500/30 rounded-2xl p-3.5 flex flex-col items-center justify-center text-center shadow-inner">
-                                    <span className="text-[9px] font-extrabold uppercase tracking-wider text-white/50 mb-1">Сгорит через</span>
-                                    <span className="text-sm font-black text-[#FFD700] flex items-center gap-1.5 mt-1">
-                                        <FontAwesomeIcon icon={faClock} className="text-[11px] animate-spin" style={{ animationDuration: '10s' }} />
-                                        {formatCountdown(liveSecondsLeft)}
+                                <div className="flex flex-col text-left relative z-10 min-w-0 pr-1">
+                                    <div className="flex items-center gap-1">
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-[#FF2A85] leading-none">GiftX</span>
+                                        <span className="text-[8px] font-black uppercase tracking-widest px-1 py-0.2 rounded-full bg-[#FF2A85]/20 border border-[#FF2A85]/40 text-[#FF2A85]">🎁</span>
+                                    </div>
+                                    <span className="text-[10px] font-bold text-white/90 leading-tight mt-0.5 truncate">
+                                        {t('gift_cards', 'Gift Certificates')}
                                     </span>
                                 </div>
-                            </div>
+                            </motion.div>
                         </div>
-                    )}
-
-                    {/* ── TOP UP DEPOSIT PROPOSAL CARD (Shown when deposit is 0) ── */}
-                    {depositBalance <= 0 && (
-                        <div className="w-full bg-[#1C1C1E]/60 backdrop-blur-[40px] border border-[#D4AF37]/40 rounded-[28px] p-5 shadow-2xl relative overflow-hidden flex flex-col flex-shrink-0">
-                            <div className="flex items-center gap-2 mb-3">
-                                <div className="w-8 h-8 bg-[#D4AF37]/20 border border-[#D4AF37]/30 rounded-xl flex items-center justify-center text-[#D4AF37]">
-                                    <FontAwesomeIcon icon={faWallet} className="text-sm" />
-                                </div>
-                                <span className="text-xs font-black uppercase tracking-wider text-[#D4AF37]">💰 {t('deposit_qr_code')}</span>
-                            </div>
-                            
-                            <div className="text-base font-bold text-white mb-1.5 leading-snug">
-                                {t('lock_max_vip', { percent: depositDiscount })}
-                            </div>
-                            <p className="text-xs text-white/70 mb-3 leading-relaxed">
-                                {t('ask_staff_topup', { percent: depositDiscount })}
-                            </p>
-
-                            <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-2xl p-3 text-center">
-                                <span className="text-xs font-bold text-[#D4AF37]">
-                                    {t('ask_waiter_scan_qr')}
-                                </span>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* iOS Settings-style Timeline Widget (Hidden for active deposit holders) */}
-                    {depositBalance <= 0 && (
-                        <>
-                            <div className="w-full bg-[#1C1C1E] rounded-[24px] overflow-hidden flex flex-col border border-white/5 shadow-xl mt-0">
-                                {timelineItems.map((item, index) => (
-                                    <div key={index} className="flex items-center gap-3 py-2.5 border-b border-white/5 last:border-0 relative px-4 hover:bg-white/5 transition-colors">
-                                        {/* Icon Box */}
-                                        <div className="w-6 h-6 rounded-lg flex items-center justify-center text-white" style={{ backgroundColor: item.color, boxShadow: `0 0 10px ${item.color}30` }}>
-                                            <FontAwesomeIcon icon={faGift} className="text-[10px]" />
-                                        </div>
-                                        
-                                        {/* Text labels */}
-                                        <div className="flex items-center w-full justify-between">
-                                            <div className="flex flex-col">
-                                                <span className="font-semibold text-[14px] text-white">{item.label}</span>
-                                                <span className="text-[10px] text-white/30 font-medium uppercase tracking-wider">{item.sub}</span>
-                                            </div>
-                                            <span className="text-[14px] text-white/50 font-bold">{item.value}</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <p className="mt-4 text-[11px] font-medium text-white/40 text-center px-4 leading-relaxed tracking-wider">
-                                {i18n.language === 'ru' ? 'Чем чаще ты посещаешь, тем выше ВИП статус и награда!' : 'The more often you visit, the higher your VIP status and reward!'}
-                            </p>
-                        </>
-                    )}
+                    );
+                })()}
 
             </div>
 
-            {/* Sticky CTA (Hidden when active deposit exists) */}
-            {depositBalance <= 0 && (
+            {!isDepositActive && (
                 <div className="fixed bottom-0 left-0 w-full p-4 pt-10 bg-gradient-to-t from-black via-black/90 to-transparent pb-6 z-50 flex justify-center">
                     <button
                         onClick={() => {
@@ -1488,10 +1219,24 @@ const TestQRPage = () => {
                                 }).catch(e => console.warn("Visit log error:", e));
                             }
 
-                            if (resolvedName || resolvedEmail) {
-                                navigate('/thank-you', { state: { guestName: resolvedName || 'Friend', guestEmail: resolvedEmail, discountValue: displayDiscount, venueId: currentVenue, userRole } });
+                            if (resolvedEmail) {
+                                navigate('/thank-you', { 
+                                    state: { 
+                                        guestName: resolvedName || 'Guest', 
+                                        guestEmail: resolvedEmail, 
+                                        discountValue: displayDiscount, 
+                                        venueId: currentVenue, 
+                                        userRole 
+                                    } 
+                                });
                             } else {
-                                navigate('/activate', { state: { discount: displayDiscount, guestName: resolvedName, userRole } });
+                                navigate('/activate', { 
+                                    state: { 
+                                        returnTo: 'thank-you',
+                                        discountValue: displayDiscount,
+                                        venueId: currentVenue
+                                    } 
+                                });
                             }
                         }}
                         className="w-[92%] max-w-[400px] h-[52px] text-black bg-white rounded-[18px] font-semibold text-[16px] active:scale-[0.97] transition-all shadow-xl flex items-center justify-center gap-2"
@@ -1501,45 +1246,108 @@ const TestQRPage = () => {
                 </div>
             )}
 
+            {debugClicks >= 5 && (() => {
+                const resolvedEmail = auth.currentUser?.email || userProfile?.email || safeStorage.getItem('guestEmail') || 'Гость (без почты)';
+                const resolvedUid = auth.currentUser?.uid || safeStorage.getItem('effectiveUid') || 'Anonymous / Local';
+                const resolvedName = guestName || auth.currentUser?.displayName || userProfile?.displayName || userProfile?.name || safeStorage.getItem('guestName') || 'Гость';
+                const resolvedVenueId = activeVenueId || venueData?.id || 'demo';
+                const resolvedVenueName = (activeVenueId === 'default_venue' || (!venueName && !venueData?.name)) ? 'Unknown' : (venueName || venueData?.name || 'Unknown');
+                const resolvedRole = userRole || userProfile?.role || 'guest';
+                const lastVisitText = lastVisitDebug?.lastVisitDisplay || lastVisitDebug?.daysAgoStr || (lastVisitDebug?.isDayActive ? 'Сегодня' : 'Никогда');
+                const historyText = lastVisitDebug?.history || 'Нет данных';
+                const diffDaysText = lastVisitDebug?.diffDays !== undefined ? String(lastVisitDebug.diffDays) : (lastVisitDebug?.isDayActive ? '0 (Активен)' : 'N/A');
+                const timerText = liveSecondsLeft > 0 ? formatCountdown(liveSecondsLeft) : 'Не активен';
+                const reviewBonusText = isReviewDiscountActive ? `Активен (${reviewDaysLeft}д ${reviewHoursLeft}ч)` : 'Не активен';
+                const depositText = `${depositBalance.toLocaleString()} ${venueData?.currency || 'VND'}${isDepositActive ? ' (VIP зафиксирован)' : ''}`;
 
-            {/* Debug Overlay */}
-            {debugClicks >= 5 && (
-                <div className="fixed inset-0 z-[1000] bg-black/90 flex items-center justify-center p-6 backdrop-blur-3xl" onClick={() => setDebugClicks(0)}>
-                    <div className="bg-[#1C1C1E] w-full max-w-sm rounded-[36px] p-8 border border-white/10 shadow-2xl relative">
-                        <h3 className="text-white/80 font-bold text-sm mb-6 flex items-center justify-center gap-2">
-                            <FontAwesomeIcon icon={faExclamationTriangle} className="text-yellow-500" />
-                            System Diagnostics
-                        </h3>
-                        <div className="space-y-4">
-                            {lastVisitDebug ? (
-                                lastVisitDebug.error ? (
-                                    <div className="p-4 bg-red-500/10 rounded-2xl flex flex-col">
-                                        <span className="text-[11px] font-medium text-red-500 mb-1">Error</span>
-                                        <span className="text-sm font-semibold text-white break-words">{lastVisitDebug.error}</span>
-                                    </div>
-                                ) : (
-                                    [
-                                        { label: 'UID', value: lastVisitDebug.uid },
-                                        { label: 'Email', value: lastVisitDebug.email },
-                                        { label: 'Venue', value: lastVisitDebug.venueId },
-                                        { label: 'Current State', value: lastVisitDebug.daysAgoStr },
-                                        { label: 'History (5 days)', value: lastVisitDebug.history },
-                                        { label: 'Calculated Rate', value: `${lastVisitDebug.discountToday}%`, color: 'text-[#00FF41]' }
-                                    ].map((item, idx) => (
-                                        <div key={idx} className="flex flex-col gap-0.5 border-b border-white/5 pb-2 last:border-0">
-                                            <span className="text-[11px] font-medium text-white/40">{item.label}</span>
-                                            <span className={`text-[13px] font-semibold truncate ${item.color || 'text-white/80'}`}>{item.value}</span>
-                                        </div>
-                                    ))
-                                )
-                            ) : (
-                                <p className="text-white/40 text-[13px] font-medium text-center">Loading data...</p>
+                return (
+                    <div 
+                        className="fixed inset-0 z-[1000] bg-black/90 flex items-center justify-center p-4 backdrop-blur-2xl" 
+                        onClick={() => setDebugClicks(0)}
+                    >
+                        <div 
+                            className="bg-[#1C1C1E] w-full max-w-sm rounded-[32px] p-6 border border-white/10 shadow-2xl relative max-h-[90vh] overflow-y-auto"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
+                                <div className="flex items-center gap-2">
+                                    <FontAwesomeIcon icon={faExclamationTriangle} className="text-amber-400 text-base" />
+                                    <span className="text-white font-black text-sm tracking-wide">Диагностика системы</span>
+                                </div>
+                                <button
+                                    onClick={() => setDebugClicks(0)}
+                                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white flex items-center justify-center text-xs font-bold transition-all cursor-pointer"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            {lastVisitDebug?.error && (
+                                <div className="p-3 mb-3 bg-red-500/20 border border-red-500/40 rounded-2xl flex flex-col">
+                                    <span className="text-[11px] font-bold text-red-400 mb-0.5">Ошибка загрузки</span>
+                                    <span className="text-xs font-semibold text-white break-words">{lastVisitDebug.error}</span>
+                                </div>
                             )}
+
+                            <div className="space-y-2.5">
+                                {[
+                                    { label: 'Гость / Имя', value: resolvedName, color: 'text-white' },
+                                    { label: 'Email', value: resolvedEmail, color: 'text-amber-400' },
+                                    { label: 'User UID', value: resolvedUid, color: 'text-white/60' },
+                                    { label: 'Роль', value: resolvedRole, color: 'text-blue-400' },
+                                    { label: 'Заведение', value: `${resolvedVenueName} (${resolvedVenueId})`, color: 'text-white' },
+                                    { label: 'Текущая скидка', value: `${currentDiscount}% (Базовая: ${discount}%)`, color: 'text-[#00FF41]' },
+                                    { label: 'Заряд батареи', value: `${mappedCapacity}% (${batCfg.statusKey})`, color: 'text-[#00FF41]' },
+                                    { label: 'Баланс депозита', value: depositText, color: isDepositActive ? 'text-[#00FF41]' : 'text-white/70' },
+                                    { label: 'Таймер сгорания', value: timerText, color: liveSecondsLeft > 0 ? 'text-[#FFD700]' : 'text-white/40' },
+                                    { label: 'Бонус за отзыв', value: reviewBonusText, color: isReviewDiscountActive ? 'text-amber-400' : 'text-white/40' },
+                                    { label: 'Последний визит', value: lastVisitText, color: 'text-white' },
+                                    { label: 'DiffDays', value: diffDaysText, color: 'text-amber-400' },
+                                    { label: 'История визитов', value: historyText, color: 'text-white/70' },
+                                    { label: 'Часовой пояс', value: venueData?.timezone || 'Asia/Dubai', color: 'text-white/50' }
+                                ].map((item, idx) => (
+                                    <div key={idx} className="flex flex-col gap-0.5 border-b border-white/5 pb-2 last:border-0">
+                                        <span className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{item.label}</span>
+                                        <span className={`text-[12px] font-semibold break-all ${item.color || 'text-white/80'}`}>{item.value}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="mt-5 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                                <button
+                                    onClick={() => {
+                                        const diagText = JSON.stringify({
+                                            name: resolvedName,
+                                            email: resolvedEmail,
+                                            uid: resolvedUid,
+                                            venueId: resolvedVenueId,
+                                            venueName: resolvedVenueName,
+                                            discount: currentDiscount,
+                                            deposit: depositBalance,
+                                            isDepositActive,
+                                            lastVisit: lastVisitText,
+                                            history: historyText,
+                                            timezone: venueData?.timezone || 'Asia/Dubai',
+                                            timestamp: new Date().toISOString()
+                                        }, null, 2);
+                                        navigator.clipboard?.writeText(diagText);
+                                        alert('Данные диагностики скопированы в буфер обмена!');
+                                    }}
+                                    className="flex-1 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all cursor-pointer text-center"
+                                >
+                                    📋 Скопировать
+                                </button>
+                                <button
+                                    onClick={() => setDebugClicks(0)}
+                                    className="flex-1 py-2.5 bg-[#D4AF37] hover:bg-[#c49f27] text-black rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer text-center"
+                                >
+                                    Закрыть
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-            {/* ── WALLET HISTORY MODAL ── */}
+                );
+            })()}
             <AnimatePresence>
                 {isHistoryOpen && (
                     <motion.div 
@@ -1575,29 +1383,34 @@ const TestQRPage = () => {
                                     .reduce((acc, t) => acc + Number(t.finalAmount ?? t.totalCredit ?? t.amount ?? 0), 0);
                                 const totalSaved = transactions
                                     .filter(t => t.transactionType === 'DEBIT' || t.type === 'DEBIT')
-                                    .reduce((acc, t) => acc + Number(t.discountAmountSaved ?? t.savedAmount ?? 0), 0);
+                                    .reduce((acc, t) => {
+                                        const amt = Number(t.finalAmount ?? t.amount ?? 0);
+                                        const savedVal = t.discountAmountSaved ?? t.savedAmount ?? (amt * (depositDiscount / 100));
+                                        return acc + Number(savedVal || 0);
+                                    }, 0);
 
                                 return (
                                     <div className="grid grid-cols-2 gap-3 mb-6 flex-shrink-0">
                                         <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col">
-                                            <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-1">Total Deposited</span>
+                                            <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-1">Пополнено всего</span>
                                             <span className="text-lg font-black text-white">{totalDeposited.toLocaleString()} {venueCurrency}</span>
                                         </div>
                                         <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col">
-                                            <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-1">Total Saved</span>
-                                            <span className="text-lg font-black text-emerald-400">{totalSaved.toLocaleString()} {venueCurrency}</span>
+                                            <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-1">Сэкономлено</span>
+                                            <span className="text-lg font-black text-emerald-400">{Math.round(totalSaved).toLocaleString()} {venueCurrency}</span>
                                         </div>
                                     </div>
                                 );
                             })()}
-                            <div className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-3 flex-shrink-0">Transaction List</div>
+                            <div className="text-[10px] font-bold text-white/30 uppercase tracking-wider mb-3 flex-shrink-0">История транзакций</div>
                             <div className="flex-1 overflow-y-auto space-y-3 pr-1" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
                                 {transactions.length === 0 ? (
-                                    <div className="text-center text-xs text-white/30 py-8 font-medium">No transactions yet</div>
+                                    <div className="text-center text-xs text-white/30 py-8 font-medium">Нет транзакций</div>
                                 ) : (
                                     transactions.map((tx) => {
                                         const isCredit = tx.transactionType === 'CREDIT' || tx.type === 'CREDIT';
                                         const txAmount = Number(tx.finalAmount ?? tx.totalCredit ?? tx.amount ?? 0);
+                                        const savedForTx = isCredit ? 0 : Number(tx.discountAmountSaved ?? tx.savedAmount ?? (txAmount * (depositDiscount / 100)));
                                         const date = tx.createdAt?.toDate ? tx.createdAt.toDate() : (tx.createdAt ? new Date(tx.createdAt) : new Date());
                                         const dateStr = date.toLocaleString('ru-RU');
 
@@ -1607,8 +1420,8 @@ const TestQRPage = () => {
                                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isCredit ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
                                                         <FontAwesomeIcon icon={isCredit ? faArrowUp : faArrowDown} className="text-xs" />
                                                     </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-xs font-bold text-white">{isCredit ? 'Credit (Top Up)' : 'Debit (Deduction)'}</span>
+                                                    <div className="flex flex-col text-left">
+                                                        <span className="text-xs font-bold text-white">{isCredit ? 'Пополнение' : 'Списание по чеку'}</span>
                                                         <span className="text-[9px] text-white/30 font-medium mt-0.5">{dateStr}</span>
                                                     </div>
                                                 </div>
@@ -1616,8 +1429,10 @@ const TestQRPage = () => {
                                                     <span className={`text-sm font-black ${isCredit ? 'text-emerald-400' : 'text-rose-400'}`}>
                                                         {isCredit ? '+' : '-'}{txAmount.toLocaleString()}
                                                     </span>
-                                                    {!isCredit && tx.discountAmountSaved > 0 && (
-                                                        <span className="text-[9px] text-emerald-400 font-bold mt-0.5">Saved {Number(tx.discountAmountSaved).toLocaleString()}</span>
+                                                    {!isCredit && savedForTx > 0 && (
+                                                        <span className="text-[9px] text-emerald-400 font-bold mt-0.5">
+                                                            Сэкономлено: {Math.round(savedForTx).toLocaleString()} {venueCurrency}
+                                                        </span>
                                                     )}
                                                 </div>
                                             </div>
@@ -1630,7 +1445,97 @@ const TestQRPage = () => {
                 )}
             </AnimatePresence>
 
-            {/* ── GOOGLE REVIEW SUCCESS MODAL ── */}
+            <AnimatePresence>
+                {showSmartReviewModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md"
+                    >
+                        <div className="absolute inset-0" onClick={() => setShowSmartReviewModal(false)} />
+                        
+                        <motion.div
+                            initial={{ scale: 0.9, y: 20 }}
+                            animate={{ scale: 1, y: 0 }}
+                            exit={{ scale: 0.9, y: 20 }}
+                            className="bg-[#1C1C1E] border border-white/10 rounded-[32px] p-6 text-center shadow-2xl relative overflow-hidden w-full max-w-sm z-10"
+                        >
+                            <button
+                                onClick={() => setShowSmartReviewModal(false)}
+                                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/5 border border-white/10 text-white/50 hover:text-white flex items-center justify-center text-xs transition-colors"
+                            >
+                                ✕
+                            </button>
+
+                            {npsStep === 'stars' && (
+                                <>
+                                    <h3 className="text-xl font-black text-white mb-2 leading-tight mt-2">
+                                        Оцените визит
+                                    </h3>
+                                    <p className="text-sm font-medium text-white/80 mb-5 leading-relaxed">
+                                        Нам важно ваше мнение. Как все прошло?
+                                    </p>
+                                    <div className="flex justify-center gap-2 mb-6">
+                                        {[1,2,3,4,5].map(star => (
+                                            <FontAwesomeIcon 
+                                                key={star} 
+                                                icon={faStar} 
+                                                className={`text-3xl cursor-pointer transition-colors ${(hoverStar || starRating) >= star ? 'text-yellow-400' : 'text-gray-600'}`}
+                                                onMouseEnter={() => setHoverStar(star)}
+                                                onMouseLeave={() => setHoverStar(0)}
+                                                onClick={() => handleStarClick(star)}
+                                            />
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                            {npsStep === 'complaint' && (
+                                <>
+                                    <h3 className="text-lg font-black text-white mb-2 mt-2">Что пошло не так?</h3>
+                                    <textarea 
+                                        className="w-full bg-black/50 border border-white/20 rounded-xl p-3 text-white text-sm mb-4 min-h-[80px]"
+                                        placeholder="Расскажите подробнее..."
+                                        value={complaintText}
+                                        onChange={e => setComplaintText(e.target.value)}
+                                    />
+                                    <button 
+                                        onClick={submitComplaint}
+                                        disabled={isSubmittingComplaint}
+                                        className="w-full py-3 rounded-xl bg-white/20 text-white font-bold text-xs uppercase tracking-wider"
+                                    >
+                                        {isSubmittingComplaint ? 'ОТПРАВКА...' : 'ОТПРАВИТЬ ОТЗЫВ'}
+                                    </button>
+                                </>
+                            )}
+                            {npsStep === 'complaint_thanks' && (
+                                <>
+                                    <h3 className="text-lg font-black text-white mb-2 mt-2">Спасибо!</h3>
+                                    <p className="text-sm text-white/70 mb-6">Мы обязательно исправим эту ситуацию.</p>
+                                    <button onClick={() => setShowSmartReviewModal(false)} className="w-full py-3 rounded-xl bg-[#00FF41] text-black font-bold uppercase text-xs">Закрыть</button>
+                                </>
+                            )}
+                            {npsStep === 'google_offer' && (
+                                <>
+                                    <h3 className="text-xl font-black text-white mb-2 leading-tight mt-2">
+                                        Спасибо за высокую оценку!
+                                    </h3>
+                                    <p className="text-sm font-medium text-white/80 mb-6 leading-relaxed">
+                                        Оставьте отзыв на Google Maps, чтобы получить максимальную скидку прямо сейчас!
+                                    </p>
+                                    <button
+                                        onClick={() => handleWriteGoogleReview(venueData?.googleReviewLink || venueData?.googleMapsUrl)}
+                                        className="w-full py-3.5 rounded-xl bg-[#00FF41] text-black font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,255,65,0.3)] transition-all active:scale-95"
+                                    >
+                                        ПЕРЕЙТИ НА GOOGLE MAPS
+                                    </button>
+                                </>
+                            )}
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <AnimatePresence>
                 {showReviewSuccessModal && (
                     <motion.div 
@@ -1654,24 +1559,25 @@ const TestQRPage = () => {
                                     <FontAwesomeIcon icon={faStar} className="animate-bounce" />
                                 </div>
                                 <h3 className="text-xl font-black tracking-tight text-white mb-2 leading-tight">
-                                    {i18n.language?.startsWith('ru') ? '🎉 СКИДКА НА 7 ДНЕЙ!' : '🎉 7-DAY DISCOUNT ACTIVATED!'}
+                                    {t('discount_7_days_activated', '🎉 7-DAY DISCOUNT ACTIVATED!')}
                                 </h3>
                                 <p className="text-xs text-white/80 leading-relaxed mb-6">
-                                    {i18n.language?.startsWith('ru') 
-                                        ? `Спасибо за отзыв на Google Картах! Вам зафиксирована максимальная регулярная скидка ${maxDiscount}% на 7 дней.`
-                                        : `Thank you for your Google Maps review! Your maximum regular discount of ${maxDiscount}% has been locked for 7 days.`}
+                                    {t('review_thanks_credited', { percent: maxDiscount, defaultValue: `Thank you for your review! You have received a maximum ${maxDiscount}% discount for the next 7 days.` })}
                                 </p>
                                 <button
                                     onClick={() => setShowReviewSuccessModal(false)}
                                     className="w-full py-4 bg-[#4285F4] text-white font-extrabold rounded-[18px] text-xs uppercase tracking-wider active:scale-[0.98] transition-transform shadow-[0_0_25px_rgba(66,133,244,0.4)]"
                                 >
-                                    {i18n.language?.startsWith('ru') ? 'Отлично!' : 'Awesome!'}
+                                    {t('awesome', 'Awesome!')}
                                 </button>
                             </div>
                         </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
+
+
+
         </motion.div>
     );
 };
