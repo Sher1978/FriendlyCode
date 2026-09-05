@@ -11,10 +11,10 @@ admin.initializeApp();
 const db = admin.firestore();
 
 const { Resend } = require("resend");
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY || "re_fallback_key_for_firebase_analysis");
 
 // SuperAdmin Chat ID
-const SUPER_ADMIN_CHAT_ID = "YOUR_SUPER_ADMIN_CHAT_ID"; // Replace with actual ID or logic to fetch
+const SUPER_ADMIN_CHAT_ID = process.env.SUPER_ADMIN_CHAT_ID;
 
 /**
  * Helper: Fetch Global Email Control Settings
@@ -644,6 +644,30 @@ exports.onDepositTransactionCreated = onDocumentCreated("deposit_transactions/{t
                 telegramGroupId = venueData.telegram_group_id || venueData.telegramGroupId;
             }
         }
+        // ── 0. ATOMIC USER DOCUMENT BALANCE SYNC ──────────────────────────────
+        const syncedBalance = Number(newBalance ?? balanceAfter ?? 0);
+        if (userId || guestEmail) {
+            try {
+                let userDocRef = userId ? db.collection("users").doc(userId) : null;
+                if (!userDocRef && guestEmail) {
+                    const uSnap = await db.collection("users").where("email", "==", guestEmail.toLowerCase()).limit(1).get();
+                    if (!uSnap.empty) userDocRef = uSnap.docs[0].ref;
+                }
+                if (userDocRef) {
+                    const updatePayload = {
+                        deposit_balance: syncedBalance,
+                        lastSeen: new Date().toISOString()
+                    };
+                    if (venueId) {
+                        updatePayload[`deposit_balances.${venueId}`] = syncedBalance;
+                    }
+                    await userDocRef.set(updatePayload, { merge: true });
+                    logger.info(`Synced user deposit balance to ${syncedBalance} for venue ${venueId}`);
+                }
+            } catch (syncErr) {
+                logger.error("Error syncing user deposit balance in Firestore:", syncErr);
+            }
+        }
 
         // ── 1. HANDLE DEPOSIT CREDIT (TOP-UP) ──────────────────────────────────
         if (isCredit) {
@@ -813,17 +837,36 @@ exports.onDepositTransactionCreated = onDocumentCreated("deposit_transactions/{t
 
         // ── 2. HANDLE DEPOSIT DEBIT (DEDUCTION) ────────────────────────────────
         if (isDebit) {
-            const previousBalance = (balanceAfter + finalAmount);
+            const deductedAmount = Number(finalAmount || amount || 0);
+            const currentBalanceAfter = Number(balanceAfter ?? newBalance ?? 0);
+            const prevBal = Number(previousBalance ?? (currentBalanceAfter + deductedAmount));
 
-            // A. Send report to Telegram Group
+            // A. Send report to Telegram Group & Venue Owner
+            let ownerChatId = null;
+            if (venueId) {
+                const venueDoc = await db.collection("venues").doc(venueId).get();
+                if (venueDoc.exists && venueDoc.data().ownerId) {
+                    const oSnap = await db.collection("users").doc(venueDoc.data().ownerId).get();
+                    if (oSnap.exists) {
+                        const oData = oSnap.data();
+                        ownerChatId = oData.telegramChatId || oData.telegram_chat_id;
+                    }
+                }
+            }
+
+            const tgReport = `💳 <b>ОТЧЕТ О СПИСАНИИ ДЕПОЗИТА</b>\n\n` +
+                `🏛 <b>Заведение:</b> ${venueName}\n` +
+                `👤 <b>Клиент:</b> ${userName || guestName || 'Гость'}\n` +
+                `💰 <b>Депозит до:</b> ${prevBal.toLocaleString()} ${currency}\n` +
+                `🧾 <b>Списано по чеку:</b> -${deductedAmount.toLocaleString()} ${currency}\n` +
+                `✅ <b>Новый баланс депозита:</b> ${currentBalanceAfter.toLocaleString()} ${currency}\n` +
+                `👨💼 <b>Сотрудник:</b> ${staffName || staffTelegramUsername || 'Персонал'}`;
+
             if (telegramGroupId) {
-                const tgReport = `💳 <b>ОТЧЕТ О СПИСАНИИ ДЕПОЗИТА</b>\n\n` +
-                    `👤 <b>Клиент:</b> ${userName}\n` +
-                    `💰 <b>Текущий депозит (до):</b> ${previousBalance.toLocaleString()} ${currency}\n` +
-                    `🧾 <b>Списанная сумма чека:</b> ${finalAmount.toLocaleString()} ${currency}\n` +
-                    `✅ <b>Новый баланс депозита:</b> ${balanceAfter.toLocaleString()} ${currency}\n` +
-                    `👨💼 <b>Сотрудник:</b> @${staffTelegramUsername || 'staff'}`;
-                await sendTelegramMessage(telegramGroupId, tgReport);
+                await sendTelegramMessage(telegramGroupId, tgReport).catch(e => logger.warn("Telegram debit report error:", e));
+            }
+            if (ownerChatId && ownerChatId !== telegramGroupId) {
+                await sendTelegramMessage(ownerChatId, tgReport).catch(e => logger.warn("Owner Telegram debit report error:", e));
             }
 
             // B. Send report to Owner Email
@@ -838,23 +881,20 @@ exports.onDepositTransactionCreated = onDocumentCreated("deposit_transactions/{t
                             <p style="font-size: 16px; margin-bottom: 10px;">Заведение: <strong>${venueName}</strong></p>
                             <hr style="border-color: #333; margin: 20px 0;" />
                             <table width="100%" cellpadding="8" style="font-size: 15px;">
-                                <tr><td style="color: #888;">Имя клиента:</td><td style="font-weight: bold;">${userName}</td></tr>
-                                <tr><td style="color: #888;">Баланс до списания:</td><td style="font-weight: bold;">${previousBalance.toLocaleString()} ${currency}</td></tr>
-                                <tr><td style="color: #888;">Списано (сумма чека):</td><td style="color: #FF3131; font-weight: bold;">-${finalAmount.toLocaleString()} ${currency}</td></tr>
-                                <tr><td style="color: #888;">Остаток депозита:</td><td style="color: #00FF41; font-weight: bold;">${balanceAfter.toLocaleString()} ${currency}</td></tr>
-                                <tr><td style="color: #888;">Сотрудник:</td><td style="font-weight: bold;">@${staffTelegramUsername || 'staff'}</td></tr>
+                                <tr><td style="color: #888;">Имя клиента:</td><td style="font-weight: bold;">${userName || guestName || 'Гость'}</td></tr>
+                                <tr><td style="color: #888;">Баланс до списания:</td><td style="font-weight: bold;">${prevBal.toLocaleString()} ${currency}</td></tr>
+                                <tr><td style="color: #888;">Списано (сумма чека):</td><td style="color: #FF3131; font-weight: bold;">-${deductedAmount.toLocaleString()} ${currency}</td></tr>
+                                <tr><td style="color: #888;">Остаток депозита:</td><td style="color: #00FF41; font-weight: bold;">${currentBalanceAfter.toLocaleString()} ${currency}</td></tr>
+                                <tr><td style="color: #888;">Сотрудник:</td><td style="font-weight: bold;">${staffName || staffTelegramUsername || 'Персонал'}</td></tr>
                             </table>
                         </div>
                     `
-                });
+                }).catch(e => logger.warn("Owner email report error:", e));
             }
 
             // C. Send Email Notification to Guest (Deduction + Low Balance Warning)
             let targetEmail = guestEmail;
             let targetName = guestName || userName || "Уважаемый гость";
-            const deductedAmount = Number(finalAmount || amount || 0);
-            const currentBalanceAfter = Number(balanceAfter ?? 0);
-            const prevBal = Number(previousBalance || (currentBalanceAfter + deductedAmount));
 
             if (!targetEmail && userId) {
                 const userDoc = await db.collection("users").doc(userId).get();
@@ -1008,7 +1048,7 @@ const { onRequest } = require("firebase-functions/v2/https");
 /**
  * TELEGRAM BOT LOGIC
  */
-const TELEGRAM_TOKEN = "8222060761:AAGTrFc7bLQ6VPrfvxDiIIH37-7tN0UpZzY";
+const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 
 /**
  * Webhook for Telegram. Set this URL with the Telegram API:
@@ -1017,6 +1057,62 @@ const TELEGRAM_TOKEN = "8222060761:AAGTrFc7bLQ6VPrfvxDiIIH37-7tN0UpZzY";
 exports.telegramWebhook = onRequest(async (req, res) => {
     try {
         const update = req.body;
+
+        // ==========================================
+        // 0. TEXT MESSAGE HANDLER (Commands)
+        // ==========================================
+        if (update.message && update.message.text) {
+            const chatId = update.message.chat.id;
+            const text = update.message.text.trim();
+            const fromUser = update.message.from;
+            const username = (fromUser.username || "").toLowerCase();
+
+            if (text.startsWith('/leads') || text.toLowerCase() === 'лиды') {
+                // Verify user is admin/superadmin
+                const uSnap = await db.collection("users")
+                    .where("telegramChatId", "==", String(chatId))
+                    .get();
+                
+                let uSnap2 = await db.collection("users")
+                    .where("telegram_chat_id", "==", String(chatId))
+                    .get();
+
+                const docs = [...uSnap.docs, ...uSnap2.docs];
+                const isAdmin = docs.some(d => d.data().role === 'admin' || d.data().role === 'superAdmin') || String(chatId) === String(SUPER_ADMIN_CHAT_ID);
+
+                if (!isAdmin) {
+                    await sendTelegramMessage(chatId, "⛔️ У вас нет прав для просмотра лидов.");
+                    res.sendStatus(200);
+                    return;
+                }
+
+                // Fetch latest 5 leads from leads_b2b_audit
+                const leadsSnap = await db.collection("leads_b2b_audit")
+                    .orderBy("timestamp", "desc")
+                    .limit(5)
+                    .get();
+
+                if (leadsSnap.empty) {
+                    await sendTelegramMessage(chatId, "📭 Пока нет новых лидов.");
+                    res.sendStatus(200);
+                    return;
+                }
+
+                let responseMsg = "🔥 <b>ПОСЛЕДНИЕ 5 ЛИДОВ</b> 🔥\n\n";
+                leadsSnap.forEach((doc, index) => {
+                    const data = doc.data();
+                    const dDate = data.timestamp ? data.timestamp.toDate().toLocaleString('ru-RU', { timeZone: 'Asia/Dubai', hour12: false }) : 'Неизвестно';
+                    responseMsg += `<b>${index + 1}. ${data.placeName}</b>\n`;
+                    responseMsg += `📞 ${data.contact}\n`;
+                    responseMsg += `🩺 Рейтинг SEO: ${data.healthScore}/100\n`;
+                    responseMsg += `🕒 ${dDate}\n\n`;
+                });
+
+                await sendTelegramMessage(chatId, responseMsg);
+                res.sendStatus(200);
+                return;
+            }
+        }
 
         // ==========================================
         // 1. CALLBACK QUERY HANDLER
@@ -1282,14 +1378,23 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                     await sendTelegramMessage(chatId, promptMsg);
                     res.sendStatus(200);
                     return;
-                } else if (param.startsWith("auth_")) {
+                } else if (param.startsWith("auth_") || param.startsWith("gauth_")) {
+                    const isGoogle = param.startsWith("gauth_");
                     const code = param.split("_")[1];
                     const codeDoc = await db.collection("telegram_codes").doc(code).get();
+
+                    const baseUrl = "https://www.revoo.win";
+                    const targetUrl = isGoogle 
+                        ? `${baseUrl}/google-thank-you?venueId=${code}` 
+                        : `${baseUrl}/thank-you?venueId=${code}`;
+                    const btnText = isGoogle 
+                        ? "⭐ Забрать бонус в Google Maps" 
+                        : "🎁 Перейти к вашей скидке";
 
                     if (codeDoc.exists) {
                         const { uid, expiresAt } = codeDoc.data();
                         if (Date.now() > expiresAt) {
-                            await sendTelegramMessage(chatId, "❌ Code expired. Please generate a new one.");
+                            await sendTelegramMessage(chatId, "❌ Срок действия кода истек. Пожалуйста, сгенерируйте новый.");
                         } else {
                             await db.collection("users").doc(uid).set({
                                 telegramChatId: chatId,
@@ -1299,11 +1404,37 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                             }, { merge: true });
 
                             await db.collection("telegram_codes").doc(code).delete();
-                            await sendTelegramMessage(chatId, "✅ Account Linked! You will now receive notifications here.");
+                            
+                            const successMsg = isGoogle
+                                ? "✅ Спасибо, вы авторизованы!\n\nНажмите кнопку ниже, чтобы забрать ваш бонус:"
+                                : "✅ Спасибо, вы авторизованы!\n\nНажмите кнопку ниже, чтобы перейти к вашей скидке:";
+
+                            await sendTelegramMessage(chatId, successMsg, {
+                                reply_markup: {
+                                    inline_keyboard: [[{ text: btnText, url: targetUrl }]]
+                                }
+                            });
+                            
                             logger.info(`Linked telegram chat ${chatId} to user ${uid} via auth code.`);
                         }
                     } else {
-                        await sendTelegramMessage(chatId, "❌ Invalid code.");
+                        // Check if it's a venueId instead of a telegram code
+                        const venueDoc = await db.collection("venues").doc(code).get();
+                        const venueId = venueDoc.exists ? code : (code || 'demo');
+                        
+                        const targetVenueUrl = isGoogle 
+                            ? `${baseUrl}/google-thank-you?venueId=${venueId}` 
+                            : `${baseUrl}/thank-you?venueId=${venueId}`;
+
+                        const successMsg = isGoogle
+                            ? "✅ Спасибо, вы авторизованы!\n\nНажмите кнопку ниже, чтобы получить бонус в Google Maps:"
+                            : "✅ Спасибо, вы авторизованы!\n\nНажмите кнопку ниже, чтобы перейти к персональной скидке:";
+
+                        await sendTelegramMessage(chatId, successMsg, {
+                            reply_markup: {
+                                inline_keyboard: [[{ text: btnText, url: targetVenueUrl }]]
+                            }
+                        });
                     }
                 } else {
                     const uid = param;
@@ -1314,11 +1445,12 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                         lastSeen: new Date().toISOString()
                     }, { merge: true });
 
-                    await sendTelegramMessage(chatId, "✅ You are now connected! I'll send your discounts here.");
+                    const successMsg = "✅ Спасибо за регистрацию!\n\nВаша учетная запись успешно привязана к Telegram.\n\n🔙 Пожалуйста, вернитесь обратно в браузер (или закройте это окно), чтобы продолжить работу с приложением.";
+                    await sendTelegramMessage(chatId, successMsg);
                     logger.info(`Linked telegram chat ${chatId} to user ${uid}`);
                 }
             } else {
-                await sendTelegramMessage(chatId, "👋 Hello! Please connect via the FriendlyCode app.");
+                await sendTelegramMessage(chatId, "👋 Здравствуйте! Пожалуйста, подключитесь через приложение FriendlyCode/Revoo.");
             }
             res.sendStatus(200);
             return;
@@ -1929,6 +2061,103 @@ exports.onUserUpdated = onDocumentUpdated("users/{uid}", async (event) => {
     }
 });
 
+exports.setupCors = onRequest(async (req, res) => {
+    try {
+        const bucket = require('firebase-admin').storage().bucket('bot-lab-21910.firebasestorage.app');
+        await bucket.setCorsConfiguration([{
+            origin: ['*'],
+            method: ['GET', 'PUT', 'POST', 'DELETE', 'OPTIONS'],
+            maxAgeSeconds: 3600
+        }]);
+        res.send("CORS updated!");
+    } catch (e) {
+        res.status(500).send(e.toString());
+    }
+});
+
+/**
+ * Owner Notification: Staff Join Request Submitted
+ * Sends Telegram message to Venue Owner with button opening Admin Panel
+ */
+exports.onStaffRequestCreated = onDocumentCreated("staff_requests/{requestId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+
+    const data = snapshot.data();
+    const { venueId, name, email, requestedRole } = data;
+
+    try {
+        let ownerChatId = null;
+        let venueName = "Заведение";
+
+        if (venueId) {
+            const venueDoc = await db.collection("venues").doc(venueId).get();
+            if (venueDoc.exists) {
+                const venueData = venueDoc.data();
+                venueName = venueData.name || venueName;
+                const ownerEmail = venueData.ownerEmail;
+                const ownerId = venueData.ownerId;
+
+                if (ownerId) {
+                    const ownerSnap = await db.collection("users").doc(ownerId).get();
+                    if (ownerSnap.exists) {
+                        const oData = ownerSnap.data();
+                        ownerChatId = oData.telegramChatId || oData.telegram_chat_id;
+                    }
+                }
+
+                if (!ownerChatId && ownerEmail) {
+                    const ownerByEmail = await db.collection("users")
+                        .where("email", "==", ownerEmail.toLowerCase())
+                        .limit(1)
+                        .get();
+                    if (!ownerByEmail.empty) {
+                        const oData = ownerByEmail.docs[0].data();
+                        ownerChatId = oData.telegramChatId || oData.telegram_chat_id;
+                    }
+                }
+            }
+        }
+
+        const roleLabels = {
+            manager: 'Управляющий',
+            waiter: 'Официант',
+            barista: 'Бариста',
+            cashier: 'Кассир',
+            staff: 'Сотрудник'
+        };
+        const roleTitle = roleLabels[requestedRole] || requestedRole || 'Сотрудник';
+
+        const message = `🔔 <b>Новая заявка сотрудника!</b>\n\n` +
+            `🏛 <b>Заведение:</b> ${venueName}\n` +
+            `👤 <b>Имя:</b> ${name || 'Сотрудник'}\n` +
+            `📧 <b>Email:</b> ${email || 'Не указан'}\n` +
+            `💼 <b>Должность:</b> ${roleTitle}\n\n` +
+            `Нажмите кнопку ниже, чтобы открыть панель управления и подтвердить права сотрудника:`;
+
+        const keyboard = {
+            inline_keyboard: [
+                [
+                    {
+                        text: "⚙️ Открыть панель и назначить роли",
+                        url: "https://bot-lab-21910.web.app/admin/#/owner"
+                    }
+                ]
+            ]
+        };
+
+        if (ownerChatId) {
+            await sendTelegramMessageWithKeyboard(ownerChatId, message, keyboard);
+            logger.info(`Staff request Telegram notification sent to owner chatId: ${ownerChatId}`);
+        } else if (SUPER_ADMIN_CHAT_ID && SUPER_ADMIN_CHAT_ID !== "YOUR_SUPER_ADMIN_CHAT_ID") {
+            await sendTelegramMessageWithKeyboard(SUPER_ADMIN_CHAT_ID, message, keyboard);
+            logger.info("Staff request Telegram notification sent to super admin");
+        }
+    } catch (err) {
+        logger.error("Error sending staff request Telegram notification:", err);
+    }
+});
+
 /**
  * Scheduled Job placeholder (v2).
  */
@@ -1974,6 +2203,47 @@ exports.onLeadCreated = onDocumentCreated("leads/{leadId}", async (event) => {
         }
     } catch (err) {
         logger.error("Fatal error during lead notification:", err);
+    }
+});
+
+/**
+ * Scenario D2: New B2B Audit Lead (Widget)
+ * Trigger: onDocumentCreated("leads_b2b_audit/{leadId}")
+ */
+exports.onB2BLeadAuditCreated = onDocumentCreated("leads_b2b_audit/{leadId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+
+    const leadData = snapshot.data();
+    const { contact, placeName, placeRating, placeReviews, healthScore } = leadData;
+
+    try {
+        const tgMsg = `🔥 <b>НОВЫЙ ЛИД С АУДИТА КАРТ!</b>\n\n` +
+            `📞 <b>Контакт:</b> <code>${contact}</code>\n` +
+            `🏢 <b>Заведение:</b> ${placeName}\n` +
+            `⭐ <b>Рейтинг:</b> ${placeRating} (${placeReviews} отз.)\n` +
+            `🩺 <b>Health Score:</b> ${healthScore}/100\n\n` +
+            `<i>Свяжитесь с клиентом как можно скорее, чтобы закрыть сделку!</i>`;
+
+        // Send to Super Admin
+        if (SUPER_ADMIN_CHAT_ID && SUPER_ADMIN_CHAT_ID !== "YOUR_SUPER_ADMIN_CHAT_ID") {
+            await sendTelegramMessage(SUPER_ADMIN_CHAT_ID, tgMsg).catch(e => logger.warn("Telegram alert error (SA):", e));
+        }
+
+        // Send to all Admins with Telegram
+        const adminsSnap = await db.collection("users").where("role", "in", ["admin", "superAdmin"]).get();
+        const sentChatIds = new Set([String(SUPER_ADMIN_CHAT_ID)]);
+
+        for (const doc of adminsSnap.docs) {
+            const data = doc.data();
+            const chatId = data.telegramChatId || data.telegram_chat_id;
+            if (chatId && !sentChatIds.has(String(chatId))) {
+                sentChatIds.add(String(chatId));
+                await sendTelegramMessage(chatId, tgMsg).catch(e => logger.warn("Telegram alert error (Admin):", e));
+            }
+        }
+    } catch (err) {
+        logger.error("Error sending B2B audit lead notification:", err);
     }
 });
 
@@ -2147,74 +2417,155 @@ exports.discountDecayReminder = onSchedule({
 });
 
 /**
- * Scenario F: Subscription Expiry Reminder (Daily at 10:00)
- * Logic: Checks if the venue subscription is expiring in exactly 7 days.
+ * Scenario F: Subscription Expiry Reminder & Auto-Deactivation (Daily at 10:00 MSK)
+ * Logic:
+ * 1. Checks all venues.
+ * 2. If subscription is expired (expiryDate <= now), sets venue.isActive = false in Firestore and notifies Owner + SuperAdmin.
+ * 3. If subscription expires in <= 15 days, sends daily notifications to Owner Cabinet, Owner Email, Owner Telegram, and SuperAdmin Telegram.
  */
 exports.subscriptionExpiryReminder = onSchedule({
     schedule: "0 10 * * *",
     timeZone: "Europe/Moscow"
 }, async (event) => {
-    logger.info("Running daily subscription expiry reminder...");
-
-    const now = new Date();
-    const targetDate = new Date(now);
-    targetDate.setDate(targetDate.getDate() + 7);
-
-    // We want to find dates between start and end of target date
-    const startOfTarget = new Date(targetDate);
-    startOfTarget.setHours(0, 0, 0, 0);
-    const endOfTarget = new Date(targetDate);
-    endOfTarget.setHours(23, 59, 59, 999);
-
-    const startTimestamp = admin.firestore.Timestamp.fromDate(startOfTarget);
-    const endTimestamp = admin.firestore.Timestamp.fromDate(endOfTarget);
+    logger.info("Running daily subscription expiry check & notification engine...");
 
     try {
-        const expiringVenuesSnapshot = await db.collection("venues")
-            .where("subscription.expiryDate", ">=", startTimestamp)
-            .where("subscription.expiryDate", "<=", endTimestamp)
-            .get();
-
-        if (expiringVenuesSnapshot.empty) {
-            logger.info("No venues expiring in exactly 7 days.");
+        const venuesSnapshot = await db.collection("venues").get();
+        if (venuesSnapshot.empty) {
+            logger.info("No venues found in system.");
             return;
         }
 
-        for (const doc of expiringVenuesSnapshot.docs) {
-            const venueData = doc.data();
-            const venueName = venueData.name || "your venue";
-            let ownerEmail = venueData.ownerEmail;
+        const now = new Date();
 
-            if (!ownerEmail && venueData.ownerId) {
-                const ownerUserDoc = await db.collection("users").doc(venueData.ownerId).get();
-                if (ownerUserDoc.exists && ownerUserDoc.data().email) {
-                    ownerEmail = ownerUserDoc.data().email;
+        for (const docSnapshot of venuesSnapshot.docs) {
+            const venueData = docSnapshot.data();
+            const venueId = docSnapshot.id;
+            const venueName = venueData.name || "Unknown Venue";
+            
+            const sub = venueData.subscription || {};
+            if (!sub.expiryDate) continue; // No expiry date set
+
+            const expiryDate = sub.expiryDate.toDate ? sub.expiryDate.toDate() : new Date(sub.expiryDate);
+            const diffMs = expiryDate.getTime() - now.getTime();
+            const daysRemaining = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+            let ownerEmail = venueData.ownerEmail;
+            let ownerChatId = null;
+
+            if (venueData.ownerId) {
+                const ownerDoc = await db.collection("users").doc(venueData.ownerId).get();
+                if (ownerDoc.exists) {
+                    const oData = ownerDoc.data();
+                    if (!ownerEmail && oData.email) ownerEmail = oData.email;
+                    ownerChatId = oData.telegramChatId || oData.telegram_chat_id;
                 }
             }
 
-            if (ownerEmail) {
-                const html = `
-                    <div style="font-family: sans-serif; padding: 20px; background-color: #f9f9f9; color: #333;">
-                        <h2 style="color: #d32f2f;">⚠️ Action Required: Subscription Expiring Soon</h2>
-                        <p>Hello,</p>
-                        <p>This is an automated reminder that the subscription for your venue <b>${venueName}</b> will expire in exactly 7 days.</p>
-                        <p>To avoid any interruption of service, please ensure your payment method is up to date or contact support to renew.</p>
-                        <br/>
-                        <p>Best regards,<br/>Friendly Code Team</p>
-                    </div>
-                `;
+            if (!ownerChatId && ownerEmail) {
+                const ownerByEmail = await db.collection("users")
+                    .where("email", "==", ownerEmail.toLowerCase())
+                    .limit(1)
+                    .get();
+                if (!ownerByEmail.empty) {
+                    const oData = ownerByEmail.docs[0].data();
+                    ownerChatId = oData.telegramChatId || oData.telegram_chat_id;
+                }
+            }
 
-                const { error } = await resend.emails.send({
-                    from: "Friendly Code <no-reply@friendlycode.fun>",
-                    to: [ownerEmail],
-                    subject: `⚠️ Action Required: Subscription for ${venueName} expiring in 7 days`,
-                    html: html
-                });
+            // --- CASE A: EXPIRED (daysRemaining <= 0) ---
+            if (daysRemaining <= 0) {
+                if (venueData.isActive !== false) {
+                    logger.info(`Venue ${venueName} (${venueId}) subscription expired. Automatically deactivating.`);
+                    await docSnapshot.ref.update({ isActive: false });
+                }
 
-                if (error) {
-                    logger.error("Failed to send expiry reminder to " + ownerEmail, error);
-                } else {
-                    logger.info("Sent expiry reminder to " + ownerEmail + " for venue " + doc.id);
+                // 1. In-App Notification
+                await db.collection("notifications").add({
+                    type: "subscription_expired",
+                    venueId: venueId,
+                    title: "🚫 Подписка истекла!",
+                    message: `Срок действия подписки для заведения ${venueName} истек (${expiryDate.toLocaleDateString()}). Заведение переведено в неактивное состояние.`,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    read: false,
+                }).catch(e => logger.warn("Error adding in-app notification:", e));
+
+                // 2. Email Notification to Owner
+                if (ownerEmail) {
+                    const html = `
+                        <div style="font-family: sans-serif; padding: 20px; background-color: #1c1c1e; color: #ffffff; border-radius: 16px;">
+                            <h2 style="color: #ff3b30;">🚫 Подписка заведения ${venueName} истекла</h2>
+                            <p>Здравствуйте!</p>
+                            <p>Срок действия подписки для вашего заведения <b>${venueName}</b> закончился (${expiryDate.toLocaleDateString()}).</p>
+                            <p>Доступ к системе приостановлен. Пожалуйста, продлите подписку в панели управления.</p>
+                            <br/>
+                            <p>С уважением,<br/>Команда Revoo / Friendly Code</p>
+                        </div>
+                    `;
+                    await resend.emails.send({
+                        from: "Friendly Code <no-reply@friendlycode.fun>",
+                        to: [ownerEmail],
+                        subject: `🚫 Срочно: Подписка заведения ${venueName} истекла!`,
+                        html: html
+                    }).catch(e => logger.error("Error sending expiry email to owner:", e));
+                }
+
+                // 3. Telegram to Owner
+                if (ownerChatId) {
+                    const tgMsg = `🚫 <b>Подписка истекла!</b>\n\nСрок подписки для заведения <b>${venueName}</b> закончился (${expiryDate.toLocaleDateString()}). Заведение переведено в неактивный режим. Продлите подписку в панели управления!`;
+                    await sendTelegramMessage(ownerChatId, tgMsg).catch(e => logger.warn("Telegram expiry alert error:", e));
+                }
+
+                // 4. Telegram to SuperAdmin
+                if (SUPER_ADMIN_CHAT_ID && SUPER_ADMIN_CHAT_ID !== "YOUR_SUPER_ADMIN_CHAT_ID") {
+                    const saMsg = `🚨 <b>[SuperAdmin Alert] Подписка истекла!</b>\n\n🏛 Заведение: <b>${venueName}</b>\n📧 Owner: ${ownerEmail || 'N/A'}\n📅 Дата: ${expiryDate.toLocaleDateString()}\n⚠️ Заведение автоматически деактивировано.`;
+                    await sendTelegramMessage(SUPER_ADMIN_CHAT_ID, saMsg).catch(e => logger.warn("SuperAdmin telegram alert error:", e));
+                }
+
+            // --- CASE B: EXPIRING SOON (15 days or less) ---
+            } else if (daysRemaining <= 15) {
+                logger.info(`Venue ${venueName} (${venueId}) subscription expiring in ${daysRemaining} days. Sending daily reminders.`);
+
+                // 1. In-App Notification
+                await db.collection("notifications").add({
+                    type: "subscription_expiring",
+                    venueId: venueId,
+                    title: "⚠️ Срок действия подписки истекает!",
+                    message: `До окончания подписки заведения ${venueName} осталось ${daysRemaining} дней (до ${expiryDate.toLocaleDateString()}).`,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    read: false,
+                }).catch(e => logger.warn("Error adding in-app notification:", e));
+
+                // 2. Email Notification to Owner
+                if (ownerEmail) {
+                    const html = `
+                        <div style="font-family: sans-serif; padding: 20px; background-color: #1c1c1e; color: #ffffff; border-radius: 16px;">
+                            <h2 style="color: #ff9500;">⚠️ Подписка истекает через ${daysRemaining} дней</h2>
+                            <p>Здравствуйте!</p>
+                            <p>Напоминаем, что подписка для заведения <b>${venueName}</b> действует до <b>${expiryDate.toLocaleDateString()}</b> (${daysRemaining} дней осталось).</p>
+                            <p>Пожалуйста, продлите подписку, чтобы избежать приостановки обслуживания.</p>
+                            <br/>
+                            <p>С уважением,<br/>Команда Revoo / Friendly Code</p>
+                        </div>
+                    `;
+                    await resend.emails.send({
+                        from: "Friendly Code <no-reply@friendlycode.fun>",
+                        to: [ownerEmail],
+                        subject: `⚠️ Напоминание: Подписка ${venueName} истекает через ${daysRemaining} дн.`,
+                        html: html
+                    }).catch(e => logger.error("Error sending expiry reminder email:", e));
+                }
+
+                // 3. Telegram to Owner
+                if (ownerChatId) {
+                    const tgMsg = `⚠️ <b>Внимание: Подписка истекает!</b>\n\nДо окончания подписки заведения <b>${venueName}</b> осталось <b>${daysRemaining} дн.</b> (до ${expiryDate.toLocaleDateString()}).\nПожалуйста, продлите подписку в панели управления.`;
+                    await sendTelegramMessage(ownerChatId, tgMsg).catch(e => logger.warn("Telegram expiry reminder error:", e));
+                }
+
+                // 4. Telegram Daily Alert to SuperAdmin
+                if (SUPER_ADMIN_CHAT_ID && SUPER_ADMIN_CHAT_ID !== "YOUR_SUPER_ADMIN_CHAT_ID") {
+                    const saMsg = `⏳ <b>[SuperAdmin Alert] Истекает подписка!</b>\n\n🏛 Заведение: <b>${venueName}</b>\n📧 Owner: ${ownerEmail || 'N/A'}\n⏱ Осталось: <b>${daysRemaining} дн.</b> (${expiryDate.toLocaleDateString()})`;
+                    await sendTelegramMessage(SUPER_ADMIN_CHAT_ID, saMsg).catch(e => logger.warn("SuperAdmin telegram reminder error:", e));
                 }
             }
         }
@@ -2510,5 +2861,136 @@ exports.onVenueWritten = onDocumentWritten("venues/{venueId}", async (event) => 
         } catch (e) {
             logger.error("Error resolving venue coordinates from Google Maps URL:", e);
         }
+    }
+});
+
+/**
+ * Cloud Function: Deduplicate users in Firestore by email.
+ * Merges duplicate user records into a single primary record per unique email address,
+ * updates references in visits, leads, deposit_transactions, etc., and deletes secondary duplicate records.
+ */
+exports.deduplicateUsers = onCall(async (request) => {
+    try {
+        const usersSnap = await db.collection("users").get();
+        const usersByEmail = {};
+
+        usersSnap.forEach(docSnap => {
+            const data = docSnap.data();
+            const email = (data.email || "").trim().toLowerCase();
+            if (!email || !email.includes("@")) return;
+            if (email.endsWith("@guest.com") || email.endsWith("@telegram.user") || email.endsWith("@friendlycode.fun")) return;
+
+            if (!usersByEmail[email]) usersByEmail[email] = [];
+            usersByEmail[email].push({ id: docSnap.id, data });
+        });
+
+        const ROLE_SCORES = { superadmin: 10, superAdmin: 10, admin: 8, owner: 7, staff: 5, guest: 1 };
+        const getRoleScore = (role) => ROLE_SCORES[role] || 1;
+
+        let totalMergedCount = 0;
+        let emailsProcessed = 0;
+        const mergedDetails = [];
+
+        for (const [email, docs] of Object.entries(usersByEmail)) {
+            if (docs.length <= 1) continue;
+            emailsProcessed++;
+
+            docs.sort((a, b) => {
+                const scoreA = getRoleScore(a.data.role);
+                const scoreB = getRoleScore(b.data.role);
+                if (scoreA !== scoreB) return scoreB - scoreA;
+
+                const balA = Number(a.data.deposit_balance || 0);
+                const balB = Number(b.data.deposit_balance || 0);
+                if (balA !== balB) return balB - balA;
+
+                const timeA = a.data.createdAt?.seconds || 9999999999;
+                const timeB = b.data.createdAt?.seconds || 9999999999;
+                return timeA - timeB;
+            });
+
+            const primaryDoc = docs[0];
+            const primaryUid = primaryDoc.id;
+            const secondaryDocs = docs.slice(1);
+
+            let mergedRole = primaryDoc.data.role || 'guest';
+            let mergedName = primaryDoc.data.displayName || primaryDoc.data.name || 'Guest';
+            let mergedTelegram = primaryDoc.data.telegram || '';
+            let mergedDepositBalances = { ...(primaryDoc.data.deposit_balances || {}) };
+            let mergedDeposits = { ...(primaryDoc.data.deposits || {}) };
+            let maxDepositBalance = Number(primaryDoc.data.deposit_balance || 0);
+
+            for (const docObj of docs) {
+                const data = docObj.data;
+                if (getRoleScore(data.role) > getRoleScore(mergedRole)) mergedRole = data.role;
+                if ((!mergedName || mergedName === 'Guest') && (data.displayName || data.name)) {
+                    mergedName = data.displayName || data.name;
+                }
+                if (!mergedTelegram && data.telegram) mergedTelegram = data.telegram;
+                if (Number(data.deposit_balance || 0) > maxDepositBalance) maxDepositBalance = Number(data.deposit_balance);
+
+                if (data.deposit_balances) {
+                    Object.keys(data.deposit_balances).forEach(vId => {
+                        const val = Number(data.deposit_balances[vId] || 0);
+                        mergedDepositBalances[vId] = Math.max(mergedDepositBalances[vId] || 0, val);
+                    });
+                }
+            }
+
+            // Save primary
+            await db.collection("users").doc(primaryUid).set({
+                email,
+                displayName: (mergedName || 'Guest').trim(),
+                role: mergedRole,
+                ...(mergedTelegram ? { telegram: mergedTelegram } : {}),
+                deposit_balance: maxDepositBalance,
+                deposit_balances: mergedDepositBalances,
+                deposits: mergedDeposits,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            // Reassign related records and delete secondaries
+            for (const sec of secondaryDocs) {
+                const secUid = sec.id;
+                totalMergedCount++;
+
+                // Reassign visits
+                const visits1 = await db.collection("visits").where("uid", "==", secUid).get();
+                for (const vDoc of visits1.docs) {
+                    await vDoc.ref.update({ uid: primaryUid, userId: primaryUid, guestEmail: email });
+                }
+                const visits2 = await db.collection("visits").where("userId", "==", secUid).get();
+                for (const vDoc of visits2.docs) {
+                    await vDoc.ref.update({ uid: primaryUid, userId: primaryUid, guestEmail: email });
+                }
+
+                // Reassign leads
+                const leads = await db.collection("leads").where("uid", "==", secUid).get();
+                for (const lDoc of leads.docs) {
+                    await lDoc.ref.update({ uid: primaryUid, email });
+                }
+
+                // Reassign deposit_transactions
+                const txs = await db.collection("deposit_transactions").where("userId", "==", secUid).get();
+                for (const tDoc of txs.docs) {
+                    await tDoc.ref.update({ userId: primaryUid, guestEmail: email });
+                }
+
+                // Delete secondary doc
+                await db.collection("users").doc(secUid).delete();
+            }
+
+            mergedDetails.push({ email, primaryUid, removedCount: secondaryDocs.length });
+        }
+
+        return {
+            success: true,
+            emailsProcessed,
+            totalMergedCount,
+            mergedDetails
+        };
+    } catch (e) {
+        logger.error("Error in deduplicateUsers:", e);
+        throw new HttpsError("internal", e.message || String(e));
     }
 });

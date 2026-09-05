@@ -24,7 +24,7 @@ const safeSessionStorage = {
     removeItem: (k) => { try { sessionStorage.removeItem(k); } catch (e) {} }
 };
 
-const LeadCapture = () => {
+const GoogleLeadCapture = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
@@ -320,61 +320,9 @@ const LeadCapture = () => {
                 new Promise(resolve => setTimeout(resolve, 1500))
             ]);
 
-            // Check if user should return to profile or guest dashboard vs thank-you screen
-            const authReturnTo = safeSessionStorage.getItem('authReturnTo') || safeStorage.getItem('authReturnTo') || (location.state?.fromProfile ? 'profile' : '') || location.state?.returnTo || '';
-            safeSessionStorage.removeItem('authReturnTo');
-            safeStorage.removeItem('authReturnTo');
-
-            if (isGoogleBonus) {
-                console.log("Navigating to Google Maps Bonus thank-you screen");
-                navigate(`/google-thank-you?venueId=${venueId}`, {
-                    state: {
-                        guestName: (userName || 'Guest').trim(),
-                        guestEmail: lowerEmail,
-                        discountValue: finalDiscount,
-                        venueId: venueId,
-                        userRole: 'guest',
-                        effectiveUid: effectiveUid,
-                        acquisition_source: 'google_maps_bonus',
-                        fromGoogleMaps: true
-                    },
-                    replace: true
-                });
-                return;
-            }
-
-            if (authReturnTo === 'profile' || authReturnTo === '/guest-dashboard') {
-                console.log("Navigating back to profile / guest dashboard");
-                navigate('/guest-dashboard', {
-                    state: {
-                        guestName: (userName || 'Guest').trim(),
-                        guestEmail: lowerEmail,
-                        effectiveUid: effectiveUid,
-                        returnUrl: venueId && venueId !== 'unknown' ? `/test?id=${venueId}` : '/test'
-                    },
-                    replace: true
-                });
-                return;
-            } else if (authReturnTo && authReturnTo.startsWith('/') && authReturnTo !== '/thank-you' && authReturnTo !== '/activate') {
-                console.log("Navigating to custom returnUrl:", authReturnTo);
-                navigate(`${authReturnTo}?venueId=${venueId}`, { 
-                    state: {
-                        guestName: (userName || 'Guest').trim(),
-                        guestEmail: lowerEmail,
-                        discountValue: finalDiscount,
-                        venueId: venueId,
-                        userRole: 'guest',
-                        effectiveUid: effectiveUid,
-                        ...(isGoogleBonus ? { acquisition_source: 'google_maps_bonus', fromGoogleMaps: true } : {})
-                    },
-                    replace: true 
-                });
-                return;
-            }
-
-            // Final Navigation to /thank-you page for lead capture submissions
-            console.log("Navigating to activation thank-you screen with discount:", finalDiscount);
-            navigate(`/thank-you?venueId=${venueId}`, {
+            // ALWAYS navigate to Google Thank You for GoogleLeadCapture
+            console.log("Navigating to Google Maps Bonus thank-you screen");
+            navigate(`/google-thank-you?venueId=${venueId}`, {
                 state: {
                     guestName: (userName || 'Guest').trim(),
                     guestEmail: lowerEmail,
@@ -382,7 +330,8 @@ const LeadCapture = () => {
                     venueId: venueId,
                     userRole: 'guest',
                     effectiveUid: effectiveUid,
-                    ...(isGoogleBonus ? { acquisition_source: 'google_maps_bonus', fromGoogleMaps: true } : {})
+                    acquisition_source: 'google_maps_bonus',
+                    fromGoogleMaps: true
                 },
                 replace: true
             });
@@ -391,35 +340,18 @@ const LeadCapture = () => {
             const authReturnTo = safeSessionStorage.getItem('authReturnTo') || safeStorage.getItem('authReturnTo') || (location.state?.fromProfile ? 'profile' : '') || location.state?.returnTo || '';
             safeSessionStorage.removeItem('authReturnTo');
             safeStorage.removeItem('authReturnTo');
-            const urlParams = new URLSearchParams(location.search);
-            const isGoogleBonus = urlParams.get('utm_source') === 'google_maps' || location.state?.fromGoogleMaps === true || location.state?.acquisition_source === 'google_maps_bonus';
-
-            if (authReturnTo === 'profile' || authReturnTo === '/guest-dashboard') {
-                navigate('/guest-dashboard', { replace: true });
-            } else if (isGoogleBonus) {
-                navigate(`/google-thank-you?venueId=${venueId}`, { 
-                    state: { 
-                        guestName: (userName || 'Guest').trim(), 
-                        guestEmail: lowerEmail, 
-                        discountValue: discount, 
-                        venueId: venueId,
-                        acquisition_source: 'google_maps_bonus',
-                        fromGoogleMaps: true
-                    },
-                    replace: true
-                });
-            } else {
-                navigate(`/thank-you?venueId=${venueId}`, { 
-                    state: { 
-                        guestName: (userName || 'Guest').trim(), 
-                        guestEmail: lowerEmail, 
-                        discountValue: discount, 
-                        venueId: venueId,
-                        ...(isGoogleBonus ? { acquisition_source: 'google_maps_bonus', fromGoogleMaps: true } : {})
-                    },
-                    replace: true
-                });
-            }
+            
+            navigate(`/google-thank-you?venueId=${venueId}`, { 
+                state: { 
+                    guestName: (userName || 'Guest').trim(), 
+                    guestEmail: lowerEmail, 
+                    discountValue: discount, 
+                    venueId: venueId,
+                    acquisition_source: 'google_maps_bonus',
+                    fromGoogleMaps: true
+                },
+                replace: true
+            });
         }
     };
 
@@ -461,8 +393,15 @@ const LeadCapture = () => {
         } catch (err) {
             console.error("Manual entry auth error:", err);
             const venueId = safeStorage.getItem('currentVenueId') || 'unknown';
-            navigate(`/thank-you?venueId=${venueId}`, { 
-                state: { guestName: safeName, guestEmail: safeEmail, discountValue: discount, venueId: venueId },
+            navigate(`/google-thank-you?venueId=${venueId}`, { 
+                state: { 
+                    guestName: safeName, 
+                    guestEmail: safeEmail, 
+                    discountValue: discount, 
+                    venueId: venueId,
+                    acquisition_source: 'google_maps_bonus',
+                    fromGoogleMaps: true
+                },
                 replace: true
             });
         }
@@ -517,9 +456,7 @@ const LeadCapture = () => {
         const venueId = safeStorage.getItem('currentVenueId') || 'unknown';
         const isRevoo = window.location.hostname.includes('revoo') || safeStorage.getItem('brandOverride') === 'revoo';
         const botName = isRevoo ? 'revoogiftx_bot' : 'FriendIycode_bot';
-        const isGoogleFlow = isGoogleMaps || searchParams.get('utm_source') === 'google_maps';
-        const startParam = isGoogleFlow ? `gauth_${venueId}` : `auth_${venueId}`;
-        const botUrl = `https://t.me/${botName}?start=${startParam}`;
+        const botUrl = `https://t.me/${botName}?start=gauth_${venueId}`;
 
         // 1. Check if inside Telegram WebApp
         if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
@@ -786,9 +723,7 @@ const LeadCapture = () => {
                                     const venueId = safeStorage.getItem('currentVenueId') || 'demo';
                                     const isRevoo = window.location.hostname.includes('revoo') || safeStorage.getItem('brandOverride') === 'revoo';
                                     const botName = isRevoo ? 'revoogiftx_bot' : 'FriendIycode_bot';
-                                    const isGoogleFlow = isGoogleMaps || searchParams.get('utm_source') === 'google_maps';
-                                    const startParam = isGoogleFlow ? `gauth_${venueId}` : `auth_${venueId}`;
-                                    const botUrl = `https://t.me/${botName}?start=${startParam}`;
+                                    const botUrl = `https://t.me/${botName}?start=gauth_${venueId}`;
 
                                     return (
                                         <a
@@ -841,4 +776,4 @@ const LeadCapture = () => {
     );
 };
 
-export default LeadCapture;
+export default GoogleLeadCapture;

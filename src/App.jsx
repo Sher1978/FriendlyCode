@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import PngBattery from './PngBattery';
+import PngBattery, { GlobalLoaderContext } from './PngBattery';
 import { BrowserRouter, Routes, Route, useParams, useNavigate } from 'react-router-dom';
 
 // Helper to handle ChunkLoadError on new deployments
@@ -16,6 +16,7 @@ const lazyWithRetry = (componentImport) =>
 // Code-split: each route loads its JS chunk on demand only
 const LandingPage        = lazyWithRetry(() => import('./LandingPage'));
 const LeadCapture        = lazyWithRetry(() => import('./LeadCapture'));
+const GoogleLeadCapture  = lazyWithRetry(() => import('./GoogleLeadCapture'));
 // UnifiedActivation — статический импорт: переход на /thank-you мгновенный (6.95 KB gzip)
 import UnifiedActivation from './UnifiedActivation';
 const TelegramAuth       = lazyWithRetry(() => import('./TelegramAuth'));
@@ -116,24 +117,45 @@ const GlobalBatteryLoader = ({ onComplete }) => {
     return (
         <div 
             className="flex flex-col bg-black font-sans text-white relative overflow-x-hidden overflow-y-auto items-center justify-start h-full w-full" 
-            style={{ paddingTop: 'env(safe-area-inset-top, 24px)', paddingBottom: 'env(safe-area-inset-bottom, 24px)' }}
+            style={{ WebkitFontSmoothing: 'antialiased' }}
         >
             <div className={`absolute top-[-10%] left-[-20vw] w-[140vw] h-[60vh] rounded-[100%] blur-[100px] pointer-events-none opacity-[0.20] mix-blend-screen transition-colors duration-[2000ms] ${bgGlowColor}`} />
             
             {/* Exactly mimic the position of TestQRPage battery card */}
-            <div className="w-full max-w-sm px-4 pt-[60px] pb-4 relative z-40">
+            <div 
+                className="flex justify-between items-start w-full px-4 pt-4 pb-2 relative z-50 min-h-[90px]"
+                style={{
+                    paddingTop: 'max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 16px)'
+                }}
+            />
+
+            <div className="flex flex-col items-center justify-start mt-1 px-6 pb-[140px] w-full max-w-md mx-auto z-10 gap-2.5" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+                <div className="h-[24px] flex flex-col items-center -mt-1 mb-1 justify-center w-full" />
+
                 <motion.div
                     initial={{ scale: 0.95, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ type: 'spring', damping: 20, stiffness: 100 }}
-                    className="relative w-full rounded-[32px] bg-gradient-to-br from-[#00FF41]/20 via-[#00FF41]/5 to-black/40 backdrop-blur-3xl border-2 border-[#00FF41]/30 p-5 sm:p-6 flex flex-col items-center justify-start shadow-2xl overflow-hidden min-h-[220px]"
+                    className="flex flex-col items-center w-full bg-gradient-to-br from-[#00FF41]/20 via-[#00FF41]/5 to-black/40 backdrop-blur-[40px] border-2 border-[#00FF41]/30 rounded-[28px] p-4 shadow-2xl relative overflow-hidden flex-shrink-0"
                 >
-                    <div className="w-full relative z-10 pointer-events-none">
+                    <p className="text-[28px] sm:text-[32px] font-black tracking-tight text-white uppercase mb-3 mt-6 drop-shadow-[0_2px_8px_rgba(255,255,255,0.3)] text-center leading-tight invisible">
+                        ВАША СКИДКА СЕГОДНЯ
+                    </p>
+                    
+                    <div className="h-[60px] overflow-hidden relative w-[180px] flex items-center justify-center mb-6 invisible" />
+
+                    <div className="w-full relative z-10 pointer-events-none absolute" style={{ top: '154px' }}>
                         <PngBattery capacity={animatedPercent} showGlow={true} disableInternalAnim={true} />
                     </div>
+                    
+                    {/* Preserve natural height for the container, but hide the battery from document flow so it can overlap the invisible items */}
+                    <div className="w-full relative pointer-events-none invisible">
+                        <PngBattery capacity={animatedPercent} showGlow={true} disableInternalAnim={true} />
+                    </div>
+
                     <div className="mt-6 pt-3 border-t border-white/10 w-full flex flex-col items-center text-center relative z-10">
                         <span className="text-sm font-black text-[#00FF41] leading-tight uppercase tracking-wider animate-pulse">
-                            Вычисляем Вашу Скидку...
+                            ВЫЧИСЛЯЕМ ВАШУ СКИДКУ...
                         </span>
                     </div>
                 </motion.div>
@@ -161,7 +183,7 @@ const AppOverlay = ({ children }) => {
     if (isExcluded) return children;
 
     return (
-        <>
+        <GlobalLoaderContext.Provider value={{ isLoaderActive: showLoader }}>
             {/* The main app, loading in the background */}
             {children}
 
@@ -177,7 +199,7 @@ const AppOverlay = ({ children }) => {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </>
+        </GlobalLoaderContext.Provider>
     );
 };
 
@@ -271,6 +293,7 @@ function App() {
           <Route path="/test" element={<TestQRPage />} />
           <Route path="/newqr" element={<NewQRPage />} />
           <Route path="/activate" element={<LeadCapture />} />
+          <Route path="/google-activate" element={<GoogleLeadCapture />} />
           <Route path="/thank-you" element={<UnifiedActivation />} />
           <Route path="/google-thank-you" element={<GoogleThankYouScreen />} />
           <Route path="/telegram-auth" element={<TelegramAuth />} />

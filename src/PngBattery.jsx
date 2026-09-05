@@ -48,20 +48,61 @@ export function getBatteryConfig(capacity) {
     return getBatteryConfig(100);
 }
 
+export const GlobalLoaderContext = React.createContext({ isLoaderActive: false });
+
 const TOTAL_SEGMENTS = 14;
 
-export default function PngBattery({ capacity, discount }) {
-    // If capacity is explicitly provided, we use it directly.
-    // If not, we map the discount tier to the capacity tier.
-    let mappedCapacity = capacity;
-    if (mappedCapacity === undefined && discount !== undefined) {
-        if (discount >= 20) mappedCapacity = 100;
-        else if (discount >= 15) mappedCapacity = 50;
-        else if (discount >= 10) mappedCapacity = 25;
-        else mappedCapacity = 10;
+export default function PngBattery({ capacity, discount, disableInternalAnim = false }) {
+    const { isLoaderActive } = React.useContext(GlobalLoaderContext);
+
+    let targetCapacity = capacity;
+    if (targetCapacity === undefined && discount !== undefined) {
+        if (discount >= 20) targetCapacity = 100;
+        else if (discount >= 15) targetCapacity = 50;
+        else if (discount >= 10) targetCapacity = 25;
+        else targetCapacity = 10;
     }
     
-    const batteryLevel = mappedCapacity ?? 10;
+    targetCapacity = targetCapacity ?? 10;
+
+    const [animatedCapacity, setAnimatedCapacity] = React.useState(disableInternalAnim ? targetCapacity : 100);
+
+    React.useEffect(() => {
+        if (disableInternalAnim || isLoaderActive) {
+            setAnimatedCapacity(disableInternalAnim ? targetCapacity : 100);
+            return;
+        }
+        if (targetCapacity >= 100) {
+            setAnimatedCapacity(100);
+            return;
+        }
+
+        const dropRatio = (100 - targetCapacity) / 100;
+        // Animation duration between 1 to 2 seconds based on how far it drops
+        const duration = Math.max(1000, Math.min(2000, 2000 * dropRatio));
+        
+        const fps = 60;
+        const totalFrames = (duration / 1000) * fps;
+        let currentFrame = 0;
+        
+        const interval = setInterval(() => {
+            currentFrame++;
+            const progress = currentFrame / totalFrames;
+            const easeProgress = 1 - Math.pow(1 - progress, 3); // Cubic ease out
+            
+            if (currentFrame >= totalFrames) {
+                setAnimatedCapacity(targetCapacity);
+                clearInterval(interval);
+            } else {
+                const currentVal = 100 - (100 - targetCapacity) * easeProgress;
+                setAnimatedCapacity(Math.floor(currentVal));
+            }
+        }, 1000 / fps);
+        
+        return () => clearInterval(interval);
+    }, [targetCapacity, disableInternalAnim, isLoaderActive]);
+
+    const batteryLevel = animatedCapacity;
     const cfg = getBatteryConfig(batteryLevel);
     const uid = cfg.label;
 
@@ -172,7 +213,8 @@ export default function PngBattery({ capacity, discount }) {
                     pointerEvents: 'none',
                 }}>
                     {Array.from({ length: TOTAL_SEGMENTS }).map((_, i) => {
-                        const isActive = i < cfg.activeCount;
+                        const activeSegmentsCount = Math.ceil((batteryLevel / 100) * TOTAL_SEGMENTS);
+                        const isActive = i < activeSegmentsCount;
                         const distanceFromCenter = (i - 6.5) / 6.5; 
                         const curveMaxRadius = 24; 
                         

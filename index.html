@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBiVdnIGmeaxamAMVmS0fI_P-5FIm7L88g&libraries=places"></script>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="dns-prefetch" href="https://firestore.googleapis.com" />
     <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com" />
@@ -14,6 +16,21 @@
     <link rel="preload" as="image" href="/assets/battery_v2_final.png" />
 
     <title>REVOO Ecosystem</title>
+
+    <!-- Open Graph / Facebook / Telegram / WhatsApp -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="REVOO Ecosystem — Игрофикация и Лояльность для бизнеса" />
+    <meta property="og:description" content="Экосистема REVOO: превращайте разовых гостей в постоянных с помощью динамической батареи лояльности." />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="REVOO Ecosystem — Игрофикация и Лояльность для бизнеса" />
+    <meta name="twitter:description" content="Экосистема REVOO: превращайте разовых гостей в постоянных с помощью динамической батареи лояльности." />
+    <meta name="twitter:image" content="/og-image.png" />
   </head>
   <body style="background-color: #000000; color: #ffffff;">
     <div id="root">
@@ -37,7 +54,7 @@
         @keyframes pulse { 0% { opacity: 0.4; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
       </style>
       <div class="initial-loader">
-        <img src="/revoo-logo.png" alt="REVOO" />
+        <!-- Empty black screen until React mounts -->
       </div>
     </div>
     <script type="module" src="/src/main.jsx"></script>
