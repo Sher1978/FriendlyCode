@@ -64,7 +64,7 @@ const RevooB2BV2 = () => {
             </div>
 
             {/* Navigation */}
-            <nav className={`fixed top-0 left-0 w-full z-50 px-6 py-4 transition-all duration-500 ${scrolled ? 'bg-black/90 backdrop-blur-3xl border-b border-white/5 shadow-[0_4px_30px_rgba(0,0,0,0.5)]' : ''}`}>
+            <nav className={`absolute top-0 left-0 w-full z-50 px-6 py-4 transition-all duration-500 ${scrolled ? 'bg-black/90 backdrop-blur-3xl border-b border-white/5 shadow-[0_4px_30px_rgba(0,0,0,0.5)]' : ''}`}>
                 <div className="max-w-7xl mx-auto flex justify-between items-center">
                     <div className="flex-shrink-0 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                         <img src="/revoo-logo.png" className={`transition-all duration-500 ${scrolled ? 'h-8' : 'h-10'} object-contain mix-blend-screen opacity-90`} alt="REVOO Logo" />
