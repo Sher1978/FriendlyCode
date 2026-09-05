@@ -485,7 +485,7 @@ const UnifiedActivation = () => {
                                 const diffMinutes = (now.getTime() - createdAt.getTime()) / 60000;
                                 const cachedDepositBal = Number(safeStorage.getItem('cached_deposit_balance') || '0');
                                 
-                                if (diffMinutes < 15 && cachedDepositBal <= 0) {
+                                if (diffMinutes < 15) {
                                     setTxNotification({
                                         show: true,
                                         type: tx.transactionType || tx.type || 'CREDIT',
