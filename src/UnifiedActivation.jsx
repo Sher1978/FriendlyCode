@@ -245,6 +245,7 @@ const UnifiedActivation = () => {
         const cached = safeStorage.getItem('cached_deposit_balance');
         return cached ? Number(cached) : 0;
     });
+    const [isDataLoaded, setIsDataLoaded] = useState(false);
 
     // Keep ambientColor in sync with depositBalance or discountValue
     useEffect(() => {
@@ -394,6 +395,13 @@ const UnifiedActivation = () => {
                         maxDiscount: maxPerc,
                         depositDiscount: depPerc
                     });
+                    
+                    if (location.state?.fromGoogleMaps) {
+                        setDiscountValue(maxPerc);
+                        safeStorage.setItem('currentDiscount', maxPerc.toString());
+                        safeStorage.setItem('googleMapsBonusActivated', new Date().toISOString());
+                        safeStorage.setItem('googleReviewClaimed', 'true');
+                    }
                 }
             });
 
@@ -442,7 +450,7 @@ const UnifiedActivation = () => {
                         setUserProfile((prevProfile) => {
                             const prevBalance = Number(prevProfile?.deposit_balance ?? 0);
                             // If deposit balance increased (admin topped up deposit)
-                            if (newBalance > prevBalance) {
+                            if (prevProfile !== null && newBalance > prevBalance) {
                                 setDepositNotification({
                                     show: true,
                                     balance: newBalance,
@@ -457,10 +465,17 @@ const UnifiedActivation = () => {
                             setHasAlreadyClaimedGoogle(true);
                             safeStorage.setItem('googleReviewClaimed', 'true');
                         }
+                        setIsDataLoaded(true);
+                    } else {
+                        setIsDataLoaded(true);
                     }
-                }, (err) => console.error("Error listening to user profile in UnifiedActivation:", err));
+                }, (err) => {
+                    console.error("Error listening to user profile in UnifiedActivation:", err);
+                    setIsDataLoaded(true);
+                });
             } else {
                 setUserProfile(null);
+                setIsDataLoaded(true);
             }
         });
 
@@ -483,6 +498,7 @@ const UnifiedActivation = () => {
             const venueId = params.get('venueId') || location.state?.venueId || safeStorage.getItem('currentVenueId');
             const guestEmail = location.state?.guestEmail || safeStorage.getItem('guestEmail') || auth.currentUser?.email || '';
             const uid = auth.currentUser?.uid || safeStorage.getItem('effectiveUid') || '';
+            const acquisitionSource = location.state?.acquisition_source || null;
             
             if (venueId && venueId !== 'demo') {
                 const sessionKey = `logged_visit_${venueId}_${guestEmail.toLowerCase()}_${new Date().toISOString().slice(0, 10)}`;
@@ -498,7 +514,8 @@ const UnifiedActivation = () => {
                                 discount: discountValue,
                                 uid: uid,
                                 timestamp: serverTimestamp(),
-                                source: 'qr_reward_claim'
+                                source: 'qr_reward_claim',
+                                ...(acquisitionSource ? { acquisition_source: acquisitionSource } : {})
                             });
                             console.log("Logged visit in 'visits' collection for:", guestEmail);
                         }
@@ -508,7 +525,8 @@ const UnifiedActivation = () => {
                             guestEmail: guestEmail ? guestEmail.toLowerCase() : '',
                             guestName: guestName || 'Guest',
                             discount: discountValue,
-                            timestamp: serverTimestamp()
+                            timestamp: serverTimestamp(),
+                            ...(acquisitionSource ? { acquisition_source: acquisitionSource } : {})
                         });
                         console.log("Logged redemption for venue:", venueId);
                     } catch (e) {
@@ -529,6 +547,14 @@ const UnifiedActivation = () => {
 
 
     // Floating Gift Icon & Review Popup
+    if (!isDataLoaded) {
+        return (
+            <div className="flex flex-col min-h-screen bg-black font-sans items-center justify-center relative">
+                 <div className="w-12 h-12 border-4 border-[#D4AF37]/30 border-t-[#D4AF37] rounded-full animate-spin shadow-[0_0_15px_rgba(212,175,55,0.3)]" />
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col min-h-screen bg-black font-sans text-white antialiased overflow-hidden relative" style={{ WebkitFontSmoothing: 'antialiased' }}>
             
@@ -621,7 +647,7 @@ const UnifiedActivation = () => {
                                                 <div className="bg-white rounded-[18px] p-3 shadow-2xl">
                                                     <img
                                                         src={`https://api.qrserver.com/v1/create-qr-code/?size=156x156&data=${encodeURIComponent(
-                                                            `https://bot-lab-21910.web.app/admin/deposit?search=${auth.currentUser?.uid || auth.currentUser?.email || ''}&action=topup`
+                                                            `https://bot-lab-21910.web.app/admin/deposit?search=${auth.currentUser?.uid || userProfile?.id || auth.currentUser?.email || userProfile?.email || safeStorage.getItem('effectiveUid') || safeStorage.getItem('guestEmail') || ''}&action=topup`
                                                         )}`}
                                                         alt="Deposit QR"
                                                         className="w-[156px] h-[156px] block"
@@ -645,10 +671,10 @@ const UnifiedActivation = () => {
                                         >
                                             <div className="flex items-center justify-center gap-1.5 text-red-400 font-black text-xs uppercase tracking-wider mb-1">
                                                 <span className="text-base animate-bounce">⚠️</span>
-                                                <span>НЕОБХОДИМО ПОПОЛНИТЬ ДЕПОЗИТ</span>
+                                                <span>{t('deposit_balance_low_warning_title', 'DEPOSIT TOP-UP REQUIRED')}</span>
                                             </div>
                                             <p className="text-[11px] text-white font-semibold leading-relaxed">
-                                                Баланс вашего депозита менее 20% ({Math.round(depTheme.pct)}%). Пополните депозит у официанта, чтобы сохранить закреплённую скидку и статус!
+                                                {t('deposit_balance_low_warning_desc', { percent: Math.round(depTheme.pct), defaultValue: `Deposit balance is below 20% (${Math.round(depTheme.pct)}%). Top up with your waiter to keep your locked discount!` })}
                                             </p>
                                         </motion.div>
                                     )}
@@ -738,7 +764,7 @@ const UnifiedActivation = () => {
 
             {/* ── VIP STATUS BOOST DIALOG (EXPANDED MODAL WITH SWIPE-DOWN COLLAPSE) ── */}
             <AnimatePresence>
-                {promoModalState === 'expanded' && (
+                {promoModalState === 'expanded' && depositBalance <= 0 && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -791,21 +817,72 @@ const UnifiedActivation = () => {
                             {(!hasAlreadyClaimedGoogle && venueSettings.googleReviewLink) ? (
                                 /* Condition A: Google Maps Review Offer */
                                 <>
-                                    <h3 className="text-xl font-black text-white mb-2 leading-tight">
-                                        {t('google_review_gift_title')}
-                                    </h3>
-                                    <p className="text-sm font-medium text-white/80 mb-6 leading-relaxed">
-                                        {t('google_review_gift_desc', { percent: venueSettings.maxDiscount || 20 })}
-                                    </p>
-                                    <button
-                                        onClick={() => {
-                                            handleGoToGoogle();
-                                            setPromoModalState('collapsed');
-                                        }}
-                                        className="w-full py-3.5 rounded-xl bg-[#00FF41] text-black font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,255,65,0.3)] transition-all active:scale-95"
-                                    >
-                                        {t('leave_google_review')}
-                                    </button>
+                                    {npsStep === 'stars' && (
+                                        <>
+                                            <h3 className="text-xl font-black text-white mb-2 leading-tight">
+                                                Оцените визит
+                                            </h3>
+                                            <p className="text-sm font-medium text-white/80 mb-5 leading-relaxed">
+                                                Нам важно ваше мнение. Как все прошло?
+                                            </p>
+                                            <div className="flex justify-center gap-2 mb-6">
+                                                {[1,2,3,4,5].map(star => (
+                                                    <FontAwesomeIcon 
+                                                        key={star} 
+                                                        icon={faStar} 
+                                                        className={`text-3xl cursor-pointer transition-colors ${(hoverStar || starRating) >= star ? 'text-yellow-400' : 'text-gray-600'}`}
+                                                        onMouseEnter={() => setHoverStar(star)}
+                                                        onMouseLeave={() => setHoverStar(0)}
+                                                        onClick={() => handleStarClick(star)}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </>
+                                    )}
+                                    {npsStep === 'complaint' && (
+                                        <>
+                                            <h3 className="text-lg font-black text-white mb-2">Что пошло не так?</h3>
+                                            <textarea 
+                                                className="w-full bg-black/50 border border-white/20 rounded-xl p-3 text-white text-sm mb-4 min-h-[80px]"
+                                                placeholder="Расскажите подробнее..."
+                                                value={complaintText}
+                                                onChange={e => setComplaintText(e.target.value)}
+                                            />
+                                            <button 
+                                                onClick={submitComplaint}
+                                                disabled={isSubmittingComplaint}
+                                                className="w-full py-3 rounded-xl bg-white/20 text-white font-bold text-xs uppercase tracking-wider"
+                                            >
+                                                {isSubmittingComplaint ? 'ОТПРАВКА...' : 'ОТПРАВИТЬ ОТЗЫВ'}
+                                            </button>
+                                        </>
+                                    )}
+                                    {npsStep === 'complaint_thanks' && (
+                                        <>
+                                            <h3 className="text-lg font-black text-white mb-2">Спасибо!</h3>
+                                            <p className="text-sm text-white/70 mb-6">Мы обязательно исправим эту ситуацию. Ваша скидка остается активной.</p>
+                                            <button onClick={() => setPromoModalState('collapsed')} className="w-full py-3 rounded-xl bg-[#00FF41] text-black font-bold uppercase text-xs">Закрыть</button>
+                                        </>
+                                    )}
+                                    {npsStep === 'google_offer' && (
+                                        <>
+                                            <h3 className="text-xl font-black text-white mb-2 leading-tight">
+                                                {t('google_review_gift_title', 'Спасибо за высокую оценку!')}
+                                            </h3>
+                                            <p className="text-sm font-medium text-white/80 mb-6 leading-relaxed">
+                                                {t('google_review_gift_desc', { percent: venueSettings.maxDiscount || 20, defaultValue: `Оставьте отзыв на Google Maps и получите ${venueSettings.maxDiscount || 20}% скидку!` })}
+                                            </p>
+                                            <button
+                                                onClick={() => {
+                                                    handleGoToGoogle();
+                                                    setPromoModalState('collapsed');
+                                                }}
+                                                className="w-full py-3.5 rounded-xl bg-[#00FF41] text-black font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(0,255,65,0.3)] transition-all active:scale-95"
+                                            >
+                                                {t('leave_google_review', 'ПЕРЕЙТИ НА GOOGLE MAPS')}
+                                            </button>
+                                        </>
+                                    )}
                                 </>
                             ) : (
                                 /* Condition B: Deposit Offer */
@@ -821,7 +898,7 @@ const UnifiedActivation = () => {
                                     <div className="flex flex-col items-center justify-center p-3 bg-white rounded-2xl mx-auto mb-4 w-44 h-44 shadow-lg border border-white/10">
                                         <img 
                                             src={`https://api.qrserver.com/v1/create-qr-code/?size=152x152&data=${encodeURIComponent(
-                                                `https://bot-lab-21910.web.app/admin/deposit?search=${auth.currentUser?.uid || auth.currentUser?.email || guestName || ''}&action=topup`
+                                                `https://bot-lab-21910.web.app/admin/deposit?search=${auth.currentUser?.uid || userProfile?.id || auth.currentUser?.email || userProfile?.email || safeStorage.getItem('effectiveUid') || safeStorage.getItem('guestEmail') || guestName || ''}&action=topup`
                                             )}`}
                                             alt="Scan to Top Up"
                                             className="w-[152px] h-[152px]"
@@ -844,141 +921,84 @@ const UnifiedActivation = () => {
                 )}
             </AnimatePresence>
 
-            {/* ── COLLAPSED DEPOSIT BOTTOM STRIP (CAN BE SWIPED UP OR TAPPED TO EXPAND) ── */}
+            {/* ── BOTTOM DUAL WIDGETS (GIFTX AT LEFT EDGE + DEPOSIT AT RIGHT EDGE, EXACT HEIGHT ALIGNMENT h-[56px]) ── */}
             <AnimatePresence>
                 {promoModalState === 'collapsed' && (
-                    <motion.div
-                        initial={{ y: 80, opacity: 0 }}
-                        animate={{ y: 0, opacity: 1 }}
-                        exit={{ y: 80, opacity: 0 }}
-                        transition={{ type: 'spring', damping: 25, stiffness: 250 }}
-                        drag="y"
-                        dragConstraints={{ top: -100, bottom: 0 }}
-                        dragElastic={0.2}
-                        onDragEnd={(e, info) => {
-                            if (info.offset.y < -25 || info.velocity.y < -100) {
-                                setPromoModalState('expanded');
-                            }
-                        }}
-                        onClick={() => setPromoModalState('expanded')}
-                        className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[170] w-[calc(100%-32px)] max-w-sm cursor-pointer select-none"
-                    >
-                        <div className="bg-[#1C1C1E]/95 border-2 border-[#D4AF37]/60 rounded-2xl p-3.5 backdrop-blur-2xl shadow-[0_10px_30px_rgba(212,175,55,0.3)] flex items-center justify-between gap-3 relative overflow-hidden group hover:border-[#D4AF37] transition-all">
-                            {/* Gold Glow */}
-                            <div className="absolute top-0 right-0 w-28 h-28 bg-[#D4AF37]/15 rounded-full blur-xl pointer-events-none" />
-                            
-                            <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-9 h-9 rounded-xl bg-[#D4AF37]/20 border border-[#D4AF37]/40 flex items-center justify-center text-[#D4AF37] text-sm shrink-0">
-                                    <FontAwesomeIcon icon={faGift} className="animate-pulse" />
-                                </div>
-                                <div className="flex flex-col min-w-0">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">
-                                        💰 VIP Deposit QR
-                                    </span>
-                                    <span className="text-xs font-bold text-white truncate">
-                                        {t('permanent_vip_title', { percent: venueSettings.depositDiscount || venueSettings.maxDiscount || 20 })}
-                                    </span>
-                                </div>
-                            </div>
+                    <>
+                        {/* 1. GIFTX WIDGET (LEFT EDGE OF SCREEN) */}
+                        {(() => {
+                            const giftxUrl = venueSettings?.giftxUrl || venueData?.giftxUrl || 'https://giftx.app';
+                            return (
+                                <motion.div
+                                    initial={{ y: 80, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    exit={{ y: 80, opacity: 0 }}
+                                    transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+                                    whileHover={{ scale: 1.03 }}
+                                    whileTap={{ scale: 0.96 }}
+                                    onClick={() => window.open(giftxUrl, '_blank', 'noopener,noreferrer')}
+                                    className="fixed bottom-4 left-4 sm:left-6 z-[170] cursor-pointer flex items-center gap-2.5 bg-[#1C1C1E]/95 border-2 border-[#FF2A85]/60 rounded-2xl px-3.5 py-2 backdrop-blur-2xl shadow-[0_10px_25px_rgba(255,42,133,0.35)] h-[56px] select-none group hover:border-[#FF2A85] transition-all max-w-[48%] sm:max-w-[220px]"
+                                    title="GiftX"
+                                >
+                                    {/* Magenta Ambient Glow */}
+                                    <div className="absolute top-0 left-0 w-24 h-24 bg-[#FF2A85]/15 rounded-full blur-xl pointer-events-none" />
+                                    
+                                    {/* 3D Box Icon Badge */}
+                                    <div className="w-9 h-9 rounded-xl bg-[#1C1C1E] border border-[#FF2A85] flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(255,42,133,0.5)] relative z-10 overflow-hidden">
+                                        <motion.img
+                                            src={giftxBox3D}
+                                            alt="GiftX"
+                                            animate={{
+                                                rotate: [0, 2, -2.5, 3, -1.5, 2.5, -3, 1.5, -2, 0]
+                                            }}
+                                            transition={{ duration: 0.2, repeat: Infinity, ease: "linear" }}
+                                            className="w-6 h-6 object-contain pointer-events-none"
+                                        />
+                                    </div>
 
-                            <div className="flex items-center gap-1 text-[#D4AF37] font-black text-[11px] uppercase tracking-wider shrink-0 bg-[#D4AF37]/10 px-2.5 py-1 rounded-xl border border-[#D4AF37]/30">
-                                <span>{t('expand', 'Открыть')}</span>
-                                <FontAwesomeIcon icon={faChevronUp} className="text-[9px] animate-bounce" />
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                                    {/* Title & Subtitle */}
+                                    <div className="flex flex-col text-left relative z-10 min-w-0 pr-1">
+                                        <div className="flex items-center gap-1">
+                                            <span className="text-[10px] font-black uppercase tracking-wider text-[#FF2A85] leading-none">GiftX</span>
+                                            <span className="text-[8px] font-black uppercase tracking-widest px-1 py-0.2 rounded-full bg-[#FF2A85]/20 border border-[#FF2A85]/40 text-[#FF2A85]">🎁</span>
+                                        </div>
+                                        <span className="text-[10px] font-bold text-white/90 leading-tight mt-0.5 truncate">
+                                            {t('gift_cards', 'Gift Certificates')}
+                                        </span>
+                                    </div>
+                                </motion.div>
+                            );
+                        })()}
 
-            {/* Success Overlay for Stars (Internal) */}
-            <AnimatePresence>
-                {showGiftScreen && (
-                    <motion.div
-                        key="gift-screen"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[200] flex flex-col items-center justify-center text-center px-8"
-                        style={{ background: 'rgba(0,0,0,0.97)', backdropFilter: 'blur(24px)' }}
-                    >
-                         <div style={{ position: 'absolute', width: '300px', height: '300px', borderRadius: '50%', background: `radial-gradient(circle, ${ambientColor}35 0%, transparent 70%)`, filter: 'blur(40px)', pointerEvents: 'none' }} />
-                         <motion.div initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }} className="text-[90px] mb-8 relative z-10">🎁</motion.div>
-                         <motion.h2 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="text-[32px] font-black tracking-tight text-white leading-tight mb-3 relative z-10" style={{ textShadow: `0 0 40px ${ambientColor}` }}>{t('review_gift_screen_title')}</motion.h2>
-                         <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="text-[16px] font-semibold text-white/70 leading-relaxed mb-10 max-w-[280px] relative z-10">{t('review_gift_screen_sub')}</motion.p>
-                         <motion.button initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} onClick={() => setShowGiftScreen(false)} className="relative z-10 px-10 py-4 rounded-[20px] text-black font-black text-[16px] uppercase tracking-widest active:scale-[0.97] transition-all shadow-2xl" style={{ backgroundColor: ambientColor, boxShadow: `0 0 40px ${ambientColor}50` }}>{t('review_gift_close')}</motion.button>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* ── FLOATING COLLAPSED GOOGLE MAPS REVIEW BADGE (LEFT CORNER) ── */}
-            {(promoModalState !== 'expanded' && (!hasAlreadyClaimedGoogle && venueSettings.googleReviewLink)) && (
-                <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0, opacity: 0 }}
-                    whileHover={{ scale: 1.08 }}
-                    whileTap={{ scale: 0.92 }}
-                    onClick={() => setPromoModalState('expanded')}
-                    className="fixed bottom-6 left-6 z-[160] cursor-pointer flex items-center justify-center"
-                    title="Оставить отзыв в Google Maps"
-                >
-                    {/* Google Maps Outer Glow */}
-                    <div className="absolute inset-0 rounded-full bg-[#FBBC04]/40 blur-md animate-pulse" />
-                    
-                    {/* Main Circular Badge in Google Stars Style */}
-                    <div className="w-14 h-14 rounded-full bg-[#1C1C1E] border-2 border-[#FBBC04] backdrop-blur-xl flex flex-col items-center justify-center shadow-[0_8px_25px_rgba(251,188,4,0.4)] relative z-10">
-                        <FontAwesomeIcon icon={faStar} className="text-[20px] text-[#FBBC04] drop-shadow-[0_0_6px_rgba(251,188,4,0.8)]" />
-                        <div className="flex gap-0.5 mt-0.5">
-                            {[...Array(5)].map((_, i) => (
-                                <span key={i} className="text-[#FBBC04] text-[6px]">★</span>
-                            ))}
-                        </div>
-                    </div>
-                </motion.div>
-            )}
-
-            {/* ── FLOATING GIFTX WIDGET BUTTON (RIGHT CORNER WITH MAGENTA GLOW & SHAKING ANIMATION) ── */}
-            {(promoModalState !== 'expanded' && venueSettings.giftxUrl) && (
-                <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0, opacity: 0 }}
-                    whileHover={{ scale: 1.08 }}
-                    whileTap={{ scale: 0.92 }}
-                    onClick={() => window.open(venueSettings.giftxUrl, '_blank', 'noopener,noreferrer')}
-                    className="fixed bottom-6 right-6 z-[160] cursor-pointer flex items-center justify-center"
-                    title="GiftX"
-                >
-                    {/* Crimson/Magenta Outer Glow */}
-                    <div className="absolute inset-0 rounded-full bg-[#FF2A85]/50 blur-md animate-pulse" />
-                    
-                    {/* Main Circular Badge with Magenta Border & Glassmorphism */}
-                    <div className="w-14 h-14 rounded-full bg-[#1C1C1E] border-2 border-[#FF2A85] backdrop-blur-xl flex flex-col items-center justify-center shadow-[0_8px_25px_rgba(255,42,133,0.6)] relative z-10 overflow-hidden">
+                        {/* 2. DEPOSIT PROMO STRIP (RIGHT EDGE OF SCREEN - EXACT SAME HEIGHT h-[56px]) */}
                         <motion.div
-                            animate={{
-                                scale: [1.0, 1.15, 1.0],
-                                filter: [
-                                    'drop-shadow(0 0 6px rgba(255,42,133,0.6))',
-                                    'drop-shadow(0 0 20px rgba(255,42,133,1.0))',
-                                    'drop-shadow(0 0 6px rgba(255,42,133,0.6))'
-                                ]
-                            }}
-                            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                            className="flex items-center justify-center"
+                            initial={{ y: 80, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: 80, opacity: 0 }}
+                            transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.96 }}
+                            onClick={() => setPromoModalState('expanded')}
+                            className="fixed bottom-4 right-4 sm:right-6 z-[170] cursor-pointer flex items-center gap-2.5 bg-[#1C1C1E]/95 border-2 border-[#D4AF37]/60 rounded-2xl px-3.5 py-2 backdrop-blur-2xl shadow-[0_10px_25px_rgba(212,175,55,0.35)] h-[56px] select-none group hover:border-[#D4AF37] transition-all max-w-[48%] sm:max-w-[220px]"
                         >
-                            <motion.img
-                                src={giftxBox3D}
-                                alt="GiftX"
-                                animate={{
-                                    rotate: [0, 2, -2.5, 3, -1.5, 2.5, -3, 1.5, -2, 0]
-                                }}
-                                transition={{ duration: 0.2, repeat: Infinity, ease: "linear" }}
-                                className="w-9 h-9 object-contain pointer-events-none"
-                            />
+                            {/* Gold Ambient Glow */}
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-[#D4AF37]/15 rounded-full blur-xl pointer-events-none" />
+                            
+                            <div className="w-9 h-9 rounded-xl bg-[#D4AF37]/20 border border-[#D4AF37]/40 flex items-center justify-center text-[#D4AF37] text-sm shrink-0 relative z-10">
+                                <FontAwesomeIcon icon={faGift} className="animate-pulse" />
+                            </div>
+                            <div className="flex flex-col text-left relative z-10 min-w-0 pr-1">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37] leading-none">
+                                    💰 VIP Deposit
+                                </span>
+                                <span className="text-[10px] font-bold text-white leading-tight mt-0.5 truncate">
+                                    {t('vip_discount_label', { percent: venueSettings.depositDiscount || venueSettings.maxDiscount || 20, defaultValue: `${venueSettings.depositDiscount || venueSettings.maxDiscount || 20}% VIP DISCOUNT` })}
+                                </span>
+                            </div>
                         </motion.div>
-                    </div>
-                </motion.div>
-            )}
+                    </>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
