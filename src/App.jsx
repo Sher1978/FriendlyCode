@@ -142,32 +142,13 @@ const GlobalBatteryLoader = ({ onComplete }) => {
             >
                 <div className={`absolute top-[-10%] left-[-20vw] w-[140vw] h-[60vh] rounded-[100%] blur-[100px] pointer-events-none opacity-[0.20] mix-blend-screen transition-colors duration-[2000ms] ${bgGlowColor}`} />
                 
-                {/* Header bar matching TestQRPage layout */}
+                {/* Universal header bar spacer matching TestQRPage layout */}
                 <div 
                     className="flex justify-between items-start w-full px-4 pt-4 pb-2 relative z-50 min-h-[90px]"
                     style={{
                         paddingTop: 'max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 16px)'
                     }}
-                >
-                    <div className="w-10 h-10 flex-shrink-0 flex items-center justify-start z-20">
-                        <div className="w-10 h-10 rounded-full bg-black/50 border border-white/20 flex items-center justify-center text-white/80">
-                            <span className="text-sm font-bold">👤</span>
-                        </div>
-                    </div>
-
-                    <div className="absolute left-1/2 -translate-x-1/2 max-w-[calc(100%-110px)] flex flex-col items-center text-center z-10 pt-1">
-                        <span className="text-[11px] font-bold text-white/50 uppercase tracking-[0.1em] mb-1.5 whitespace-nowrap">
-                            РАДЫ ВИДЕТЬ ВАС В
-                        </span>
-                        <h1 className="text-[22px] sm:text-[26px] font-black tracking-tight text-white leading-[1.1] line-clamp-2 max-w-full drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
-                            {typeof window !== 'undefined' ? (localStorage.getItem('currentVenueName') || 'Svoi') : 'Svoi'}
-                        </h1>
-                    </div>
-
-                    <div className="w-10 h-10 flex-shrink-0 flex items-center justify-end z-20">
-                        <span className="text-xs text-white/60 font-mono">RU</span>
-                    </div>
-                </div>
+                />
 
                 <div className="flex flex-col items-center justify-start mt-1 px-6 pb-[140px] w-full max-w-md mx-auto z-10 gap-2.5" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
                     <div className="h-[24px] flex flex-col items-center -mt-1 mb-1 justify-center w-full" />

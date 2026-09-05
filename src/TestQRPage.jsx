@@ -124,8 +124,11 @@ const TestQRPage = () => {
         statusRef.current = status;
     }, [status]);
 
+    const searchParams = new URLSearchParams(location.search);
+    const utmSource = searchParams.get('utm_source');
+    const isGoogleMaps = utmSource === 'google_maps';
+
     useEffect(() => {
-        const searchParams = new URLSearchParams(location.search);
         const rawId = searchParams.get('id') || searchParams.get('v') || searchParams.get('venueId') || searchParams.get('venue_id') || 'default_venue';
         const venueId = rawId.startsWith('3D') && rawId.length > 10 ? rawId.substring(2) : rawId;
         
@@ -681,7 +684,7 @@ const TestQRPage = () => {
         return <LoadingBatteryScreen />;
     }
 
-    const searchParams = new URLSearchParams(window.location.search);
+    // using searchParams declared at component top
     const hasDepositQuery = searchParams.get('deposit') === 'true' || searchParams.get('deposit') === '1' || Number(searchParams.get('deposit')) > 0;
     const isUserLoggedIn = Boolean((auth.currentUser && !auth.currentUser.isAnonymous && (auth.currentUser.email || userProfile?.email || safeStorage.getItem('guestEmail'))) || hasDepositQuery);
     const hasGoogleReviewConfigured = Boolean(venueData?.googleReviewLink || venueData?.googleMapsUrl);
@@ -846,7 +849,7 @@ const TestQRPage = () => {
             <div className="absolute bottom-[10%] right-[-20vw] w-[140vw] h-[50vh] rounded-[100%] blur-[120px] pointer-events-none opacity-[0.15]" style={{ backgroundColor: batCfg.fillColor }} />
 
             <div 
-                className="relative w-full z-20 pb-2 px-4 flex items-center justify-between max-w-md mx-auto min-h-[48px] transition-all"
+                className="flex justify-between items-start w-full px-4 pt-4 pb-2 relative z-50 min-h-[90px]"
                 style={{
                     paddingTop: 'max(env(safe-area-inset-top, 0px), var(--tg-safe-area-inset-top, 0px), 16px)'
                 }}
@@ -866,7 +869,10 @@ const TestQRPage = () => {
                     ) : (
                         <div 
                             className="w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-xl border border-white/20 flex items-center justify-center cursor-pointer active:scale-95 transition-all shadow-lg text-white/80 hover:text-white"
-                            onClick={() => navigate('/activate', { state: { returnTo: 'profile', fromProfile: true, discount, guestName, userRole, venueId: activeVenueId } })}
+                            onClick={() => {
+                                const targetRoute = isGoogleMaps ? '/google-activate' : '/activate';
+                                navigate(targetRoute, { state: { returnTo: 'profile', fromProfile: true, discount, guestName, userRole, venueId: activeVenueId, fromGoogleMaps: isGoogleMaps } })
+                            }}
                         >
                             <FontAwesomeIcon icon={faUser} className="text-sm" />
                         </div>
@@ -880,7 +886,7 @@ const TestQRPage = () => {
                     <span className="text-[11px] font-bold text-white/50 uppercase tracking-[0.1em] mb-1.5 whitespace-nowrap">
                         {t('glad_to_see_you_in', 'РАДЫ ВИДЕТЬ ВАС В')}
                     </span>
-                    <h1 className="text-[22px] sm:text-[26px] font-black tracking-tight text-white leading-[1.1] truncate max-w-full drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
+                    <h1 className="text-[22px] sm:text-[26px] font-black tracking-tight text-white leading-[1.1] line-clamp-2 max-w-full drop-shadow-[0_2px_10px_rgba(0,0,0,0.8)]">
                         {venueName || "REVOO VENUE"}
                     </h1>
                 </div>
@@ -892,17 +898,20 @@ const TestQRPage = () => {
 
             <div className="flex flex-col items-center justify-start mt-1 px-6 pb-[140px] w-full max-w-md mx-auto z-10 gap-2.5" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
 
-                {guestName && (
-                    <div 
-                        className="text-center flex flex-col items-center -mt-1 mb-1 cursor-pointer select-none"
-                        onClick={() => setDebugClicks(c => c + 1)}
-                    >
-                        <div className="text-sm font-semibold tracking-tight text-white/80 flex items-center gap-1.5">
-                            <span>{t('hero_welcome_back', 'Welcome Back!')}</span>
-                            <span className="text-amber-400 font-extrabold">{guestName}</span>
+                {/* Fixed height spacer for guest name to prevent layout shift */}
+                <div className="h-[24px] flex flex-col items-center -mt-1 mb-1 justify-center w-full">
+                    {guestName && (
+                        <div 
+                            className="text-center flex flex-col items-center cursor-pointer select-none"
+                            onClick={() => setDebugClicks(c => c + 1)}
+                        >
+                            <div className="text-sm font-semibold tracking-tight text-white/80 flex items-center gap-1.5">
+                                <span>{t('hero_welcome_back', 'Welcome Back!')}</span>
+                                <span className="text-amber-400 font-extrabold truncate max-w-[200px]">{guestName}</span>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
 
                 {isDepositActive ? (
                     <div className="flex flex-col items-center w-full bg-[#1C1C1E]/80 backdrop-blur-[40px] border border-[#D4AF37]/40 rounded-[28px] p-5 shadow-2xl relative overflow-hidden flex-shrink-0 text-center">
@@ -987,15 +996,21 @@ const TestQRPage = () => {
                                         Number(loyaltyConfig.percBase),
                                         Number(loyaltyConfig.percDecay2),
                                         Number(loyaltyConfig.percDecay1),
-                                        Number(loyaltyConfig.percVip)
+                                        Number(loyaltyConfig.percMedium),
+                                        Number(loyaltyConfig.percVip),
+                                        Number(loyaltyConfig.decayStages?.[0]?.discount)
                                     ].filter(p => !isNaN(p) && p > 0);
                                     if (percs.length > 0) sortedTiers = [...new Set(percs)].sort((a, b) => a - b);
                                 }
                             }
-                            const maxTier = sortedTiers[sortedTiers.length - 1] || 10;
-                            const minTier = sortedTiers[0] || 3;
-                            const midTier = sortedTiers.length > 2 ? sortedTiers[Math.floor((sortedTiers.length - 1) / 2)] : (sortedTiers[1] || minTier);
+                            const maxTier = Number(loyaltyConfig?.percVip) || sortedTiers[sortedTiers.length - 1] || 7;
+                            const minTier = Number(loyaltyConfig?.percBase) || sortedTiers[0] || 3;
                             
+                            let midTier = Number(loyaltyConfig?.decayStages?.[0]?.discount ?? loyaltyConfig?.percMedium ?? loyaltyConfig?.percDecay1 ?? loyaltyConfig?.percDecay2);
+                            if (isNaN(midTier) || midTier <= 0) {
+                                midTier = sortedTiers.length > 2 ? sortedTiers[Math.floor((sortedTiers.length - 1) / 2)] : (sortedTiers[1] || minTier);
+                            }
+
                             const xDays = loyaltyConfig?.mediumDays || loyaltyConfig?.tier1DecayDays || (loyaltyConfig?.decayStages?.[0]?.days) || 7;
 
                             return (
@@ -1230,11 +1245,13 @@ const TestQRPage = () => {
                                     } 
                                 });
                             } else {
-                                navigate('/activate', { 
+                                const targetRoute = isGoogleMaps ? '/google-activate' : '/activate';
+                                navigate(targetRoute, { 
                                     state: { 
                                         returnTo: 'thank-you',
                                         discountValue: displayDiscount,
-                                        venueId: currentVenue
+                                        venueId: currentVenue,
+                                        fromGoogleMaps: isGoogleMaps
                                     } 
                                 });
                             }
