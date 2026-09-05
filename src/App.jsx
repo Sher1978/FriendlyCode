@@ -1,5 +1,6 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import PngBattery from './PngBattery';
 import { BrowserRouter, Routes, Route, useParams, useNavigate } from 'react-router-dom';
 
 // Helper to handle ChunkLoadError on new deployments
@@ -25,15 +26,178 @@ const Unsubscribe        = lazyWithRetry(() => import('./Unsubscribe'));
 const NewQRPage          = lazyWithRetry(() => import('./NewQRPage'));
 const TestQRPage         = lazyWithRetry(() => import('./TestQRPage'));
 const RevooB2C           = lazyWithRetry(() => import('./RevooB2C'));
+const HybridChoiceLanding = lazyWithRetry(() => import('./HybridChoiceLanding'));
+const HybridChoiceLandingV2 = lazyWithRetry(() => import('./HybridChoiceLandingV2'));
+const HybridChoiceLandingV3 = lazyWithRetry(() => import('./HybridChoiceLandingV3'));
 const RevooB2B           = lazyWithRetry(() => import('./RevooB2B'));
 const GuestDashboard     = lazyWithRetry(() => import('./GuestDashboard'));
 const CaptiveLanding     = lazyWithRetry(() => import('./CaptiveLanding'));
 const RevooStories       = lazyWithRetry(() => import('./RevooStories'));
 const StaffJoinPage      = lazyWithRetry(() => import('./StaffJoinPage'));
-const HybridChoiceLanding = lazyWithRetry(() => import('./HybridChoiceLanding'));
+const PosterPage         = lazyWithRetry(() => import('./PosterPageV3'));
+const PosterPageV3       = lazyWithRetry(() => import('./PosterPageV3'));
+const SmartWelcomeScreen = lazyWithRetry(() => import('./SmartWelcomeScreen'));
+const RevooB2BV2         = lazyWithRetry(() => import('./RevooB2BV2'));
+const GoogleMapsPreLanding = lazyWithRetry(() => import('./GoogleMapsPreLanding'));
+const GoogleThankYouScreen = lazyWithRetry(() => import('./GoogleThankYouScreen'));
 
 import DubaiTechBadge from './DubaiTechBadge';
 
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Application Render Error caught by Boundary:", error, errorInfo);
+    this.redirectToTest();
+  }
+
+  redirectToTest = () => {
+    try {
+      localStorage.removeItem('onboardingCompleted');
+    } catch(e) {}
+    try {
+      const searchParams = new URLSearchParams(window.location.search);
+      const rawId = searchParams.get('id') || searchParams.get('v') || localStorage.getItem('currentVenueId') || 'demo';
+      const venueId = rawId.startsWith('3D') && rawId.length > 10 ? rawId.substring(2) : rawId;
+      window.location.replace(`/test?id=${venueId}`);
+    } catch (e) {
+      window.location.replace('/test');
+    }
+  };
+
+  render() {
+    if (this.state.hasError) {
+      console.error("ErrorBoundary caught:", this.state.error);
+      return <div className="min-h-screen bg-red-900 text-white p-10"><h1 className="text-2xl font-bold">App Crashed</h1><pre className="mt-4 text-sm whitespace-pre-wrap">{this.state.error?.toString()}</pre></div>;
+    }
+    return this.props.children;
+  }
+}
+
+const GlobalBatteryLoader = ({ onComplete }) => {
+    const [animatedPercent, setAnimatedPercent] = useState(0);
+
+    useEffect(() => {
+        const duration = 5000; // 5 seconds forced load
+        const fps = 60;
+        const totalFrames = (duration / 1000) * fps;
+        let currentFrame = 0;
+        
+        const interval = setInterval(() => {
+            currentFrame++;
+            const progress = currentFrame / totalFrames;
+            const easeProgress = progress * (2 - progress);
+            
+            if (currentFrame >= totalFrames) {
+                setAnimatedPercent(100);
+                clearInterval(interval);
+                if (onComplete) {
+                    setTimeout(onComplete, 150); // slight pause at 100% before fading out
+                }
+            } else {
+                setAnimatedPercent(Math.max(0, Math.min(100, Math.floor(easeProgress * 100))));
+            }
+        }, 1000 / fps);
+        
+        return () => clearInterval(interval);
+    }, [onComplete]);
+
+    // Always use green glow to avoid red flash
+    let bgGlowColor = 'bg-[#00FF41]';
+
+    return (
+        <div 
+            className="flex flex-col bg-black font-sans text-white relative overflow-x-hidden overflow-y-auto items-center justify-start h-full w-full" 
+            style={{ paddingTop: 'env(safe-area-inset-top, 24px)', paddingBottom: 'env(safe-area-inset-bottom, 24px)' }}
+        >
+            <div className={`absolute top-[-10%] left-[-20vw] w-[140vw] h-[60vh] rounded-[100%] blur-[100px] pointer-events-none opacity-[0.20] mix-blend-screen transition-colors duration-[2000ms] ${bgGlowColor}`} />
+            
+            {/* Exactly mimic the position of TestQRPage battery card */}
+            <div className="w-full max-w-sm px-4 pt-[60px] pb-4 relative z-40">
+                <motion.div
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+                    className="relative w-full rounded-[32px] bg-gradient-to-br from-[#00FF41]/20 via-[#00FF41]/5 to-black/40 backdrop-blur-3xl border-2 border-[#00FF41]/30 p-5 sm:p-6 flex flex-col items-center justify-start shadow-2xl overflow-hidden min-h-[220px]"
+                >
+                    <div className="w-full relative z-10 pointer-events-none">
+                        <PngBattery capacity={animatedPercent} showGlow={true} disableInternalAnim={true} />
+                    </div>
+                    <div className="mt-6 pt-3 border-t border-white/10 w-full flex flex-col items-center text-center relative z-10">
+                        <span className="text-sm font-black text-[#00FF41] leading-tight uppercase tracking-wider animate-pulse">
+                            Вычисляем Вашу Скидку...
+                        </span>
+                    </div>
+                </motion.div>
+            </div>
+        </div>
+    );
+};
+
+const AppOverlay = ({ children }) => {
+    const [showLoader, setShowLoader] = useState(true);
+    let isExcluded = false;
+    
+    if (typeof window !== 'undefined') {
+        const pathname = window.location.pathname;
+        const searchParams = new URLSearchParams(window.location.search);
+        
+        if (pathname.startsWith('/admin') || pathname.startsWith('/owner') || pathname.startsWith('/Superadmin')) {
+            isExcluded = true;
+        }
+        if (searchParams.get('utm_source') === 'google_maps') {
+            isExcluded = true;
+        }
+    }
+
+    if (isExcluded) return children;
+
+    return (
+        <>
+            {/* The main app, loading in the background */}
+            {children}
+
+            {/* The overlay */}
+            <AnimatePresence>
+                {showLoader && (
+                    <motion.div 
+                        className="fixed inset-0 z-[99999] bg-black"
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.6, ease: "easeInOut" }}
+                    >
+                        <GlobalBatteryLoader onComplete={() => setShowLoader(false)} />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </>
+    );
+};
+
+const SuspenseFallback = () => {
+    if (typeof window !== 'undefined') {
+        const searchParams = new URLSearchParams(window.location.search);
+        if (searchParams.get('utm_source') === 'google_maps' && searchParams.get('activated') !== 'true') {
+            return (
+                <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            );
+        }
+    }
+    return (
+        <div className="fixed inset-0 z-[99998] bg-black">
+            <GlobalBatteryLoader />
+        </div>
+    );
+};
 
 // Trigger build change to force new deployment hash
 function App() {
@@ -44,24 +208,25 @@ function App() {
 
   return (
     <BrowserRouter>
-      <React.Suspense fallback={
-        <div data-build="2026-06-27-1425" className="min-h-screen bg-[#000000] flex flex-col items-center justify-center gap-6">
-          <motion.div 
-            animate={{ opacity: [0.4, 0.8, 0.4] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <img src="/revoo-logo.png" alt="Loading REVOO" className="w-32 opacity-80 mix-blend-screen drop-shadow-[0_0_10px_rgba(212,175,55,0.3)]" />
-          </motion.div>
-          <DubaiTechBadge />
-        </div>
-      }>
-        <Routes>
-          {/* Legacy Marketing (Friendly Code 2.0) */}
-          <Route path="/legacy/b2c" element={<MarketingB2C />} />
-          <Route path="/legacy/b2b" element={<MarketingB2B />} />
+      <AppOverlay>
+        <ErrorBoundary>
+          <React.Suspense fallback={<SuspenseFallback />}>
+            <Routes>
+            {/* Legacy Marketing (Friendly Code 2.0) */}
+            <Route path="/legacy/b2c" element={<MarketingB2C />} />
+            <Route path="/legacy/b2b" element={<MarketingB2B />} />
+          <Route path="/business-v2" element={showRevoo ? <RevooB2B /> : <MarketingB2B />} />
 
           {/* Multi-Brand Landing Logic — Stories as main entry unless deposit is active */}
           <Route path="/" element={(() => {
+            const searchParams = new URLSearchParams(window.location.search);
+            if (searchParams.get('utm_source') === 'google_maps') {
+                if (searchParams.get('activated') === 'true') {
+                    return <SmartWelcomeScreen />;
+                }
+                return <GoogleMapsPreLanding />;
+            }
+
             let hasDeposit = false;
             try {
               const b = localStorage.getItem('cached_deposit_balance');
@@ -85,19 +250,29 @@ function App() {
               }} />
             );
           })()} />
-          <Route path="/business" element={showRevoo ? <RevooB2B /> : <MarketingB2B />} />
+          <Route path="/business" element={<RevooB2BV2 />} />
           <Route path="/legacy/b2c" element={<RevooB2C />} />
           <Route path="/map" element={<PartnerMap />} />
 
           {/* Guest QR Logic (Now REVOO) */}
           <Route path="/qr" element={<NewQRPage />} />
           <Route path="/hybrid" element={<HybridChoiceLanding />} />
+          <Route path="/hybrid-v2" element={<HybridChoiceLandingV2 />} />
+          <Route path="/hybrid2" element={<HybridChoiceLandingV2 />} />
+          <Route path="/hybrid-v3" element={<HybridChoiceLandingV3 />} />
+          <Route path="/hybrid3" element={<HybridChoiceLandingV3 />} />
+          <Route path="/poster" element={<PosterPageV3 />} />
+          <Route path="/poster-v3" element={<PosterPageV3 />} />
+          <Route path="/poster3" element={<PosterPageV3 />} />
+          <Route path="/print" element={<PosterPageV3 />} />
+          <Route path="/test-hybrid-v2" element={<HybridChoiceLandingV2 />} />
           <Route path="/hybrid-landing" element={<HybridChoiceLanding />} />
           <Route path="/test-hybrid" element={<HybridChoiceLanding />} />
           <Route path="/test" element={<TestQRPage />} />
           <Route path="/newqr" element={<NewQRPage />} />
           <Route path="/activate" element={<LeadCapture />} />
           <Route path="/thank-you" element={<UnifiedActivation />} />
+          <Route path="/google-thank-you" element={<GoogleThankYouScreen />} />
           <Route path="/telegram-auth" element={<TelegramAuth />} />
           <Route path="/unsubscribe" element={<Unsubscribe />} />
           <Route path="/guest-dashboard" element={<GuestDashboard />} />
@@ -118,7 +293,9 @@ function App() {
           <Route path="/admin/*" element={<AdminRedirect />} />
         </Routes>
       </React.Suspense>
-    </BrowserRouter>
+    </ErrorBoundary>
+  </AppOverlay>
+</BrowserRouter>
   );
 }
 
@@ -142,16 +319,8 @@ const NFCScanRedirect = () => {
   React.useEffect(() => {
     navigate(`/test?id=${venueId}`, { replace: true });
   }, [venueId, navigate]);
-  return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-6">
-      <motion.div 
-        animate={{ opacity: [0.4, 0.8, 0.4] }}
-        transition={{ duration: 2, repeat: Infinity }}
-      >
-        <img src="/revoo-logo.png" alt="Loading REVOO" className="w-32 opacity-80 mix-blend-screen drop-shadow-[0_0_10px_rgba(212,175,55,0.3)]" />
-      </motion.div>
-    </div>
-  );
+  
+  return <GlobalBatteryLoader />;
 };
 
 export default App;
