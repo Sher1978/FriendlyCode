@@ -889,11 +889,24 @@ async function approveLead(leadId, adminChatId) {
 
   delete pendingLeads[leadId];
 
+  const baseUrl = process.env.PUBLIC_URL || 'https://www.friendlycode.fun';
+  const venueUrl = `${baseUrl}/test?id=${venueId}`;
+  const adminUrl = `${baseUrl}/admin/#/venues`;
+  const guestDashboardUrl = `${baseUrl}/guest-dashboard`;
+
   try {
     await bot.sendMessage(
       adminChatId,
       `✅ *ЗАЯВКА ОДОБРЕНА И АКТИВИРОВАНА*\n\nЗаведение *"${revoo.name}"* (\`${venueId}\`) успешно зарегистрировано и активировано в Revoo & GiftX.`,
-      { parse_mode: 'Markdown' }
+      {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🌐 Страница заведения', url: venueUrl }],
+            [{ text: '📊 Панель управления (Admin)', url: adminUrl }]
+          ]
+        }
+      }
     );
   } catch (e) {
     console.error('Admin notify error:', e.message);
@@ -904,8 +917,16 @@ async function approveLead(leadId, adminChatId) {
       user.id,
       `🎉 *Ваша заявка одобрена!*\n\n` +
       `Заведение *"${revoo.name}"* успешно зарегистрировано и активировано в системе *Revoo & GiftX*.\n\n` +
-      `Наш менеджер свяжется с вами для передачи материалов и настройки QR-кодов.`,
-      { parse_mode: 'Markdown' }
+      `Нажмите кнопку ниже для перехода к странице заведения или в личный кабинет:`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '⭐ Открыть страницу заведения', url: venueUrl }],
+            [{ text: '📱 Личный кабинет', url: guestDashboardUrl }]
+          ]
+        }
+      }
     );
   } catch (e) {
     console.error('User notify error:', e.message);
@@ -1045,6 +1066,23 @@ bot.onText(/\/start(?:\s+(.+))?/, (msg, match) => {
         }
       });
     }, 600);
+  } else {
+    const baseUrl = process.env.PUBLIC_URL || 'https://www.friendlycode.fun';
+    setTimeout(() => {
+      bot.sendMessage(
+        chatId,
+        `📱 *Перейти на платформу Revoo:*\n\nВы можете зайти в свой Личный Кабинет или протестировать Демо-версию:`,
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '📱 Открыть Личный Кабинет', url: `${baseUrl}/guest-dashboard` }],
+              [{ text: '🎮 Открыть Демо (Revoo & GiftX)', web_app: { url: DEMO_WEB_APP_URL } }]
+            ]
+          }
+        }
+      );
+    }, 600);
   }
 });
 
@@ -1149,7 +1187,19 @@ bot.on('message', async (msg) => {
       } catch (e) {}
     }
 
-    bot.sendMessage(chatId, `✅ *Спасибо! Ваш ответ передан менеджеру.* Скоро мы с вами свяжемся.`, { parse_mode: 'Markdown' });
+    bot.sendMessage(
+      chatId, 
+      `✅ *Спасибо! Ваш ответ передан менеджеру.* Скоро мы с вами свяжемся.`, 
+      { 
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '📱 Открыть Личный Кабинет', url: 'https://www.friendlycode.fun/guest-dashboard' }],
+            [{ text: '🎮 Открыть Демо', web_app: { url: DEMO_WEB_APP_URL } }]
+          ]
+        }
+      }
+    );
     return;
   }
 
@@ -1643,13 +1693,29 @@ bot.on('message', async (msg) => {
 
       const venueId = await saveOnboardingToDatabaseAndExport(session, msg.from);
 
+      const baseUrl = process.env.PUBLIC_URL || 'https://www.friendlycode.fun';
+      const venueUrl = `${baseUrl}/test?id=${venueId}`;
+      const dashboardUrl = `${baseUrl}/guest-dashboard`;
+
       sendMainMenu(
         chatId,
         `🎉 *Заявка успешно отправлена!*\n\n` +
         `Ваше заведение зарегистрировано в *Revoo & GiftX*.\n` +
         `🆔 *ID Записи:* \`${venueId}\`\n\n` +
-        `Наш менеджер свяжется с вами для финального подтверждения.\n📱 @${ADMIN_USERNAME}`
+        `Нажмите кнопку ниже, чтобы открыть страницу заведения или перейти в личный кабинет:`,
+        msg.from
       );
+
+      bot.sendMessage(chatId, `📱 *Ссылки для быстрого перехода:*`, {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '📱 Открыть страницу заведения', url: venueUrl }],
+            [{ text: '📊 Личный кабинет', url: dashboardUrl }]
+          ]
+        }
+      });
+
       delete sessions[chatId];
     } else if (text === '✏️ Начать онбординг заново' || text.includes('заново')) {
       sessions[chatId] = newSession();

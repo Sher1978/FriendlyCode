@@ -1274,7 +1274,15 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                     await editTelegramMessage(
                         chatId, 
                         messageId, 
-                        `✅ <b>DEBIT APPROVED</b>\n\n👤 <b>Customer:</b> ${sessionData.userName}\n💸 <b>Debited:</b> ${finalDebitedAmount.toFixed(2)} ${sessionData.currency}\n💰 <b>Final Balance:</b> ${balanceAfter.toFixed(2)} ${sessionData.currency}\n🔥 <b>Dynamic Tier:</b> Tier ${tierInfo.tierLevel} (${tierInfo.discountPercentage}% OFF)\n👨💼 <b>Processed by:</b> @${username}`
+                        `✅ <b>DEBIT APPROVED</b>\n\n👤 <b>Customer:</b> ${sessionData.userName}\n💸 <b>Debited:</b> ${finalDebitedAmount.toLocaleString()} ${sessionData.currency}\n💰 <b>Final Balance:</b> ${balanceAfter.toLocaleString()} ${sessionData.currency}\n🔥 <b>Dynamic Tier:</b> Tier ${tierInfo.tierLevel} (${tierInfo.discountPercentage}% OFF)\n👨💼 <b>Processed by:</b> @${username}`,
+                        {
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [{ text: "📱 Депозитный экран гостя", url: `https://www.revoo.win/thank-you?venueId=${sessionData.venueId}` }],
+                                    [{ text: "📊 Страница заведения", url: `https://www.revoo.win/test?id=${sessionData.venueId}` }]
+                                ]
+                            }
+                        }
                     );
 
                     await db.collection("pos_sessions").doc(sessionId).update({
@@ -1445,8 +1453,14 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                         lastSeen: new Date().toISOString()
                     }, { merge: true });
 
-                    const successMsg = "✅ Спасибо за регистрацию!\n\nВаша учетная запись успешно привязана к Telegram.\n\n🔙 Пожалуйста, вернитесь обратно в браузер (или закройте это окно), чтобы продолжить работу с приложением.";
-                    await sendTelegramMessage(chatId, successMsg);
+                    const successMsg = "✅ Спасибо за регистрацию!\n\nВаша учетная запись успешно привязана к Telegram.\n\nНажмите кнопку ниже, чтобы перейти в личный кабинет:";
+                    await sendTelegramMessage(chatId, successMsg, {
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: "📱 Открыть Личный Кабинет", url: "https://www.revoo.win/guest-dashboard" }]
+                            ]
+                        }
+                    });
                     logger.info(`Linked telegram chat ${chatId} to user ${uid}`);
                 }
             } else {
@@ -1477,7 +1491,14 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                         `• <code>/help</code> — Показать список доступных команд.\n\n` +
                         `🔔 Бот будет автоматически присылать уведомления в эту группу при каждом сканировании гостей, предлагая сотрудникам ввести сумму чека для применения скидки.`;
                     
-                    await sendTelegramMessage(chatId, successMessage);
+                    await sendTelegramMessage(chatId, successMessage, {
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: "🌐 Страница заведения", url: `https://www.revoo.win/test?id=${venueId}` }],
+                                [{ text: "📊 Панель заведения", url: "https://www.revoo.win/guest-dashboard" }]
+                            ]
+                        }
+                    });
                     logger.info(`Linked Telegram Group ${chatId} to Venue ${venueId}`);
                 } else {
                     await sendTelegramMessage(chatId, `❌ <b>Error:</b> Venue ID not found.\nPlease check the ID and try again.`);
@@ -1622,7 +1643,15 @@ exports.telegramWebhook = onRequest(async (req, res) => {
 
             await sendTelegramMessage(
                 chatId,
-                `💰 <b>[DEPOSIT SUCCESSFUL]</b>\n\n👤 <b>Customer:</b> ${userData.displayName || userData.name || "Guest"}\n📥 <b>Credited:</b> ${amount.toFixed(2)} ${venueDoc.data().currency || "VND"}\n💳 <b>New Balance:</b> ${newBalance.toFixed(2)} ${venueDoc.data().currency || "VND"}\n🔥 <b>Current Tier:</b> Tier ${tierInfo.tierLevel} (${tierInfo.discountPercentage}% OFF)`
+                `💰 <b>[DEPOSIT SUCCESSFUL]</b>\n\n👤 <b>Customer:</b> ${userData.displayName || userData.name || "Guest"}\n📥 <b>Credited:</b> ${amount.toLocaleString()} ${venueDoc.data().currency || "₫"}\n💳 <b>New Balance:</b> ${newBalance.toLocaleString()} ${venueDoc.data().currency || "₫"}\n🔥 <b>Current Tier:</b> Tier ${tierInfo.tierLevel} (${tierInfo.discountPercentage}% OFF)`,
+                {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: "📱 Депозитный экран гостя", url: `https://www.revoo.win/thank-you?venueId=${venueId}` }],
+                            [{ text: "📊 Страница заведения", url: `https://www.revoo.win/test?id=${venueId}` }]
+                        ]
+                    }
+                }
             );
             res.sendStatus(200);
             return;
