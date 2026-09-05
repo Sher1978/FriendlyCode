@@ -480,11 +480,12 @@ const UnifiedActivation = () => {
                             
                             const shownTxs = JSON.parse(safeStorage.getItem('shown_tx_ids') || '[]');
                             if (!shownTxs.includes(txId)) {
-                                const createdAt = tx.createdAt?.toDate ? tx.createdAt.toDate() : (tx.createdAt ? new Date(tx.createdAt) : new Date());
+                                const createdAt = tx.createdAt?.toDate ? tx.createdAt.toDate() : (tx.createdAt ? new Date(tx.createdAt) : new Date(0));
                                 const now = new Date();
                                 const diffMinutes = (now.getTime() - createdAt.getTime()) / 60000;
+                                const cachedDepositBal = Number(safeStorage.getItem('cached_deposit_balance') || '0');
                                 
-                                if (diffMinutes < 15) {
+                                if (diffMinutes < 15 && cachedDepositBal <= 0) {
                                     setTxNotification({
                                         show: true,
                                         type: tx.transactionType || tx.type || 'CREDIT',

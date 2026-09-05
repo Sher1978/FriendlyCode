@@ -325,6 +325,24 @@ const LeadCapture = () => {
             safeSessionStorage.removeItem('authReturnTo');
             safeStorage.removeItem('authReturnTo');
 
+            if (isGoogleBonus) {
+                console.log("Navigating to Google Maps Bonus thank-you screen");
+                navigate(`/google-thank-you?venueId=${venueId}`, {
+                    state: {
+                        guestName: (userName || 'Guest').trim(),
+                        guestEmail: lowerEmail,
+                        discountValue: finalDiscount,
+                        venueId: venueId,
+                        userRole: 'guest',
+                        effectiveUid: effectiveUid,
+                        acquisition_source: 'google_maps_bonus',
+                        fromGoogleMaps: true
+                    },
+                    replace: true
+                });
+                return;
+            }
+
             if (authReturnTo === 'profile' || authReturnTo === '/guest-dashboard') {
                 console.log("Navigating back to profile / guest dashboard");
                 navigate('/guest-dashboard', {
@@ -339,7 +357,7 @@ const LeadCapture = () => {
                 return;
             } else if (authReturnTo && authReturnTo.startsWith('/') && authReturnTo !== '/thank-you' && authReturnTo !== '/activate') {
                 console.log("Navigating to custom returnUrl:", authReturnTo);
-                navigate(authReturnTo, { 
+                navigate(`${authReturnTo}?venueId=${venueId}`, { 
                     state: {
                         guestName: (userName || 'Guest').trim(),
                         guestEmail: lowerEmail,
@@ -375,6 +393,18 @@ const LeadCapture = () => {
             safeStorage.removeItem('authReturnTo');
             if (authReturnTo === 'profile' || authReturnTo === '/guest-dashboard') {
                 navigate('/guest-dashboard', { replace: true });
+            } else if (isGoogleBonus) {
+                navigate(`/google-thank-you?venueId=${venueId}`, { 
+                    state: { 
+                        guestName: (userName || 'Guest').trim(), 
+                        guestEmail: lowerEmail, 
+                        discountValue: discount, 
+                        venueId: venueId,
+                        acquisition_source: 'google_maps_bonus',
+                        fromGoogleMaps: true
+                    },
+                    replace: true
+                });
             } else {
                 navigate(`/thank-you?venueId=${venueId}`, { 
                     state: { 
