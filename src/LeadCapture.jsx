@@ -28,6 +28,8 @@ const LeadCapture = () => {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
+    const searchParams = new URLSearchParams(location.search);
+    const isGoogleMaps = location.state?.fromGoogleMaps === true || location.state?.acquisition_source === 'google_maps_bonus' || searchParams.get('utm_source') === 'google_maps';
     
     // --- STATE PERSISTENCE (Recover state after redirect) ---
     const [discount] = useState(() => {
@@ -320,13 +322,11 @@ const LeadCapture = () => {
                 new Promise(resolve => setTimeout(resolve, 1500))
             ]);
 
-            // Check if user should return to profile or guest dashboard vs thank-you screen
-            const authReturnTo = safeSessionStorage.getItem('authReturnTo') || safeStorage.getItem('authReturnTo') || (location.state?.fromProfile ? 'profile' : '') || location.state?.returnTo || '';
-            safeSessionStorage.removeItem('authReturnTo');
-            safeStorage.removeItem('authReturnTo');
+            // HARDCODED REDIRECT: Google Flow -> /google-thank-you, QR Flow -> /thank-you
+            const isGoogleBonusFlow = isGoogleMaps || isGoogleBonus;
 
-            if (isGoogleBonus) {
-                console.log("Navigating to Google Maps Bonus thank-you screen");
+            if (isGoogleBonusFlow) {
+                console.log("Hardcoded Navigation to Google Maps Bonus thank-you screen (/google-thank-you)");
                 navigate(`/google-thank-you?venueId=${venueId}`, {
                     state: {
                         guestName: (userName || 'Guest').trim(),
@@ -343,37 +343,7 @@ const LeadCapture = () => {
                 return;
             }
 
-            if (authReturnTo === 'profile' || authReturnTo === '/guest-dashboard') {
-                console.log("Navigating back to profile / guest dashboard");
-                navigate('/guest-dashboard', {
-                    state: {
-                        guestName: (userName || 'Guest').trim(),
-                        guestEmail: lowerEmail,
-                        effectiveUid: effectiveUid,
-                        returnUrl: venueId && venueId !== 'unknown' ? `/test?id=${venueId}` : '/test'
-                    },
-                    replace: true
-                });
-                return;
-            } else if (authReturnTo && authReturnTo.startsWith('/') && authReturnTo !== '/thank-you' && authReturnTo !== '/activate') {
-                console.log("Navigating to custom returnUrl:", authReturnTo);
-                navigate(`${authReturnTo}?venueId=${venueId}`, { 
-                    state: {
-                        guestName: (userName || 'Guest').trim(),
-                        guestEmail: lowerEmail,
-                        discountValue: finalDiscount,
-                        venueId: venueId,
-                        userRole: 'guest',
-                        effectiveUid: effectiveUid,
-                        ...(isGoogleBonus ? { acquisition_source: 'google_maps_bonus', fromGoogleMaps: true } : {})
-                    },
-                    replace: true 
-                });
-                return;
-            }
-
-            // Final Navigation to /thank-you page for lead capture submissions
-            console.log("Navigating to activation thank-you screen with discount:", finalDiscount);
+            console.log("Hardcoded Navigation to QR Flow activation thank-you screen (/thank-you)");
             navigate(`/thank-you?venueId=${venueId}`, {
                 state: {
                     guestName: (userName || 'Guest').trim(),
@@ -381,22 +351,16 @@ const LeadCapture = () => {
                     discountValue: finalDiscount,
                     venueId: venueId,
                     userRole: 'guest',
-                    effectiveUid: effectiveUid,
-                    ...(isGoogleBonus ? { acquisition_source: 'google_maps_bonus', fromGoogleMaps: true } : {})
+                    effectiveUid: effectiveUid
                 },
                 replace: true
             });
         } catch (e) {
             console.error("Critical error in processAuthUser:", e);
-            const authReturnTo = safeSessionStorage.getItem('authReturnTo') || safeStorage.getItem('authReturnTo') || (location.state?.fromProfile ? 'profile' : '') || location.state?.returnTo || '';
-            safeSessionStorage.removeItem('authReturnTo');
-            safeStorage.removeItem('authReturnTo');
             const urlParams = new URLSearchParams(location.search);
-            const isGoogleBonus = urlParams.get('utm_source') === 'google_maps' || location.state?.fromGoogleMaps === true || location.state?.acquisition_source === 'google_maps_bonus';
+            const isGoogleBonusFlow = isGoogleMaps || urlParams.get('utm_source') === 'google_maps' || location.state?.fromGoogleMaps === true || location.state?.acquisition_source === 'google_maps_bonus';
 
-            if (authReturnTo === 'profile' || authReturnTo === '/guest-dashboard') {
-                navigate('/guest-dashboard', { replace: true });
-            } else if (isGoogleBonus) {
+            if (isGoogleBonusFlow) {
                 navigate(`/google-thank-you?venueId=${venueId}`, { 
                     state: { 
                         guestName: (userName || 'Guest').trim(), 
@@ -414,8 +378,7 @@ const LeadCapture = () => {
                         guestName: (userName || 'Guest').trim(), 
                         guestEmail: lowerEmail, 
                         discountValue: discount, 
-                        venueId: venueId,
-                        ...(isGoogleBonus ? { acquisition_source: 'google_maps_bonus', fromGoogleMaps: true } : {})
+                        venueId: venueId
                     },
                     replace: true
                 });
