@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faClock, faUser, faStar, faGift, faHeart, faChevronUp } from '@fortawesome/free-solid-svg-icons';
+import { faClock, faUser, faStar, faGift, faHeart, faChevronUp, faHistory, faArrowUp, faArrowDown, faReceipt } from '@fortawesome/free-solid-svg-icons';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -273,6 +273,7 @@ const UnifiedActivation = () => {
     const [userProfile, setUserProfile] = useState(null);
     const [activeVenueId, setActiveVenueId] = useState('');
     const [txNotification, setTxNotification] = useState({ show: false, type: 'CREDIT', amount: 0, balance: 0, id: '' });
+    const [transactions, setTransactions] = useState([]);
 
     const handleStarClick = (val) => {
         setStarRating(val);
@@ -471,26 +472,36 @@ const UnifiedActivation = () => {
                 });
 
                 unsubscribeTx = onSnapshot(
-                    query(collection(db, 'deposit_transactions'), where('userId', '==', user.uid), orderBy('createdAt', 'desc'), limit(1)),
+                    query(collection(db, 'deposit_transactions'), where('userId', '==', user.uid)),
                     (txSnap) => {
-                        if (!txSnap.empty) {
-                            const docSnap = txSnap.docs[0];
-                            const tx = docSnap.data();
-                            const txId = docSnap.id;
+                        let txList = txSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+                        const currentVenue = venueId || safeStorage.getItem('currentVenueId') || 'demo';
+                        txList = txList.filter(tx => !tx.venueId || tx.venueId === currentVenue || currentVenue === 'demo');
+
+                        txList.sort((a, b) => {
+                            const tA = a.createdAt?.seconds || (a.createdAt?.toDate ? Math.floor(a.createdAt.toDate().getTime() / 1000) : 0);
+                            const tB = b.createdAt?.seconds || (b.createdAt?.toDate ? Math.floor(b.createdAt.toDate().getTime() / 1000) : 0);
+                            return tB - tA;
+                        });
+
+                        setTransactions(txList);
+
+                        if (txList.length > 0) {
+                            const latestTx = txList[0];
+                            const txId = latestTx.id;
                             
                             const shownTxs = JSON.parse(safeStorage.getItem('shown_tx_ids') || '[]');
                             if (!shownTxs.includes(txId)) {
-                                const createdAt = tx.createdAt?.toDate ? tx.createdAt.toDate() : (tx.createdAt ? new Date(tx.createdAt) : new Date(0));
+                                const createdAt = latestTx.createdAt?.toDate ? latestTx.createdAt.toDate() : (latestTx.createdAt ? new Date(latestTx.createdAt) : new Date(0));
                                 const now = new Date();
                                 const diffMinutes = (now.getTime() - createdAt.getTime()) / 60000;
-                                const cachedDepositBal = Number(safeStorage.getItem('cached_deposit_balance') || '0');
                                 
                                 if (diffMinutes < 15) {
                                     setTxNotification({
                                         show: true,
-                                        type: tx.transactionType || tx.type || 'CREDIT',
-                                        amount: Number(tx.finalAmount ?? tx.totalCredit ?? tx.amount ?? 0),
-                                        balance: tx.newBalance || tx.balanceAfter || 0,
+                                        type: latestTx.transactionType || latestTx.type || 'CREDIT',
+                                        amount: Number(latestTx.finalAmount ?? latestTx.totalCredit ?? latestTx.amount ?? 0),
+                                        balance: latestTx.newBalance || latestTx.balanceAfter || 0,
                                         id: txId
                                     });
                                 }
@@ -747,6 +758,108 @@ const UnifiedActivation = () => {
                         ? t('deposit_balance_instruction', { balance: depositBalance.toLocaleString(), currency: '₫' })
                         : t('show_counter_instruction')}
                 </motion.p>
+
+                {/* ── DEPOSIT TRANSACTION HISTORY CARD ── */}
+                {(depositBalance > 0 || transactions.length > 0) && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 15 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="w-full max-w-sm mt-6 bg-[#1C1C1E]/90 border border-white/10 backdrop-blur-xl rounded-[28px] p-5 shadow-2xl space-y-4 text-left"
+                    >
+                        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-xl bg-[#00FF41]/10 border border-[#00FF41]/20 flex items-center justify-center">
+                                    <FontAwesomeIcon icon={faHistory} className="text-[#00FF41] text-xs" />
+                                </div>
+                                <span className="text-xs font-black uppercase tracking-wider text-white">
+                                    {t('transaction_history_title', 'История платежей')}
+                                </span>
+                            </div>
+                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">
+                                {transactions.length} {t('operations', 'операций')}
+                            </span>
+                        </div>
+
+                        {/* Summary stats: Total Deposited & Total Saved */}
+                        {(() => {
+                            const totalDeposited = transactions
+                                .filter(t => t.transactionType === 'CREDIT' || t.type === 'CREDIT')
+                                .reduce((acc, t) => acc + Number(t.finalAmount ?? t.totalCredit ?? t.amount ?? 0), 0);
+                            const totalSaved = transactions
+                                .filter(t => t.transactionType === 'DEBIT' || t.type === 'DEBIT')
+                                .reduce((acc, t) => {
+                                    const amt = Number(t.finalAmount ?? t.amount ?? 0);
+                                    const savedVal = t.discountAmountSaved ?? t.savedAmount ?? (amt * 0.15);
+                                    return acc + Number(savedVal || 0);
+                                }, 0);
+
+                            return (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="bg-white/5 border border-white/5 rounded-2xl p-3 flex flex-col">
+                                        <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider mb-1">
+                                            {t('total_deposited', 'Пополнено всего')}
+                                        </span>
+                                        <span className="text-base font-black text-white">
+                                            {totalDeposited.toLocaleString()} ₫
+                                        </span>
+                                    </div>
+                                    <div className="bg-white/5 border border-white/5 rounded-2xl p-3 flex flex-col">
+                                        <span className="text-[9px] font-bold text-white/40 uppercase tracking-wider mb-1">
+                                            {t('total_saved', 'Сэкономлено')}
+                                        </span>
+                                        <span className="text-base font-black text-[#00FF41]">
+                                            {Math.round(totalSaved).toLocaleString()} ₫
+                                        </span>
+                                    </div>
+                                </div>
+                            );
+                        })()}
+
+                        {/* Transaction list */}
+                        <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1" style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+                            {transactions.length === 0 ? (
+                                <div className="text-center text-xs text-white/30 py-6 font-medium">
+                                    {t('no_transactions_yet', 'История операций пока пуста')}
+                                </div>
+                            ) : (
+                                transactions.map((tx) => {
+                                    const isCredit = tx.transactionType === 'CREDIT' || tx.type === 'CREDIT';
+                                    const txAmount = Number(tx.finalAmount ?? tx.totalCredit ?? tx.amount ?? 0);
+                                    const savedForTx = isCredit ? 0 : Number(tx.discountAmountSaved ?? tx.savedAmount ?? (txAmount * 0.15));
+                                    const date = tx.createdAt?.toDate ? tx.createdAt.toDate() : (tx.createdAt ? new Date(tx.createdAt) : new Date());
+                                    const dateStr = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+                                    return (
+                                        <div key={tx.id} className="flex justify-between items-center bg-white/5 border border-white/5 rounded-2xl p-3 hover:bg-white/[0.07] transition-colors">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isCredit ? 'bg-[#00FF41]/10 text-[#00FF41]' : 'bg-rose-500/10 text-rose-400'}`}>
+                                                    <FontAwesomeIcon icon={isCredit ? faArrowUp : faArrowDown} className="text-xs" />
+                                                </div>
+                                                <div className="flex flex-col text-left">
+                                                    <span className="text-xs font-bold text-white">
+                                                        {isCredit ? t('topup', 'Пополнение') : t('check_deduction', 'Списание по чеку')}
+                                                    </span>
+                                                    <span className="text-[9px] text-white/40 font-medium mt-0.5">{dateStr}</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col items-end">
+                                                <span className={`text-sm font-black ${isCredit ? 'text-[#00FF41]' : 'text-rose-400'}`}>
+                                                    {isCredit ? '+' : '-'}{txAmount.toLocaleString()} ₫
+                                                </span>
+                                                {!isCredit && savedForTx > 0 && (
+                                                    <span className="text-[9px] text-[#00FF41] font-bold mt-0.5">
+                                                        {t('saved_short', 'Скидка')}: {Math.round(savedForTx).toLocaleString()} ₫
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+                    </motion.div>
+                )}
             </div>
 
             {/* ── TRANSACTION NOTIFICATION POPUP ── */}

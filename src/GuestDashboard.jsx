@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTelegram } from '@fortawesome/free-brands-svg-icons';
 import { 
     faGaugeHigh, 
     faCrown, 
@@ -35,6 +36,10 @@ const GuestDashboard = () => {
     const [currentVenue, setCurrentVenue] = useState(null);
 
     const savedVenueId = localStorage.getItem('currentVenueId');
+    const targetVenueId = savedVenueId || 'deCg3Rq1oTawHoOImnoj';
+    const isRevoo = typeof window !== 'undefined' && (window.location.hostname.includes('revoo') || localStorage.getItem('brandOverride') === 'revoo');
+    const botName = isRevoo ? 'revoogiftx_bot' : 'FriendIycode_bot';
+    const botAuthUrl = `https://t.me/${botName}?start=auth_${targetVenueId}`;
 
     // 1. Fetch User Profile from Auth / LocalStorage / Firestore
     useEffect(() => {
@@ -250,17 +255,43 @@ const GuestDashboard = () => {
                                     </button>
                                 </div>
                             ) : (
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold text-[#00FF41]">{telegramUsername || 'Not set'}</span>
-                                    <button 
-                                        onClick={() => {
-                                            setTempTelegram(telegramUsername);
-                                            setIsEditingTelegram(true);
-                                        }}
-                                        className="text-[9px] font-black text-white/40 uppercase tracking-widest border border-white/10 rounded px-1.5 py-0.5 hover:bg-white/5 active:scale-95 transition-all"
-                                    >
-                                        Edit
-                                    </button>
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    {telegramUsername ? (
+                                        <>
+                                            <span className="text-xs font-bold text-[#00FF41]">{telegramUsername}</span>
+                                            <button 
+                                                onClick={() => {
+                                                    setTempTelegram(telegramUsername);
+                                                    setIsEditingTelegram(true);
+                                                }}
+                                                className="text-[9px] font-black text-white/40 uppercase tracking-widest border border-white/10 rounded px-1.5 py-0.5 hover:bg-white/5 active:scale-95 transition-all"
+                                            >
+                                                Edit
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <a 
+                                                href={botAuthUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0088cc] bg-[#0088cc]/10 hover:bg-[#0088cc]/20 border border-[#0088cc]/30 rounded-lg px-2.5 py-1 active:scale-95 transition-all shadow-[0_0_15px_rgba(0,136,204,0.15)]"
+                                            >
+                                                <FontAwesomeIcon icon={faTelegram} className="text-sm" />
+                                                <span>Not set — Привязать Bot</span>
+                                            </a>
+                                            <button 
+                                                onClick={() => {
+                                                    setTempTelegram('');
+                                                    setIsEditingTelegram(true);
+                                                }}
+                                                className="text-[9px] font-black text-white/40 uppercase tracking-widest border border-white/10 rounded px-1.5 py-1 hover:bg-white/5 active:scale-95 transition-all"
+                                                title="Ввести вручную"
+                                            >
+                                                Edit
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
