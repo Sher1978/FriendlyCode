@@ -89,3 +89,16 @@
 *   **`subscriptionExpiryReminder`** (Scheduled Daily):
     1. Finds venues whose subscription expires in exactly 7 days.
     2. Sends warning emails to venue owners.
+
+## 7. DEPLOYMENT & HOSTING ARCHITECTURE
+**Infrastructure:** Firebase Hosting (Production)
+*   **Vercel is NOT used** for this project's production pipeline. Any historical Vercel configurations are deprecated.
+*   **CI/CD Pipeline:** Fully automated via GitHub Actions (`.github/workflows/deploy.yml`).
+*   **Workflow Logic:**
+    1. Triggers on pushes to the `main` branch.
+    2. Builds the React Web App (`npm run build` in root).
+    3. Builds the Flutter Admin Web App (`flutter build web` in `/admin`).
+    4. Merges both builds (React app at `/`, Flutter app at `/admin/`).
+    5. Deploys combined artifact to Firebase Hosting (Project: `bot-lab-21910`).
+*   **Critical Dependency Rule:** GitHub Actions strictly uses `package-lock.json` during `npm install`. All new dependencies (e.g., `qrcode.react`) MUST be installed locally using `npm install <package> --save` and the updated `package-lock.json` MUST be committed. If a component uses a package missing from `package-lock.json`, local builds will pass but the CI/CD deployment will fail.
+*   **Source Tracking:** Always ensure all newly created React components (`src/*.jsx`) are explicitly staged and tracked in Git. Untracked files will cause `Rollup failed to resolve import` errors in the CI/CD pipeline.
