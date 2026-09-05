@@ -309,7 +309,7 @@ function App() {
           <Route path="/map" element={<PartnerMap />} />
 
           {/* Guest QR Logic (Now REVOO) */}
-          <Route path="/qr" element={<NewQRPage />} />
+          <Route path="/qr" element={<TestQRPage />} />
           <Route path="/hybrid" element={<HybridChoiceLanding />} />
           <Route path="/hybrid-v2" element={<HybridChoiceLandingV2 />} />
           <Route path="/hybrid2" element={<HybridChoiceLandingV2 />} />
