@@ -133,11 +133,16 @@ const StaffJoinPage = () => {
         try {
             let currentUser = auth.currentUser;
             if (!currentUser) {
-                const authRes = await signInAnonymously(auth);
-                currentUser = authRes.user;
+                try {
+                    const authRes = await signInAnonymously(auth);
+                    currentUser = authRes ? authRes.user : null;
+                } catch (e) {
+                    console.warn("Anonymous auth failed during staff join:", e);
+                }
             }
 
-            const uid = currentUser.uid;
+            const uid = currentUser ? currentUser.uid : ('staff_guest_' + Math.random().toString(36).substring(2, 9));
+
 
             // Create staff_request in Firestore for owner real-time confirmation
             const reqRef = await addDoc(collection(db, 'staff_requests'), {
@@ -149,6 +154,19 @@ const StaffJoinPage = () => {
                 status: 'pending',
                 createdAt: serverTimestamp()
             });
+
+            // Also add doc to notifications for real-time owner web panel alert
+            try {
+                await addDoc(collection(db, 'notifications'), {
+                    venueId: venueId,
+                    type: 'staff_request',
+                    message: `Новая заявка от сотрудника ${cleanName} (${role})`,
+                    timestamp: serverTimestamp(),
+                    read: false
+                });
+            } catch (notifErr) {
+                console.warn("In-app notification error:", notifErr);
+            }
 
             setRequestId(reqRef.id);
             setIsPendingOwner(true);

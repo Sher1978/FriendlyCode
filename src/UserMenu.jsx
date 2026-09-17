@@ -20,7 +20,8 @@ import {
     faQrcode,
     faUserCheck,
     faUserGear,
-    faCheckCircle
+    faCheckCircle,
+    faWallet
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +29,7 @@ import { useUserStatuses } from './hooks/useUserStatuses';
 import { auth, db } from './firebase';
 import { signOut } from 'firebase/auth';
 import { collection, query, where, orderBy, getDocs, limit, doc, getDoc, onSnapshot, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { findAndMergeUserByEmail } from './logic/userDeduplication';
 
 const UserMenu = ({ user, trigger, isGuestView, venueColor = '#00FF41' }) => {
     const { t, i18n } = useTranslation();
@@ -39,6 +41,8 @@ const UserMenu = ({ user, trigger, isGuestView, venueColor = '#00FF41' }) => {
     const [showVisitHistory, setShowVisitHistory] = useState(false);
     const [visitHistoryList, setVisitHistoryList] = useState([]);
     const [loadingVisits, setLoadingVisits] = useState(false);
+    const [venueDeposits, setVenueDeposits] = useState([]);
+    const [loadingDeposits, setLoadingDeposits] = useState(false);
 
     // Owner Real-time Staff Role Assignment states
     const [pendingStaffRequests, setPendingStaffRequests] = useState([]);
@@ -176,32 +180,90 @@ const UserMenu = ({ user, trigger, isGuestView, venueColor = '#00FF41' }) => {
     }, [showVisitHistory, user]);
 
     useEffect(() => {
+        if (!showStatusDetails) return;
+        const fetchDeposits = async () => {
+            setLoadingDeposits(true);
+            try {
+                const effectiveUid = user?.uid || localStorage.getItem('effectiveUid');
+                const guestEmail = user?.email || localStorage.getItem('guestEmail');
+                let userDocData = null;
+
+                if (effectiveUid) {
+                    const uSnap = await getDoc(doc(db, 'users', effectiveUid));
+                    if (uSnap.exists()) userDocData = uSnap.data();
+                }
+
+                if (!userDocData && guestEmail) {
+                    const mergeRes = await findAndMergeUserByEmail(db, guestEmail, effectiveUid);
+                    if (mergeRes.userProfile) userDocData = mergeRes.userProfile;
+                }
+
+                if (userDocData) {
+                    const balancesMap = userDocData.deposit_balances || {};
+                    const list = [];
+
+                    const vSnap = await getDocs(collection(db, 'venues'));
+                    const venuesInfo = {};
+                    vSnap.docs.forEach(d => {
+                        const data = d.data();
+                        venuesInfo[d.id] = data.name || data.title || d.id;
+                    });
+
+                    Object.keys(balancesMap).forEach(vId => {
+                        let rawVal = balancesMap[vId];
+                        let balNum = 0;
+                        if (typeof rawVal === 'number') balNum = rawVal;
+                        else if (typeof rawVal === 'string') balNum = parseFloat(rawVal) || 0;
+                        else if (rawVal && typeof rawVal === 'object') balNum = Number(rawVal.balance || 0);
+
+                        if (balNum > 0) {
+                            list.push({
+                                venueId: vId,
+                                venueName: venuesInfo[vId] || (vId === userDocData.deposit_venue_id ? 'Заведение' : `Заведение (${vId.substring(0, 6)})`),
+                                balance: balNum
+                            });
+                        }
+                    });
+
+                    if (list.length === 0 && Number(userDocData.deposit_balance) > 0) {
+                        const mainVId = userDocData.deposit_venue_id || 'deCg3Rq1oTawHoOImnoj';
+                        list.push({
+                            venueId: mainVId,
+                            venueName: venuesInfo[mainVId] || 'Партнерское заведение',
+                            balance: Number(userDocData.deposit_balance)
+                        });
+                    }
+
+                    setVenueDeposits(list);
+                }
+            } catch (e) {
+                console.warn("Error fetching venue deposits for Digital Vault:", e);
+            } finally {
+                setLoadingDeposits(false);
+            }
+        };
+        fetchDeposits();
+    }, [showStatusDetails, user]);
+
+    useEffect(() => {
         const fetchUserRole = async () => {
             try {
                 const uid = user?.uid || localStorage.getItem('effectiveUid');
                 const guestEmail = user?.email || localStorage.getItem('guestEmail');
+
+                if (guestEmail) {
+                    const mergeRes = await findAndMergeUserByEmail(db, guestEmail, uid);
+                    if (mergeRes.userProfile?.role) {
+                        setUserRole(mergeRes.userProfile.role);
+                        return;
+                    }
+                }
 
                 if (uid) {
                     const userRef = doc(db, 'users', uid);
                     const userSnap = await getDoc(userRef);
                     if (userSnap.exists()) {
                         const data = userSnap.data();
-                        if (data?.role) {
-                            setUserRole(data.role);
-                            return;
-                        }
-                    }
-                }
-
-                if (guestEmail) {
-                    const q = query(
-                        collection(db, 'users'),
-                        where('email', '==', guestEmail.toLowerCase()),
-                        limit(1)
-                    );
-                    const snap = await getDocs(q);
-                    if (!snap.empty) {
-                        const data = snap.docs[0].data();
                         if (data?.role) {
                             setUserRole(data.role);
                             return;
@@ -240,17 +302,21 @@ const UserMenu = ({ user, trigger, isGuestView, venueColor = '#00FF41' }) => {
             // Clear Firebase Auth
             await signOut(auth);
             
-            // Clear application state
+            // Clear application state and deposit caches
             localStorage.removeItem('guestName');
             localStorage.removeItem('guestEmail');
             localStorage.removeItem('currentVenueId');
             localStorage.removeItem('effectiveUid');
+            localStorage.removeItem('cached_deposit_balance');
+            localStorage.removeItem('googleReviewClaimed');
+            localStorage.removeItem('onboardingCompleted');
+            sessionStorage.clear();
             
             setIsOpen(false);
             if (currentVenueId) {
-                navigate(`/test?id=${currentVenueId}`);
+                window.location.href = `/test?id=${currentVenueId}`;
             } else {
-                navigate('/test');
+                window.location.href = '/test';
             }
         } catch (error) {
             console.error("Logout error:", error);
@@ -406,7 +472,14 @@ const UserMenu = ({ user, trigger, isGuestView, venueColor = '#00FF41' }) => {
 
                                 {/* 6. LOG OUT / LOG IN */}
                                 <button 
-                                    onClick={() => { if (user) handleLogout(); else { navigate('/activate'); setIsOpen(false); } }}
+                                    onClick={() => { 
+                                        if (user) {
+                                            handleLogout(); 
+                                        } else { 
+                                            navigate('/activate', { state: { returnTo: 'profile', fromProfile: true } }); 
+                                            setIsOpen(false); 
+                                        } 
+                                    }}
                                     className={`w-full flex items-center justify-between p-4 rounded-[20px] active:scale-[0.98] transition-all border mt-3 ${user ? 'bg-red-500/10 border-red-500/20 text-red-500' : 'bg-[#00FF41]/10 border-[#00FF41]/20 text-[#00FF41]'}`}
                                 >
                                     <div className="flex items-center gap-4">
@@ -462,6 +535,68 @@ const UserMenu = ({ user, trigger, isGuestView, venueColor = '#00FF41' }) => {
                         {/* Scrollable Content */}
                         <div className="flex-1 overflow-y-auto p-4 md:p-8 custom-scrollbar relative z-10">
                             <div className="max-w-3xl mx-auto space-y-6 pb-20">
+
+                                {/* VENUE DEPOSITS SECTION */}
+                                <div className="p-6 rounded-[32px] bg-gradient-to-br from-emerald-500/10 via-white/[0.03] to-transparent border border-emerald-500/20 relative overflow-hidden mb-8">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                                                <FontAwesomeIcon icon={faWallet} className="text-lg" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-base font-black text-white uppercase tracking-tight">Депозиты в заведениях</h3>
+                                                <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest">Баланс во всех партнерских точках</p>
+                                            </div>
+                                        </div>
+                                        <span className="text-[10px] font-black uppercase px-3 py-1 rounded-full bg-white/5 border border-white/10 text-white/60">
+                                            {venueDeposits.length} {venueDeposits.length === 1 ? 'заведение' : 'заведений'}
+                                        </span>
+                                    </div>
+
+                                    {loadingDeposits ? (
+                                        <div className="py-8 text-center text-xs text-white/40 animate-pulse font-bold">
+                                            Синхронизация балансов депозитов...
+                                        </div>
+                                    ) : venueDeposits.length > 0 ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+                                            {venueDeposits.map((dep) => (
+                                                <div key={dep.venueId} className="p-4 rounded-2xl bg-black/50 border border-white/10 flex flex-col justify-between space-y-3 hover:border-emerald-500/40 transition-all">
+                                                    <div className="flex items-start justify-between">
+                                                        <div>
+                                                            <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">Партнер REVOO</span>
+                                                            <h4 className="text-sm font-black text-white uppercase tracking-tight">{dep.venueName}</h4>
+                                                        </div>
+                                                        <div className="px-2.5 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-wider">
+                                                            Активен
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Остаток депозита</span>
+                                                        <div className="text-xl font-black text-white tracking-tight" style={{ color: getAccentColor() }}>
+                                                            {dep.balance.toLocaleString()} ₫
+                                                        </div>
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => {
+                            setShowStatusDetails(false);
+                            setIsOpen(false);
+                            window.location.href = `/test?id=${dep.venueId}`;
+                                                        }}
+                                                        className="w-full py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all"
+                                                    >
+                                                        <FontAwesomeIcon icon={faQrcode} className="text-xs" style={{ color: getAccentColor() }} />
+                                                        Открыть QR заведения
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="py-6 text-center text-xs text-white/30 font-medium">
+                                            У вас пока нет активных депозитов в заведениях
+                                        </div>
+                                    )}
+                                </div>
+
                                 {loading && statuses.length === 0 ? (
                                     <div className="flex flex-col items-center justify-center py-40">
                                         <div className="w-12 h-12 border-2 border-t-transparent rounded-full animate-spin mb-6" style={{ borderColor: getAccentColor(), borderTopColor: 'transparent' }} />

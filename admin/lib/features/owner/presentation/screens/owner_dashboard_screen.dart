@@ -19,6 +19,9 @@ import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/features/owner/presentation/screens/pos_sticker_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/deposit_action_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/deposit_analytics_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/giftx_setup_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/google_maps_integration_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/google_maps_config_screen.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:friendly_code/core/services/visit_service.dart';
 import 'package:friendly_code/core/models/visit_model.dart';
@@ -547,24 +550,12 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
               builder: (context, snap) {
                 final isHybrid = snap.data?.isHybridEnabled ?? false;
                 return GestureDetector(
-                  onTap: () async {
+                  onTap: () {
                     final venue = snap.data;
-                    if (venue == null) return;
-                    // Toggle hybrid mode directly
-                    await FirebaseFirestore.instance
-                        .collection('venues')
-                        .doc(activeVenueId)
-                        .update({'isHybridEnabled': !isHybrid});
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            !isHybrid ? '🎁 GiftX гибрид — ВКЛЮЧЁН' : '⭕ GiftX гибрид — отключён',
-                          ),
-                          backgroundColor: !isHybrid ? AppColors.accentGreen : Colors.grey[800],
-                          duration: const Duration(seconds: 2),
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                    if (venue != null) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => GiftxSetupScreen(venue: venue)),
                       );
                     }
                   },
@@ -826,6 +817,13 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue))),
                   ),
                   IOSSettingsRow(
+                    title: "Google Maps Pre-Landing",
+                    subtitle: "Настройка лид-магнита и меню для Google Карт",
+                    icon: CupertinoIcons.map_pin_ellipse,
+                    iconColor: AppColors.accentBlue,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GoogleMapsConfigScreen(venue: venue))),
+                  ),
+                  IOSSettingsRow(
                     title: "МОЙ БИЗНЕС — Персонал и QR",
                     subtitle: "Привязка новых сотрудников и выбор роли",
                     icon: CupertinoIcons.person_badge_plus_fill,
@@ -875,6 +873,13 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                     icon: CupertinoIcons.speaker_2_fill,
                     iconColor: AppColors.accentBlue,
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => MarketingBlastScreen(venueId: venue.id))),
+                  ),
+                  IOSSettingsRow(
+                    title: "Google Maps Integration",
+                    subtitle: "Traffic generator & UTM links",
+                    icon: CupertinoIcons.map_pin_ellipse,
+                    iconColor: AppColors.accentGreen,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => GoogleMapsIntegrationScreen(venueId: venue.id))),
                   ),
                 ],
               ),
@@ -1186,15 +1191,15 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
         children: [
           Row(
             children: [
-              _buildSegmentCard("New", stats.newGuestsCount, Colors.green, "First visit this month"),
+              _buildSegmentCard("NEW", stats.newGuestsCount, Colors.green, "1–2 визита"),
               const SizedBox(width: 12),
-              _buildSegmentCard("VIP", stats.vipGuestsCount, AppColors.premiumGold, "> 5 visits/mo"),
+              _buildSegmentCard("VIP", stats.vipGuestsCount, AppColors.premiumGold, "≥ 3 визитов"),
             ],
           ),
           const SizedBox(height: 12),
           Row(
             children: [
-              _buildSegmentCard("Lost", stats.lostGuestsCount, Colors.red, "0 visits this month"),
+              _buildSegmentCard("LOST", stats.lostGuestsCount, Colors.red, "> 14 дней без визита"),
             ],
           ),
         ],
@@ -1203,11 +1208,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
 
     return Row(
       children: [
-        _buildSegmentCard("New", stats.newGuestsCount, Colors.green, "First visit this month"),
+        _buildSegmentCard("NEW", stats.newGuestsCount, Colors.green, "1–2 визита"),
         const SizedBox(width: 12),
-        _buildSegmentCard("VIP", stats.vipGuestsCount, AppColors.premiumGold, "> 5 visits/mo"),
+        _buildSegmentCard("VIP", stats.vipGuestsCount, AppColors.premiumGold, "≥ 3 визитов"),
         const SizedBox(width: 12),
-        _buildSegmentCard("Lost", stats.lostGuestsCount, Colors.red, "0 visits this month"),
+        _buildSegmentCard("LOST", stats.lostGuestsCount, Colors.red, "> 14 дней без визита"),
       ],
     );
   }

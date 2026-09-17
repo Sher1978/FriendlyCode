@@ -15,6 +15,7 @@ import 'package:friendly_code/core/localization/locale_provider.dart';
 import 'package:friendly_code/features/admin/presentation/widgets/notification_badge.dart';
 import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/global_email_settings_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/global_guests_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/my_team_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_role_assignment_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/billing_screen.dart';
@@ -48,14 +49,16 @@ class _AdminShellState extends State<AdminShell> {
       widget.role == UserRole.superAdmin 
         ? GlobalVenuesScreen() 
         : OwnerVenuesScreen(), // 1: Venues
-      if (widget.role != UserRole.manager) // 2: Analytics (Hidden for Manager)
+      if (widget.role == UserRole.superAdmin)
+        const GlobalGuestsScreen(), // 2: Guests (SuperAdmin)
+      if (widget.role != UserRole.manager) // Analytics
         widget.role == UserRole.superAdmin
           ? AnalyticsModule()
           : OwnerAnalyticsScreen()
       else
         const Center(child: Text("Analytics not available for Managers", style: TextStyle(color: AppColors.title))),
       
-      // 3. Billing / Staff (Depends on Role)
+      // Billing / Staff
       if (widget.role == UserRole.superAdmin)
          StaffManagementScreen() // Staff Management
       else if (widget.role == UserRole.owner)
@@ -64,12 +67,12 @@ class _AdminShellState extends State<AdminShell> {
           const Center(child: Text("No Billing Access", style: TextStyle(color: AppColors.title))),
 
       if (widget.role == UserRole.superAdmin)
-          GlobalEmailSettingsScreen(), // 4: Email Setup
+          GlobalEmailSettingsScreen(), // Email Setup
 
       if (widget.role == UserRole.superAdmin)
-          const VenueRoleAssignmentScreen(), // 5: Role Assignment
+          const VenueRoleAssignmentScreen(), // Role Assignment
 
-      GeneralSettingsScreen(), // Settings (Index 6 for SuperAdmin, 4 otherwise)
+      GeneralSettingsScreen(), // Settings
     ];
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -262,24 +265,27 @@ class _AdminShellState extends State<AdminShell> {
               _buildNavItem(0, Icons.grid_view_outlined, "Overview", isMobile: isMobile),
               _buildNavItem(1, Icons.storefront_outlined, "Venues", isMobile: isMobile),
               
+              if (widget.role == UserRole.superAdmin)
+                 _buildNavItem(2, Icons.people_alt_outlined, "Guests", isMobile: isMobile),
+
               if (widget.role != UserRole.manager)
-                 _buildNavItem(2, Icons.bar_chart_outlined, "Analytics", isMobile: isMobile),
+                 _buildNavItem(widget.role == UserRole.superAdmin ? 3 : 2, Icons.bar_chart_outlined, "Analytics", isMobile: isMobile),
               
               if (widget.role == UserRole.superAdmin)
-                 _buildNavItem(3, Icons.people_outline, "Staff", isMobile: isMobile)
+                 _buildNavItem(4, Icons.people_outline, "Staff", isMobile: isMobile)
               else if (widget.role == UserRole.admin || widget.role == UserRole.manager)
                  _buildNavItem(3, Icons.people_outline, "My Team", isMobile: isMobile)
               else if (widget.role == UserRole.owner)
                  _buildNavItem(3, Icons.payments_outlined, "Billing", isMobile: isMobile),
 
               if (widget.role == UserRole.superAdmin)
-                 _buildNavItem(4, Icons.email_outlined, "Email Setup", isMobile: isMobile),
+                 _buildNavItem(5, Icons.email_outlined, "Email Setup", isMobile: isMobile),
 
               if (widget.role == UserRole.superAdmin)
-                 _buildNavItem(5, Icons.manage_accounts_outlined, "Roles", isMobile: isMobile),
+                 _buildNavItem(6, Icons.manage_accounts_outlined, "Roles", isMobile: isMobile),
 
               const Spacer(),
-              _buildNavItem(widget.role == UserRole.superAdmin ? 6 : 4, Icons.settings_outlined, "Settings", isMobile: isMobile),
+              _buildNavItem(widget.role == UserRole.superAdmin ? 7 : 4, Icons.settings_outlined, "Settings", isMobile: isMobile),
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: InkWell(

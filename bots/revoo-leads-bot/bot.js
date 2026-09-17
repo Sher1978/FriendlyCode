@@ -50,6 +50,7 @@ function isUserAdmin(chatId, username) {
 }
 
 const DEMO_WEB_APP_URL = 'https://bot-lab-21910.web.app/hybrid-v2?id=demo';
+const OUTREACH_GBP_WEB_APP_URL = 'https://bot-lab-21910.web.app/gbp';
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
@@ -74,30 +75,39 @@ const MAIN_MENU = {
   },
 };
 
-const ADMIN_MENU = {
-  reply_markup: {
-    keyboard: [
-      [
-        { text: '🎮 ДЕМО', web_app: { url: DEMO_WEB_APP_URL } },
-        { text: '🚀 ДОБАВИТЬ' },
-      ],
-      [
-        { text: '📋 Заявки на модерацию' },
-        { text: '📊 Статистика' },
-      ],
-      [
-        { text: '👥 Управление ролями' },
-        { text: 'ℹ️ О продуктах' },
-      ],
-    ],
-    resize_keyboard: true,
-    persistent: true,
-  },
-};
+function getMenuForUser(chatId, fromUser = null) {
+  const isAdm = isUserAdmin(chatId, fromUser ? fromUser.username : null);
+  if (isAdm) {
+    const gbpUrl = `${OUTREACH_GBP_WEB_APP_URL}?uid=${chatId}`;
+    return {
+      reply_markup: {
+        keyboard: [
+          [
+            { text: '🎮 ДЕМО', web_app: { url: DEMO_WEB_APP_URL } },
+            { text: '🌐 Аутрич GBP', web_app: { url: gbpUrl } },
+          ],
+          [
+            { text: '🚀 ДОБАВИТЬ' },
+            { text: '📋 Заявки на модерацию' },
+          ],
+          [
+            { text: '📊 Статистика' },
+            { text: '👥 Управление ролями' },
+          ],
+          [
+            { text: 'ℹ️ О продуктах' },
+          ],
+        ],
+        resize_keyboard: true,
+        persistent: true,
+      },
+    };
+  }
+  return MAIN_MENU;
+}
 
 function sendWelcomeMessage(chatId, text, fromUser = null) {
-  const isAdm = isUserAdmin(chatId, fromUser ? fromUser.username : null);
-  const menu = isAdm ? ADMIN_MENU : MAIN_MENU;
+  const menu = getMenuForUser(chatId, fromUser);
 
   bot.setChatMenuButton({
     chat_id: chatId,
@@ -130,8 +140,7 @@ function sendWelcomeMessage(chatId, text, fromUser = null) {
 }
 
 function sendMainMenu(chatId, text, fromUser = null) {
-  const isAdm = isUserAdmin(chatId, fromUser ? fromUser.username : null);
-  const menu = isAdm ? ADMIN_MENU : MAIN_MENU;
+  const menu = getMenuForUser(chatId, fromUser);
 
   bot.setChatMenuButton({
     chat_id: chatId,
@@ -1207,10 +1216,31 @@ bot.on('message', async (msg) => {
   const normText = text.replace(/[\uFE0F\u200B]/g, '').trim().toLowerCase();
 
   const isDemo = normText.includes('демо') || normText.includes('demo');
+  const isGbp = normText.includes('аутрич') || normText.includes('gbp');
   const isAdd = normText.includes('добавить') || normText.includes('подключить') || normText.includes('подать заявку') || normText.includes('add');
   const isProducts = normText.includes('о продуктах') || normText.includes('продукты');
   const isContact = normText.includes('связаться') || normText.includes('менеджер');
   const isHelp = normText.includes('помощь') || normText.includes('faq');
+
+  if (isGbp) {
+    const isAdm = isUserAdmin(chatId, msg.from ? msg.from.username : null);
+    const gbpUrl = `${OUTREACH_GBP_WEB_APP_URL}?uid=${chatId}`;
+    bot.sendMessage(
+      chatId,
+      `🌐 *Панель управления Аутрич GBP*\n\n` +
+      `Быстрый админ-доступ к веб-панели системы Аутрич GBP.\n\n` +
+      `🆔 *User ID:* \`${chatId}\` ${isAdm ? ' (Администратор)' : ''}`,
+      {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🌐 Открыть панель Аутрич GBP', web_app: { url: gbpUrl } }]
+          ]
+        }
+      }
+    );
+    return;
+  }
 
   if (isDemo) {
     bot.sendMessage(

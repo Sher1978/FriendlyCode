@@ -8,6 +8,7 @@ import { db, auth } from './firebase';
 import { collection, query, where, getDocs, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { RewardCalculator } from './logic/RewardCalculator';
+import LoadingBatteryScreen from './LoadingBatteryScreen';
 
 // Safe wrapper to prevent DOMException crashes in strict mobile browsers
 const safeStorage = {
@@ -295,31 +296,7 @@ const LandingPage = () => {
     };
 
     if (status === 'loading' || !minDelayPassed) {
-        return (
-            <div className="flex flex-col h-[100dvh] bg-[#FFF8E1] items-center justify-center p-6 relative overflow-hidden">
-                {/* Background Decorative Elements */}
-                <div className="absolute top-[-20%] left-[-20%] w-[140%] h-[140%] bg-[radial-gradient(circle_at_center,_#FFD54F_0%,_transparent_70%)] opacity-20 animate-pulse"></div>
-
-                <div className="z-10 flex flex-col items-center text-center">
-                    {/* Bouncing Logo */}
-                    <div className="mb-8 relative">
-                        <div className="w-24 h-24 flex items-center justify-center p-2 rounded-2xl bg-white shadow-xl animate-bounce overflow-hidden">
-                            <img src="/revoo-logo.png" alt="REVOO Logo" className="w-full h-full object-contain" />
-                        </div>
-                        {/* Ripple Effect */}
-                        <div className="absolute top-0 left-0 w-full h-full bg-[#E68A00] rounded-2xl animate-ping opacity-20"></div>
-                    </div>
-
-                    <h2 className="text-2xl font-black text-[#4E342E] mb-2 uppercase tracking-wide">
-                        REVOO
-                    </h2>
-
-                    <p className="text-[#4E342E]/70 font-medium text-lg animate-pulse">
-                        {t('calculating_discount')}
-                    </p>
-                </div>
-            </div>
-        );
+        return <LoadingBatteryScreen />;
     }
 
     if (status === 'error' || status === 'blocked') {

@@ -8,6 +8,9 @@ import { db, auth } from './firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import UserMenu from './UserMenu';
 import ScanInstructionAnimation from './ScanInstructionAnimation';
+import { RewardCalculator } from './logic/RewardCalculator';
+import { getBatteryConfig } from './PngBattery';
+import { logVenueClick } from './logic/analytics';
 
 const safeStorage = {
     getItem: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } },
@@ -42,13 +45,9 @@ const GoogleThankYouScreen = () => {
     const [copied, setCopied] = useState(false);
 
     useEffect(() => {
-        const getTierColor = (val) => {
-            if (val >= 20) return '#00FF41';
-            if (val >= 10) return '#FFD700';
-            return '#FFAA00';
-        };
-        setAmbientColor(getTierColor(discountValue));
-    }, [discountValue]);
+        // Fallback color while loading
+        setAmbientColor('#00FF41');
+    }, []);
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
@@ -61,11 +60,57 @@ const GoogleThankYouScreen = () => {
                     setVenueName(data.name || 'Заведение');
                     setVenueAddress(data.address || '');
                     setGoogleMapsUrl(data.googleMapsUrl || data.googleMapsLink || data.linkUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(data.name || 'restaurant')}`);
-
                     const savedLang = safeStorage.getItem('userLanguage');
                     const targetLang = savedLang || data.defaultLanguage || 'en';
                     if (i18n.language !== targetLang) i18n.changeLanguage(targetLang);
-                    
+
+                    let maxDiscount = discountValue;
+                    const config = data.loyaltyConfig || data.tiers;
+                    if (Array.isArray(config)) {
+                        const percs = config.map(c => Number(c.percentage || c.percent || 0)).filter(p => p > 0);
+                        if (percs.length > 0) maxDiscount = Math.max(...percs);
+                    } else if (config && config.percVip) {
+                        maxDiscount = Number(config.percVip);
+                    }
+                    setDiscountValue(maxDiscount);
+
+                    // Replicate getMappedCapacity to map the discount to a color
+                    const getMappedCapacity = (currentDiscount, cfg) => {
+                        let sortedTiers = [];
+                        if (cfg) {
+                            if (Array.isArray(cfg)) {
+                                const percs = cfg.map(c => Number(c.percentage || c.percent || 0)).filter(p => p > 0);
+                                if (percs.length > 0) sortedTiers = [...new Set(percs)].sort((a, b) => a - b);
+                            } else {
+                                const percs = [
+                                    Number(cfg.percBase), Number(cfg.percDecay2), Number(cfg.percDecay1), Number(cfg.percVip)
+                                ].filter(p => !isNaN(p) && p > 0);
+                                if (percs.length > 0) sortedTiers = [...new Set(percs)].sort((a, b) => a - b);
+                            }
+                        }
+                        if (sortedTiers.length === 0) sortedTiers = [3, 5, 7, 10, 15, 20];
+                        const val = Number(currentDiscount);
+                        const minVal = sortedTiers[0];
+                        const maxVal = sortedTiers[sortedTiers.length - 1];
+                        if (val <= minVal) return 10;
+                        if (val >= maxVal) return 100;
+                        const index = sortedTiers.indexOf(val);
+                        if (index !== -1) {
+                            const ratio = index / (sortedTiers.length - 1);
+                            if (ratio <= 0.34) return 25;
+                            if (ratio <= 0.67) return 50;
+                            return 75;
+                        }
+                        const closest = sortedTiers.reduce((prev, curr) => (Math.abs(curr - val) < Math.abs(prev - val) ? curr : prev));
+                        if (closest === minVal) return 10;
+                        if (closest === maxVal) return 100;
+                        return 50;
+                    };
+
+                    const capacity = getMappedCapacity(maxDiscount, config);
+                    const batCfg = getBatteryConfig(capacity);
+                    setAmbientColor(batCfg.fillColor || '#00FF41');
+
                     setIsDataLoaded(true);
                 } else {
                     setIsDataLoaded(true);
@@ -186,7 +231,11 @@ const GoogleThankYouScreen = () => {
                     
                     <div className="flex flex-col gap-3">
                         <button 
-                            onClick={() => window.open(googleMapsUrl, '_blank')}
+                            onClick={() => {
+                                const venueId = new URLSearchParams(location.search).get('venueId') || location.state?.venueId || safeStorage.getItem('currentVenueId');
+                                logVenueClick(venueId, 'google_maps');
+                                window.open(googleMapsUrl, '_blank');
+                            }}
                             className="w-full py-4 rounded-[18px] bg-gradient-to-r from-[#00FF41] to-[#00CC33] text-black font-black text-sm uppercase tracking-widest shadow-[0_0_20px_rgba(0,255,65,0.3)] flex items-center justify-center gap-2 active:scale-95 transition-all"
                         >
                             <FontAwesomeIcon icon={faMapLocationDot} className="text-lg" />

@@ -27,6 +27,22 @@ const safeSessionStorage = {
     setItem: (k, v) => { try { sessionStorage.setItem(k, v); } catch (e) { console.warn('Session storage blocked'); } }
 };
 
+export const parseBalance = (val) => {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    if (typeof val === 'object') {
+        const inner = val.balance ?? val.amount ?? val.value ?? 0;
+        const num = Number(inner);
+        return isNaN(num) ? 0 : num;
+    }
+    const num = Number(val);
+    return isNaN(num) ? 0 : num;
+};
+
+export const safeFormatMoney = (val) => {
+    return parseBalance(val).toLocaleString();
+};
+
 const TestQRPage = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
@@ -85,6 +101,48 @@ const TestQRPage = () => {
     const [venueData, setVenueData] = useState(null);
     const location = useLocation();
     const [showWifiModal, setShowWifiModal] = useState(false);
+
+    const [activeVenueDeposits, setActiveVenueDeposits] = useState([]);
+    const [selectedDepositVenueId, setSelectedDepositVenueId] = useState(null);
+
+    // Fetch and resolve all venue names for active deposits across venues
+    useEffect(() => {
+        if (!userProfile) return;
+        const balancesMap = userProfile?.deposit_balances || {};
+        const vKeys = Object.keys(balancesMap).filter(k => parseBalance(balancesMap[k]) > 0);
+
+        if (vKeys.length === 0) {
+            setActiveVenueDeposits([]);
+            return;
+        }
+
+        let isMounted = true;
+        const fetchVenues = async () => {
+            const list = [];
+            for (const vId of vKeys) {
+                const bal = parseBalance(balancesMap[vId]);
+                let name = (vId === activeVenueId || vId === venueName) ? (venueName || 'Заведение') : vId;
+                try {
+                    const vSnap = await getDoc(doc(db, 'venues', vId));
+                    if (vSnap.exists() && vSnap.data().name) {
+                        name = vSnap.data().name;
+                    }
+                } catch (e) {}
+                list.push({
+                    venueId: vId,
+                    venueName: name,
+                    balance: bal,
+                    isCurrent: vId === activeVenueId
+                });
+            }
+            if (isMounted) {
+                setActiveVenueDeposits(list);
+            }
+        };
+
+        fetchVenues();
+        return () => { isMounted = false; };
+    }, [userProfile, activeVenueId, venueName]);
 
     const [touchStart, setTouchStart] = useState(null);
     const [touchEnd, setTouchEnd] = useState(null);
@@ -265,25 +323,38 @@ const TestQRPage = () => {
                     }).catch(err => console.error("Error fetching deposit tiers:", err));
 
                     let isFirstDepositSnapshot = true;
-                    const targetUid = user.uid;
-                    const listenUid = targetUid;
-                    unsubscribeUser = onSnapshot(doc(db, 'users', listenUid), (docSnap) => {
+                    const savedEffectiveUid = safeStorage.getItem('effectiveUid');
+                    const targetUid = savedEffectiveUid || user.uid;
+
+                    const handleUserSnapshot = (docSnap) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
                             setUserProfile(data);
 
                             let balance = 0;
-                            if (data.deposit_balances && data.deposit_balances[venueId] !== undefined) {
+                            const vId = activeVenueId || venueId;
+
+                            if (data.deposit_balances && vId && data.deposit_balances[vId] !== undefined) {
+                                balance = Number(data.deposit_balances[vId] || 0);
+                            } else if (data.deposit_balances && venueId && data.deposit_balances[venueId] !== undefined) {
                                 balance = Number(data.deposit_balances[venueId] || 0);
-                            } else if (data.deposits && data.deposits[venueId] !== undefined) {
-                                const val = data.deposits[venueId];
+                            } else if (data.deposits && vId && data.deposits[vId] !== undefined) {
+                                const val = data.deposits[vId];
                                 balance = Number(typeof val === 'object' ? (val.balance || 0) : val);
-                            } else if (data.deposit_venue_id) {
-                                balance = data.deposit_venue_id === venueId ? Number(data.deposit_balance || 0) : 0;
-                            } else if (!data.venueId || data.venueId === venueId || venueId === 'demo') {
+                            } else if (data.deposit_balances && data.deposit_venue_id && data.deposit_balances[data.deposit_venue_id] !== undefined) {
+                                balance = Number(data.deposit_balances[data.deposit_venue_id] || 0);
+                            } else if (data.deposit_balance !== undefined && data.deposit_balance !== null && Number(data.deposit_balance) > 0) {
+                                balance = Number(data.deposit_balance);
+                            } else if (data.deposit_venue_id && (data.deposit_venue_id === vId || data.deposit_venue_id === venueId || !vId || vId === 'demo' || vId === 'default_venue')) {
+                                balance = Number(data.deposit_balance || 0);
+                            } else if (data.venueId && (data.venueId === vId || data.venueId === venueId || !vId || vId === 'demo' || vId === 'default_venue')) {
+                                balance = Number(data.deposit_balance || 0);
+                            } else if (data.deposit_balances && Object.keys(data.deposit_balances).length > 0) {
+                                const vals = Object.values(data.deposit_balances).map(Number).filter(v => !isNaN(v) && v > 0);
+                                balance = vals.length > 0 ? Math.max(...vals) : 0;
+                            } else {
                                 balance = Number(data.deposit_balance || 0);
                             }
-
 
                             prevBalRef.current = balance;
 
@@ -323,7 +394,17 @@ const TestQRPage = () => {
                                 }
                             }
                         }
-                    });
+                    };
+
+                    const unsub1 = onSnapshot(doc(db, 'users', targetUid), handleUserSnapshot);
+                    let unsub2 = null;
+                    if (user.uid !== targetUid) {
+                        unsub2 = onSnapshot(doc(db, 'users', user.uid), handleUserSnapshot);
+                    }
+                    unsubscribeUser = () => {
+                        unsub1();
+                        if (unsub2) unsub2();
+                    };
 
                     const rawEmail = userData?.email || safeStorage.getItem('guestEmail') || '';
                     const email = rawEmail.toLowerCase();
@@ -600,6 +681,7 @@ const TestQRPage = () => {
                 const tB = b.createdAt?.seconds || (b.createdAt?.toDate ? Math.floor(b.createdAt.toDate().getTime() / 1000) : 0);
                 return tB - tA;
             });
+            // Sync transactions list for display in history tab
             setTransactions(txList);
 
             // Lazy retrofit for missing timestamps
@@ -621,21 +703,6 @@ const TestQRPage = () => {
                     }).catch(console.warn);
                 }
             });
-
-            if (txList.length > 0) {
-                const latestTx = txList[0];
-                const rawBal = latestTx.newBalance ?? latestTx.balanceAfter;
-                if (rawBal !== undefined && rawBal !== null) {
-                    const latestBal = Number(rawBal);
-                    if (!isNaN(latestBal)) {
-                        if (!isInitialTxLoad || prevBalRef.current === null) {
-                            prevBalRef.current = latestBal;
-                            setDepositBalance(latestBal);
-                            safeStorage.setItem('cached_deposit_balance', String(latestBal));
-                        }
-                    }
-                }
-            }
             
             isInitialTxLoad = false;
         }, (err) => {
@@ -692,9 +759,10 @@ const TestQRPage = () => {
     
     const isDepositActive = ((isUserLoggedIn && depositBalance > 0) || hasDepositQuery) && (!hasGoogleReviewConfigured || hasCompletedReview);
 
-    if (isDataReady && !storiesCompleted && !isDepositActive) {
-        return <RevooStories onComplete={handleStoriesComplete} />;
-    }
+    // [STORIES PREVIEW DISABLED BY USER REQUEST - KEEP CODE BUT BYPASS DISPLAY]
+    // if (isDataReady && !storiesCompleted && !isDepositActive) {
+    //     return <RevooStories onComplete={handleStoriesComplete} />;
+    // }
 
     const getMappedCapacity = (currentDiscount, config) => {
         let sortedTiers = [];
@@ -923,13 +991,13 @@ const TestQRPage = () => {
                         </div>
 
                         <div className="text-4xl font-black text-white tracking-tight mb-4 drop-shadow-[0_2px_10px_rgba(212,175,55,0.3)]">
-                            {depositBalance.toLocaleString()} <span className="text-sm font-medium text-white/50">{venueCurrency}</span>
+                            {safeFormatMoney(depositBalance)} <span className="text-sm font-medium text-white/50">{venueCurrency}</span>
                         </div>
 
                         <div className="bg-white p-3 rounded-2xl shadow-xl mb-3 border border-white/20">
                             <img 
                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
-                                    `https://bot-lab-21910.web.app/admin/deposit?search=${auth.currentUser?.uid || userProfile?.id || userProfile?.email || auth.currentUser?.email || safeStorage.getItem('effectiveUid') || safeStorage.getItem('guestEmail') || guestName || ''}&action=deduct`
+                                    `https://bot-lab-21910.web.app/admin/deposit?search=${auth.currentUser?.uid || userProfile?.id || userProfile?.email || auth.currentUser?.email || safeStorage.getItem('effectiveUid') || safeStorage.getItem('guestEmail') || guestName || ''}&venueId=${activeVenueId}&action=deduct`
                                 )}`}
                                 alt="Personal Deposit QR"
                                 className="w-[160px] h-[160px] block mx-auto"

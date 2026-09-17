@@ -21,7 +21,7 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
   bool _isSaving = false;
   bool _useVenueQr = true; // Default to venue-specific QR
   String _selectedLanguage = 'ru'; // 'ru' or 'en'
-  String _selectedDesign = 'hybrid'; // 'classic' or 'hybrid'
+  String _selectedDesign = 'v3'; // 'v3', 'hybrid', or 'classic'
 
   @override
   void initState() {
@@ -99,7 +99,7 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
             children: [
               // ── CONTROL PANEL CARDS ──
               Container(
-                width: 360,
+                width: 380,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: AppColors.macosSurfaceBg,
@@ -109,12 +109,12 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Design Selector Segmented Control
+                    // Design Selector Segmented Control (V3, HYBRID V2, CLASSIC)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Дизайн флаера:',
+                          'Дизайн:',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -129,13 +129,17 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
                           pressedColor: AppColors.accentYellow.withOpacity(0.3),
                           padding: EdgeInsets.zero,
                           children: const {
+                            'v3': Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              child: Text('✨ V3', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                            ),
                             'hybrid': Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              child: Text('🌟 HYBRID', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              child: Text('HYBRID V2', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                             ),
                             'classic': Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              child: Text('CLASSIC', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              child: Text('CLASSIC', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
                             ),
                           },
                           onValueChanged: (val) => setState(() => _selectedDesign = val),
@@ -150,7 +154,7 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Text(
-                          'Язык флаера:',
+                          'Язык макета:',
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -219,9 +223,7 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
               // ── THE FLYER MOCKUP PREVIEW (To Capture) ──
               RepaintBoundary(
                 key: _globalKey,
-                child: _selectedDesign == 'hybrid'
-                    ? _buildHybridStickerContent(context)
-                    : _buildClassicStickerContent(context),
+                child: _buildSelectedDesignContent(context),
               ),
 
               const SizedBox(height: 28),
@@ -257,14 +259,133 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
     );
   }
 
-  // ── 1. HYBRID DESIGN (New phone mockup layout) ──
+  Widget _buildSelectedDesignContent(BuildContext context) {
+    if (_selectedDesign == 'v3') {
+      return _buildV3StickerContent(context);
+    } else if (_selectedDesign == 'hybrid') {
+      return _buildHybridStickerContent(context);
+    } else {
+      return _buildClassicStickerContent(context);
+    }
+  }
+
+  // ── 1. VERSION 3 (TEMPLATE IMAGE BACKGROUND WITH DYNAMIC OVERLAYS) ──
+  Widget _buildV3StickerContent(BuildContext context) {
+    const double width = 360;
+    const double height = 678; // Proportional to high-res V3 poster image
+
+    final qrData = _useVenueQr
+        ? 'https://www.revoo.win/hybrid-v2?id=${widget.venue.id}'
+        : 'https://www.revoo.win/hybrid-v2';
+
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(44),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(42),
+        child: Stack(
+          children: [
+            // 1. High-Res V3 Template Background Image (contains golden outer frame & golden central QR frame)
+            Positioned.fill(
+              child: Image.asset(
+                'assets/images/pos_sticker_v3.png',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    color: const Color(0xFF0A0A0C),
+                    child: const Center(
+                      child: Text(
+                        "Ошибка загрузки макета V3",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.redAccent),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // 2. Dynamic Venue Name Overlay - sits DIRECTLY inside top oval badge masking 'REVOO VENUE'
+            Positioned(
+              top: 36.0,
+              left: 70.0,
+              right: 70.0,
+              height: 33.0,
+              child: Container(
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: Colors.black, // Solid black mask replacing stock 'REVOO VENUE'
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFFFD700), width: 1.5),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x88FFD700),
+                      blurRadius: 8,
+                    ),
+                  ],
+                ),
+                child: Text(
+                  widget.venue.name.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFFFFD700),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+            ),
+
+            // 3. Dynamic Golden QR Code Overlay inside Central Black Frame (fits seamlessly inside image frame)
+            Positioned(
+              top: 286.5,
+              left: (width - 131.0) / 2,
+              child: Container(
+                width: 131.0,
+                height: 131.0,
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                padding: const EdgeInsets.all(5),
+                child: QrImageView(
+                  data: qrData,
+                  version: QrVersions.auto,
+                  backgroundColor: Colors.black,
+                  eyeStyle: const QrEyeStyle(
+                    eyeShape: QrEyeShape.square,
+                    color: Color(0xFFFFD700),
+                  ),
+                  dataModuleStyle: const QrDataModuleStyle(
+                    dataModuleShape: QrDataModuleShape.square,
+                    color: Color(0xFFFFD700),
+                  ),
+                  padding: EdgeInsets.zero,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── 2. HYBRID V2 DESIGN (Phone mockup layout) ──
   Widget _buildHybridStickerContent(BuildContext context) {
     const double width = 360;
     const double height = 538; // Proportional to original 686x1024
 
     final qrData = _useVenueQr
-        ? 'https://bot-lab-21910.web.app/qr?id=${widget.venue.id}'
-        : 'https://bot-lab-21910.web.app';
+        ? 'https://www.revoo.win/qr?id=${widget.venue.id}'
+        : 'https://www.revoo.win';
 
     return Container(
       width: width,
@@ -338,16 +459,16 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
               ),
             ),
 
-            // 3. Dynamic QR Code Overlay — anchored to bottom, 10% smaller
+            // 3. Dynamic QR Code Overlay — covers central white mockup QR on flyer
             Positioned(
-              bottom: 44.0,
-              left: (width - 101.0) / 2,
+              top: 242.0,
+              left: (width - 102.0) / 2,
               child: Container(
-                width: 101.0,
-                height: 101.0,
+                width: 102.0,
+                height: 102.0,
                 decoration: BoxDecoration(
                   color: Colors.black,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(16),
                   boxShadow: const [
                     BoxShadow(
                       color: Colors.black87,
@@ -379,7 +500,7 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
     );
   }
 
-  // ── 2. CLASSIC DESIGN ──
+  // ── 3. CLASSIC DESIGN ──
   Widget _buildClassicStickerContent(BuildContext context) {
     const double width = 360;
     const double height = 640;
@@ -389,8 +510,8 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
         : 'assets/images/pos_sticker_en.png';
 
     final qrData = _useVenueQr
-        ? 'https://bot-lab-21910.web.app/qr?id=${widget.venue.id}'
-        : 'https://bot-lab-21910.web.app';
+        ? 'https://www.revoo.win/qr?id=${widget.venue.id}'
+        : 'https://www.revoo.win';
 
     return Container(
       width: width,
@@ -468,4 +589,3 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
     );
   }
 }
-

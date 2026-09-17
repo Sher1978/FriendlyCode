@@ -36,7 +36,7 @@ service cloud.firestore {
     // 1. Users Collection
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow write, create, update: if isAuthenticated();
+      allow write, create, update, delete: if isAuthenticated();
     }
 
     // 2. Venues Collection
@@ -55,8 +55,7 @@ service cloud.firestore {
 
     // 3. Visits Collection
     match /visits/{visitId} {
-      allow create: if isAuthenticated();
-      allow read: if isAuthenticated(); // Allow reading visits for guest recognition and history
+      allow create, read, update, delete: if isAuthenticated();
     }
 
     // 4. Leads Collection (B2B and B2C tracking)
@@ -66,6 +65,11 @@ service cloud.firestore {
     }
 
     match /b2b_leads/{leadId} {
+      allow create: if true;
+      allow read, update, delete: if isAuthenticated();
+    }
+
+    match /leads_b2b_audit/{leadId} {
       allow create: if true;
       allow read, update, delete: if isAuthenticated();
     }
@@ -106,6 +110,18 @@ service cloud.firestore {
       allow create: if true;
       allow read, update, delete: if isAuthenticated();
     }
+
+    // 10. Staff Requests Collection (Staff registration and role assignment)
+    match /staff_requests/{requestId} {
+      allow create, read, update, delete: if true;
+    }
+
+    // 11. Scheduled Vouchers Collection
+    match /scheduled_vouchers/{voucherId} {
+      allow read, write, create, update, delete: if isAuthenticated();
+    }
   }
 }
+
+
 

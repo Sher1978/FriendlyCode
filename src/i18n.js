@@ -9,6 +9,7 @@ i18n
     .use(initReactI18next)
     .init({
         fallbackLng: 'en',
+        supportedLngs: ['en', 'ru', 'vi', 'ar', 'uk', 'ka', 'tr'],
         ns: ['translation'],
         defaultNS: 'translation',
         backend: {
@@ -18,5 +19,12 @@ i18n
             escapeValue: false
         }
     });
+
+i18n.on('languageChanged', (lng) => {
+    if (typeof document !== 'undefined') {
+        document.documentElement.dir = lng === 'ar' ? 'rtl' : 'ltr';
+        document.documentElement.lang = lng;
+    }
+});
 
 export default i18n;

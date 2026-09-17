@@ -63,115 +63,119 @@ class _MyTeamScreenState extends State<MyTeamScreen> {
     final roleProvider = Provider.of<RoleProvider>(context);
     final myVenues = roleProvider.venueIds;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("My Team", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.title)),
-              const SizedBox(height: 8),
-              Text("Managers and Staff across your ${myVenues.length} assigned venues.", style: const TextStyle(color: AppColors.body)),
-            ],
-          ),
-        ),
-
-        // Search Bar
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchCtrl,
-                  decoration: InputDecoration(
-                    hintText: "Add team member by exact email...",
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    filled: true,
-                    fillColor: Colors.white,
-                    errorText: _searchError,
-                  ),
-                  onSubmitted: (_) => _performSearch(),
-                ),
-              ),
-              const SizedBox(width: 16),
-              ElevatedButton(
-                onPressed: _isSearching ? null : _performSearch,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.brandOrange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: _isSearching 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Icon(Icons.search),
-              ),
-            ],
-          ),
-        ),
-        
-        if (_searchResult != null)
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.lime.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.lime),
-              ),
-              child: Row(
-                children: [
-                  const CircleAvatar(backgroundColor: AppColors.lime, child: Icon(Icons.person, color: Colors.white)),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(_searchResult!['email'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text("Current role: ${_searchResult!['role'] ?? 'guest'}", style: const TextStyle(color: Colors.black54)),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline, color: AppColors.brandOrange),
-                    onPressed: () => _showAssignDialog(context, _searchResultId!, _searchResult!['email'], myVenues),
-                    tooltip: "Assign to Venue",
-                  ),
-                 ],
-              ),
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("My Team", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.title)),
+                const SizedBox(height: 8),
+                Text("Managers and Staff across your ${myVenues.length} assigned venues.", style: const TextStyle(color: AppColors.body)),
+              ],
             ),
           ),
 
-        const SizedBox(height: 24),
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchCtrl,
+                    decoration: InputDecoration(
+                      hintText: "Add team member by exact email...",
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      filled: true,
+                      fillColor: Colors.white,
+                      errorText: _searchError,
+                    ),
+                    onSubmitted: (_) => _performSearch(),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                ElevatedButton(
+                  onPressed: _isSearching ? null : _performSearch,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.brandOrange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: _isSearching 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Icon(Icons.search),
+                ),
+              ],
+            ),
+          ),
+          
+          if (_searchResult != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.lime.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.lime),
+                ),
+                child: Row(
+                  children: [
+                    const CircleAvatar(backgroundColor: AppColors.lime, child: Icon(Icons.person, color: Colors.white)),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(_searchResult!['email'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text("Current role: ${_searchResult!['role'] ?? 'guest'}", style: const TextStyle(color: Colors.black54)),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline, color: AppColors.brandOrange),
+                      onPressed: () => _showAssignDialog(context, _searchResultId!, _searchResult!['email'], myVenues),
+                      tooltip: "Assign to Venue",
+                    ),
+                   ],
+                ),
+              ),
+            ),
 
-        // Team List
-        Expanded(
-          child: myVenues.isEmpty 
-            ? const Center(child: Text("No venues assigned to you yet."))
+          const SizedBox(height: 24),
+
+          // Team List
+          myVenues.isEmpty 
+            ? const Center(child: Padding(padding: EdgeInsets.all(24), child: Text("No venues assigned to you yet.")))
             : StreamBuilder<QuerySnapshot>(
                 stream: _firestore.collection('users')
                     .where('venueId', whereIn: myVenues)
                     .snapshots(),
                 builder: (context, snapshot) {
-                  if (snapshot.hasError) return const Center(child: Text("Error loading team members"));
-                  if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                  if (snapshot.hasError) return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text("Error loading team members")));
+                  if (!snapshot.hasData) return const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()));
 
                   final members = snapshot.data!.docs;
-                  if (members.isEmpty) return const Center(child: Text("No staff or managers assigned to your venues."));
+                  if (members.isEmpty) return const Center(child: Padding(padding: EdgeInsets.all(24), child: Text("No staff or managers assigned to your venues.")));
 
                   return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     padding: const EdgeInsets.all(24),
                     itemCount: members.length,
                     itemBuilder: (context, index) => _buildMemberCard(members[index]),
                   );
                 },
               ),
-        ),
-      ],
+          const SizedBox(height: 40),
+        ],
+      ),
     );
   }
 

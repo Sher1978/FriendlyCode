@@ -5,6 +5,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PngBattery from './PngBattery';
 import LanguageSwitcher from './LanguageSwitcher';
 
+const safeStorage = {
+    getItem: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    setItem: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { console.warn('Storage blocked'); } }
+};
+
+const safeSessionStorage = {
+    getItem: (k) => { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+    setItem: (k, v) => { try { sessionStorage.setItem(k, v); } catch (e) { console.warn('Session storage blocked'); } }
+};
+
 const SmartWelcomeScreen = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -71,7 +81,10 @@ const SmartWelcomeScreen = () => {
     const lng = searchParams.get('lng');
 
     const handleClaimGift = () => {
-        navigate('/activate', {
+        safeStorage.setItem('fromGoogleMaps', 'true');
+        safeSessionStorage.setItem('fromGoogleMaps', 'true');
+        safeStorage.setItem('currentVenueId', venueId);
+        navigate(`/google-activate?venueId=${venueId}`, {
             state: {
                 returnTo: '/google-thank-you',
                 venueId: venueId,

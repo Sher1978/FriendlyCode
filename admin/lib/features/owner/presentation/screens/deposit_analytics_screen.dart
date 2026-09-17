@@ -374,33 +374,56 @@ class _DepositAnalyticsScreenState extends State<DepositAnalyticsScreen> with Si
   // ── 2. USERS STATS TAB ───────────────────────────────────────────────────
 
   Widget _buildUsersTab(List<Map<String, dynamic>> txs, List<dynamic> users) {
-    // Compute per-user totals
+    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+    final activeVenueId = widget.venueId ?? roleProvider.venueId ?? '';
+
+    // Compute per-user totals by matching userId, guestEmail, or guestName
     final Map<String, double> userCredits = {};
     final Map<String, double> userDebits = {};
 
     for (var tx in txs) {
-      final uid = (tx['userId'] ?? '').toString();
-      if (uid.isEmpty) continue;
+      final txUid = (tx['userId'] ?? '').toString().trim();
+      final txEmail = (tx['guestEmail'] ?? '').toString().toLowerCase().trim();
+      final txName = (tx['guestName'] ?? tx['userName'] ?? '').toString().toLowerCase().trim();
 
       final isCredit = tx['transactionType'] == 'CREDIT' || tx['type'] == 'CREDIT';
       final isDebit = tx['transactionType'] == 'DEBIT' || tx['type'] == 'DEBIT';
       final amount = (tx['amount'] ?? tx['totalCredit'] ?? tx['finalAmount'] ?? 0.0).toDouble();
 
-      if (isCredit) {
-        userCredits[uid] = (userCredits[uid] ?? 0.0) + amount;
-      } else if (isDebit) {
-        userDebits[uid] = (userDebits[uid] ?? 0.0) + amount;
+      for (var u in users) {
+        final uUid = (u['uid'] ?? '').toString().trim();
+        final uEmail = (u['email'] ?? '').toString().toLowerCase().trim();
+        final uName = (u['displayName'] ?? u['name'] ?? '').toString().toLowerCase().trim();
+
+        bool isMatch = false;
+        if (txUid.isNotEmpty && uUid.isNotEmpty && txUid == uUid) {
+          isMatch = true;
+        } else if (txEmail.isNotEmpty && uEmail.isNotEmpty && txEmail == uEmail) {
+          isMatch = true;
+        } else if (txName.isNotEmpty && uName.isNotEmpty && txName == uName) {
+          isMatch = true;
+        }
+
+        if (isMatch) {
+          if (isCredit) {
+            userCredits[uUid] = (userCredits[uUid] ?? 0.0) + amount;
+          } else if (isDebit) {
+            userDebits[uUid] = (userDebits[uUid] ?? 0.0) + amount;
+          }
+        }
       }
     }
 
     final filteredUsers = users.where((u) {
-      final bal = (u['deposit_balance'] ?? 0.0).toDouble();
+      final uid = u['uid'] ?? '';
+      double bal = (u['deposit_balance'] ?? 0.0).toDouble();
+      if (activeVenueId.isNotEmpty && u['deposit_balances'] != null && u['deposit_balances'][activeVenueId] != null) {
+        bal = (u['deposit_balances'][activeVenueId] as num).toDouble();
+      }
       final name = (u['displayName'] ?? u['name'] ?? '').toString().toLowerCase();
       final email = (u['email'] ?? '').toString().toLowerCase();
       final q = _searchQuery.toLowerCase().trim();
 
-      // Keep user if they have balance or transactions, matching search query
-      final uid = u['uid'] ?? '';
       final hasTx = (userCredits[uid] ?? 0) > 0 || (userDebits[uid] ?? 0) > 0;
 
       if (q.isNotEmpty) {
@@ -409,10 +432,31 @@ class _DepositAnalyticsScreenState extends State<DepositAnalyticsScreen> with Si
       return bal > 0 || hasTx;
     }).toList();
 
-    // Sort by deposit_balance descending
+    // Helper to get effective user balance for active venue
+    double getUserEffectiveBalance(dynamic u) {
+      final uid = u['uid'] ?? '';
+      double storedBal = 0.0;
+      if (activeVenueId.isNotEmpty && u['deposit_balances'] != null && u['deposit_balances'][activeVenueId] != null) {
+        storedBal = (u['deposit_balances'][activeVenueId] as num).toDouble();
+      } else {
+        storedBal = (u['deposit_balance'] ?? 0.0).toDouble();
+      }
+
+      final cred = userCredits[uid] ?? 0.0;
+      final deb = userDebits[uid] ?? 0.0;
+      final calcBal = cred - deb;
+
+      // If transactions exist, prefer calculated (cred - deb) unless stored is positive
+      if ((cred > 0 || deb > 0) && calcBal >= 0) {
+        return calcBal;
+      }
+      return storedBal > 0 ? storedBal : (calcBal > 0 ? calcBal : 0.0);
+    }
+
+    // Sort by effective balance descending
     filteredUsers.sort((a, b) {
-      final bA = (a['deposit_balance'] ?? 0.0).toDouble();
-      final bB = (b['deposit_balance'] ?? 0.0).toDouble();
+      final bA = getUserEffectiveBalance(a);
+      final bB = getUserEffectiveBalance(b);
       return bB.compareTo(bA);
     });
 
@@ -454,7 +498,7 @@ class _DepositAnalyticsScreenState extends State<DepositAnalyticsScreen> with Si
                     final uid = u['uid'] ?? '';
                     final name = u['displayName'] ?? u['name'] ?? 'Гость';
                     final email = u['email'] ?? '';
-                    final balance = (u['deposit_balance'] ?? 0.0).toDouble();
+                    final balance = getUserEffectiveBalance(u);
                     final tier = u['current_discount_tier'] ?? 4;
                     final totalCred = userCredits[uid] ?? 0.0;
                     final totalDeb = userDebits[uid] ?? 0.0;

@@ -23,6 +23,22 @@ const safeSessionStorage = {
     setItem: (k, v) => { try { sessionStorage.setItem(k, v); } catch (e) { console.warn('Session storage blocked'); } }
 };
 
+const parseBalance = (val) => {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    if (typeof val === 'object') {
+        const inner = val.balance ?? val.amount ?? val.value ?? 0;
+        const num = Number(inner);
+        return isNaN(num) ? 0 : num;
+    }
+    const num = Number(val);
+    return isNaN(num) ? 0 : num;
+};
+
+const safeFormatMoney = (val) => {
+    return parseBalance(val).toLocaleString();
+};
+
 // VIP Gift Teaser Component
 const VipGiftTeaser = ({ tiers, ambientColor, discountValue, minDiscount = 5, maxDiscount = 20 }) => {
     const [activeIdx, setActiveIdx] = useState(0);
@@ -160,6 +176,19 @@ const UnifiedActivation = () => {
     const { t, i18n } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
+
+    // -- SHARED/MIRROR MODE LOGIC (Zero-Complexity Add-on) --
+    const sharedParams = new URLSearchParams(location.search);
+    const isSharedMode = sharedParams.get('mode') === 'shared';
+    const sharedUid = sharedParams.get('uid') || sharedParams.get('guestId');
+    const [currentTime, setCurrentTime] = useState(new Date());
+    useEffect(() => {
+        if (isSharedMode) {
+            const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+            return () => clearInterval(timer);
+        }
+    }, [isSharedMode]);
+    // -------------------------------------------------------
 
     // Venue Settings for logic
     const [venueName, setVenueName] = useState('');
@@ -433,21 +462,37 @@ const UnifiedActivation = () => {
                 unsubscribeTx();
                 unsubscribeTx = null;
             }
-            if (user) {
-                unsubscribeUserDoc = onSnapshot(doc(db, 'users', user.uid), (userSnap) => {
+            if (user || (isSharedMode && sharedUid)) {
+                const savedEffectiveUid = safeStorage.getItem('effectiveUid');
+                const targetUid = (isSharedMode && sharedUid) ? sharedUid : (savedEffectiveUid || user?.uid);
+
+                const handleUserSnapshot = (userSnap) => {
                     if (userSnap.exists()) {
                         const userData = userSnap.data();
                         
                         let newBalance = 0;
-                        if (userData.deposit_balances && userData.deposit_balances[venueId] !== undefined) {
+                        const vId = activeVenueId || venueId;
+
+                        if (userData?.deposit_balances && vId && userData.deposit_balances[vId] !== undefined) {
+                            newBalance = Number(userData.deposit_balances[vId] || 0);
+                        } else if (userData?.deposit_balances && venueId && userData.deposit_balances[venueId] !== undefined) {
                             newBalance = Number(userData.deposit_balances[venueId] || 0);
-                        } else if (userData.deposits && userData.deposits[venueId] !== undefined) {
-                            const val = userData.deposits[venueId];
+                        } else if (userData?.deposits && vId && userData.deposits[vId] !== undefined) {
+                            const val = userData.deposits[vId];
                             newBalance = Number(typeof val === 'object' ? (val.balance || 0) : val);
-                        } else if (userData.deposit_venue_id) {
-                            newBalance = userData.deposit_venue_id === venueId ? Number(userData.deposit_balance || 0) : 0;
-                        } else if (!userData.venueId || userData.venueId === venueId || venueId === 'demo') {
+                        } else if (userData?.deposit_balances && userData.deposit_venue_id && userData.deposit_balances[userData.deposit_venue_id] !== undefined) {
+                            newBalance = Number(userData.deposit_balances[userData.deposit_venue_id] || 0);
+                        } else if (userData?.deposit_balance !== undefined && userData.deposit_balance !== null && Number(userData.deposit_balance) > 0) {
+                            newBalance = Number(userData.deposit_balance);
+                        } else if (userData?.deposit_venue_id && (userData.deposit_venue_id === vId || userData.deposit_venue_id === venueId || !vId || vId === 'demo' || vId === 'default_venue')) {
                             newBalance = Number(userData.deposit_balance || 0);
+                        } else if (userData?.venueId && (userData.venueId === vId || userData.venueId === venueId || !vId || vId === 'demo' || vId === 'default_venue')) {
+                            newBalance = Number(userData.deposit_balance || 0);
+                        } else if (userData?.deposit_balances && Object.keys(userData.deposit_balances).length > 0) {
+                            const vals = Object.values(userData.deposit_balances).map(Number).filter(v => !isNaN(v) && v > 0);
+                            newBalance = vals.length > 0 ? Math.max(...vals) : 0;
+                        } else {
+                            newBalance = Number(userData?.deposit_balance || 0);
                         }
 
                         setDepositBalance(newBalance);
@@ -466,13 +511,24 @@ const UnifiedActivation = () => {
                     } else {
                         setIsDataLoaded(true);
                     }
-                }, (err) => {
+                };
+
+                const unsub1 = onSnapshot(doc(db, 'users', targetUid), handleUserSnapshot, (err) => {
                     console.error("Error listening to user profile in UnifiedActivation:", err);
                     setIsDataLoaded(true);
                 });
+                let unsub2 = null;
+                if (user.uid !== targetUid) {
+                    unsub2 = onSnapshot(doc(db, 'users', user.uid), handleUserSnapshot, (err) => console.warn(err));
+                }
+
+                unsubscribeUserDoc = () => {
+                    unsub1();
+                    if (unsub2) unsub2();
+                };
 
                 unsubscribeTx = onSnapshot(
-                    query(collection(db, 'deposit_transactions'), where('userId', '==', user.uid)),
+                    query(collection(db, 'deposit_transactions'), where('userId', '==', targetUid)),
                     (txSnap) => {
                         let txList = txSnap.docs.map(d => ({ id: d.id, ...d.data() }));
                         const currentVenue = venueId || safeStorage.getItem('currentVenueId') || 'demo';
@@ -521,7 +577,7 @@ const UnifiedActivation = () => {
 
         // Trigger promo modal after ~10s delay
         const timer = setTimeout(() => {
-            setPromoModalState('expanded');
+            if (!isSharedMode) setPromoModalState('expanded');
         }, 10000);
 
         return () => {
@@ -542,9 +598,13 @@ const UnifiedActivation = () => {
             const acquisitionSource = location.state?.acquisition_source || null;
             
             if (venueId && venueId !== 'demo') {
-                const sessionKey = `logged_visit_${venueId}_${guestEmail.toLowerCase()}_${new Date().toISOString().slice(0, 10)}`;
-                if (!safeSessionStorage.getItem(sessionKey)) {
-                    safeSessionStorage.setItem(sessionKey, 'true');
+                const lastVisitKey = `last_visit_time_${venueId}_${guestEmail.toLowerCase()}`;
+                const lastVisitTime = parseInt(safeStorage.getItem(lastVisitKey) || '0', 10);
+                const nowMs = Date.now();
+                
+                // Block if within 24 hours (86400000 ms)
+                if (nowMs - lastVisitTime > 24 * 60 * 60 * 1000) {
+                    safeStorage.setItem(lastVisitKey, nowMs.toString());
                     try {
                         // 1. Add to main visits collection (used for Loyalty Reward calculations & visit history)
                         if (guestEmail) {
@@ -603,8 +663,18 @@ const UnifiedActivation = () => {
             <div className="absolute top-[-10%] left-[-20vw] w-[140vw] h-[60vh] rounded-[100%] blur-[100px] pointer-events-none opacity-[0.25] mix-blend-screen" style={{ backgroundColor: ambientColor }} />
             <div className="absolute bottom-[10%] right-[-20vw] w-[140vw] h-[50vh] rounded-[100%] blur-[120px] pointer-events-none opacity-[0.15]" style={{ backgroundColor: ambientColor }} />
 
+            {/* SHARED MODE ANTI-FRAUD LIVE HEADER */}
+            {isSharedMode && (
+                <div className="absolute top-0 left-0 w-full bg-green-500/20 backdrop-blur-md border-b border-green-500/40 py-2.5 z-[60] flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(34,197,94,0.3)]">
+                    <div className="w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(74,222,128,0.8)]"></div>
+                    <span className="text-[11px] font-black tracking-[0.2em] uppercase text-green-400">
+                        Ваучер Активен • {currentTime.toLocaleTimeString('ru-RU', { hour12: false })}
+                    </span>
+                </div>
+            )}
+
             {/* Header / Nav */}
-            <div className="pt-6 px-6 flex justify-between items-center z-50 w-full max-w-md mx-auto">
+            <div className={`pt-6 px-6 flex justify-between items-center z-50 w-full max-w-md mx-auto ${isSharedMode ? 'mt-8 pointer-events-none opacity-60' : ''}`}>
                 <UserMenu 
                     user={auth.currentUser}
                     isGuestView={true}
@@ -639,8 +709,8 @@ const UnifiedActivation = () => {
                     </h1>
                 </motion.div>
 
-                {/* VipGiftTeaser: hide when active deposit is present */}
-                {depositBalance <= 0 && (
+                {/* VipGiftTeaser: hide when active deposit is present or in shared mode */}
+                {depositBalance <= 0 && !isSharedMode && (
                     <VipGiftTeaser 
                         tiers={tiers} 
                         ambientColor={ambientColor} 
@@ -674,7 +744,7 @@ const UnifiedActivation = () => {
 
                                     <div className="relative z-10 my-3">
                                         <span className="text-[40px] sm:text-[44px] font-black leading-none text-white tracking-tight drop-shadow-[0_2px_15px_rgba(255,255,255,0.2)]">
-                                            {depositBalance.toLocaleString()} <span className="text-base font-medium text-white/50">₫</span>
+                                            {safeFormatMoney(depositBalance)} <span className="text-base font-medium text-white/50">₫</span>
                                         </span>
                                     </div>
 
@@ -935,7 +1005,7 @@ const UnifiedActivation = () => {
 
             {/* ── VIP STATUS BOOST DIALOG (EXPANDED MODAL WITH SWIPE-DOWN COLLAPSE) ── */}
             <AnimatePresence>
-                {promoModalState === 'expanded' && depositBalance <= 0 && (
+                {promoModalState === 'expanded' && depositBalance <= 0 && !isSharedMode && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -1094,11 +1164,11 @@ const UnifiedActivation = () => {
 
             {/* ── BOTTOM DUAL WIDGETS (GIFTX AT LEFT EDGE + DEPOSIT AT RIGHT EDGE, EXACT HEIGHT ALIGNMENT h-[56px]) ── */}
             <AnimatePresence>
-                {promoModalState === 'collapsed' && (
+                {promoModalState === 'collapsed' && !isSharedMode && (
                     <>
                         {/* 1. GIFTX WIDGET (LEFT EDGE OF SCREEN) */}
                         {(() => {
-                            const giftxUrl = venueSettings?.giftxUrl || venueData?.giftxUrl || 'https://giftx.app';
+                            const giftxUrl = venueSettings?.giftxUrl || 'https://giftx.app';
                             return (
                                 <motion.div
                                     initial={{ y: 80, opacity: 0 }}

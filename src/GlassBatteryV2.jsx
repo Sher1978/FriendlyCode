@@ -27,11 +27,11 @@ export function getBatteryConfig(discount) {
     };
     if (discount >= 10) return {
         label: 'LOW',
-        fillColor: '#FF3131', // Neon Red
-        glowColor: 'rgba(255,49,49,0.7)',
-        coreGlow: 'radial-gradient(circle, rgba(255,49,49,0.4) 0%, transparent 70%)',
-        waveDir: 'rtl',
-        waveSpeed: '1.2s',
+        fillColor: '#FFD700', // Gold
+        glowColor: 'rgba(255,215,0,0.7)',
+        coreGlow: 'radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%)',
+        waveDir: 'ltr',
+        waveSpeed: '1.8s',
     };
     return {
         label: 'BASE',

@@ -161,23 +161,39 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                                           ],
                                         )
                                       ),
-                                    DataCell(
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          color: v.isActive ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        child: Text(
-                                          v.isActive ? "ACTIVE" : "INACTIVE",
-                                          style: TextStyle(
-                                            color: v.isActive ? Colors.green : Colors.grey,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
+                                     DataCell(
+                                       Builder(builder: (context) {
+                                         String statusText = "INACTIVE";
+                                         Color statusColor = Colors.grey;
+
+                                         if (v.isManuallyBlocked) {
+                                           statusText = "BLOCKED";
+                                           statusColor = Colors.red;
+                                         } else if (v.isExpired) {
+                                           statusText = "EXPIRED";
+                                           statusColor = Colors.orange;
+                                         } else if (v.isActive) {
+                                           statusText = "ACTIVE";
+                                           statusColor = Colors.green;
+                                         }
+
+                                         return Container(
+                                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                           decoration: BoxDecoration(
+                                             color: statusColor.withOpacity(0.1),
+                                             borderRadius: BorderRadius.circular(20),
+                                           ),
+                                           child: Text(
+                                             statusText,
+                                             style: TextStyle(
+                                               color: statusColor,
+                                               fontWeight: FontWeight.bold,
+                                               fontSize: 12,
+                                             ),
+                                           ),
+                                         );
+                                       }),
+                                     ),
                                     DataCell(
                                       Row(
                                         mainAxisSize: MainAxisSize.min,

@@ -17,6 +17,11 @@ export default {
                 'background-cream': '#FFF8E1',
                 'surface-cream': '#FFFFFF',
             },
+            fontFamily: {
+                sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+                display: ['Outfit', 'sans-serif'],
+                mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+            },
         },
     },
     plugins: [],

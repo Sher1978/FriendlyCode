@@ -46,7 +46,12 @@ class _ImageUploadWidgetState extends State<ImageUploadWidget> {
 
   Future<void> _pickAndUpload() async {
     try {
-      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 75,
+      );
       if (image == null) return;
 
       setState(() {
@@ -117,11 +122,16 @@ class _ImageUploadWidgetState extends State<ImageUploadWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isPdf = _previewUrl != null && 
+        (_previewUrl!.toLowerCase().contains('.pdf') || _previewUrl!.toLowerCase().contains('venues%2fmenus') || _previewUrl!.toLowerCase().contains('menus%2f'));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(widget.label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.body)),
-        const SizedBox(height: 8),
+        if (widget.label.isNotEmpty)
+          Text(widget.label, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.body)),
+        if (widget.label.isNotEmpty)
+          const SizedBox(height: 8),
         InkWell(
           onTap: _isUploading ? null : _pickAndUpload,
           borderRadius: BorderRadius.circular(12),
@@ -132,8 +142,8 @@ class _ImageUploadWidgetState extends State<ImageUploadWidget> {
             decoration: BoxDecoration(
               color: AppColors.background,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.title.withOpacity(0.1)),
-              image: _previewUrl != null && !_isUploading
+              border: Border.all(color: _previewUrl != null ? Colors.green.withOpacity(0.5) : AppColors.title.withOpacity(0.1)),
+              image: _previewUrl != null && !_isUploading && !isPdf
                 ? DecorationImage(image: NetworkImage(_previewUrl!), fit: BoxFit.cover)
                 : null,
             ),
@@ -168,18 +178,47 @@ class _ImageUploadWidgetState extends State<ImageUploadWidget> {
                       Text("Click to Upload", style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.bold)),
                     ],
                   )
-                : Container(
-                    alignment: Alignment.topRight,
-                    padding: const EdgeInsets.all(8),
-                    child: CircleAvatar(
-                      backgroundColor: Colors.black54,
-                      radius: 16,
-                      child: IconButton(
-                        icon: const Icon(Icons.edit, size: 16, color: Colors.white),
-                        onPressed: _pickAndUpload,
+                : isPdf 
+                  ? Stack(
+                      children: [
+                        Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              Icon(Icons.picture_as_pdf, size: 40, color: Colors.redAccent),
+                              SizedBox(height: 8),
+                              Text("PDF Документ Загружен ✅", style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 13)),
+                              SizedBox(height: 4),
+                              Text("Нажмите, чтобы заменить файл", style: TextStyle(color: Colors.white54, fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: CircleAvatar(
+                            backgroundColor: Colors.black54,
+                            radius: 16,
+                            child: IconButton(
+                              icon: const Icon(Icons.edit, size: 16, color: Colors.white),
+                              onPressed: _pickAndUpload,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Container(
+                      alignment: Alignment.topRight,
+                      padding: const EdgeInsets.all(8),
+                      child: CircleAvatar(
+                        backgroundColor: Colors.black54,
+                        radius: 16,
+                        child: IconButton(
+                          icon: const Icon(Icons.edit, size: 16, color: Colors.white),
+                          onPressed: _pickAndUpload,
+                        ),
                       ),
                     ),
-                  ),
           ),
         ),
       ],

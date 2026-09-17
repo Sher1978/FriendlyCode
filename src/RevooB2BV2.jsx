@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
   faArrowRight, faBolt, faHandPointer, faChartLine, faMicrochip, 
   faShieldHalved, faCheck, faXmark, faTriangleExclamation, 
   faLocationDot, faStar, faCoins, faUsers, faStore, faMobileScreen,
-  faEyeSlash, faUserSlash, faChevronDown
+  faEyeSlash, faUserSlash, faChevronDown, faChevronLeft, faChevronRight
 } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation, Trans } from 'react-i18next';
@@ -14,6 +14,144 @@ import B2BContactModal from './B2BContactModal';
 import LanguageSwitcher from './LanguageSwitcher';
 import LegalModal from './LegalModal';
 import GoogleMapsRankChecker from './GoogleMapsRankChecker';
+
+const SolutionSlider = () => {
+    const { t } = useTranslation();
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [isPaused, setIsPaused] = useState(false);
+    const touchStartX = useRef(0);
+    const touchEndX = useRef(0);
+
+    const slides = [
+        {
+            image: '/assets/revoo_solution_slide1.jpg',
+            title: t('b2b2_solution_slide1_title', 'Умные цифровые экраны Revoo в интерьере ресторана'),
+            tag: 'DIGITAL MENU & STATUS'
+        },
+        {
+            image: '/assets/revoo_solution_slide2.jpg',
+            title: t('b2b2_solution_slide2_title', 'Мгновенная конверсия гостей в клубах, барах и лаунжах'),
+            tag: 'NIGHTLIFE & BAR RETENTION'
+        },
+        {
+            image: '/assets/revoo_solution_slide3.jpg',
+            title: t('b2b2_solution_slide3_title', 'Интеграция уличных и пляжных зон с мгновенным QR-оффером'),
+            tag: 'OUTDOOR & BEACH ZONES'
+        },
+        {
+            image: '/assets/revoo_solution_slide4.jpg',
+            title: t('b2b2_solution_slide4_title', 'Автономная система удержания клиентов для HoReCa'),
+            tag: 'RESORT & TROPICAL LOUNGE'
+        }
+    ];
+
+    useEffect(() => {
+        if (isPaused) return;
+        const timer = setInterval(() => {
+            setCurrentIndex((prev) => (prev + 1) % slides.length);
+        }, 4500);
+        return () => clearInterval(timer);
+    }, [isPaused, slides.length]);
+
+    const prevSlide = () => {
+        setCurrentIndex((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+    };
+
+    const nextSlide = () => {
+        setCurrentIndex((prev) => (prev + 1) % slides.length);
+    };
+
+    const handleTouchStart = (e) => {
+        setIsPaused(true);
+        touchStartX.current = e.targetTouches[0].clientX;
+        touchEndX.current = e.targetTouches[0].clientX;
+    };
+
+    const handleTouchMove = (e) => {
+        touchEndX.current = e.targetTouches[0].clientX;
+    };
+
+    const handleTouchEnd = () => {
+        setIsPaused(false);
+        const diff = touchStartX.current - touchEndX.current;
+        if (diff > 40) {
+            nextSlide();
+        } else if (diff < -40) {
+            prevSlide();
+        }
+    };
+
+    return (
+        <div 
+            className="relative w-full overflow-hidden group select-none py-2"
+            onMouseEnter={() => setIsPaused(true)}
+            onMouseLeave={() => setIsPaused(false)}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+        >
+            {/* Slide Track */}
+            <div 
+                className="flex transition-transform duration-700 ease-out w-full"
+                style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+            >
+                {slides.map((slide, idx) => (
+                    <div key={idx} className="w-full flex-shrink-0 relative">
+                        <div className="w-full h-[380px] sm:h-[550px] md:h-[680px] lg:h-[780px] relative overflow-hidden">
+                            <img 
+                                src={slide.image} 
+                                alt={slide.title}
+                                className="w-full h-full object-cover object-center"
+                            />
+                            {/* Overlay Gradient for readability */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+                            
+                            {/* Slide Overlay Text */}
+                            <div className="absolute bottom-12 left-6 right-6 max-w-5xl mx-auto text-left z-10">
+                                <span className="inline-block px-3.5 py-1 rounded-full bg-[#00FF41]/20 border border-[#00FF41]/40 text-[#00FF41] text-[10px] md:text-xs font-mono font-bold uppercase tracking-widest mb-3 backdrop-blur-md">
+                                    {slide.tag}
+                                </span>
+                                <h3 className="text-xl sm:text-3xl md:text-4xl font-extrabold text-white uppercase tracking-tight drop-shadow-lg max-w-3xl leading-snug">
+                                    {slide.title}
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* Controls: Left Arrow */}
+            <button 
+                onClick={prevSlide}
+                className="absolute left-3 sm:left-8 top-1/2 -translate-y-1/2 w-12 h-12 md:w-16 md:h-16 rounded-full bg-black/70 hover:bg-black/90 border border-white/20 text-white flex items-center justify-center text-xl backdrop-blur-md transition-all shadow-2xl z-20 hover:scale-110 active:scale-95 cursor-pointer"
+                aria-label="Previous Slide"
+            >
+                <FontAwesomeIcon icon={faChevronLeft} />
+            </button>
+
+            {/* Controls: Right Arrow */}
+            <button 
+                onClick={nextSlide}
+                className="absolute right-3 sm:right-8 top-1/2 -translate-y-1/2 w-12 h-12 md:w-16 md:h-16 rounded-full bg-black/70 hover:bg-black/90 border border-white/20 text-white flex items-center justify-center text-xl backdrop-blur-md transition-all shadow-2xl z-20 hover:scale-110 active:scale-95 cursor-pointer"
+                aria-label="Next Slide"
+            >
+                <FontAwesomeIcon icon={faChevronRight} />
+            </button>
+
+            {/* Dots Pagination */}
+            <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2.5 z-20">
+                {slides.map((_, idx) => (
+                    <button
+                        key={idx}
+                        onClick={() => setCurrentIndex(idx)}
+                        className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${currentIndex === idx ? 'w-8 bg-[#00FF41] shadow-[0_0_12px_rgba(0,255,65,0.8)]' : 'w-2.5 bg-white/40 hover:bg-white/70'}`}
+                        aria-label={`Go to slide ${idx + 1}`}
+                    />
+                ))}
+            </div>
+        </div>
+    );
+};
 
 const RevooB2BV2 = () => {
     const navigate = useNavigate();
@@ -280,41 +418,24 @@ const RevooB2BV2 = () => {
                 </motion.div>
             </section>
 
-            {/* Блок 2.1: Катастрофа без нас (The Stakes) */}
-            <section className="py-24 px-6 relative z-10 border-b border-red-500/10 bg-[#1a0505]/50">
-                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                    <motion.div initial="hidden" whileInView="visible" variants={fadeInUp} viewport={{ once: true }}>
-                        <h2 className="text-3xl md:text-4xl font-extrabold uppercase tracking-tight mb-8 text-white leading-tight">
-                            {t('b2b2_stakes_h2', 'Что будет, если оставить всё как есть?')}
-                        </h2>
-                        <ul className="space-y-6">
-                            {[
-                                { title: 'Деньги утекают сквозь пальцы', desc: 'Вы продолжаете терять выручку, пока случайные прохожие из Google Карт покупают кофе один раз и навсегда уходят к вашим соседям.' },
-                                { title: 'Рейтинг падает на глазах', desc: 'Один недовольный гость пишет гневный отзыв — и алгоритмы Google опускают вас в выдаче ниже плинтуса, потому что у вас нет защитного фильтра репутации.' },
-                                { title: 'Вы рабы скидок и агрегаторов', desc: 'Попытки удержать людей через бумажные карты или купоны съедают маржу, но не возвращают гостя в заведение. Бизнес работает в ноль.' }
-                            ].map((item, i) => (
-                                <li key={i} className="flex gap-4 items-start">
-                                    <div className="mt-1 w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center text-red-500 flex-shrink-0">
-                                        <FontAwesomeIcon icon={faXmark} className="text-xs" />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-black text-white text-lg mb-1">{t(`b2b2_stakes_${i}_title`, item.title)}</h4>
-                                        <p className="text-white/60 text-sm leading-relaxed">{t(`b2b2_stakes_${i}_desc`, item.desc)}</p>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    </motion.div>
-                    
-                    <motion.div 
-                        initial={{ opacity: 0, x: 50 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        className="rounded-[40px] overflow-hidden border border-red-500/20 shadow-[0_0_50px_rgba(255,59,48,0.15)] relative h-[500px]"
-                    >
-                        <img src="/b2b_frustrated_owner.png" alt="Frustrated Owner" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#1a0505] via-transparent to-transparent" />
-                    </motion.div>
+            {/* Блок: КАК МЫ РЕШАЕМ ПРОБЛЕМУ (HOW WE SOLVE THE PROBLEM) */}
+            <section className="py-24 relative z-10 border-b border-white/5 bg-[#08080c] overflow-hidden">
+                <div className="max-w-7xl mx-auto px-6 text-center mb-12">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#00FF41]/10 border border-[#00FF41]/30 text-xs font-bold uppercase tracking-widest text-[#00FF41] mb-6 backdrop-blur-md">
+                        <FontAwesomeIcon icon={faBolt} />
+                        {t('b2b2_solution_tag', 'СИСТЕМА ЛОКАЛЬНОГО ДОМИНИРОВАНИЯ')}
+                    </div>
+                    <h2 className="text-3xl md:text-5xl font-black uppercase tracking-tight mb-6 text-white leading-tight">
+                        {t('b2b2_solution_h2', 'КАК МЫ РЕШАЕМ ПРОБЛЕМУ')}
+                    </h2>
+                    <p className="text-white/80 text-lg md:text-2xl max-w-4xl mx-auto font-medium leading-relaxed">
+                        {t('b2b2_solution_sub', 'Система локального доминирования Revoo обеспечивает рост прибыли в среднем на 40% за счет непрерывного потока новых клиентов из локального поиска Google Карт и умного удержания гостей через тающую скидку-батарею.')}
+                    </p>
+                </div>
+
+                {/* Full-width Screen Edge-to-Edge Slider */}
+                <div className="w-full relative">
+                    <SolutionSlider />
                 </div>
             </section>
 
@@ -486,6 +607,44 @@ const RevooB2BV2 = () => {
                                 <p className="text-white/60 text-sm leading-relaxed">{t('b2b2_weapon_trigger2_desc', 'Никаких анкет, паролей и лишних приложений. Всё работает за 1 секунду прямо в браузере или в Telegram.')}</p>
                             </div>
                         </div>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* Блок 2.1: Катастрофа без нас (The Stakes - Перенесен после Нобелевских премий) */}
+            <section className="py-24 px-6 relative z-10 border-b border-red-500/10 bg-[#1a0505]/50">
+                <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                    <motion.div initial="hidden" whileInView="visible" variants={fadeInUp} viewport={{ once: true }}>
+                        <h2 className="text-3xl md:text-4xl font-extrabold uppercase tracking-tight mb-8 text-white leading-tight">
+                            {t('b2b2_stakes_h2', 'Что будет, если оставить всё как есть?')}
+                        </h2>
+                        <ul className="space-y-6">
+                            {[
+                                { title: 'Деньги утекают сквозь пальцы', desc: 'Вы продолжаете терять выручку, пока случайные прохожие из Google Карт покупают кофе один раз и навсегда уходят к вашим соседям.' },
+                                { title: 'Рейтинг падает на глазах', desc: 'Один недовольный гость пишет гневный отзыв — и алгоритмы Google опускают вас в выдаче ниже плинтуса, потому что у вас нет защитного фильтра репутации.' },
+                                { title: 'Вы рабы скидок и агрегаторов', desc: 'Попытки удержать людей через бумажные карты или купоны съедают маржу, но не возвращают гостя в заведение. Бизнес работает в ноль.' }
+                            ].map((item, i) => (
+                                <li key={i} className="flex gap-4 items-start">
+                                    <div className="mt-1 w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center text-red-500 flex-shrink-0">
+                                        <FontAwesomeIcon icon={faXmark} className="text-xs" />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-black text-white text-lg mb-1">{t(`b2b2_stakes_${i}_title`, item.title)}</h4>
+                                        <p className="text-white/60 text-sm leading-relaxed">{t(`b2b2_stakes_${i}_desc`, item.desc)}</p>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </motion.div>
+                    
+                    <motion.div 
+                        initial={{ opacity: 0, x: 50 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        className="rounded-[40px] overflow-hidden border border-red-500/20 shadow-[0_0_50px_rgba(255,59,48,0.15)] relative h-[500px]"
+                    >
+                        <img src="/b2b_frustrated_owner.png" alt="Frustrated Owner" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-[#1a0505] via-transparent to-transparent" />
                     </motion.div>
                 </div>
             </section>

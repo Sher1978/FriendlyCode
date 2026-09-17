@@ -17,11 +17,13 @@ class _VenueStaffScreenState extends State<VenueStaffScreen> {
   final _firestore = FirebaseFirestore.instance;
   final TextEditingController _searchCtrl = TextEditingController();
   final TextEditingController _telegramUsernameCtrl = TextEditingController();
+  final TextEditingController _manualNameCtrl = TextEditingController();
   
   bool _isSearching = false;
   Map<String, dynamic>? _searchResult;
   String? _searchResultId;
   String? _searchError;
+  String _selectedManualRole = 'staff';
   StreamSubscription? _staffReqSub;
 
   @override
@@ -35,6 +37,7 @@ class _VenueStaffScreenState extends State<VenueStaffScreen> {
     _staffReqSub?.cancel();
     _searchCtrl.dispose();
     _telegramUsernameCtrl.dispose();
+    _manualNameCtrl.dispose();
     super.dispose();
   }
 
@@ -174,7 +177,12 @@ class _VenueStaffScreenState extends State<VenueStaffScreen> {
 
       if (snap.docs.isEmpty) {
         setState(() {
-          _searchError = "User not found. Ask them to register first.";
+          _searchResultId = null;
+          _searchResult = {
+            'email': email,
+            'displayName': '',
+            'isNewStub': true,
+          };
           _isSearching = false;
         });
       } else {
@@ -192,38 +200,71 @@ class _VenueStaffScreenState extends State<VenueStaffScreen> {
     }
   }
 
-  Future<void> _addStaff(String uid, String telegramUsername) async {
+  Future<void> _addStaff(String? uid, String telegramUsername, String selectedRole) async {
     final formattedUsername = telegramUsername.replaceAll('@', '').trim().toLowerCase();
-    if (formattedUsername.isEmpty) {
-      setState(() {
-        _searchError = "Validation Error: Telegram Username cannot be empty.";
-      });
-      return;
-    }
+    
+    try {
+      if (uid != null && uid.isNotEmpty) {
+        final Map<String, dynamic> updateData = {
+          'role': selectedRole,
+          'venueId': widget.venueId,
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+        if (formattedUsername.isNotEmpty) {
+          updateData['telegram_username'] = formattedUsername;
+          updateData['telegramUsername'] = formattedUsername;
+        }
+        await _firestore.collection('users').doc(uid).update(updateData);
+      } else {
+        final email = _searchCtrl.text.trim().toLowerCase();
+        final name = _manualNameCtrl.text.trim();
+        if (name.isEmpty) {
+          setState(() {
+            _searchError = "Validation Error: Please enter full name for the new user.";
+          });
+          return;
+        }
+        final newUserRef = _firestore.collection('users').doc();
+        final Map<String, dynamic> setData = {
+          'displayName': name,
+          'email': email,
+          'role': selectedRole,
+          'venueId': widget.venueId,
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+        if (formattedUsername.isNotEmpty) {
+          setData['telegram_username'] = formattedUsername;
+          setData['telegramUsername'] = formattedUsername;
+        }
+        await newUserRef.set(setData);
+      }
 
-    await _firestore.collection('users').doc(uid).update({
-      'role': 'staff',
-      'venueId': widget.venueId,
-      'telegram_username': formattedUsername,
-      'telegramUsername': formattedUsername,
-    });
-    setState(() {
-      _searchResult = null;
-      _searchResultId = null;
-      _searchCtrl.clear();
-      _telegramUsernameCtrl.clear();
-    });
-    if (mounted) {
-      showCupertinoDialog(
-        context: context,
-        builder: (context) => CupertinoAlertDialog(
-          title: const Text("Staff Added"),
-          content: const Text("User has been assigned as staff for this venue."),
-          actions: [
-            CupertinoDialogAction(child: const Text("OK"), onPressed: () => Navigator.pop(context)),
-          ],
-        ),
-      );
+      setState(() {
+        _searchResult = null;
+        _searchResultId = null;
+        _searchCtrl.clear();
+        _telegramUsernameCtrl.clear();
+        _manualNameCtrl.clear();
+        _searchError = null;
+      });
+
+      if (mounted) {
+        showCupertinoDialog(
+          context: context,
+          builder: (context) => CupertinoAlertDialog(
+            title: const Text("Personnel Assigned"),
+            content: Text("Role '$selectedRole' has been saved to DB for this venue."),
+            actions: [
+              CupertinoDialogAction(child: const Text("OK"), onPressed: () => Navigator.pop(context)),
+            ],
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _searchError = "Error saving role: $e";
+      });
     }
   }
 
@@ -253,43 +294,45 @@ class _VenueStaffScreenState extends State<VenueStaffScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 900),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                "Staff Management",
-                style: TextStyle(
-                  color: AppColors.macosTextPrimary,
-                  fontSize: 34,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -1.0,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 900),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Staff Management",
+                  style: TextStyle(
+                    color: AppColors.macosTextPrimary,
+                    fontSize: 34,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -1.0,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "Assign users as staff member for this venue to process redemptions.",
-                style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 16),
-              ),
-              _buildTelegramGuideCard(),
+                const SizedBox(height: 8),
+                const Text(
+                  "Assign users as staff member for this venue to process redemptions.",
+                  style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 16),
+                ),
+                _buildTelegramGuideCard(),
 
-              const SizedBox(height: 32),
-              
-              _buildAddStaffSection(),
-              
-              const SizedBox(height: 48),
-              
-              const Text(
-                "CURRENT STAFF MEMBERS",
-                style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
-              ),
-              const SizedBox(height: 16),
-              
-              Expanded(
-                child: StreamBuilder<QuerySnapshot>(
+                const SizedBox(height: 32),
+                
+                _buildAddStaffSection(),
+                
+                const SizedBox(height: 48),
+                
+                const Text(
+                  "CURRENT STAFF MEMBERS",
+                  style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
+                ),
+                const SizedBox(height: 16),
+                
+                StreamBuilder<QuerySnapshot>(
                   // Compound queries (venueId + role) require a Firestore composite index.
                   // Filtering by venueId only avoids that requirement; role filtering is done in code.
                   stream: _firestore.collection('users')
@@ -306,17 +349,22 @@ class _VenueStaffScreenState extends State<VenueStaffScreen> {
                       final email = (d['email'] as String? ?? '').toLowerCase();
                       return role != 'superadmin'
                           && email != superAdminEmail
-                          && (role == 'staff' || role == 'manager' || role == 'admin');
+                          && (role == 'staff' || role == 'manager' || role == 'admin' || role == 'owner');
                     }).toList();
                     
                     if (staff.isEmpty) {
-                      return Center(
-                        child: Text("No staff members assigned.", 
-                          style: TextStyle(color: AppColors.macosTextSecondary.withOpacity(0.5))),
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        child: Center(
+                          child: Text("No staff members assigned.", 
+                            style: TextStyle(color: AppColors.macosTextSecondary.withOpacity(0.5))),
+                        ),
                       );
                     }
 
                     return ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
                       itemCount: staff.length,
                       itemBuilder: (context, index) {
                         final data = staff[index].data() as Map<String, dynamic>;
@@ -325,8 +373,9 @@ class _VenueStaffScreenState extends State<VenueStaffScreen> {
                     );
                   },
                 ),
-              ),
-            ],
+                const SizedBox(height: 40),
+              ],
+            ),
           ),
         ),
       ),
@@ -436,6 +485,10 @@ class _VenueStaffScreenState extends State<VenueStaffScreen> {
   }
 
   Widget _buildSearchResultCard() {
+    final isNewStub = _searchResult!['isNewStub'] == true;
+    final displayName = _searchResult!['displayName'] as String? ?? '';
+    final email = _searchResult!['email'] as String? ?? '';
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -446,6 +499,28 @@ class _VenueStaffScreenState extends State<VenueStaffScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (isNewStub)
+            Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.accentOrange.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.accentOrange.withOpacity(0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(CupertinoIcons.info_circle_fill, color: AppColors.accentOrange, size: 16),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      "User profile not found in database — a new profile will be created automatically.",
+                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Row(
             children: [
               CircleAvatar(
@@ -457,22 +532,70 @@ class _VenueStaffScreenState extends State<VenueStaffScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(_searchResult!['displayName'] ?? "Unnamed User", 
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                    Text(_searchResult!['email'] ?? "", 
-                      style: TextStyle(color: AppColors.macosTextSecondary.withOpacity(0.7), fontSize: 13)),
+                    Text(
+                      displayName.isNotEmpty ? displayName : (isNewStub ? "New User Profile" : "Unnamed User"), 
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      email, 
+                      style: TextStyle(color: AppColors.macosTextSecondary.withOpacity(0.7), fontSize: 13),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          const Text("Telegram Username (without @)", 
-            style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 11, fontWeight: FontWeight.bold)),
+          if (isNewStub) ...[
+            const SizedBox(height: 14),
+            const Text(
+              "Full Name (Required for new profile)", 
+              style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 11, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            CupertinoTextField(
+              controller: _manualNameCtrl,
+              placeholder: "e.g. Alex Smith",
+              placeholderStyle: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 13),
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.macosDivider),
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+          const Text(
+            "Assigned Role", 
+            style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 11, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            width: double.infinity,
+            child: CupertinoSegmentedControl<String>(
+              groupValue: _selectedManualRole,
+              children: const {
+                'staff': Text('STAFF', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                'manager': Text('MANAGER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                'admin': Text('ADMIN', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                'owner': Text('OWNER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              },
+              onValueChanged: (val) {
+                if (val != null) setState(() => _selectedManualRole = val);
+              },
+            ),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            "Telegram Username (Optional)", 
+            style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 11, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 6),
           CupertinoTextField(
             controller: _telegramUsernameCtrl,
-            placeholder: "e.g. john_doe",
+            placeholder: "e.g. john_doe (without @)",
+            placeholderStyle: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 13),
             style: const TextStyle(color: Colors.white, fontSize: 13),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -489,15 +612,9 @@ class _VenueStaffScreenState extends State<VenueStaffScreen> {
               borderRadius: BorderRadius.circular(8),
               onPressed: () {
                 final username = _telegramUsernameCtrl.text.trim();
-                if (username.isEmpty) {
-                  setState(() {
-                    _searchError = "Validation Error: Telegram Username cannot be empty.";
-                  });
-                  return;
-                }
-                _addStaff(_searchResultId!, username);
+                _addStaff(_searchResultId, username, _selectedManualRole);
               },
-              child: const Text("Add as Staff", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+              child: const Text("SAVE PERSONNEL TO DB", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black)),
             ),
           ),
         ],
@@ -534,13 +651,17 @@ class _VenueStaffScreenState extends State<VenueStaffScreen> {
             onPressed: () async {
               final val = ctrl.text.trim();
               if (val.isEmpty) {
-                return;
+                await _firestore.collection('users').doc(uid).update({
+                  'telegram_username': FieldValue.delete(),
+                  'telegramUsername': FieldValue.delete(),
+                });
+              } else {
+                final formatted = val.replaceAll('@', '').trim().toLowerCase();
+                await _firestore.collection('users').doc(uid).update({
+                  'telegram_username': formatted,
+                  'telegramUsername': formatted,
+                });
               }
-              final formatted = val.replaceAll('@', '').trim().toLowerCase();
-              await _firestore.collection('users').doc(uid).update({
-                'telegram_username': formatted,
-                'telegramUsername': formatted,
-              });
               if (mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(

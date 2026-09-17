@@ -177,6 +177,7 @@ class VenueModel {
   final int wifiSpeedMbps;
   final bool isHybridEnabled;
   final String? giftxUrl;
+  final GoogleMapsConfig gmConfig;
 
   VenueModel({
     required this.id,
@@ -209,10 +210,12 @@ class VenueModel {
     this.wifiSpeedMbps = 100,
     this.isHybridEnabled = false,
     this.giftxUrl,
+    GoogleMapsConfig? gmConfig,
   }) : 
     tiers = tiers ?? [],
     subscription = subscription ?? VenueSubscription(),
     loyaltyConfig = loyaltyConfig ?? const LoyaltyConfig(),
+    gmConfig = gmConfig ?? GoogleMapsConfig(),
     stats = stats ?? VenueStats(
       avgReturnHours: 0, 
       totalCheckins: 0,
@@ -252,6 +255,7 @@ class VenueModel {
       'wifi_speed_mbps': wifiSpeedMbps,
       'isHybridEnabled': isHybridEnabled,
       'giftxUrl': giftxUrl,
+      'gmConfig': gmConfig.toMap(),
     };
   }
 
@@ -287,6 +291,7 @@ class VenueModel {
       wifiSpeedMbps: map['wifi_speed_mbps'] ?? 100,
       isHybridEnabled: map['isHybridEnabled'] ?? false,
       giftxUrl: map['giftxUrl'],
+      gmConfig: GoogleMapsConfig.fromMap(map['gmConfig'] as Map<String, dynamic>?),
     );
   }
   VenueModel copyWith({
@@ -320,6 +325,7 @@ class VenueModel {
     int? wifiSpeedMbps,
     bool? isHybridEnabled,
     String? giftxUrl,
+    GoogleMapsConfig? gmConfig,
   }) {
     return VenueModel(
       id: id ?? this.id,
@@ -352,6 +358,7 @@ class VenueModel {
       wifiSpeedMbps: wifiSpeedMbps ?? this.wifiSpeedMbps,
       isHybridEnabled: isHybridEnabled ?? this.isHybridEnabled,
       giftxUrl: giftxUrl ?? this.giftxUrl,
+      gmConfig: gmConfig ?? this.gmConfig,
     );
   }
 
@@ -359,6 +366,9 @@ class VenueModel {
   String? get photoUrl => logoUrl;
   int? get totalUsers => stats.monthlyActiveUsers;
   int? get totalRedemptions => stats.totalCheckins;
+
+  bool get isExpired => subscription.expiryDate != null && subscription.expiryDate!.isBefore(DateTime.now());
+  bool get isEffectiveActive => isActive && !isManuallyBlocked && !isExpired;
 }
 
 class VenueStats {
@@ -372,6 +382,10 @@ class VenueStats {
   final int newGuestsCount;
   final int vipGuestsCount;
   final int lostGuestsCount;
+  
+  // Google Maps Integration Stats
+  final int googleMapsNewGuestsCount;
+  final int googleMapsReturningGuestsCount;
 
   final Map<String, dynamic> extraData; // For extensibility
 
@@ -384,6 +398,8 @@ class VenueStats {
     this.newGuestsCount = 0,
     this.vipGuestsCount = 0,
     this.lostGuestsCount = 0,
+    this.googleMapsNewGuestsCount = 0,
+    this.googleMapsReturningGuestsCount = 0,
     this.extraData = const {},
   });
 
@@ -397,6 +413,8 @@ class VenueStats {
       'newGuestsCount': newGuestsCount,
       'vipGuestsCount': vipGuestsCount,
       'lostGuestsCount': lostGuestsCount,
+      'googleMapsNewGuestsCount': googleMapsNewGuestsCount,
+      'googleMapsReturningGuestsCount': googleMapsReturningGuestsCount,
       ...?extraData,
     };
   }
@@ -406,7 +424,8 @@ class VenueStats {
     final extra = Map<String, dynamic>.from(map);
     [
       'avgReturnHours', 'totalCheckins', 'monthlyActiveUsers', 'avgDiscount', 
-      'retentionRate', 'newGuestsCount', 'vipGuestsCount', 'lostGuestsCount'
+      'retentionRate', 'newGuestsCount', 'vipGuestsCount', 'lostGuestsCount',
+      'googleMapsNewGuestsCount', 'googleMapsReturningGuestsCount'
     ].forEach(extra.remove);
 
     return VenueStats(
@@ -418,7 +437,177 @@ class VenueStats {
       newGuestsCount: map['newGuestsCount'] ?? 0,
       vipGuestsCount: map['vipGuestsCount'] ?? 0,
       lostGuestsCount: map['lostGuestsCount'] ?? 0,
+      googleMapsNewGuestsCount: map['googleMapsNewGuestsCount'] ?? 0,
+      googleMapsReturningGuestsCount: map['googleMapsReturningGuestsCount'] ?? 0,
       extraData: extra,
     );
   }
+}
+
+
+class GoogleMapsConfig {
+  final String businessType; // 'horeca' or 'services'
+  final String dailyOfferText;
+  final String dailyOfferImageUrl;
+  final String phone;
+  final String instagram;
+  final String tiktok;
+  final String youtube;
+  final String telegram;
+  final String whatsapp;
+  final bool usePhotoMenu;
+  final bool usePdfMenu;
+  final String menuPdfUrl;
+  final String photoAspectRatio; // '1:1', '3:4', '16:9'
+  final String photoFit; // 'cover', 'contain'
+  final List<String> menuPhotos;
+  final List<GmMenuItem> menuItems;
+  final List<GmServiceItem> services;
+
+  GoogleMapsConfig({
+    this.businessType = 'horeca',
+    this.dailyOfferText = '',
+    this.dailyOfferImageUrl = '',
+    this.phone = '',
+    this.instagram = '',
+    this.tiktok = '',
+    this.youtube = '',
+    this.telegram = '',
+    this.whatsapp = '',
+    this.usePhotoMenu = false,
+    this.usePdfMenu = false,
+    this.menuPdfUrl = '',
+    this.photoAspectRatio = '3:4',
+    this.photoFit = 'cover',
+    this.menuPhotos = const [],
+    this.menuItems = const [],
+    this.services = const [],
+  });
+
+  factory GoogleMapsConfig.fromMap(Map<String, dynamic>? map) {
+    if (map == null) return GoogleMapsConfig();
+    return GoogleMapsConfig(
+      businessType: map['businessType'] ?? 'horeca',
+      dailyOfferText: map['dailyOfferText'] ?? '',
+      dailyOfferImageUrl: map['dailyOfferImageUrl'] ?? '',
+      phone: map['phone'] ?? '',
+      instagram: map['instagram'] ?? '',
+      tiktok: map['tiktok'] ?? '',
+      youtube: map['youtube'] ?? '',
+      telegram: map['telegram'] ?? '',
+      whatsapp: map['whatsapp'] ?? '',
+      usePhotoMenu: map['usePhotoMenu'] ?? false,
+      usePdfMenu: map['usePdfMenu'] ?? false,
+      menuPdfUrl: map['menuPdfUrl'] ?? '',
+      photoAspectRatio: map['photoAspectRatio'] ?? '3:4',
+      photoFit: map['photoFit'] ?? 'cover',
+      menuPhotos: (map['menuPhotos'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      menuItems: (map['menuItems'] as List<dynamic>?)?.map((e) => GmMenuItem.fromMap(e as Map<String, dynamic>)).toList() ?? [],
+      services: (map['services'] as List<dynamic>?)?.map((e) => GmServiceItem.fromMap(e as Map<String, dynamic>)).toList() ?? [],
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'businessType': businessType,
+      'dailyOfferText': dailyOfferText,
+      'dailyOfferImageUrl': dailyOfferImageUrl,
+      'phone': phone,
+      'instagram': instagram,
+      'tiktok': tiktok,
+      'youtube': youtube,
+      'telegram': telegram,
+      'whatsapp': whatsapp,
+      'usePhotoMenu': usePhotoMenu,
+      'usePdfMenu': usePdfMenu,
+      'menuPdfUrl': menuPdfUrl,
+      'photoAspectRatio': photoAspectRatio,
+      'photoFit': photoFit,
+      'menuPhotos': menuPhotos,
+      'menuItems': menuItems.map((e) => e.toMap()).toList(),
+      'services': services.map((e) => e.toMap()).toList(),
+    };
+  }
+  
+  GoogleMapsConfig copyWith({
+    String? businessType,
+    String? dailyOfferText,
+    String? dailyOfferImageUrl,
+    String? phone,
+    String? instagram,
+    String? tiktok,
+    String? youtube,
+    String? telegram,
+    String? whatsapp,
+    bool? usePhotoMenu,
+    bool? usePdfMenu,
+    String? menuPdfUrl,
+    String? photoAspectRatio,
+    String? photoFit,
+    List<String>? menuPhotos,
+    List<GmMenuItem>? menuItems,
+    List<GmServiceItem>? services,
+  }) {
+    return GoogleMapsConfig(
+      businessType: businessType ?? this.businessType,
+      dailyOfferText: dailyOfferText ?? this.dailyOfferText,
+      dailyOfferImageUrl: dailyOfferImageUrl ?? this.dailyOfferImageUrl,
+      phone: phone ?? this.phone,
+      instagram: instagram ?? this.instagram,
+      tiktok: tiktok ?? this.tiktok,
+      youtube: youtube ?? this.youtube,
+      telegram: telegram ?? this.telegram,
+      whatsapp: whatsapp ?? this.whatsapp,
+      usePhotoMenu: usePhotoMenu ?? this.usePhotoMenu,
+      usePdfMenu: usePdfMenu ?? this.usePdfMenu,
+      menuPdfUrl: menuPdfUrl ?? this.menuPdfUrl,
+      photoAspectRatio: photoAspectRatio ?? this.photoAspectRatio,
+      photoFit: photoFit ?? this.photoFit,
+      menuPhotos: menuPhotos ?? this.menuPhotos,
+      menuItems: menuItems ?? this.menuItems,
+      services: services ?? this.services,
+    );
+  }
+}
+
+class GmMenuItem {
+  final String name;
+  final String description;
+  final String price;
+  final String imageUrl;
+
+  GmMenuItem({this.name = '', this.description = '', this.price = '', this.imageUrl = ''});
+  
+  factory GmMenuItem.fromMap(Map<String, dynamic> map) {
+    return GmMenuItem(
+      name: map['name'] ?? '',
+      description: map['description'] ?? '',
+      price: map['price'] ?? '',
+      imageUrl: map['imageUrl'] ?? '',
+    );
+  }
+  
+  Map<String, dynamic> toMap() => {'name': name, 'description': description, 'price': price, 'imageUrl': imageUrl};
+}
+
+class GmServiceItem {
+  final String category;
+  final String name;
+  final String description;
+  final String price;
+  final String duration;
+
+  GmServiceItem({this.category = '', this.name = '', this.description = '', this.price = '', this.duration = ''});
+
+  factory GmServiceItem.fromMap(Map<String, dynamic> map) {
+    return GmServiceItem(
+      category: map['category'] ?? '',
+      name: map['name'] ?? '',
+      description: map['description'] ?? '',
+      price: map['price'] ?? '',
+      duration: map['duration'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() => {'category': category, 'name': name, 'description': description, 'price': price, 'duration': duration};
 }

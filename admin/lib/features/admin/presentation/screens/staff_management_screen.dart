@@ -82,49 +82,50 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Container(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  "Global Staff Management",
-                  style: TextStyle(
-                    color: AppColors.macosTextPrimary,
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -1.0,
+      body: SingleChildScrollView(
+        child: Container(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Global Staff Management",
+                    style: TextStyle(
+                      color: AppColors.macosTextPrimary,
+                      fontSize: 34,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -1.0,
+                    ),
                   ),
-                ),
-                CupertinoButton(
-                  padding: EdgeInsets.zero,
-                  child: const Icon(CupertinoIcons.info_circle, color: CupertinoColors.activeBlue),
-                  onPressed: _showRoleExplainer,
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              "Assign high-level administrative roles across the entire platform.",
-              style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 16),
-            ),
-            const SizedBox(height: 48),
-            
-            _buildSearchSection(),
-            
-            const SizedBox(height: 48),
-            
-            const Text(
-              "ADMINISTRATIVE TEAM",
-              style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
-            ),
-            const SizedBox(height: 16),
-            
-            Expanded(
-              child: StreamBuilder<QuerySnapshot>(
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    child: const Icon(CupertinoIcons.info_circle, color: CupertinoColors.activeBlue),
+                    onPressed: _showRoleExplainer,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Assign high-level administrative roles across the entire platform.",
+                style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 16),
+              ),
+              const SizedBox(height: 48),
+              
+              _buildSearchSection(),
+              
+              const SizedBox(height: 48),
+              
+              const Text(
+                "ADMINISTRATIVE TEAM",
+                style: TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
+              ),
+              const SizedBox(height: 16),
+              
+              StreamBuilder<QuerySnapshot>(
                 stream: _firestore.collection('users')
                     .where('role', whereIn: ['superadmin', 'admin', 'manager'])
                     .snapshots(),
@@ -133,6 +134,8 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                   final staff = snapshot.data!.docs;
                   
                   return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     itemCount: staff.length,
                     itemBuilder: (context, index) {
                       final data = staff[index].data() as Map<String, dynamic>;
@@ -141,8 +144,9 @@ class _StaffManagementScreenState extends State<StaffManagementScreen> {
                   );
                 },
               ),
-            ),
-          ],
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
       ),
     );

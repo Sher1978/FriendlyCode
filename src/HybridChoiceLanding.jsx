@@ -2,43 +2,72 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faBolt,
+  faGift,
+  faStar,
+  faCreditCard,
+  faCocktail,
+  faMobileAlt,
+  faRocket,
+  faGlobe,
+  faMapMarkerAlt,
+  faGem
+} from '@fortawesome/free-solid-svg-icons';
 import { db } from './firebase';
 import { doc, getDoc } from 'firebase/firestore';
+import PngBattery from './PngBattery';
+import HybridChoiceLandingV2 from './HybridChoiceLandingV2';
+import giftxBox3D from './assets/giftx-box-3d.png';
 
 const safeStorage = {
   getItem: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } },
   setItem: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { console.warn('Storage blocked'); } }
 };
 
-const HybridChoiceLanding = ({ venueData: propVenueData, venueId: propVenueId, onSelectRevo }) => {
+const HybridChoiceLanding = (props) => {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const version = searchParams.get('version') || searchParams.get('v') || searchParams.get('layout');
+
+  if (version !== '1' && version !== 'v1' && version !== 'horizontal') {
+    return <HybridChoiceLandingV2 {...props} />;
+  }
+
+  const { venueData: propVenueData, venueId: propVenueId, onSelectRevo } = props;
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [venueData, setVenueData] = useState(propVenueData || null);
   const [activeVenueId, setActiveVenueId] = useState(propVenueId || '');
-  const [loading, setLoading] = useState(!propVenueData);
 
   useEffect(() => {
-    if (propVenueData && propVenueId) {
-      setVenueData(propVenueData);
-      setActiveVenueId(propVenueId);
-      setLoading(false);
+    let hasDeposit = false;
+    try {
+      const b = safeStorage.getItem('cached_deposit_balance');
+      hasDeposit = b && Number(b) > 0;
+    } catch (e) { }
+
+    const rawId = searchParams.get('id') || searchParams.get('v') || safeStorage.getItem('currentVenueId') || 'demo';
+    const venueId = rawId.startsWith('3D') && rawId.length > 10 ? rawId.substring(2) : rawId;
+
+    if (hasDeposit) {
+      navigate(`/test?id=${venueId}`, { replace: true });
       return;
     }
 
-    const searchParams = new URLSearchParams(location.search);
-    const rawId = searchParams.get('id') || searchParams.get('v') || safeStorage.getItem('currentVenueId') || 'demo';
-    const venueId = rawId.startsWith('3D') && rawId.length > 10 ? rawId.substring(2) : rawId;
+    if (propVenueData && propVenueId) {
+      setVenueData(propVenueData);
+      setActiveVenueId(propVenueId);
+      return;
+    }
+
     setActiveVenueId(venueId);
 
-    // SWR Cache
     const cached = safeStorage.getItem(`venue_cache_${venueId}`);
     if (cached) {
-      try {
-        setVenueData(JSON.parse(cached));
-        setLoading(false);
-      } catch (e) {}
+      try { setVenueData(JSON.parse(cached)); } catch (e) { }
     }
 
     if (venueId && venueId !== 'demo') {
@@ -46,15 +75,10 @@ const HybridChoiceLanding = ({ venueData: propVenueData, venueId: propVenueId, o
         if (snap.exists()) {
           const v = snap.data();
           setVenueData(v);
+          if (v.name) safeStorage.setItem('currentVenueName', v.name);
           safeStorage.setItem(`venue_cache_${venueId}`, JSON.stringify(v));
         }
-        setLoading(false);
-      }).catch((err) => {
-        console.warn('Error fetching venue for hybrid landing:', err);
-        setLoading(false);
-      });
-    } else {
-      setLoading(false);
+      }).catch((err) => console.warn('Error fetching venue:', err));
     }
   }, [location, propVenueData, propVenueId]);
 
@@ -67,7 +91,7 @@ const HybridChoiceLanding = ({ venueData: propVenueData, venueId: propVenueId, o
     safeStorage.setItem('userLanguage', next);
   };
 
-  const venueName = venueData?.name || (activeVenueId === 'demo' ? 'OCEAN VIEW RESTAURANT' : 'RESTAURANT & BAR');
+  const venueName = venueData?.name || venueData?.venueName || safeStorage.getItem('currentVenueName') || 'REVOO VENUE';
   const giftxUrl = venueData?.giftxUrl || 'https://giftx.app';
 
   const handleRevoClick = () => {
@@ -89,139 +113,203 @@ const HybridChoiceLanding = ({ venueData: propVenueData, venueId: propVenueId, o
   const langCode = (i18n.resolvedLanguage || i18n.language || 'ru').substring(0, 2).toUpperCase();
 
   return (
-    <div className="min-h-[100dvh] bg-[#050507] text-white flex flex-col items-center justify-center p-3 sm:p-6 font-sans relative overflow-hidden select-none">
-      {/* Background Ambient Glow Effects */}
-      <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[350px] h-[350px] bg-amber-500/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] left-1/2 -translate-x-1/2 w-[350px] h-[350px] bg-fuchsia-500/10 rounded-full blur-[100px] pointer-events-none" />
+    <div className="min-h-[100dvh] bg-[#030305] text-amber-300 flex flex-col items-center justify-center p-2 sm:p-4 font-sans relative overflow-hidden select-none">
 
-      {/* Main Container / Mobile Phone Frame */}
-      <div className="w-full max-w-[410px] bg-[#0C0C0E] border border-white/10 rounded-[36px] shadow-[0_25px_60px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col relative z-10">
-        
-        {/* Top Header / Language Switcher */}
-        <div className="px-5 pt-4 pb-2 flex items-center justify-between border-b border-white/5">
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-semibold text-white/40 tracking-wider">REVOO HYBRID</span>
-          </div>
+      {/* 🌌 Revoo Business Landing Ambient Lighting */}
+      <div className="absolute top-[-10%] left-1/4 -translate-x-1/2 w-[400px] h-[400px] bg-[#00FF41]/15 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-1/4 translate-x-1/2 w-[400px] h-[400px] bg-[#FF2A85]/15 rounded-full blur-[130px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[#FFD700]/10 rounded-full blur-[150px] pointer-events-none" />
+
+      {/* Main Glassmorphic Container (iOS 26 Style Extra Rounded Shell: rounded-[44px]) */}
+      <div className="w-full max-w-[430px] bg-[#0A0A0E]/85 backdrop-blur-3xl border border-amber-400/25 rounded-[44px] shadow-[0_0_80px_rgba(0,0,0,0.95),0_0_35px_rgba(212,175,55,0.15)] overflow-hidden flex flex-col relative z-10 my-auto">
+
+        {/* Top Header Banner (NO DIVIDING LINE) */}
+        <div className="pt-4 pb-3.5 px-4 text-center relative bg-gradient-to-b from-[#141218]/90 via-[#0D0B10]/80 to-[#0A0A0E]/90 backdrop-blur-xl">
+          {/* Language Switcher */}
           <button
             onClick={toggleLanguage}
-            className="px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-full text-xs font-bold text-amber-400 flex items-center gap-1.5 transition-all"
+            className="absolute top-3.5 right-3.5 px-3 py-1 bg-amber-400/10 hover:bg-amber-400/20 border border-amber-400/30 rounded-full text-[10px] font-extrabold text-amber-300 flex items-center gap-1.5 transition-all shadow-md active:scale-95 backdrop-blur-md"
           >
-            <span>🌐</span>
+            <FontAwesomeIcon icon={faGlobe} className="text-amber-300 text-[11px]" />
             <span>{langCode}</span>
           </button>
-        </div>
 
-        {/* Venue Title & Greeting */}
-        <div className="p-5 text-center flex flex-col items-center">
+          {/* Location Badge */}
+          <div className="w-8 h-8 mx-auto mb-1.5 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 flex items-center justify-center shadow-[0_0_20px_rgba(255,215,0,0.5)] border border-amber-300/50">
+            <FontAwesomeIcon icon={faMapMarkerAlt} className="text-black text-sm" />
+          </div>
+
+          {/* Venue Name Header Badge */}
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="px-4 py-1.5 bg-black/60 border border-amber-400/40 rounded-lg shadow-[0_0_15px_rgba(212,175,55,0.2)] mb-3 inline-block"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="inline-block border border-amber-400/60 bg-black/80 backdrop-blur-xl px-5 py-1.5 rounded-2xl shadow-[0_0_25px_rgba(255,215,0,0.3)]"
           >
-            <h1 className="text-amber-300 font-black text-sm tracking-wider uppercase drop-shadow-[0_0_8px_rgba(255,215,0,0.5)]">
-              📍 [{venueName}]
+            <h1 className="text-amber-300 font-black text-sm sm:text-base tracking-wider uppercase drop-shadow-[0_0_12px_rgba(255,215,0,0.8)]">
+              {venueName}
             </h1>
           </motion.div>
 
-          <p className="text-xs text-white/80 font-medium leading-relaxed max-w-[320px]">
-            {t('hybrid_header_subtitle', 'Спасибо за визит! Сканирование прошло успешно. Какую бонусную систему вы хотите открыть?')}
+          {/* Subtitle */}
+          <p className="text-[10px] sm:text-xs font-black text-amber-300 tracking-widest uppercase drop-shadow-[0_0_8px_rgba(255,215,0,0.6)] mt-1.5">
+            РАДЫ ВИДЕТЬ ВАС!
           </p>
         </div>
 
-        {/* Cards Section */}
-        <div className="px-4 pb-6 flex flex-col gap-4">
+        {/* 2-Column Symmetrical Grid */}
+        <div className="p-3.5 grid grid-cols-2 gap-3">
 
-          {/* 1. REVO CARD (Gold Neon Theme) */}
+          {/* 🟢 LEFT COLUMN: REVO (iOS 26 Rounded Card: rounded-[28px], Soft Blurred Green Glow Border) */}
           <motion.div
-            whileHover={{ scale: 1.01 }}
+            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleRevoClick}
-            className="relative bg-gradient-to-b from-[#141419] to-[#0A0A0C] border-2 border-[#EECC44] rounded-2xl p-4 cursor-pointer shadow-[0_0_25px_rgba(238,204,68,0.2)] transition-all group overflow-hidden"
+            className="relative bg-gradient-to-b from-[#0F1C12]/80 via-[#0A120C]/80 to-[#050806]/90 backdrop-blur-2xl border border-[#00FF41]/40 rounded-[28px] p-3 flex flex-col justify-between cursor-pointer shadow-[0_0_25px_rgba(0,255,65,0.2),inset_0_0_18px_rgba(0,255,65,0.08)] hover:border-[#00FF41]/80 hover:shadow-[0_0_40px_rgba(0,255,65,0.35)] transition-all group overflow-hidden h-full"
           >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
-            
-            {/* Header / Badge */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-black text-white tracking-wide">REVO</span>
-                <span className="text-xs font-black text-[#EECC44] tracking-wider uppercase">| REVO</span>
+            <div className="absolute top-0 right-0 w-20 h-20 bg-[#00FF41]/10 rounded-full blur-xl pointer-events-none" />
+
+            <div className="flex flex-col flex-1">
+              {/* Header Badge */}
+              <div className="bg-[#0D2614]/80 border border-[#00FF41]/50 rounded-2xl p-1.5 mb-2 text-center shadow-[0_0_10px_rgba(0,255,65,0.25)] min-h-[38px] flex flex-col justify-center">
+                <div className="flex items-center justify-center gap-1.5 font-black text-[#00FF41] text-xs tracking-tight drop-shadow-[0_0_6px_rgba(0,255,65,0.6)]">
+                  <FontAwesomeIcon icon={faBolt} className="text-[#00FF41]" />
+                  <span>REVO</span>
+                </div>
+                <div className="text-[8px] font-black text-[#00FF41]/90 uppercase tracking-tighter mt-0.5">
+                  СКИДКИ ЗА ПОСТОЯНСТВО
+                </div>
+              </div>
+
+              {/* Slogan (Golden Yellow Font) */}
+              <p className="text-[10px] font-black text-amber-300 leading-snug mb-2 text-center h-[28px] flex items-center justify-center drop-shadow-[0_0_5px_rgba(255,215,0,0.5)]">
+                Чем чаще ходишь — тем выше скидка!
+              </p>
+
+              {/* 🔋 3D Visual Box: Animated Green Battery Container (rounded-[20px]) */}
+              <div className="h-[105px] flex items-center justify-center relative overflow-hidden rounded-[20px] my-1 bg-black/40 backdrop-blur-xl border border-[#00FF41]/25 shadow-[inset_0_0_15px_rgba(0,255,65,0.15)]">
+                <div className="w-full max-w-[145px] scale-100">
+                  <PngBattery capacity={100} />
+                </div>
+              </div>
+
+              {/* Symmetrical Feature Points (Golden Yellow Fonts) */}
+              <div className="space-y-1.5 my-2 text-[10px] leading-tight flex-1 flex flex-col justify-center">
+                <div className="bg-amber-400/[0.05] backdrop-blur-xl p-1.5 rounded-[16px] border border-amber-400/20 flex items-center gap-1.5 h-[34px]">
+                  <FontAwesomeIcon icon={faStar} className="text-[#FFD700] text-xs shrink-0 drop-shadow-[0_0_5px_rgba(255,215,0,0.6)]" />
+                  <div className="text-amber-300 font-bold leading-none text-[9.5px]">
+                    Подарки за отзывы
+                  </div>
+                </div>
+
+                <div className="bg-amber-400/[0.05] backdrop-blur-xl p-1.5 rounded-[16px] border border-amber-400/20 flex items-center gap-1.5 h-[34px]">
+                  <FontAwesomeIcon icon={faCreditCard} className="text-[#00FF41] text-xs shrink-0 drop-shadow-[0_0_5px_rgba(0,255,65,0.6)]" />
+                  <div className="text-amber-300 font-bold leading-none text-[9.5px]">
+                    V.I.P. статус за депозит
+                  </div>
+                </div>
+
+                <div className="bg-amber-400/[0.05] backdrop-blur-xl p-1.5 rounded-[16px] border border-amber-400/20 flex items-center gap-1.5 h-[34px]">
+                  <FontAwesomeIcon icon={faBolt} className="text-[#00FF41] text-xs shrink-0 drop-shadow-[0_0_5px_rgba(0,255,65,0.6)]" />
+                  <div className="text-amber-300 font-bold leading-none text-[9.5px]">
+                    Частота Визитов = <span className="text-[#00FF41]">Растущий %</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Icon + Title + Description */}
-            <div className="flex items-start gap-3.5 mb-4">
-              <div className="w-14 h-14 shrink-0 rounded-xl bg-amber-500/10 border border-[#EECC44]/40 flex items-center justify-center text-[#EECC44] shadow-[0_0_12px_rgba(238,204,68,0.3)]">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-              </div>
-
-              <div className="flex flex-col">
-                <h2 className="text-white font-black text-sm tracking-tight mb-1 leading-tight group-hover:text-amber-300 transition-colors">
-                  {t('hybrid_revo_title', 'REVO - СКИДКИ & ДЕПОЗИТ')}
-                </h2>
-                <p className="text-[11px] text-white/60 leading-normal">
-                  {t('hybrid_revo_desc', 'Для накопления скидки за частоту посещений и внесения депозита для постоянной скидки.')}
-                </p>
-              </div>
-            </div>
-
-            {/* Large Active Button */}
-            <div className="w-full py-2.5 bg-gradient-to-r from-[#F0D050] to-[#D4AF37] hover:from-[#FFE066] hover:to-[#E5BE40] text-black font-black text-xs rounded-xl shadow-[0_4px_15px_rgba(212,175,55,0.4)] flex items-center justify-center gap-2 transition-all">
-              <span className="text-sm">⚡</span>
-              <span className="uppercase tracking-wider">{t('hybrid_revo_btn', 'Открыть REVO')}</span>
+            {/* Action Button */}
+            <div className="w-full py-2.5 bg-gradient-to-r from-[#00FF41] via-[#10B981] to-[#D4AF37] hover:brightness-110 text-black font-black text-xs rounded-2xl shadow-[0_0_20px_rgba(0,255,65,0.4)] flex items-center justify-center gap-1.5 transition-all uppercase tracking-wider mt-1">
+              <FontAwesomeIcon icon={faBolt} className="text-black" />
+              <span>ОТКРЫТЬ REVO</span>
             </div>
           </motion.div>
 
-          {/* 2. GIFTX CARD (Pink/Magenta Neon Theme) */}
+          {/* 🎁 RIGHT COLUMN: GIFTX (iOS 26 Rounded Card: rounded-[28px], Soft Blurred Gold Glow Border) */}
           <motion.div
-            whileHover={{ scale: 1.01 }}
+            whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleGiftxClick}
-            className="relative bg-gradient-to-b from-[#191218] to-[#0D090C] border-2 border-[#FF2A85] rounded-2xl p-4 cursor-pointer shadow-[0_0_25px_rgba(255,42,133,0.2)] transition-all group overflow-hidden"
+            className="relative bg-gradient-to-b from-[#220B19]/80 via-[#150610]/80 to-[#0A0207]/90 backdrop-blur-2xl border border-[#FFD700]/40 rounded-[28px] p-3 flex flex-col justify-between cursor-pointer shadow-[0_0_25px_rgba(255,215,0,0.2),inset_0_0_18px_rgba(255,215,0,0.08)] hover:border-[#FFD700]/80 hover:shadow-[0_0_40px_rgba(255,215,0,0.35)] transition-all group overflow-hidden h-full"
           >
-            <div className="absolute top-0 right-0 w-24 h-24 bg-fuchsia-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute top-0 right-0 w-20 h-20 bg-[#FF2A85]/10 rounded-full blur-xl pointer-events-none" />
 
-            {/* Header / Badge */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-black text-white tracking-wide">GiftX</span>
-                <span className="text-xs font-black text-[#FF2A85] tracking-wider uppercase">| GIFTX</span>
+            <div className="flex flex-col flex-1">
+              {/* Header Badge */}
+              <div className="bg-[#330D25]/80 border border-[#FFD700]/60 rounded-2xl p-1.5 mb-2 text-center shadow-[0_0_10px_rgba(255,215,0,0.25)] min-h-[38px] flex flex-col justify-center">
+                <div className="flex items-center justify-center gap-1.5 font-black text-[#FFD700] text-xs tracking-tight drop-shadow-[0_0_6px_rgba(255,215,0,0.6)]">
+                  <FontAwesomeIcon icon={faGift} className="text-[#FFD700]" />
+                  <span>GIFTX</span>
+                </div>
+                <div className="text-[8px] font-black text-[#FF2A85] uppercase tracking-tighter mt-0.5">
+                  ПОЛУЧАЙ ПОДАРКИ ЗА ВИЗИТ
+                </div>
+              </div>
+
+              {/* Slogan (Golden Yellow Font) */}
+              <p className="text-[10px] font-black text-amber-300 leading-snug mb-2 text-center h-[28px] flex items-center justify-center drop-shadow-[0_0_5px_rgba(255,215,0,0.5)]">
+                Каждый оплаченный чек — твой подарок!
+              </p>
+
+              {/* 🎁 3D Visual Box: Static Imported 3D Gold Gift Box Container (rounded-[20px]) */}
+              <div className="h-[105px] flex items-center justify-center relative overflow-hidden rounded-[20px] my-1 bg-black/40 backdrop-blur-xl border border-[#FFD700]/25 shadow-[inset_0_0_15px_rgba(255,215,0,0.15)]">
+                <motion.img
+                  src={giftxBox3D}
+                  alt="GiftX 3D Box"
+                  animate={{
+                    rotate: [0, -3, 3, -3, 3, -1, 1, 0],
+                    x: [0, -2, 2, -2, 2, -1, 1, 0],
+                    y: [0, -2, 0, -2, 0],
+                    filter: [
+                      'drop-shadow(0 0 12px rgba(255,215,0,0.5))',
+                      'drop-shadow(0 0 22px rgba(255,42,133,0.7))',
+                      'drop-shadow(0 0 12px rgba(255,215,0,0.5))'
+                    ]
+                  }}
+                  transition={{ duration: 4.4, repeat: Infinity, ease: "easeInOut" }}
+                  className="h-[92px] w-auto object-contain drop-shadow-2xl"
+                />
+              </div>
+
+              {/* Symmetrical Feature Points (Golden Yellow Fonts) */}
+              <div className="space-y-1.5 my-2 text-[10px] leading-tight flex-1 flex flex-col justify-center">
+                <div className="bg-amber-400/[0.05] backdrop-blur-xl p-1.5 rounded-[16px] border border-amber-400/20 flex items-center gap-1.5 h-[34px]">
+                  <FontAwesomeIcon icon={faGift} className="text-[#FFD700] text-xs shrink-0 drop-shadow-[0_0_5px_rgba(255,215,0,0.6)]" />
+                  <div className="text-amber-300 font-bold leading-none text-[9.5px]">
+                    Подарки, бонусы, апгрейд
+                  </div>
+                </div>
+
+                <div className="bg-amber-400/[0.05] backdrop-blur-xl p-1.5 rounded-[16px] border border-amber-400/20 flex items-center gap-1.5 h-[34px]">
+                  <FontAwesomeIcon icon={faStar} className="text-[#FF2A85] text-xs shrink-0 drop-shadow-[0_0_5px_rgba(255,42,133,0.6)]" />
+                  <div className="text-amber-300 font-bold leading-none text-[9.5px]">
+                    В лучших заведениях города
+                  </div>
+                </div>
+
+                <div className="bg-amber-400/[0.05] backdrop-blur-xl p-1.5 rounded-[16px] border border-amber-400/20 flex items-center gap-1.5 h-[34px]">
+                  <FontAwesomeIcon icon={faGem} className="text-[#FFD700] text-xs shrink-0 drop-shadow-[0_0_5px_rgba(255,215,0,0.6)]" />
+                  <div className="text-amber-300 font-bold leading-none text-[9.5px]">
+                    Награда за визит = <span className="text-[#FFD700]">Gold Box</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Icon + Title + Description */}
-            <div className="flex items-start gap-3.5 mb-4">
-              <div className="w-14 h-14 shrink-0 rounded-xl bg-pink-500/10 border border-[#FF2A85]/40 flex items-center justify-center text-[#FF2A85] shadow-[0_0_12px_rgba(255,42,133,0.3)]">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V6a2 2 0 10-2 2h2zm0 13-4-4m4 4 4-4M4 11h16a1 1 0 011 1v7a1 1 0 01-1 1H4a1 1 0 01-1-1v-7a1 1 0 011-1z" />
-                </svg>
-              </div>
-
-              <div className="flex flex-col">
-                <h2 className="text-white font-black text-sm tracking-tight mb-1 leading-tight group-hover:text-pink-300 transition-colors">
-                  {t('hybrid_giftx_title', 'GIFTX - ПОДАРКИ & КРОСС-МАРКЕТИНГ')}
-                </h2>
-                <p className="text-[11px] text-white/60 leading-normal">
-                  {t('hybrid_giftx_desc', 'Для получения подарка от партнеров за чек и участия в акциях кросс-маркетинга.')}
-                </p>
-              </div>
-            </div>
-
-            {/* Large Active Button */}
-            <div className="w-full py-2.5 bg-gradient-to-r from-[#FF3B92] to-[#D91A73] hover:from-[#FF54A2] hover:to-[#ED2B84] text-white font-black text-xs rounded-xl shadow-[0_4px_15px_rgba(255,42,133,0.4)] flex items-center justify-center gap-2 transition-all">
-              <span className="text-sm">🎁</span>
-              <span className="uppercase tracking-wider">{t('hybrid_giftx_btn', 'Открыть GiftX')}</span>
+            {/* Action Button */}
+            <div className="w-full py-2.5 bg-gradient-to-r from-[#FFD700] via-[#FF2A85] to-[#E60067] hover:brightness-110 text-black font-black text-xs rounded-2xl shadow-[0_0_20px_rgba(255,215,0,0.4)] flex items-center justify-center gap-1.5 transition-all uppercase tracking-wider mt-1">
+              <FontAwesomeIcon icon={faGift} className="text-black" />
+              <span>ОТКРЫТЬ GIFTX</span>
             </div>
           </motion.div>
 
         </div>
 
-        {/* Footer info */}
-        <div className="px-5 py-3.5 bg-black/40 border-t border-white/5 text-center">
-          <p className="text-[10px] text-white/40 font-medium">
-            {t('hybrid_footer_no_apps', 'Без скачивания приложений • Мгновенный доступ')}
-          </p>
+        {/* Bottom Banner (Golden Yellow Font) */}
+        <div className="mx-3.5 mb-3.5 p-2.5 bg-gradient-to-r from-[#00FF41]/10 via-black/80 to-[#FF2A85]/10 border border-amber-400/20 rounded-2xl text-center flex items-center justify-center gap-2 shadow-inner backdrop-blur-lg">
+          <FontAwesomeIcon icon={faRocket} className="text-amber-400 text-xs" />
+          <span className="text-[10px] sm:text-xs font-black text-amber-300 tracking-wide uppercase drop-shadow-[0_0_6px_rgba(255,215,0,0.5)]">
+            БЕЗ СКАЧИВАНИЯ ПРИЛОЖЕНИЙ <span className="text-amber-400">|</span> ЧЕРЕЗ TELEGRAM
+          </span>
         </div>
 
       </div>

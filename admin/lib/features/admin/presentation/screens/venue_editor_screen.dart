@@ -8,6 +8,8 @@ import 'package:friendly_code/core/services/venue_service.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
+import 'package:friendly_code/features/owner/presentation/screens/giftx_setup_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/google_maps_config_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
 
@@ -40,6 +42,12 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
   late TextEditingController _lngCtrl;
   late TextEditingController _wifiSpeedCtrl;
   late TextEditingController _giftxUrlCtrl;
+  
+  // Superadmin fields
+  bool _isActive = true;
+  bool _isManuallyBlocked = false;
+  bool _isPaid = false;
+  DateTime? _subscriptionExpiry;
 
   @override
   void initState() {
@@ -68,6 +76,11 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     _latCtrl = TextEditingController(text: widget.venue?.latitude?.toString() ?? '');
     _lngCtrl = TextEditingController(text: widget.venue?.longitude?.toString() ?? '');
     _wifiSpeedCtrl = TextEditingController(text: widget.venue?.wifiSpeedMbps?.toString() ?? '100');
+
+    _isActive = widget.venue?.isActive ?? true;
+    _isManuallyBlocked = widget.venue?.isManuallyBlocked ?? false;
+    _isPaid = widget.venue?.subscription.isPaid ?? false;
+    _subscriptionExpiry = widget.venue?.subscription.expiryDate;
 
     // Auto-parse location coordinates from Google Maps URL input
     _googleMapsUrlCtrl.addListener(() {
@@ -162,6 +175,14 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         defaultLanguage: _selectedLanguage,
         isHybridEnabled: _isHybridEnabled,
         giftxUrl: _giftxUrlCtrl.text.trim(),
+        isActive: _isActive,
+        isManuallyBlocked: _isManuallyBlocked,
+        subscription: VenueSubscription(
+          plan: widget.venue?.subscription.plan ?? 'free',
+          isPaid: _isPaid,
+          startDate: widget.venue?.subscription.startDate,
+          expiryDate: _subscriptionExpiry,
+        ),
       );
 
       if (widget.venue == null) {
@@ -375,35 +396,110 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                   _buildGlassSection(
                     title: "НАСТРОЙКИ ГИБРИДНОЙ СТРАНИЦЫ (REVOO + GIFTX)",
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  "Активировать гибридный выбор перед сканированием",
-                                  style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  "Показывает страницу выбора между REVOO и GiftX при сканировании QR-кода",
-                                  style: TextStyle(color: Colors.white54, fontSize: 12),
-                                ),
-                              ],
+                      InkWell(
+                        onTap: () async {
+                          final v = widget.venue ?? VenueModel(
+                            id: '',
+                            name: _nameCtrl.text,
+                            ownerId: AuthService().currentUser?.uid ?? '',
+                            ownerEmail: _ownerEmailCtrl.text,
+                            address: _addressCtrl.text,
+                            description: _descCtrl.text,
+                            category: _categoryCtrl.text,
+                            isActive: true,
+                            createdAt: DateTime.now(),
+                            isHybridEnabled: _isHybridEnabled,
+                            giftxUrl: _giftxUrlCtrl.text,
+                          );
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => GiftxSetupScreen(venue: v),
                             ),
-                          ),
-                          CupertinoSwitch(
-                            value: _isHybridEnabled,
-                            activeColor: AppColors.accentYellow,
-                            onChanged: (bool val) {
+                          );
+                          if (v.id.isNotEmpty) {
+                            final snap = await FirebaseFirestore.instance
+                                .collection('venues')
+                                .doc(v.id)
+                                .get();
+                            if (snap.exists && mounted) {
+                              final d = snap.data();
                               setState(() {
-                                _isHybridEnabled = val;
+                                _isHybridEnabled = d?['isHybridEnabled'] ?? false;
+                                _giftxUrlCtrl.text = d?['giftxUrl'] ?? '';
                               });
-                            },
+                            }
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          "Активировать гибридный выбор перед сканированием",
+                                          style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                                        ),
+                                        SizedBox(width: 6),
+                                        Icon(CupertinoIcons.chevron_right, color: AppColors.accentYellow, size: 16),
+                                      ],
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      "Нажмите, чтобы настроить ссылку на страницу GiftX и режим гибрида",
+                                      style: TextStyle(color: AppColors.accentYellow, fontSize: 12, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              CupertinoSwitch(
+                                value: _isHybridEnabled,
+                                activeColor: AppColors.accentYellow,
+                                onChanged: (bool val) async {
+                                  final v = widget.venue ?? VenueModel(
+                                    id: '',
+                                    name: _nameCtrl.text,
+                                    ownerId: AuthService().currentUser?.uid ?? '',
+                                    ownerEmail: _ownerEmailCtrl.text,
+                                    address: _addressCtrl.text,
+                                    description: _descCtrl.text,
+                                    category: _categoryCtrl.text,
+                                    isActive: true,
+                                    createdAt: DateTime.now(),
+                                    isHybridEnabled: _isHybridEnabled,
+                                    giftxUrl: _giftxUrlCtrl.text,
+                                  );
+                                  await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => GiftxSetupScreen(venue: v),
+                                    ),
+                                  );
+                                  if (v.id.isNotEmpty) {
+                                    final snap = await FirebaseFirestore.instance
+                                        .collection('venues')
+                                        .doc(v.id)
+                                        .get();
+                                    if (snap.exists && mounted) {
+                                      final d = snap.data();
+                                      setState(() {
+                                        _isHybridEnabled = d?['isHybridEnabled'] ?? false;
+                                        _giftxUrlCtrl.text = d?['giftxUrl'] ?? '';
+                                      });
+                                    }
+                                  }
+                                },
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                       if (_isHybridEnabled) ...[
                         const SizedBox(height: 20),
@@ -439,6 +535,137 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                       ],
                     ],
                   ),
+
+                  const SizedBox(height: 32),
+
+                  _buildGlassSection(
+                    title: "ПРЕД-СТРАНИЦА GOOGLE КАРТ (PRE-LANDING)",
+                    children: [
+                      InkWell(
+                        onTap: () async {
+                          final v = widget.venue ?? VenueModel(
+                            id: '',
+                            name: _nameCtrl.text,
+                            ownerId: AuthService().currentUser?.uid ?? '',
+                            ownerEmail: _ownerEmailCtrl.text,
+                            address: _addressCtrl.text,
+                            description: _descCtrl.text,
+                            category: _categoryCtrl.text,
+                            isActive: true,
+                            createdAt: DateTime.now(),
+                          );
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => GoogleMapsConfigScreen(venue: v),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          "Настроить пред-страницу для Google Карт",
+                                          style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                                        ),
+                                        SizedBox(width: 6),
+                                        Icon(CupertinoIcons.chevron_right, color: AppColors.accentOrange, size: 16),
+                                      ],
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      "Меню, услуги, товар дня и настройки отображения",
+                                      style: TextStyle(color: AppColors.accentOrange, fontSize: 12, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  if (Provider.of<RoleProvider>(context, listen: false).isSuperAdmin) ...[
+                    const SizedBox(height: 32),
+                    _buildGlassSection(
+                      title: "SUPERADMIN: SUBSCRIPTION & STATUS",
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("Active Status (Visible to Guests)", style: TextStyle(color: Colors.white, fontSize: 14)),
+                            CupertinoSwitch(
+                              value: _isActive,
+                              activeColor: AppColors.accentOrange,
+                              onChanged: (val) => setState(() => _isActive = val),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("Manually Blocked (Suspended)", style: TextStyle(color: Colors.white, fontSize: 14)),
+                            CupertinoSwitch(
+                              value: _isManuallyBlocked,
+                              activeColor: Colors.red,
+                              onChanged: (val) => setState(() => _isManuallyBlocked = val),
+                            ),
+                          ],
+                        ),
+                        const Divider(color: AppColors.macosDivider, height: 32),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("Subscription Paid", style: TextStyle(color: Colors.white, fontSize: 14)),
+                            CupertinoSwitch(
+                              value: _isPaid,
+                              activeColor: AppColors.accentOrange,
+                              onChanged: (val) => setState(() => _isPaid = val),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text("Subscription Expiry Date", style: TextStyle(color: Colors.white, fontSize: 14)),
+                            CupertinoButton(
+                              padding: EdgeInsets.zero,
+                              onPressed: () async {
+                                final date = await showDatePicker(
+                                  context: context,
+                                  initialDate: _subscriptionExpiry ?? DateTime.now(),
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime(2100),
+                                );
+                                if (date != null) {
+                                  setState(() => _subscriptionExpiry = date);
+                                }
+                              },
+                              child: Text(
+                                _subscriptionExpiry != null
+                                    ? "${_subscriptionExpiry!.toLocal()}".split(' ')[0]
+                                    : "Select Date",
+                                style: const TextStyle(color: AppColors.accentOrange),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
 
                   const SizedBox(height: 48),
 

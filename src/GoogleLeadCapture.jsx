@@ -41,6 +41,10 @@ const GoogleLeadCapture = () => {
     });
 
     React.useEffect(() => {
+        // ALWAYS mark as Google Maps funnel when in GoogleLeadCapture
+        safeStorage.setItem('fromGoogleMaps', 'true');
+        safeSessionStorage.setItem('fromGoogleMaps', 'true');
+
         if (location.state?.returnTo) {
             safeSessionStorage.setItem('authReturnTo', location.state.returnTo);
             safeStorage.setItem('authReturnTo', location.state.returnTo);
@@ -50,8 +54,12 @@ const GoogleLeadCapture = () => {
         }
         if (location.state?.venueId) {
             safeStorage.setItem('currentVenueId', location.state.venueId);
+        } else {
+            const searchParams = new URLSearchParams(location.search);
+            const v = searchParams.get('venueId') || searchParams.get('v') || searchParams.get('id');
+            if (v) safeStorage.setItem('currentVenueId', v);
         }
-    }, [location.state]);
+    }, [location.state, location.search]);
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -117,6 +125,9 @@ const GoogleLeadCapture = () => {
                 if (result?.user) {
                     console.log("Redirect result user identified:", result.user.email);
                     await handleAuthAction(result.user);
+                } else if (auth.currentUser?.email) {
+                    console.log("No redirect result, but currentUser is authenticated:", auth.currentUser.email);
+                    await handleAuthAction(auth.currentUser);
                 } else {
                     console.log("No redirect result found (Normal page load).");
                     if (redirectStarted === 'true') {
@@ -409,28 +420,33 @@ const GoogleLeadCapture = () => {
 
     const handleGoogleSignIn = async () => {
         setIsGoogleLoading(true);
+        // Persist redirect & funnel flags BEFORE triggering auth
+        safeSessionStorage.setItem('googleRedirectStarted', 'true');
+        safeStorage.setItem('googleRedirectStarted', 'true');
+        safeStorage.setItem('fromGoogleMaps', 'true');
+        safeSessionStorage.setItem('fromGoogleMaps', 'true');
+
         try {
             googleProvider.setCustomParameters({ prompt: 'select_account' });
             let result = null;
             try {
                 result = await signInWithPopup(auth, googleProvider);
             } catch (popupError) {
-                console.warn("signInWithPopup failed/blocked, checking fallback:", popupError);
-                if (popupError.code === 'auth/popup-blocked') {
-                    safeSessionStorage.setItem('googleRedirectStarted', 'true');
-                    safeStorage.setItem('googleRedirectStarted', 'true');
-                    await signInWithRedirect(auth, googleProvider);
-                    // Leave isGoogleLoading true because the page will redirect away
-                    return;
-                }
+                console.warn("signInWithPopup failed/blocked, invoking redirect fallback:", popupError);
                 if (popupError.code === 'auth/popup-closed-by-user' || popupError.code === 'auth/cancelled-popup-request') {
+                    safeSessionStorage.removeItem('googleRedirectStarted');
+                    safeStorage.removeItem('googleRedirectStarted');
                     setIsGoogleLoading(false);
                     return;
                 }
-                throw popupError;
+                // Fallback to signInWithRedirect for ALL popup blocks / errors on mobile
+                await signInWithRedirect(auth, googleProvider);
+                return;
             }
 
             if (result?.user) {
+                safeSessionStorage.removeItem('googleRedirectStarted');
+                safeStorage.removeItem('googleRedirectStarted');
                 const user = result.user;
                 console.log("Google Sign-In successful for:", user.email);
                 const venueId = safeStorage.getItem('currentVenueId') || 'unknown';
@@ -445,6 +461,8 @@ const GoogleLeadCapture = () => {
             }
         } catch (error) {
             console.error("Google Auth failed:", error);
+            safeSessionStorage.removeItem('googleRedirectStarted');
+            safeStorage.removeItem('googleRedirectStarted');
             if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
                 alert("Google Sign-In failed: " + error.message);
             }

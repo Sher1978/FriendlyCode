@@ -286,8 +286,9 @@ class _VenueRoleAssignmentScreenState extends State<VenueRoleAssignmentScreen> {
                   ),
                   items: const [
                     DropdownMenuItem(value: 'owner',   child: Text('OWNER — Full venue access', style: TextStyle(color: AppColors.title))),
-                    DropdownMenuItem(value: 'staff',   child: Text('STAFF — POS & check-in access', style: TextStyle(color: AppColors.title))),
+                    DropdownMenuItem(value: 'admin',   child: Text('ADMIN — Venue administrator', style: TextStyle(color: AppColors.title))),
                     DropdownMenuItem(value: 'manager', child: Text('MANAGER — Edit venue details', style: TextStyle(color: AppColors.title))),
+                    DropdownMenuItem(value: 'staff',   child: Text('STAFF — POS & check-in access', style: TextStyle(color: AppColors.title))),
                     DropdownMenuItem(value: 'guest',   child: Text('GUEST — Customer level', style: TextStyle(color: AppColors.title))),
                   ],
                   onChanged: (val) => setState(() => _selectedRole = val ?? 'staff'),
@@ -337,13 +338,22 @@ class _VenueRoleAssignmentScreenState extends State<VenueRoleAssignmentScreen> {
                   }
                   return StreamBuilder<QuerySnapshot>(
                     stream: _db.collection('users')
-                        .where('role', whereIn: ['owner', 'staff', 'manager'])
+                        .where('role', whereIn: ['owner', 'staff', 'manager', 'admin'])
                         .snapshots(),
                     builder: (context, snap) {
                       if (!snap.hasData) return const Center(child: CupertinoActivityIndicator());
-                      final docs = snap.data!.docs;
+                      var docs = snap.data!.docs;
+                      if (_selectedVenueId != null) {
+                        docs = docs.where((doc) {
+                          final data = doc.data() as Map<String, dynamic>;
+                          return data['venueId'] == _selectedVenueId;
+                        }).toList();
+                      }
                       if (docs.isEmpty) {
-                        return const Text('No venue staff assigned yet.', style: TextStyle(color: AppColors.tertiary));
+                        final msg = _selectedVenueId == null 
+                            ? 'No venue staff assigned yet.' 
+                            : 'No staff assigned to $_selectedVenueName yet.';
+                        return Text(msg, style: const TextStyle(color: AppColors.tertiary));
                       }
                       return Column(
                         children: docs.map((doc) {

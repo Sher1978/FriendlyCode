@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,7 +6,7 @@
 
 @layer base {
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -147,3 +147,19 @@ input[type="range"].revo-slider-cyan::-moz-range-thumb {
   box-shadow: 0 0 18px rgba(0, 240, 255, 0.8);
 }
 
+/* Brand Scrollbar for Galleries */
+.brand-scrollbar::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.brand-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+.brand-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(to right, #fbbf24, #f97316);
+  border-radius: 8px;
+}
+.brand-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to right, #f59e0b, #ea580c);
+}

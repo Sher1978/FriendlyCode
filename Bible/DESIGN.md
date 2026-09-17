@@ -17,9 +17,9 @@ The design follows a **"Premium iOS 26"** aesthetic, characterized by:
 *   **Soft Charcoal (#4E342E):** Used for primary text and iconography to maintain readability while fitting the warm theme.
 
 ### Semantic & Luxury Colors (Loyalty Tiers)
-*   **Energy Red (#FF3131):** 10% Tier (Low/Base). Represents a "low charge" or starting state.
-*   **Vibrant Orange (#FF8800):** 25% Tier (Regular). A warm, energetic mid-tier color.
-*   **Golden Sun (#FFD700):** 50% Tier (VIP). Represents high value and luxury.
+*   **Golden Sun (#FFD700):** 10% Tier (Base / Starting VIP). Represents valuable reward and luxury.
+*   **Vibrant Amber (#FFAA00 / #FF8800):** 25% Tier (Regular). A warm, energetic mid-tier color.
+*   **Golden VIP (#FFD700):** 50% Tier (VIP). High value and reward status.
 *   **Emerald Glow (#00FF41):** 100% Tier (Super VIP/Max). Represents a fully "charged" loyalty status.
 
 ## 3. Typography Rules

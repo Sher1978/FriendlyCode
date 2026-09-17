@@ -15,7 +15,7 @@ import { db } from './firebase';
 const MarketingB2B = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
-    const [formData, setFormData] = useState({ city: '', phone: '', email: '' });
+    const [formData, setFormData] = useState({ venueName: '', city: '', contact: '' });
     const [isSubmitted, setIsSubmitted] = useState(false);
 
     const toggleLanguage = () => {
@@ -401,26 +401,26 @@ const MarketingB2B = () => {
                                             <input
                                                 type="text"
                                                 required
-                                                placeholder={t('b2b_form_city')}
+                                                placeholder={t('b2b_form_venueName', 'Название заведения')}
+                                                className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
+                                                value={formData.venueName}
+                                                onChange={e => setFormData({ ...formData, venueName: e.target.value })}
+                                            />
+                                            <input
+                                                type="text"
+                                                required
+                                                placeholder={t('b2b_form_city', 'Город')}
                                                 className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
                                                 value={formData.city}
                                                 onChange={e => setFormData({ ...formData, city: e.target.value })}
                                             />
                                             <input
-                                                type="tel"
+                                                type="text"
                                                 required
-                                                placeholder={t('b2b_form_phone')}
+                                                placeholder={t('b2b_form_contact', 'Контакт (WhatsApp/Телефон)')}
                                                 className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
-                                                value={formData.phone}
-                                                onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                                            />
-                                            <input
-                                                type="email"
-                                                required
-                                                placeholder={t('b2b_form_email')}
-                                                className="w-full px-8 py-5 bg-slate-50 border border-brand-brown/5 rounded-[1.5rem] outline-none font-bold text-brand-brown placeholder:font-medium placeholder:opacity-40 focus:bg-white focus:border-brand-orange/50 transition-all"
-                                                value={formData.email}
-                                                onChange={e => setFormData({ ...formData, email: e.target.value })}
+                                                value={formData.contact}
+                                                onChange={e => setFormData({ ...formData, contact: e.target.value })}
                                             />
                                         </div>
                                         <button className="w-full py-6 bg-brand-orange text-white rounded-[2rem] font-black text-xl tracking-wide hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-brand-orange/20">

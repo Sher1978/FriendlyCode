@@ -29,7 +29,11 @@ const LeadCapture = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const searchParams = new URLSearchParams(location.search);
-    const isGoogleMaps = location.state?.fromGoogleMaps === true || location.state?.acquisition_source === 'google_maps_bonus' || searchParams.get('utm_source') === 'google_maps';
+    const isGoogleMaps = location.state?.fromGoogleMaps === true ||
+                         location.state?.acquisition_source === 'google_maps_bonus' ||
+                         searchParams.get('utm_source') === 'google_maps' ||
+                         safeStorage.getItem('fromGoogleMaps') === 'true' ||
+                         safeSessionStorage.getItem('fromGoogleMaps') === 'true';
     
     // --- STATE PERSISTENCE (Recover state after redirect) ---
     const [discount] = useState(() => {
@@ -43,6 +47,10 @@ const LeadCapture = () => {
     });
 
     React.useEffect(() => {
+        if (location.state?.fromGoogleMaps || searchParams.get('utm_source') === 'google_maps') {
+            safeStorage.setItem('fromGoogleMaps', 'true');
+            safeSessionStorage.setItem('fromGoogleMaps', 'true');
+        }
         if (location.state?.returnTo) {
             safeSessionStorage.setItem('authReturnTo', location.state.returnTo);
             safeStorage.setItem('authReturnTo', location.state.returnTo);
@@ -52,8 +60,11 @@ const LeadCapture = () => {
         }
         if (location.state?.venueId) {
             safeStorage.setItem('currentVenueId', location.state.venueId);
+        } else {
+            const v = searchParams.get('venueId') || searchParams.get('v') || searchParams.get('id');
+            if (v) safeStorage.setItem('currentVenueId', v);
         }
-    }, [location.state]);
+    }, [location.state, location.search]);
 
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -119,6 +130,9 @@ const LeadCapture = () => {
                 if (result?.user) {
                     console.log("Redirect result user identified:", result.user.email);
                     await handleAuthAction(result.user);
+                } else if (auth.currentUser?.email) {
+                    console.log("No redirect result, but currentUser is authenticated:", auth.currentUser.email);
+                    await handleAuthAction(auth.currentUser);
                 } else {
                     console.log("No redirect result found (Normal page load).");
                     if (redirectStarted === 'true') {
@@ -323,7 +337,7 @@ const LeadCapture = () => {
             ]);
 
             // HARDCODED REDIRECT: Google Flow -> /google-thank-you, QR Flow -> /thank-you
-            const isGoogleBonusFlow = isGoogleMaps || isGoogleBonus;
+            const isGoogleBonusFlow = isGoogleMaps || isGoogleBonus || safeStorage.getItem('fromGoogleMaps') === 'true' || safeSessionStorage.getItem('fromGoogleMaps') === 'true';
 
             if (isGoogleBonusFlow) {
                 console.log("Hardcoded Navigation to Google Maps Bonus thank-you screen (/google-thank-you)");
@@ -358,7 +372,7 @@ const LeadCapture = () => {
         } catch (e) {
             console.error("Critical error in processAuthUser:", e);
             const urlParams = new URLSearchParams(location.search);
-            const isGoogleBonusFlow = isGoogleMaps || urlParams.get('utm_source') === 'google_maps' || location.state?.fromGoogleMaps === true || location.state?.acquisition_source === 'google_maps_bonus';
+            const isGoogleBonusFlow = isGoogleMaps || urlParams.get('utm_source') === 'google_maps' || location.state?.fromGoogleMaps === true || location.state?.acquisition_source === 'google_maps_bonus' || safeStorage.getItem('fromGoogleMaps') === 'true';
 
             if (isGoogleBonusFlow) {
                 navigate(`/google-thank-you?venueId=${venueId}`, { 
@@ -424,37 +438,52 @@ const LeadCapture = () => {
         } catch (err) {
             console.error("Manual entry auth error:", err);
             const venueId = safeStorage.getItem('currentVenueId') || 'unknown';
-            navigate(`/thank-you?venueId=${venueId}`, { 
-                state: { guestName: safeName, guestEmail: safeEmail, discountValue: discount, venueId: venueId },
-                replace: true
-            });
+            const isGoogleBonusFlow = isGoogleMaps || safeStorage.getItem('fromGoogleMaps') === 'true';
+            if (isGoogleBonusFlow) {
+                navigate(`/google-thank-you?venueId=${venueId}`, { 
+                    state: { guestName: safeName, guestEmail: safeEmail, discountValue: discount, venueId: venueId, fromGoogleMaps: true },
+                    replace: true
+                });
+            } else {
+                navigate(`/thank-you?venueId=${venueId}`, { 
+                    state: { guestName: safeName, guestEmail: safeEmail, discountValue: discount, venueId: venueId },
+                    replace: true
+                });
+            }
         }
     };
 
     const handleGoogleSignIn = async () => {
         setIsGoogleLoading(true);
+        // Persist redirect & funnel flags BEFORE triggering auth
+        safeSessionStorage.setItem('googleRedirectStarted', 'true');
+        safeStorage.setItem('googleRedirectStarted', 'true');
+        if (isGoogleMaps) {
+            safeStorage.setItem('fromGoogleMaps', 'true');
+            safeSessionStorage.setItem('fromGoogleMaps', 'true');
+        }
+
         try {
             googleProvider.setCustomParameters({ prompt: 'select_account' });
             let result = null;
             try {
                 result = await signInWithPopup(auth, googleProvider);
             } catch (popupError) {
-                console.warn("signInWithPopup failed/blocked, checking fallback:", popupError);
-                if (popupError.code === 'auth/popup-blocked') {
-                    safeSessionStorage.setItem('googleRedirectStarted', 'true');
-                    safeStorage.setItem('googleRedirectStarted', 'true');
-                    await signInWithRedirect(auth, googleProvider);
-                    // Leave isGoogleLoading true because the page will redirect away
-                    return;
-                }
+                console.warn("signInWithPopup failed/blocked, invoking redirect fallback:", popupError);
                 if (popupError.code === 'auth/popup-closed-by-user' || popupError.code === 'auth/cancelled-popup-request') {
+                    safeSessionStorage.removeItem('googleRedirectStarted');
+                    safeStorage.removeItem('googleRedirectStarted');
                     setIsGoogleLoading(false);
                     return;
                 }
-                throw popupError;
+                // Fallback to signInWithRedirect for ALL popup blocks / errors on mobile
+                await signInWithRedirect(auth, googleProvider);
+                return;
             }
 
             if (result?.user) {
+                safeSessionStorage.removeItem('googleRedirectStarted');
+                safeStorage.removeItem('googleRedirectStarted');
                 const user = result.user;
                 console.log("Google Sign-In successful for:", user.email);
                 const venueId = safeStorage.getItem('currentVenueId') || 'unknown';
@@ -469,6 +498,8 @@ const LeadCapture = () => {
             }
         } catch (error) {
             console.error("Google Auth failed:", error);
+            safeSessionStorage.removeItem('googleRedirectStarted');
+            safeStorage.removeItem('googleRedirectStarted');
             if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
                 alert("Google Sign-In failed: " + error.message);
             }

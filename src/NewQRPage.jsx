@@ -27,6 +27,22 @@ const safeSessionStorage = {
     setItem: (k, v) => { try { sessionStorage.setItem(k, v); } catch (e) { console.warn('Session storage blocked'); } }
 };
 
+const parseBalance = (val) => {
+    if (val === null || val === undefined) return 0;
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    if (typeof val === 'object') {
+        const inner = val.balance ?? val.amount ?? val.value ?? 0;
+        const num = Number(inner);
+        return isNaN(num) ? 0 : num;
+    }
+    const num = Number(val);
+    return isNaN(num) ? 0 : num;
+};
+
+const safeFormatMoney = (val) => {
+    return parseBalance(val).toLocaleString();
+};
+
 const NewQRPage = () => {
     const { t, i18n } = useTranslation();
     const navigate = useNavigate();
@@ -239,24 +255,38 @@ const NewQRPage = () => {
                     // 2. Listen to user document in real time
                     // First snapshot resolves depositReady; subsequent ones just update
                     let isFirstDepositSnapshot = true;
-                    unsubscribeUser = onSnapshot(doc(db, 'users', targetUid), (docSnap) => {
+                    const savedEffectiveUid = safeStorage.getItem('effectiveUid');
+                    const listenUid = savedEffectiveUid || targetUid;
+
+                    const handleUserSnapshot = (docSnap) => {
                         if (docSnap.exists()) {
                             const data = docSnap.data();
                             setUserProfile(data);
 
-                            // Venue-strict deposit lookup
                             let balance = 0;
-                            if (data.deposit_balances && data.deposit_balances[activeVenueId] !== undefined) {
-                                balance = Number(data.deposit_balances[activeVenueId] || 0);
-                            } else if (data.deposits && data.deposits[activeVenueId] !== undefined) {
-                                const val = data.deposits[activeVenueId];
+                            const vId = activeVenueId || venueId;
+
+                            if (data.deposit_balances && vId && data.deposit_balances[vId] !== undefined) {
+                                balance = Number(data.deposit_balances[vId] || 0);
+                            } else if (data.deposit_balances && venueId && data.deposit_balances[venueId] !== undefined) {
+                                balance = Number(data.deposit_balances[venueId] || 0);
+                            } else if (data.deposits && vId && data.deposits[vId] !== undefined) {
+                                const val = data.deposits[vId];
                                 balance = Number(typeof val === 'object' ? (val.balance || 0) : val);
-                            } else if (data.deposit_venue_id) {
-                                balance = data.deposit_venue_id === activeVenueId ? Number(data.deposit_balance || 0) : 0;
-                            } else if (!data.venueId || data.venueId === activeVenueId || activeVenueId === 'demo') {
+                            } else if (data.deposit_balances && data.deposit_venue_id && data.deposit_balances[data.deposit_venue_id] !== undefined) {
+                                balance = Number(data.deposit_balances[data.deposit_venue_id] || 0);
+                            } else if (data.deposit_balance !== undefined && data.deposit_balance !== null && Number(data.deposit_balance) > 0) {
+                                balance = Number(data.deposit_balance);
+                            } else if (data.deposit_venue_id && (data.deposit_venue_id === vId || data.deposit_venue_id === venueId || !vId || vId === 'demo' || vId === 'default_venue')) {
+                                balance = Number(data.deposit_balance || 0);
+                            } else if (data.venueId && (data.venueId === vId || data.venueId === venueId || !vId || vId === 'demo' || vId === 'default_venue')) {
+                                balance = Number(data.deposit_balance || 0);
+                            } else if (data.deposit_balances && Object.keys(data.deposit_balances).length > 0) {
+                                const vals = Object.values(data.deposit_balances).map(Number).filter(v => !isNaN(v) && v > 0);
+                                balance = vals.length > 0 ? Math.max(...vals) : 0;
+                            } else {
                                 balance = Number(data.deposit_balance || 0);
                             }
-
 
                             prevBalRef.current = balance;
 
@@ -274,7 +304,6 @@ const NewQRPage = () => {
                                 }
                             }
 
-                            // Trigger scan check-in (only once per session)
                             if (balance > 0 && !safeSessionStorage.getItem(`checkin_triggered_${activeVenueId}`)) {
                                 safeSessionStorage.setItem(`checkin_triggered_${activeVenueId}`, 'true');
                                 const checkinFn = httpsCallable(functions, 'triggerCustomerCheckin');
@@ -285,7 +314,6 @@ const NewQRPage = () => {
                                 });
                             }
                         } else {
-                            // No user doc / anonymous — deposit is 0, mark ready
                             setDepositBalance(0);
                             safeStorage.removeItem('cached_deposit_balance');
                             if (isFirstDepositSnapshot) {
@@ -298,7 +326,17 @@ const NewQRPage = () => {
                                 }
                             }
                         }
-                    });
+                    };
+
+                    const unsub1 = onSnapshot(doc(db, 'users', listenUid), handleUserSnapshot);
+                    let unsub2 = null;
+                    if (user.uid !== listenUid) {
+                        unsub2 = onSnapshot(doc(db, 'users', user.uid), handleUserSnapshot);
+                    }
+                    unsubscribeUser = () => {
+                        unsub1();
+                        if (unsub2) unsub2();
+                    };
 
                         const rawEmail = userData?.email || safeStorage.getItem('guestEmail') || '';
                         const email = rawEmail.toLowerCase();
@@ -550,6 +588,7 @@ const NewQRPage = () => {
     const handleWriteGoogleReview = (url) => {
         if (!url) return;
         const reviewUrl = convertToGoogleReviewUrl(url);
+        logVenueClick(activeVenueId || safeStorage.getItem('currentVenueId'), 'google_maps');
         window.open(reviewUrl, '_blank', 'noopener,noreferrer');
         setIsReviewPending(true);
         
@@ -1151,14 +1190,14 @@ const NewQRPage = () => {
                                     </div>
 
                                     <div className="text-4xl font-black text-white tracking-tight mb-4 drop-shadow-[0_2px_10px_rgba(255,255,255,0.2)]">
-                                        {depositBalance.toLocaleString()} <span className="text-sm font-medium text-white/50">{venueCurrency}</span>
+                                        {safeFormatMoney(depositBalance)} <span className="text-sm font-medium text-white/50">{venueCurrency}</span>
                                     </div>
 
                                     {/* Personal QR Code for Staff to Deduct Bill */}
                                     <div className="bg-white p-3 rounded-2xl shadow-xl mb-3 border border-white/20">
                                         <img 
                                             src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
-                                                `https://bot-lab-21910.web.app/admin/deposit?search=${auth.currentUser?.uid || userProfile?.id || userProfile?.email || auth.currentUser?.email || safeStorage.getItem('effectiveUid') || safeStorage.getItem('guestEmail') || guestEmail || ''}&action=deduct`
+                                                `https://bot-lab-21910.web.app/admin/deposit?search=${auth.currentUser?.uid || userProfile?.id || userProfile?.email || auth.currentUser?.email || safeStorage.getItem('effectiveUid') || safeStorage.getItem('guestEmail') || guestName || ''}&action=deduct`
                                             )}`}
                                             alt="Personal Deposit QR"
                                             className="w-[160px] h-[160px] block mx-auto"

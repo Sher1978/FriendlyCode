@@ -7,69 +7,155 @@ import { faSearch, faCheckCircle, faTimesCircle, faExclamationTriangle, faMapMar
 
 const GoogleMapsRankChecker = () => {
     const [step, setStep] = useState('input'); // input, loading, result, success
+    const [inputValue, setInputValue] = useState('');
     const [placeDetails, setPlaceDetails] = useState(null);
     const [healthScore, setHealthScore] = useState(0);
     const [progress, setProgress] = useState(0);
     const [contactInfo, setContactInfo] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [isUrlMode, setIsUrlMode] = useState(false);
+    const [isSearching, setIsSearching] = useState(false);
     
     const inputRef = useRef(null);
     const autocompleteRef = useRef(null);
-    const placesServiceRef = useRef(null);
 
-    // Initialize Autocomplete
+    // Initialize Autocomplete with safety checks and retry mechanism
     useEffect(() => {
-        if (!window.google || !window.google.maps || !window.google.maps.places) {
-            console.error('Google Maps API not loaded.');
-            return;
-        }
-        
-        if (inputRef.current && !autocompleteRef.current) {
-            autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
-                fields: ['place_id', 'name', 'rating', 'user_ratings_total', 'website', 'formatted_address', 'icon', 'types'],
-                types: ['establishment']
-            });
+        let isMounted = true;
 
-            autocompleteRef.current.addListener('place_changed', handlePlaceSelected);
+        const initAutocomplete = () => {
+            if (!window.google || !window.google.maps || !window.google.maps.places) {
+                return false;
+            }
             
-            // Bias towards user's current location if allowed
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const circle = new window.google.maps.Circle({
-                            center: { lat: position.coords.latitude, lng: position.coords.longitude },
-                            radius: 50000 // 50km radius
-                        });
-                        if (autocompleteRef.current) {
-                            autocompleteRef.current.setBounds(circle.getBounds());
+            if (inputRef.current && !autocompleteRef.current) {
+                try {
+                    autocompleteRef.current = new window.google.maps.places.Autocomplete(inputRef.current, {
+                        fields: ['place_id', 'name', 'rating', 'user_ratings_total', 'website', 'formatted_address', 'icon', 'types'],
+                        types: ['establishment']
+                    });
+
+                    autocompleteRef.current.addListener('place_changed', () => {
+                        if (!isMounted || !autocompleteRef.current) return;
+                        try {
+                            const place = autocompleteRef.current.getPlace();
+                            if (place && (place.place_id || place.name)) {
+                                setPlaceDetails(place);
+                                startAnalysis(place);
+                            }
+                        } catch (err) {
+                            console.error('Google Autocomplete place_changed error:', err);
                         }
-                    },
-                    (error) => {
-                        console.log("Geolocation not available or denied:", error);
+                    });
+                    
+                    // Bias towards user's current location if allowed
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            (position) => {
+                                if (!isMounted || !autocompleteRef.current) return;
+                                try {
+                                    const circle = new window.google.maps.Circle({
+                                        center: { lat: position.coords.latitude, lng: position.coords.longitude },
+                                        radius: 50000 // 50km radius
+                                    });
+                                    autocompleteRef.current.setBounds(circle.getBounds());
+                                } catch (e) {}
+                            },
+                            () => {}
+                        );
                     }
-                );
+                    return true;
+                } catch (e) {
+                    console.warn('Could not initialize Google Places Autocomplete:', e);
+                    return false;
+                }
+            }
+            return true;
+        };
+
+        if (step === 'input') {
+            const ok = initAutocomplete();
+            if (!ok) {
+                const timer = setTimeout(initAutocomplete, 1000);
+                return () => {
+                    isMounted = false;
+                    clearTimeout(timer);
+                };
             }
         }
+
+        return () => {
+            isMounted = false;
+        };
     }, [step]);
 
-    const handlePlaceSelected = () => {
-        const place = autocompleteRef.current.getPlace();
-        if (!place || !place.place_id) return;
+    const handleSearchSubmit = async (e) => {
+        if (e) e.preventDefault();
+        const query = inputValue.trim();
+        if (!query) return;
 
-        setPlaceDetails(place);
-        startAnalysis(place);
+        setIsSearching(true);
+
+        // Check if URL mode
+        if (query.includes('maps.app.goo.gl') || query.includes('google.com/maps') || query.includes('http://') || query.includes('https://')) {
+            const mockPlace = {
+                name: 'Заведение по ссылке',
+                formatted_address: query,
+                rating: 4.2,
+                user_ratings_total: 45,
+                website: ''
+            };
+            setPlaceDetails(mockPlace);
+            setIsSearching(false);
+            startAnalysis(mockPlace);
+            return;
+        }
+
+        // Try Nominatim geocoding as robust fallback if Google Autocomplete didn't auto-trigger
+        try {
+            const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1&addressdetails=1`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            if (data && data.length > 0) {
+                const item = data[0];
+                const placeName = item.name || item.display_name.split(',')[0] || query;
+                const mockPlace = {
+                    name: placeName,
+                    formatted_address: item.display_name,
+                    rating: 4.3,
+                    user_ratings_total: 58,
+                    website: ''
+                };
+                setPlaceDetails(mockPlace);
+                setIsSearching(false);
+                startAnalysis(mockPlace);
+                return;
+            }
+        } catch (err) {
+            console.error("Geocoding search fallback error:", err);
+        }
+
+        // Ultimate fallback: generate place analysis from query text directly
+        const fallbackPlace = {
+            name: query,
+            formatted_address: `${query}, Local Business Profile`,
+            rating: 4.1,
+            user_ratings_total: 34,
+            website: ''
+        };
+        setPlaceDetails(fallbackPlace);
+        setIsSearching(false);
+        startAnalysis(fallbackPlace);
     };
 
     const startAnalysis = (place) => {
         setStep('loading');
         
         // Calculate mock health score with built-in anxiety (Loss Aversion)
-        // Base score is 70 instead of 100.
         let score = 70;
 
-        const rating = place.rating || 0;
-        const reviews = place.user_ratings_total || 0;
+        const rating = parseFloat(place.rating) || 0;
+        const reviews = parseInt(place.user_ratings_total) || 0;
         
         if (rating >= 4.7) {
             score += 10;
@@ -127,9 +213,6 @@ const GoogleMapsRankChecker = () => {
                 source: 'maps_audit_widget'
             });
 
-            // Optional: Telegram Webhook logic can be added via Cloud Functions
-            // or a direct fetch to a bot API if provided.
-
             setStep('success');
         } catch (error) {
             console.error('Error saving lead:', error);
@@ -164,51 +247,34 @@ const GoogleMapsRankChecker = () => {
                             exit={{ opacity: 0, y: -10 }}
                             className="flex flex-col items-center"
                         >
-                            <div className="w-full max-w-2xl relative flex flex-col md:flex-row gap-4">
+                            <form 
+                                onSubmit={handleSearchSubmit} 
+                                className="w-full max-w-2xl relative flex flex-col md:flex-row gap-3"
+                            >
                                 <div className="relative flex-grow">
-                                    <FontAwesomeIcon icon={faMapMarkerAlt} className="absolute left-5 top-1/2 -translate-y-1/2 text-white/40 text-xl" />
+                                    <FontAwesomeIcon icon={faMapMarkerAlt} className="absolute left-5 top-1/2 -translate-y-1/2 text-white/40 text-xl pointer-events-none" />
                                     <input 
                                         ref={inputRef}
                                         type="text" 
-                                        onChange={(e) => {
-                                            const val = e.target.value;
-                                            if (val.includes('maps.app.goo.gl') || val.includes('google.com/maps')) {
-                                                setIsUrlMode(true);
-                                                inputRef.current.urlValue = val;
-                                            } else {
-                                                setIsUrlMode(false);
-                                            }
-                                        }}
+                                        value={inputValue}
+                                        onChange={(e) => setInputValue(e.target.value)}
                                         placeholder="Введите название или вставьте ссылку..."
                                         className="w-full bg-white/5 border border-white/20 rounded-full py-4 pl-14 pr-6 text-white text-lg placeholder-white/40 focus:outline-none focus:border-[#00FF41]/50 transition-colors"
                                     />
                                 </div>
                                 
-                                {isUrlMode && (
-                                    <motion.button 
-                                        initial={{ opacity: 0, scale: 0.9 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        onClick={() => {
-                                            setPlaceDetails({
-                                                name: 'Заведение по ссылке',
-                                                formatted_address: inputRef.current.urlValue,
-                                                rating: (Math.random() * (4.7 - 3.8) + 3.8).toFixed(1), // Random realistic rating
-                                                user_ratings_total: Math.floor(Math.random() * 120) + 10,
-                                                website: ''
-                                            });
-                                            startAnalysis({
-                                                name: 'Заведение по ссылке',
-                                                rating: 4.1,
-                                                user_ratings_total: 45,
-                                                website: ''
-                                            });
-                                        }}
-                                        className="bg-[#00FF41] hover:bg-[#00DF38] text-black font-black uppercase tracking-wider text-sm py-4 px-8 rounded-full transition-colors flex-shrink-0 shadow-[0_0_20px_rgba(0,255,65,0.3)]"
-                                    >
-                                        Проверить
-                                    </motion.button>
-                                )}
-                            </div>
+                                <button 
+                                    type="submit"
+                                    disabled={isSearching || !inputValue.trim()}
+                                    className="bg-[#00FF41] hover:bg-[#00DF38] text-black font-black uppercase tracking-wider text-sm py-4 px-8 rounded-full transition-all flex-shrink-0 shadow-[0_0_20px_rgba(0,255,65,0.3)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {isSearching ? (
+                                        <div className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                                    ) : (
+                                        'Проверить'
+                                    )}
+                                </button>
+                            </form>
                             <p className="text-white/40 text-sm mt-4">Начните вводить название, либо вставьте прямую ссылку на Карты.</p>
                         </motion.div>
                     )}

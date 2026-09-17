@@ -160,7 +160,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
             const SizedBox(height: 24),
             Expanded(
               child: StreamBuilder<List<LeadModel>>(
-                stream: _leadsService.getLeadsStream(widget.venueId),
+                stream: _getGuestsStream(widget.venueId),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) {
                     return Center(child: Text("Error loading guests: ${snapshot.error}"));
@@ -203,6 +203,70 @@ class _GuestListScreenState extends State<GuestListScreen> {
         ),
       ),
     );
+  }
+
+  Stream<List<LeadModel>> _getGuestsStream(String venueId) {
+    return FirebaseFirestore.instance
+        .collection('visits')
+        .where('venueId', isEqualTo: venueId)
+        .snapshots()
+        .asyncMap((visitSnap) async {
+      
+      Map<String, List<Map<String, dynamic>>> guestVisits = {};
+      for (var doc in visitSnap.docs) {
+        final data = doc.data();
+        final uid = (data['uid'] ?? data['guestId'] ?? data['guestEmail'] ?? '').toString();
+        if (uid.isEmpty || uid == 'anonymous') continue;
+        
+        guestVisits.putIfAbsent(uid, () => []).add(data);
+      }
+      
+      final now = DateTime.now();
+      List<LeadModel> guests = [];
+      final uids = guestVisits.keys.toList();
+      
+      for (int i = 0; i < uids.length; i += 30) {
+        final chunk = uids.sublist(i, i + 30 > uids.length ? uids.length : i + 30);
+        final userSnap = await FirebaseFirestore.instance.collection('users').where(FieldPath.documentId, whereIn: chunk).get();
+        
+        for (var doc in userSnap.docs) {
+          final data = doc.data();
+          final uid = doc.id;
+          final visitDocs = guestVisits[uid]!;
+          visitDocs.sort((a, b) {
+            final tsA = a['timestamp'] != null ? (a['timestamp'] as Timestamp).toDate() : DateTime.now();
+            final tsB = b['timestamp'] != null ? (b['timestamp'] as Timestamp).toDate() : DateTime.now();
+            return tsA.compareTo(tsB);
+          });
+          
+          final lastVisitData = visitDocs.last;
+          final lastVisit = lastVisitData['timestamp'] != null ? (lastVisitData['timestamp'] as Timestamp).toDate() : DateTime.now();
+          final totalVisits = visitDocs.length;
+          
+          String status = 'new';
+          if (totalVisits == 1 && lastVisitData['acquisition_source'] == 'google_maps_bonus') {
+            status = 'did_not_arrive';
+          } else if (now.difference(lastVisit).inDays >= 14) {
+            status = 'lost';
+          } else if (totalVisits >= 3) {
+            status = 'vip'; 
+          }
+          
+          guests.add(LeadModel(
+            id: uid,
+            venueId: venueId,
+            guestId: uid,
+            guestName: data['displayName'] ?? data['name'] ?? 'Guest',
+            guestContact: data['email'] ?? data['phone'] ?? '',
+            createdAt: lastVisit,
+            status: status,
+          ));
+        }
+      }
+      
+      guests.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return guests;
+    });
   }
 
   Widget _buildEmptyState() {
@@ -279,7 +343,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              guest.status.toUpperCase(),
+                              guest.status == 'did_not_arrive' ? 'НЕ ДОШЛИ' : guest.status.toUpperCase(),
                               style: TextStyle(
                                 color: _getStatusColor(guest.status),
                                 fontWeight: FontWeight.bold,
@@ -685,6 +749,8 @@ class _GuestListScreenState extends State<GuestListScreen> {
         return Colors.amber;
       case 'loyal':
         return Colors.green;
+      case 'did_not_arrive':
+        return Colors.purpleAccent;
       default:
         return AppColors.body;
     }
@@ -700,13 +766,12 @@ class _GuestListScreenState extends State<GuestListScreen> {
 
         final docs = snapshot.data!.docs;
         
-        Map<String, List<DateTime>> guestVisits = {};
+        Map<String, List<Map<String, dynamic>>> guestVisits = {};
         for (var doc in docs) {
           final data = doc.data() as Map<String, dynamic>;
           final uid = (data['uid'] ?? data['guestId'] ?? data['guestEmail'] ?? '').toString();
           if (uid.isEmpty) continue;
-          final ts = data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate() : DateTime.now();
-          guestVisits.putIfAbsent(uid, () => []).add(ts);
+          guestVisits.putIfAbsent(uid, () => []).add(data);
         }
 
         final startOfMonth = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
@@ -715,17 +780,33 @@ class _GuestListScreenState extends State<GuestListScreen> {
         int newCount = 0;
         int constantCount = 0;
         int lostCount = 0;
+        int didNotArriveCount = 0;
         final now = DateTime.now();
 
-        guestVisits.forEach((uid, visits) {
-          visits.sort((a, b) => a.compareTo(b));
-          final visitsInMonth = visits.where((v) => v.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) && v.isBefore(endOfMonth.add(const Duration(seconds: 1)))).toList();
+        guestVisits.forEach((uid, visitsData) {
+          visitsData.sort((a, b) {
+            final tsA = a['timestamp'] != null ? (a['timestamp'] as Timestamp).toDate() : DateTime.now();
+            final tsB = b['timestamp'] != null ? (b['timestamp'] as Timestamp).toDate() : DateTime.now();
+            return tsA.compareTo(tsB);
+          });
+          
+          final visitsInMonth = visitsData.where((v) {
+            final ts = v['timestamp'] != null ? (v['timestamp'] as Timestamp).toDate() : DateTime.now();
+            return ts.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) && ts.isBefore(endOfMonth.add(const Duration(seconds: 1)));
+          }).toList();
           
           if (visitsInMonth.isEmpty) return;
 
-          final totalCount = visits.length;
-          final lastVisit = visits.last;
-          final daysSince = now.difference(lastVisit).inDays;
+          final totalCount = visitsData.length;
+          final lastVisitData = visitsData.last;
+          final lastVisitTs = lastVisitData['timestamp'] != null ? (lastVisitData['timestamp'] as Timestamp).toDate() : DateTime.now();
+          final daysSince = now.difference(lastVisitTs).inDays;
+
+          // Check for "Не дошли"
+          if (totalCount == 1 && lastVisitData['acquisition_source'] == 'google_maps_bonus') {
+            didNotArriveCount++;
+            return;
+          }
 
           if (daysSince >= 14) {
             lostCount++;
@@ -737,10 +818,11 @@ class _GuestListScreenState extends State<GuestListScreen> {
           }
         });
 
-        final totalActive = newCount + constantCount + lostCount;
+        final totalActive = newCount + constantCount + lostCount + didNotArriveCount;
         final newPerc = totalActive > 0 ? (newCount / totalActive * 100).round() : 0;
         final constPerc = totalActive > 0 ? (constantCount / totalActive * 100).round() : 0;
         final lostPerc = totalActive > 0 ? (lostCount / totalActive * 100).round() : 0;
+        final didNotArrivePerc = totalActive > 0 ? (didNotArriveCount / totalActive * 100).round() : 0;
 
         final months = List.generate(12, (i) => DateTime(DateTime.now().year, i + 1));
         final monthFormat = DateFormat('MMMM yyyy');
@@ -793,7 +875,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
                       icon: Icons.person_add,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: _buildCategoryCard(
                       title: "Постоянные (≥3)",
@@ -803,7 +885,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
                       icon: Icons.star,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: _buildCategoryCard(
                       title: "Потерянные (>14 дн)",
@@ -811,6 +893,16 @@ class _GuestListScreenState extends State<GuestListScreen> {
                       percent: lostPerc,
                       color: Colors.redAccent,
                       icon: Icons.person_off,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildCategoryCard(
+                      title: "Не дошли (Google)",
+                      count: didNotArriveCount,
+                      percent: didNotArrivePerc,
+                      color: Colors.purpleAccent,
+                      icon: Icons.location_off,
                     ),
                   ),
                 ],
@@ -825,6 +917,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
                       if (newPerc > 0) Expanded(flex: newPerc, child: Container(color: Colors.blue)),
                       if (constPerc > 0) Expanded(flex: constPerc, child: Container(color: Colors.green)),
                       if (lostPerc > 0) Expanded(flex: lostPerc, child: Container(color: Colors.redAccent)),
+                      if (didNotArrivePerc > 0) Expanded(flex: didNotArrivePerc, child: Container(color: Colors.purpleAccent)),
                       if (totalActive == 0) Expanded(child: Container(color: Colors.white10)),
                     ],
                   ),

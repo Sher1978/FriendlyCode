@@ -69,6 +69,13 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
 
                 const SizedBox(height: 48),
 
+                // Phase 2.5: Voucher Dispatch Queue
+                _buildSectionHeader("VOUCHER DISPATCH QUEUE", CupertinoIcons.timer),
+                const SizedBox(height: 16),
+                _buildVoucherQueue(),
+
+                const SizedBox(height: 48),
+
                 // Phase 3: Strategic Controls (JTBD: Global Management)
                 _buildSectionHeader("STRATEGIC CONTROLS", CupertinoIcons.command),
                 const SizedBox(height: 16),
@@ -257,6 +264,132 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildVoucherQueue() {
+    final limitTime = DateTime.now().add(const Duration(hours: 48));
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('scheduled_vouchers')
+          .where('status', isEqualTo: 'pending')
+          .limit(50)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.accentOrange.withOpacity(0.4)),
+            ),
+            child: Text(
+              "Queue Notice: ${snapshot.error}",
+              style: const TextStyle(color: AppColors.accentOrange, fontSize: 13),
+            ),
+          );
+        }
+
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        var docs = snapshot.data!.docs.toList();
+        
+        // Sort by scheduledFor ascending
+        docs.sort((a, b) {
+          final dataA = a.data() as Map<String, dynamic>;
+          final dataB = b.data() as Map<String, dynamic>;
+          final Timestamp? tsA = dataA['scheduledFor'];
+          final Timestamp? tsB = dataB['scheduledFor'];
+          if (tsA == null) return 1;
+          if (tsB == null) return -1;
+          return tsA.compareTo(tsB);
+        });
+
+        // Filter for scheduledFor <= 48h
+        docs = docs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final Timestamp? ts = data['scheduledFor'];
+          if (ts == null) return true;
+          return ts.toDate().isBefore(limitTime);
+        }).toList();
+
+        if (docs.isEmpty) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(40),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withOpacity(0.03)),
+            ),
+            child: const Center(
+              child: Text(
+                "No vouchers scheduled in next 48h (Queue is empty).",
+                style: TextStyle(color: AppColors.tertiary),
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: docs.map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final guestName = data['guestName'] ?? 'Guest';
+            final email = data['guestEmail'] ?? data['uid'] ?? 'N/A';
+            final venueName = data['venueName'] ?? 'Venue';
+            final discount = data['discount'] ?? 20;
+            final Timestamp? ts = data['scheduledFor'];
+
+            String timeStr = "Unknown";
+            if (ts != null) {
+              final d = ts.toDate();
+              timeStr = "${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}";
+            }
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.premiumGold.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: AppColors.premiumGold.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(CupertinoIcons.ticket_fill, color: AppColors.premiumGold, size: 20),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("$guestName • $discount% OFF", style: const TextStyle(color: AppColors.title, fontWeight: FontWeight.bold)),
+                        Text("$email -> $venueName", style: const TextStyle(color: AppColors.body, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.secondarySurface,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(timeStr, style: const TextStyle(color: AppColors.premiumGold, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 
@@ -766,9 +899,10 @@ class _RoleAssignmentDialogState extends State<_RoleAssignmentDialog> {
                 ),
                 items: const [
                   DropdownMenuItem(value: 'owner', child: Text("OWNER", style: TextStyle(color: AppColors.title))),
+                  DropdownMenuItem(value: 'admin', child: Text("ADMIN", style: TextStyle(color: AppColors.title))),
+                  DropdownMenuItem(value: 'manager', child: Text("MANAGER", style: TextStyle(color: AppColors.title))),
                   DropdownMenuItem(value: 'staff', child: Text("STAFF", style: TextStyle(color: AppColors.title))),
                   DropdownMenuItem(value: 'guest', child: Text("GUEST", style: TextStyle(color: AppColors.title))),
-                  DropdownMenuItem(value: 'admin', child: Text("ADMIN", style: TextStyle(color: AppColors.title))),
                 ],
                 onChanged: (val) => setState(() => _selectedRole = val),
               ),

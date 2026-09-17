@@ -185,18 +185,19 @@ const AppOverlay = ({ children }) => {
     const location = useLocation();
     
     const pathname = (location?.pathname || (typeof window !== 'undefined' ? window.location.pathname : '')).toLowerCase();
+    const winPath = (typeof window !== 'undefined' ? window.location.pathname : '').toLowerCase();
     const searchParams = new URLSearchParams(location?.search || (typeof window !== 'undefined' ? window.location.search : ''));
 
     const isExcluded = 
-        pathname.includes('outreach') || 
-        pathname.includes('revo') || 
-        pathname.includes('business') || 
-        pathname.includes('admin') || 
-        pathname.includes('owner') || 
-        pathname.includes('superadmin') || 
-        pathname.includes('legacy') ||
-        pathname.includes('gbp') ||
-        pathname.includes('grant') ||
+        pathname.includes('outreach') || winPath.includes('outreach') ||
+        pathname.includes('revo') || winPath.includes('revo') ||
+        pathname.includes('business') || winPath.includes('business') ||
+        pathname.includes('admin') || winPath.includes('admin') ||
+        pathname.includes('owner') || winPath.includes('owner') ||
+        pathname.includes('superadmin') || winPath.includes('superadmin') ||
+        pathname.includes('legacy') || winPath.includes('legacy') ||
+        pathname.includes('gbp') || winPath.includes('gbp') ||
+        pathname.includes('grant') || winPath.includes('grant') ||
         searchParams.get('utm_source') === 'google_maps';
 
     if (isExcluded) return children;
@@ -225,6 +226,7 @@ const AppOverlay = ({ children }) => {
 const SuspenseFallback = () => {
     const location = useLocation();
     const pathname = (location?.pathname || (typeof window !== 'undefined' ? window.location.pathname : '')).toLowerCase();
+    const winPath = (typeof window !== 'undefined' ? window.location.pathname : '').toLowerCase();
     const searchParams = new URLSearchParams(location?.search || (typeof window !== 'undefined' ? window.location.search : ''));
 
     if (searchParams.get('utm_source') === 'google_maps' && searchParams.get('activated') !== 'true') {
@@ -236,15 +238,15 @@ const SuspenseFallback = () => {
     }
 
     if (
-        pathname.includes('outreach') || 
-        pathname.includes('revo') || 
-        pathname.includes('business') || 
-        pathname.includes('admin') || 
-        pathname.includes('owner') || 
-        pathname.includes('superadmin') || 
-        pathname.includes('legacy') ||
-        pathname.includes('gbp') ||
-        pathname.includes('grant')
+        pathname.includes('outreach') || winPath.includes('outreach') ||
+        pathname.includes('revo') || winPath.includes('revo') ||
+        pathname.includes('business') || winPath.includes('business') ||
+        pathname.includes('admin') || winPath.includes('admin') ||
+        pathname.includes('owner') || winPath.includes('owner') ||
+        pathname.includes('superadmin') || winPath.includes('superadmin') ||
+        pathname.includes('legacy') || winPath.includes('legacy') ||
+        pathname.includes('gbp') || winPath.includes('gbp') ||
+        pathname.includes('grant') || winPath.includes('grant')
     ) {
         return (
             <div className="min-h-screen bg-[#121212] flex items-center justify-center">

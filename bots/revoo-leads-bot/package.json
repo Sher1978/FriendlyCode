@@ -8,6 +8,9 @@
     "dev": "nodemon bot.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.3",
+    "dotenv": "^17.4.2",
+    "firebase-admin": "^12.0.0",
     "node-telegram-bot-api": "0.64.0"
   },
   "devDependencies": {

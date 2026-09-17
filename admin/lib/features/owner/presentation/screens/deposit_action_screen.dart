@@ -121,11 +121,19 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
     final result = <String, String>{};
     try {
       final uri = Uri.parse(url);
-      result.addAll(uri.queryParameters);
+      uri.queryParameters.forEach((key, value) {
+        if (value.trim().isNotEmpty) {
+          result[key] = value.trim();
+        }
+      });
       if (uri.hasFragment && uri.fragment.contains('?')) {
         final queryStr = uri.fragment.split('?').last;
         final fragUri = Uri.parse('http://dummy.com/?$queryStr');
-        result.addAll(fragUri.queryParameters);
+        fragUri.queryParameters.forEach((key, value) {
+          if (value.trim().isNotEmpty) {
+            result[key] = value.trim();
+          }
+        });
       }
     } catch (e) {
       debugPrint('Error parsing query params from URL: $e');
@@ -134,7 +142,13 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
   }
 
   Future<void> _resolveParams() async {
+    setState(() => _isLoading = true);
     await _checkStaffPermission();
+    
+    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+    if (AuthService().currentUser != null) {
+      await roleProvider.refreshRole();
+    }
 
     final params = _parseQueryParamsFromUrl(Uri.base.toString());
     final qSearch = widget.initialUserId ??
@@ -147,14 +161,30 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
       _activeTab = qAction!;
     }
 
-    final roleProvider = Provider.of<RoleProvider>(context, listen: false);
     _venueId = roleProvider.venueId ?? '';
 
-    if (qSearch != null && qSearch.isNotEmpty) {
+    if (qSearch != null && qSearch.trim().isNotEmpty) {
       await _loadUserData(qSearch.trim());
     } else {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  double _extractBalanceForVenue(Map<String, dynamic>? data, String venueId) {
+    if (data == null) return 0.0;
+    final balances = data['deposit_balances'];
+    if (venueId.isNotEmpty && balances is Map && balances.containsKey(venueId)) {
+      final val = balances[venueId];
+      if (val is num) return val.toDouble();
+      if (val is Map && val.containsKey('balance')) {
+        return (val['balance'] as num?)?.toDouble() ?? 0.0;
+      }
+    }
+    if (data['deposit_balance'] != null) {
+      final val = data['deposit_balance'];
+      if (val is num) return val.toDouble();
+    }
+    return 0.0;
   }
 
   Future<void> _loadUserData(String query) async {
@@ -170,15 +200,32 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
     try {
       // If query is a full URL, extract the search term / action first
       final urlParams = _parseQueryParamsFromUrl(cleanQuery);
-      final searchFromUrl =
+      var searchFromUrl =
           urlParams['uid'] ?? urlParams['search'] ?? urlParams['q'];
+      if (searchFromUrl != null && searchFromUrl.trim().isEmpty) {
+        searchFromUrl = null;
+      }
       final actionFromUrl = urlParams['action'];
 
       if (actionFromUrl == 'deduct' || actionFromUrl == 'topup') {
         _activeTab = actionFromUrl!;
       }
 
-      final targetSearch = searchFromUrl ?? cleanQuery;
+      final targetSearch = (searchFromUrl != null && searchFromUrl.trim().isNotEmpty)
+          ? searchFromUrl.trim()
+          : (cleanQuery.startsWith('http://') || cleanQuery.startsWith('https://') ? '' : cleanQuery);
+
+      if (targetSearch.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('В QR-коде отсутствует ID/Email гостя. Попросите гостя обновить страницу.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return;
+      }
 
       DocumentSnapshot<Map<String, dynamic>>? userDoc;
 
@@ -238,7 +285,7 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
         _userId = userDoc.id;
         _userName = data['displayName'] ?? data['name'] ?? 'Гость';
         _userEmail = data['email'] ?? '';
-        _currentBalance = (data['deposit_balance'] ?? 0.0).toDouble();
+        _currentBalance = _extractBalanceForVenue(data, _venueId);
         _hasLockedDiscount = data['hasLockedDiscount'] ?? false;
       } else {
         // 5. Try leads
@@ -268,8 +315,7 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
                 .doc(_userId)
                 .get();
             if (uDoc.exists) {
-              _currentBalance =
-                  (uDoc.data()?['deposit_balance'] ?? 0.0).toDouble();
+              _currentBalance = _extractBalanceForVenue(uDoc.data(), _venueId);
               _hasLockedDiscount = uDoc.data()?['hasLockedDiscount'] ?? false;
             }
           }
@@ -339,6 +385,18 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
       return;
     }
 
+    if (_venueId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ошибка: Не выбрано заведение! Операции с депозитом возможны только в привязке к заведению.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
     final rawAmount = _amountCtrl.text.replaceAll(' ', '').replaceAll(',', '.').trim();
     final amount = double.tryParse(rawAmount);
     if (amount == null || amount <= 0) {
@@ -369,15 +427,28 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
       final staffName =
           staffUser?.displayName ?? staffUser?.email ?? 'Официант';
 
+      final Map<String, dynamic> userDeductUpdate = {
+        'deposit_balance': newBalance,
+        'deposit_venue_id': _venueId,
+        'deposit_balances.$_venueId': newBalance,
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
       await FirebaseFirestore.instance
           .collection('users')
           .doc(_userId)
-          .set({
-        'deposit_balance': newBalance,
-        if (_venueId.isNotEmpty) 'deposit_venue_id': _venueId,
-        if (_venueId.isNotEmpty)
+          .update(userDeductUpdate)
+          .catchError((_) async {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_userId)
+            .set({
+          'deposit_balance': newBalance,
+          'deposit_venue_id': _venueId,
           'deposit_balances': {_venueId: newBalance},
-      }, SetOptions(merge: true));
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      });
 
       await FirebaseFirestore.instance.collection('deposit_transactions').add({
         'userId': _userId,
@@ -385,9 +456,13 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
         'guestEmail': _userEmail,
         'venueId': _venueId,
         'amount': amount,
+        'finalAmount': amount,
+        'discountAmountSaved': amount * (_selectedBonusPercent / 100.0),
         'type': 'DEBIT',
+        'transactionType': 'DEBIT',
         'previousBalance': _currentBalance,
         'newBalance': newBalance,
+        'balanceAfter': newBalance,
         'staffName': staffName,
         'staffEmail': staffUser?.email ?? '',
         'createdAt': FieldValue.serverTimestamp(),
@@ -439,6 +514,18 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
       return;
     }
 
+    if (_venueId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ошибка: Не выбрано заведение! Операции с депозитом возможны только в привязке к заведению.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
     final rawAmount = _amountCtrl.text.replaceAll(' ', '').replaceAll(',', '.').trim();
     final amount = double.tryParse(rawAmount);
     if (amount == null || amount <= 0) {
@@ -462,19 +549,34 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
       final staffName =
           staffUser?.displayName ?? staffUser?.email ?? 'Персонал';
 
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(_userId)
-          .set({
+      final Map<String, dynamic> userTopUpUpdate = {
         'deposit_balance': newBalance,
-        if (_venueId.isNotEmpty) 'deposit_venue_id': _venueId,
-        if (_venueId.isNotEmpty)
-          'deposit_balances': {_venueId: newBalance},
+        'deposit_venue_id': _venueId,
+        'deposit_balances.$_venueId': newBalance,
         'hasLockedDiscount': _hasLockedDiscount,
         'displayName': _userName,
         'email': _userEmail,
         'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: true));
+      };
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(_userId)
+          .update(userTopUpUpdate)
+          .catchError((_) async {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(_userId)
+            .set({
+          'deposit_balance': newBalance,
+          'deposit_venue_id': _venueId,
+          'deposit_balances': {_venueId: newBalance},
+          'hasLockedDiscount': _hasLockedDiscount,
+          'displayName': _userName,
+          'email': _userEmail,
+          'updatedAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      });
 
       await FirebaseFirestore.instance.collection('deposit_transactions').add({
         'userId': _userId,
@@ -1181,7 +1283,67 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
                 const SizedBox(height: 12),
 
                 const Text(
-                  'Начисление депозитов доступно только авторизованному персоналу заведений.\n\nХотите подключить ваше заведение к REVOO, зафиксировать регулярную лояльность и увеличивать выручку? Оставьте заявку ниже!',
+                  'Начисление депозитов доступно только авторизованному персоналу заведений.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                
+                // Staff Sign-in Button (Moved to top for visibility)
+                GestureDetector(
+                  onTap: () async {
+                    try {
+                      final cred = await AuthService().signInWithGoogle();
+                      if (cred != null) {
+                        await _resolveParams();
+                      }
+                    } catch (e) {
+                      debugPrint('Staff signin error: $e');
+                    }
+                  },
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentYellow.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(14),
+                      border:
+                          Border.all(color: AppColors.accentYellow.withOpacity(0.5)),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(CupertinoIcons.lock_fill,
+                            color: AppColors.accentYellow, size: 16),
+                        SizedBox(width: 8),
+                        Text(
+                          'Войти как сотрудник',
+                          style: TextStyle(
+                            color: AppColors.accentYellow,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 32),
+                Container(
+                  height: 1,
+                  color: Colors.white.withOpacity(0.1),
+                ),
+                const SizedBox(height: 24),
+
+                const Text(
+                  'Хотите подключить ваше заведение к REVOO, зафиксировать регулярную лояльность и увеличивать выручку? Оставьте заявку ниже!',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white70,
@@ -1189,7 +1351,7 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
                     height: 1.5,
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 20),
 
                 if (_b2bSubmitted) ...[
                   // Success State
@@ -1300,48 +1462,6 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
                     ),
                   ),
                 ],
-
-                const SizedBox(height: 24),
-
-                // Staff Sign-in Button
-                GestureDetector(
-                  onTap: () async {
-                    try {
-                      final cred = await AuthService().signInWithGoogle();
-                      if (cred != null) {
-                        await _checkStaffPermission();
-                      }
-                    } catch (e) {
-                      debugPrint('Staff signin error: $e');
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(14),
-                      border:
-                          Border.all(color: Colors.white.withOpacity(0.12)),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(CupertinoIcons.lock_fill,
-                            color: Colors.white70, size: 14),
-                        SizedBox(width: 8),
-                        Text(
-                          '🔑 Я сотрудник заведения — Войти',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
           ),
