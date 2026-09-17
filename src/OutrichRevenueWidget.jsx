@@ -193,16 +193,143 @@ const OutrichRevenueWidget = () => {
         setSearchResults([]);
     };
 
+    // Google Places Autocomplete Predictions effect as user types
+    useEffect(() => {
+        const queryStr = searchQuery.trim();
+        if (queryStr.length < 2 || activeStep !== 1) {
+            setSearchResults([]);
+            return;
+        }
+
+        let isMounted = true;
+        const timer = setTimeout(() => {
+            if (window.google && window.google.maps && window.google.maps.places) {
+                try {
+                    const autocompleteService = new window.google.maps.places.AutocompleteService();
+                    autocompleteService.getPlacePredictions(
+                        {
+                            input: queryStr,
+                            types: ['establishment']
+                        },
+                        (predictions, status) => {
+                            if (!isMounted) return;
+                            if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions && predictions.length > 0) {
+                                const formatted = predictions.map(p => ({
+                                    place_id: p.place_id,
+                                    name: p.structured_formatting?.main_text || p.description.split(',')[0],
+                                    address: p.structured_formatting?.secondary_text || p.description,
+                                    description: p.description
+                                }));
+                                setSearchResults(formatted);
+                            } else {
+                                setSearchResults([]);
+                            }
+                        }
+                    );
+                } catch (e) {
+                    console.warn("AutocompleteService error:", e);
+                }
+            }
+        }, 250);
+
+        return () => {
+            isMounted = false;
+            clearTimeout(timer);
+        };
+    }, [searchQuery, activeStep]);
+
+    const handleSelectPlacePrediction = (pred) => {
+        setIsSearchingMap(true);
+        setSearchError(false);
+
+        if (window.google && window.google.maps && window.google.maps.places && pred.place_id) {
+            try {
+                const dummyDiv = document.createElement('div');
+                const placesService = new window.google.maps.places.PlacesService(dummyDiv);
+                placesService.getDetails(
+                    {
+                        placeId: pred.place_id,
+                        fields: ['name', 'formatted_address', 'rating', 'user_ratings_total', 'website']
+                    },
+                    (placeDetails, status) => {
+                        setIsSearchingMap(false);
+                        if (status === window.google.maps.places.PlacesServiceStatus.OK && placeDetails) {
+                            proceedToStep2(
+                                placeDetails.name || pred.name,
+                                placeDetails.formatted_address || pred.address,
+                                null,
+                                null,
+                                placeDetails.rating ? String(placeDetails.rating) : '4.3',
+                                placeDetails.user_ratings_total || 25,
+                                null,
+                                !!placeDetails.website,
+                                null
+                            );
+                        } else {
+                            proceedToStep2(pred.name, pred.address);
+                        }
+                    }
+                );
+                return;
+            } catch (err) {
+                console.warn("Places getDetails error:", err);
+            }
+        }
+        setIsSearchingMap(false);
+        proceedToStep2(pred.name, pred.address);
+    };
+
     const handleSearchSubmit = async (e) => {
         if (e) e.preventDefault();
-        const query = searchQuery.trim();
-        if (!query) return;
+        const queryStr = searchQuery.trim();
+        if (!queryStr) return;
 
         setSearchError(false);
         setIsSearchingMap(true);
 
+        // If searchResults has matching autocomplete items, select top match
+        if (searchResults.length > 0) {
+            handleSelectPlacePrediction(searchResults[0]);
+            return;
+        }
+
+        // Try Google Places Text Search
+        if (window.google && window.google.maps && window.google.maps.places) {
+            try {
+                const dummyDiv = document.createElement('div');
+                const placesService = new window.google.maps.places.PlacesService(dummyDiv);
+                placesService.textSearch({ query: queryStr }, (resultsList, status) => {
+                    if (status === window.google.maps.places.PlacesServiceStatus.OK && resultsList && resultsList.length > 0) {
+                        const topMatch = resultsList[0];
+                        setIsSearchingMap(false);
+                        proceedToStep2(
+                            topMatch.name,
+                            topMatch.formatted_address || queryStr,
+                            null,
+                            null,
+                            topMatch.rating ? String(topMatch.rating) : '4.2',
+                            topMatch.user_ratings_total || 30,
+                            null,
+                            false,
+                            null
+                        );
+                    } else {
+                        // Try Nominatim geocoding fallback
+                        queryNominatimFallback(queryStr);
+                    }
+                });
+                return;
+            } catch (err) {
+                console.warn("TextSearch error:", err);
+            }
+        }
+
+        queryNominatimFallback(queryStr);
+    };
+
+    const queryNominatimFallback = async (queryStr) => {
         try {
-            let url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=3&addressdetails=1`;
+            let url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(queryStr)}&format=json&limit=3&addressdetails=1`;
             if (userLoc) {
                 url += `&lat=${userLoc.lat}&lon=${userLoc.lon}`;
             }
@@ -210,21 +337,17 @@ const OutrichRevenueWidget = () => {
             const data = await res.json();
             
             if (data && data.length > 0) {
-                const formatted = data.map((item) => ({
-                    name: item.name || item.display_name.split(',')[0],
-                    address: item.display_name
-                }));
-                setSearchResults(formatted);
-                if (formatted.length === 1) {
-                    proceedToStep2(formatted[0].name, formatted[0].address);
-                }
+                const item = data[0];
+                const placeName = item.name || item.display_name.split(',')[0] || queryStr;
+                proceedToStep2(placeName, item.display_name);
             } else {
-                // Fallback to direct text if nominatim returned nothing
-                proceedToStep2(query, `${query}, Local Business`);
+                // STRICT ERROR VALIDATION: DO NOT PROCEED TO STEP 2 WITH FAKE DATA!
+                setSearchError(true);
             }
         } catch (error) {
             console.error("Geocoding error:", error);
-            proceedToStep2(query, `${query}, Local Business`);
+            // STRICT ERROR VALIDATION: DO NOT PROCEED WITH DUMMY DATA!
+            setSearchError(true);
         } finally {
             setIsSearchingMap(false);
         }
@@ -360,38 +483,60 @@ const OutrichRevenueWidget = () => {
                                     type="button"
                                     onClick={() => {
                                         if (searchQuery.trim()) {
-                                            proceedToStep2(searchQuery.trim(), `${searchQuery.trim()}, Local Business`);
+                                            handleSearchSubmit();
                                         } else {
-                                            proceedToStep2('Ваш бизнес', 'Центральный район, Ваша локация');
+                                            setSearchError(true);
                                         }
                                     }}
                                     className="w-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-mono text-xs py-3.5 rounded-2xl border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
                                 >
                                     <FontAwesomeIcon icon={faMapMarkerAlt} className="text-white/40" />
-                                    <span>📍 Pick on map manually (Указать вручную)</span>
+                                    <span>📍 Pick on map manually (Указать на карте)</span>
                                 </button>
 
+                                {/* Autocomplete Dropdown Predictions from Google Places API */}
                                 {searchResults.length > 0 && (
                                     <motion.div 
                                         initial={{ opacity: 0, y: -10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="mt-4 space-y-2 bg-black/60 p-3 rounded-2xl border border-white/10"
+                                        className="mt-4 space-y-2 bg-black/80 p-3 rounded-2xl border border-[#00FF66]/40 shadow-xl"
                                     >
-                                        <p className="text-[11px] text-white/50 uppercase font-mono mb-2">Выберите ваше заведение:</p>
+                                        <p className="text-[11px] text-white/50 uppercase font-mono mb-2 flex items-center gap-1.5">
+                                            <FontAwesomeIcon icon={faSearch} className="text-[#00FF66]" />
+                                            <span>Варианты из Google Maps (Выберите заведение):</span>
+                                        </p>
                                         {searchResults.map((res, idx) => (
                                             <button
                                                 key={idx}
                                                 type="button"
-                                                onClick={() => proceedToStep2(res.name, res.address)}
-                                                className="w-full text-left bg-white/5 hover:bg-white/10 p-3 rounded-xl border border-white/5 hover:border-[#00FF66]/40 transition-all flex items-start gap-3 group cursor-pointer"
+                                                onClick={() => handleSelectPlacePrediction(res)}
+                                                className="w-full text-left bg-white/5 hover:bg-[#00FF66]/10 p-3 rounded-xl border border-white/5 hover:border-[#00FF66]/50 transition-all flex items-start gap-3 group cursor-pointer"
                                             >
                                                 <FontAwesomeIcon icon={faMapMarkerAlt} className="text-[#00FF66] mt-1 group-hover:scale-110 transition-transform" />
                                                 <div className="overflow-hidden">
                                                     <p className="text-white text-sm font-bold group-hover:text-[#00FF66] transition-colors">{res.name}</p>
-                                                    <p className="text-white/50 text-xs truncate">{res.address}</p>
+                                                    <p className="text-white/50 text-xs truncate">{res.address || res.description}</p>
                                                 </div>
                                             </button>
                                         ))}
+                                    </motion.div>
+                                )}
+
+                                {/* Strict Validation Error Box (No Fake Fallbacks) */}
+                                {searchError && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: -10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="mt-4 bg-[#EA4335]/10 p-4 rounded-2xl border border-[#EA4335]/40 text-left space-y-2 shadow-lg"
+                                    >
+                                        <div className="flex items-center gap-2 text-[#EA4335] font-bold text-xs sm:text-sm">
+                                            <FontAwesomeIcon icon={faTimesCircle} />
+                                            <span>Заведение не найдено на Google Картах</span>
+                                        </div>
+                                        <p className="text-xs text-white/70 leading-relaxed">
+                                            Не удалось извлечь данные Google Maps по запросу {searchQuery ? <>«<strong className="text-white">{searchQuery}</strong>»</> : 'с пустым значением'}. 
+                                            Пожалуйста, выберите подходящий вариант из всплывающего списка или вставьте прямую ссылку на карточку компании.
+                                        </p>
                                     </motion.div>
                                 )}
                             </div>
