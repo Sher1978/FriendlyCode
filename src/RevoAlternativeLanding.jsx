@@ -908,6 +908,166 @@ const RevoAlternativeLanding = () => {
         </div>
       </section>
 
+      {/* 🟢 БЛОК 4.5: КАК УСТРОЕНА СИСТЕМА REVO (ПЕТЛЯ FOMO И УДЕРЖАНИЯ КЛИЕНТОВ) */}
+      <section className="py-20 px-4 sm:px-6 relative z-10 border-b border-white/10 bg-[#121212]">
+        <div className="max-w-7xl mx-auto">
+          
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#00FF66]/10 border border-[#00FF66]/30 text-[#00FF66] text-xs font-mono font-bold uppercase tracking-wider mb-4">
+              <FontAwesomeIcon icon={faBolt} /> ЛОГИКА ЭКОСИСТЕМЫ REVO
+            </div>
+            <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
+              Как устроена наша система: От первого поиска в Google до бесконечных повторных визитов
+            </h2>
+            <p className="text-white/60 text-base max-w-3xl mx-auto mt-4 font-medium">
+              4-этапная замкнутая петля конверсии, объединяющая алгоритмы ИИ, психологию неприятия потерь (Нобелевская премия) и авто-воронку сбора отзывов.
+            </p>
+          </div>
+
+          {/* 4-Step Vector Infographic Pipeline */}
+          <div className="relative">
+            {/* Horizontal Connecting Neon Line (Desktop view) */}
+            <div className="hidden lg:block absolute top-[90px] left-[10%] right-[10%] h-1 bg-gradient-to-r from-[#4285F4] via-[#00FF66] to-[#FBBC05] z-0 opacity-40 rounded-full" />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10 text-left">
+              
+              {/* STEP 1 */}
+              <div className="bg-[#1E2024] border border-white/10 p-6 rounded-3xl flex flex-col justify-between relative overflow-hidden group hover:border-[#4285F4]/60 transition-all shadow-xl">
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="w-12 h-12 rounded-2xl bg-[#4285F4]/20 border border-[#4285F4] text-[#4285F4] font-black text-xl flex items-center justify-center shadow-[0_0_15px_rgba(66,133,244,0.4)]">
+                      01
+                    </span>
+                    <span className="text-[10px] font-mono font-bold bg-[#4285F4]/10 text-[#4285F4] border border-[#4285F4]/30 px-2.5 py-1 rounded-full uppercase">
+                      🔍 SEARCH & AI RECOM
+                    </span>
+                  </div>
+
+                  <h3 className="font-bold text-white text-lg mb-2">
+                    1. Видимость в Google & ChatGPT
+                  </h3>
+
+                  <p className="text-xs text-white/70 leading-relaxed mb-4">
+                    Мы настраиваем глубокую видимость и регулярную активность вашего бизнеса на Google Maps. Благодаря постоянным авто-обновлениям заведение рекомендуют поисковые роботы и ИИ-ассистенты (<strong className="text-[#4285F4]">ChatGPT, Google Gemini</strong>).
+                  </p>
+                </div>
+
+                {/* Infographic Widget 1 */}
+                <div className="bg-black/60 border border-white/10 p-3 rounded-2xl text-[11px] font-mono space-y-1 mt-2">
+                  <div className="flex justify-between text-white/60">
+                    <span>Индекс видимости AI:</span>
+                    <span className="text-[#4285F4] font-bold">TOP-3 (#1)</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[#00FF66] font-bold">
+                    <FontAwesomeIcon icon={faCheck} className="text-[10px]" />
+                    <span>ChatGPT & Google Recommended</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* STEP 2 */}
+              <div className="bg-[#1E2024] border border-[#00FF66]/40 p-6 rounded-3xl flex flex-col justify-between relative overflow-hidden group hover:border-[#00FF66] transition-all shadow-[0_0_30px_rgba(0,255,102,0.1)]">
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="w-12 h-12 rounded-2xl bg-[#00FF66]/20 border border-[#00FF66] text-[#00FF66] font-black text-xl flex items-center justify-center shadow-[0_0_15px_rgba(0,255,102,0.4)]">
+                      02
+                    </span>
+                    <span className="text-[10px] font-mono font-bold bg-[#00FF66]/10 text-[#00FF66] border border-[#00FF66]/30 px-2.5 py-1 rounded-full uppercase">
+                      ⏳ 24H URGENCY TIMER
+                    </span>
+                  </div>
+
+                  <h3 className="font-bold text-white text-lg mb-2">
+                    2. Подарок в карточке профиля
+                  </h3>
+
+                  <p className="text-xs text-white/70 leading-relaxed mb-4">
+                    Клиент переходит в карточку вашего профиля и получает уникальную скидку <strong className="text-[#00FF66]">⚡ Revo</strong>, которая действует строго 24 часа. Счётчик времени включается автоматически.
+                  </p>
+                </div>
+
+                {/* Infographic Widget 2 */}
+                <div className="bg-black/60 border border-[#00FF66]/30 p-3 rounded-2xl text-[11px] font-mono space-y-1 mt-2">
+                  <div className="flex justify-between text-white/60">
+                    <span>Таймер активности:</span>
+                    <span className="text-[#00FF66] font-bold animate-pulse">23:59:59 ч.</span>
+                  </div>
+                  <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
+                    <div className="w-full h-full bg-[#00FF66] animate-pulse" />
+                  </div>
+                </div>
+              </div>
+
+              {/* STEP 3 */}
+              <div className="bg-[#1E2024] border border-[#FBBC05]/40 p-6 rounded-3xl flex flex-col justify-between relative overflow-hidden group hover:border-[#FBBC05] transition-all shadow-xl">
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="w-12 h-12 rounded-2xl bg-[#FBBC05]/20 border border-[#FBBC05] text-[#FBBC05] font-black text-xl flex items-center justify-center shadow-[0_0_15px_rgba(251,188,5,0.4)]">
+                      03
+                    </span>
+                    <span className="text-[10px] font-mono font-bold bg-[#FBBC05]/10 text-[#FBBC05] border border-[#FBBC05]/30 px-2.5 py-1 rounded-full uppercase">
+                      🧠 FOMO (LOSS AVERSION)
+                    </span>
+                  </div>
+
+                  <h3 className="font-bold text-white text-lg mb-2">
+                    3. Мгновенный визит по FOMO
+                  </h3>
+
+                  <p className="text-xs text-white/70 leading-relaxed mb-4">
+                    Под воздействием психологического триггера <strong className="text-white">FOMO (Неприятие потерь)</strong> — эффекта, за исследование которого была присуждена <strong className="text-[#FBBC05]">Нобелевская премия по экономике</strong> — клиент прибегает к вам, чтобы не упустить сгорающую выгоду.
+                  </p>
+                </div>
+
+                {/* Infographic Widget 3 */}
+                <div className="bg-black/60 border border-[#FBBC05]/30 p-3 rounded-2xl text-[11px] font-mono space-y-1 mt-2">
+                  <div className="flex justify-between text-[#FBBC05]">
+                    <span>Нобелевский эффект:</span>
+                    <span className="font-bold">Loss Aversion</span>
+                  </div>
+                  <div className="text-[10px] text-white/50">Мгновенный визит «Здесь и сейчас»</div>
+                </div>
+              </div>
+
+              {/* STEP 4 */}
+              <div className="bg-[#1E2024] border border-[#00FF66]/50 p-6 rounded-3xl flex flex-col justify-between relative overflow-hidden group hover:border-[#00FF66] transition-all shadow-[0_0_30px_rgba(0,255,102,0.15)]">
+                <div>
+                  <div className="flex justify-between items-start mb-4">
+                    <span className="w-12 h-12 rounded-2xl bg-[#00FF66]/20 border border-[#00FF66] text-[#00FF66] font-black text-xl flex items-center justify-center shadow-[0_0_15px_rgba(0,255,102,0.4)]">
+                      04
+                    </span>
+                    <span className="text-[10px] font-mono font-bold bg-[#00FF66]/10 text-[#00FF66] border border-[#00FF66]/30 px-2.5 py-1 rounded-full uppercase">
+                      🔄 MAX RETENTION & LTV
+                    </span>
+                  </div>
+
+                  <h3 className="font-bold text-white text-lg mb-2">
+                    4. Отзыв ➔ Продление ➔ Постоянный гость
+                  </h3>
+
+                  <p className="text-xs text-white/70 leading-relaxed mb-4">
+                    При визите Revo предлагает гостю оставить 5★ отзыв на Картах. За отзыв система <strong className="text-[#00FF66]">продлевает скидку еще на несколько дней</strong>, закрепляя привычку возвращаться и кардинально растит <strong className="text-[#00FF66]">Retention Rate</strong>.
+                  </p>
+                </div>
+
+                {/* Infographic Widget 4 */}
+                <div className="bg-black/60 border border-[#00FF66]/30 p-3 rounded-2xl text-[11px] font-mono space-y-1 mt-2">
+                  <div className="flex justify-between text-white/60">
+                    <span>Петля возврата:</span>
+                    <span className="text-[#00FF66] font-bold">Retention +300%</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[#FBBC05] text-[10px]">
+                    <FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} />
+                    <span className="text-white/60 ml-1">5★ На Картах</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* 🟢 БЛОК 5: 3 ПРОСТЫХ ШАГА ПО ДОНАЛЬДУ МИЛЛЕРУ (STORYBRAND PLAN) */}
       <section className="py-20 px-4 sm:px-6 relative z-10 border-b border-white/10 bg-[#121212]">
         <div className="max-w-6xl mx-auto">
