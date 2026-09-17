@@ -32,6 +32,8 @@ import { useNavigate } from 'react-router-dom';
 import PngBattery from './PngBattery';
 import B2BContactModal from './B2BContactModal';
 import LanguageSwitcher from './LanguageSwitcher';
+import ProfitCalculator from './ProfitCalculator';
+import OutrichRevenueWidget from './OutrichRevenueWidget';
 import { db } from './firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
@@ -934,6 +936,12 @@ const RevoAlternativeLanding = () => {
               {/* STEP 1 */}
               <div className="bg-[#1E2024] border border-white/10 p-6 rounded-3xl flex flex-col justify-between relative overflow-hidden group hover:border-[#4285F4]/60 transition-all shadow-xl">
                 <div>
+                  {/* Step 1 Visual Banner */}
+                  <div className="relative w-full h-40 rounded-2xl overflow-hidden mb-5 border border-white/10 group-hover:border-[#4285F4]/50 transition-all bg-black/40 shadow-inner">
+                    <img src="/step1_ai_search.png" alt="1. Видимость в Google & ChatGPT" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#1E2024] via-transparent to-transparent" />
+                  </div>
+
                   <div className="flex justify-between items-start mb-4">
                     <span className="w-12 h-12 rounded-2xl bg-[#4285F4]/20 border border-[#4285F4] text-[#4285F4] font-black text-xl flex items-center justify-center shadow-[0_0_15px_rgba(66,133,244,0.4)]">
                       01
@@ -968,6 +976,12 @@ const RevoAlternativeLanding = () => {
               {/* STEP 2 */}
               <div className="bg-[#1E2024] border border-[#00FF66]/40 p-6 rounded-3xl flex flex-col justify-between relative overflow-hidden group hover:border-[#00FF66] transition-all shadow-[0_0_30px_rgba(0,255,102,0.1)]">
                 <div>
+                  {/* Step 2 Visual Banner */}
+                  <div className="relative w-full h-40 rounded-2xl overflow-hidden mb-5 border border-white/10 group-hover:border-[#00FF66]/50 transition-all bg-black/40 shadow-inner">
+                    <img src="/step2_gift_timer.png" alt="2. Подарок в карточке профиля" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#1E2024] via-transparent to-transparent" />
+                  </div>
+
                   <div className="flex justify-between items-start mb-4">
                     <span className="w-12 h-12 rounded-2xl bg-[#00FF66]/20 border border-[#00FF66] text-[#00FF66] font-black text-xl flex items-center justify-center shadow-[0_0_15px_rgba(0,255,102,0.4)]">
                       02
@@ -1001,6 +1015,12 @@ const RevoAlternativeLanding = () => {
               {/* STEP 3 */}
               <div className="bg-[#1E2024] border border-[#FBBC05]/40 p-6 rounded-3xl flex flex-col justify-between relative overflow-hidden group hover:border-[#FBBC05] transition-all shadow-xl">
                 <div>
+                  {/* Step 3 Visual Banner */}
+                  <div className="relative w-full h-40 rounded-2xl overflow-hidden mb-5 border border-white/10 group-hover:border-[#FBBC05]/50 transition-all bg-black/40 shadow-inner">
+                    <img src="/step3_fomo_nobel.png" alt="3. Мгновенный визит по FOMO" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#1E2024] via-transparent to-transparent" />
+                  </div>
+
                   <div className="flex justify-between items-start mb-4">
                     <span className="w-12 h-12 rounded-2xl bg-[#FBBC05]/20 border border-[#FBBC05] text-[#FBBC05] font-black text-xl flex items-center justify-center shadow-[0_0_15px_rgba(251,188,5,0.4)]">
                       03
@@ -1032,6 +1052,12 @@ const RevoAlternativeLanding = () => {
               {/* STEP 4 */}
               <div className="bg-[#1E2024] border border-[#00FF66]/50 p-6 rounded-3xl flex flex-col justify-between relative overflow-hidden group hover:border-[#00FF66] transition-all shadow-[0_0_30px_rgba(0,255,102,0.15)]">
                 <div>
+                  {/* Step 4 Visual Banner */}
+                  <div className="relative w-full h-40 rounded-2xl overflow-hidden mb-5 border border-white/10 group-hover:border-[#00FF66]/50 transition-all bg-black/40 shadow-inner">
+                    <img src="/step4_retention_review.png" alt="4. Отзыв ➔ Продление ➔ Постоянный гость" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#1E2024] via-transparent to-transparent" />
+                  </div>
+
                   <div className="flex justify-between items-start mb-4">
                     <span className="w-12 h-12 rounded-2xl bg-[#00FF66]/20 border border-[#00FF66] text-[#00FF66] font-black text-xl flex items-center justify-center shadow-[0_0_15px_rgba(0,255,102,0.4)]">
                       04
@@ -1364,123 +1390,14 @@ const RevoAlternativeLanding = () => {
             </p>
           </div>
 
-          {/* Google Places Rank Checker / Audit Block Container (Adapted Design System) */}
-          <div className="bg-[#1E2024] border-2 border-[#00FF66]/60 rounded-3xl p-6 sm:p-10 shadow-[0_0_50px_rgba(0,255,102,0.25)] relative overflow-hidden text-left mb-16">
-            <div className="mb-6 flex justify-between items-center pb-4 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-[#EA4335]" />
-                <span className="w-3 h-3 rounded-full bg-[#FBBC05]" />
-                <span className="w-3 h-3 rounded-full bg-[#00FF66]" />
-                <span className="text-xs font-mono text-white/50 ml-2">Google Maps Rank Validator Engine v3.0</span>
-              </div>
-              <span className="text-xs font-mono text-[#00FF66] font-bold">● AI Active</span>
-            </div>
+          {/* Outrich 3-Step Audit & Lost Revenue Potential Module */}
+          <div className="mb-16">
+            <OutrichRevenueWidget />
+          </div>
 
-            <AnimatePresence mode="wait">
-              {/* STEP 1: INPUT */}
-              {valStep === 'input' && (
-                <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <form onSubmit={handleValSearchSubmit} className="flex flex-col sm:flex-row gap-3">
-                    <div className="relative flex-grow">
-                      <FontAwesomeIcon icon={faMapMarkerAlt} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 text-lg" />
-                      <input 
-                        ref={valInputRef}
-                        type="text" 
-                        value={valInput}
-                        onChange={handleValInputChange}
-                        autoComplete="off"
-                        placeholder="Введите название заведения или вставьте ссылку Google Maps..."
-                        className="w-full bg-black/60 border border-white/20 rounded-2xl py-4 pl-12 pr-4 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#00FF66]"
-                      />
-                    </div>
-                    <button 
-                      type="submit"
-                      disabled={valSearching || !valInput.trim()}
-                      className="bg-[#00FF66] hover:bg-[#10B981] text-black font-black uppercase tracking-wider text-xs py-4 px-8 rounded-2xl transition-all shadow-[0_0_20px_rgba(0,255,102,0.4)] disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer flex-shrink-0"
-                    >
-                      {valSearching ? <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" /> : 'Проверить'}
-                    </button>
-                  </form>
-                  <p className="text-[11px] text-white/40 mt-3 text-center">Начните вводить название заведения в вашем городе или вставьте прямую ссылку на Карты.</p>
-                </motion.div>
-              )}
-
-              {/* STEP 2: LOADING */}
-              {valStep === 'loading' && (
-                <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center py-6">
-                  <div className="w-16 h-16 relative mx-auto mb-4">
-                    <div className="absolute inset-0 border-4 border-white/10 rounded-full" />
-                    <div className="absolute inset-0 border-4 border-[#00FF66] rounded-full border-t-transparent animate-spin" />
-                  </div>
-                  <h4 className="text-lg font-bold text-white mb-1">Сканирование алгоритмами Google...</h4>
-                  <p className="text-[#00FF66] font-mono text-sm mb-4">{valProgress}% Завершено</p>
-                  <div className="w-full max-w-md bg-white/5 h-2 rounded-full overflow-hidden mx-auto">
-                    <div className="h-full bg-[#00FF66] transition-all duration-200" style={{ width: `${valProgress}%` }} />
-                  </div>
-                </motion.div>
-              )}
-
-              {/* STEP 3: RESULT */}
-              {valStep === 'result' && (
-                <motion.div key="result" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-                  <div className="flex flex-col sm:flex-row gap-6 items-center">
-                    <div className="w-full sm:w-48 bg-black/60 p-6 rounded-2xl border border-white/10 text-center flex flex-col items-center">
-                      <span className="text-[10px] font-mono text-white/50 uppercase">Health Score</span>
-                      <div className="text-5xl font-black text-white my-2" style={{ color: valHealthScore > 70 ? '#00FF66' : valHealthScore > 40 ? '#FBBC05' : '#EA4335' }}>
-                        {valHealthScore}
-                      </div>
-                      <span className="text-[10px] text-white/60">/ 100 Индекс видимости</span>
-                    </div>
-
-                    <div className="flex-grow space-y-2 text-xs text-white/80">
-                      <div className="flex items-center gap-2">
-                        <FontAwesomeIcon icon={valPlaceDetails?.rating >= 4.5 ? faCheckCircle : faTimesCircle} className={valPlaceDetails?.rating >= 4.5 ? 'text-[#00FF66]' : 'text-[#EA4335]'} />
-                        <span>Рейтинг: <strong className="text-white">{valPlaceDetails?.rating || 'Нет данных'}</strong> ({valPlaceDetails?.rating >= 4.5 ? 'Норма' : 'Вы теряете клики'})</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <FontAwesomeIcon icon={valPlaceDetails?.user_ratings_total >= 50 ? faCheckCircle : faTimesCircle} className={valPlaceDetails?.user_ratings_total >= 50 ? 'text-[#00FF66]' : 'text-[#EA4335]'} />
-                        <span>Количество отзывов: <strong className="text-white">{valPlaceDetails?.user_ratings_total || 0}</strong></span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <FontAwesomeIcon icon={faExclamationTriangle} className="text-[#FBBC05]" />
-                        <span>SEO Постинг & GEO EXIF метки: <strong className="text-[#FBBC05]">Не обнаружено (Риск снижения в выдаче)</strong></span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Form inside result */}
-                  <form onSubmit={handleValLeadSubmit} className="pt-4 border-t border-white/10 flex flex-col sm:flex-row gap-3">
-                    <input 
-                      type="text" 
-                      required
-                      value={valContactInfo}
-                      onChange={(e) => setValContactInfo(e.target.value)}
-                      placeholder="Ваш Телефон / WhatsApp / Telegram для отправки отчета..."
-                      className="w-full bg-black/60 border border-white/20 rounded-2xl py-3.5 px-4 text-white text-xs focus:outline-none focus:border-[#00FF66]"
-                    />
-                    <button 
-                      type="submit"
-                      disabled={valSubmitting}
-                      className="bg-[#00FF66] hover:bg-[#10B981] text-black font-black uppercase text-xs py-3.5 px-6 rounded-2xl transition-all shadow-[0_0_20px_rgba(0,255,102,0.4)] flex-shrink-0 cursor-pointer"
-                    >
-                      {valSubmitting ? 'ОТПРАВКА...' : 'ПОЛУЧИТЬ PDF-АУДИТВ WHATSAPP'}
-                    </button>
-                  </form>
-                </motion.div>
-              )}
-
-              {/* STEP 4: SUCCESS */}
-              {valStep === 'success' && (
-                <motion.div key="success" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-6">
-                  <FontAwesomeIcon icon={faCheckCircle} className="text-4xl text-[#00FF66] mb-3" />
-                  <h4 className="text-xl font-bold text-white mb-1">ЗАЯВКА НА АУДИТ ПРИНЯТА!</h4>
-                  <p className="text-xs text-white/60 mb-4">Наш ИИ-ассистент отправит детальный отчет вам в мессенджер в течение 5 минут.</p>
-                  <button onClick={() => { setValStep('input'); setValInput(''); setValContactInfo(''); }} className="text-xs font-mono text-[#00FF66] underline">
-                    Проверить еще одно заведение
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+          {/* Interactive ROI & Lost Revenue Potential Calculator Module */}
+          <div className="mb-12">
+            <ProfitCalculator onOpenContactModal={() => setIsContactModalOpen(true)} />
           </div>
 
           {/* Interactive Capture Form (Search Bar Google Styled Card) */}
