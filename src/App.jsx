@@ -43,7 +43,7 @@ const GoogleMapsPreLanding = lazyWithRetry(() => import('./GoogleMapsPreLanding'
 const GoogleThankYouScreen = lazyWithRetry(() => import('./GoogleThankYouScreen'));
 const GbpDashboard          = lazyWithRetry(() => import('./GbpDashboard'));
 const GbpGrantPage          = lazyWithRetry(() => import('./GbpGrantPage'));
-const RevoAlternativeLanding = lazyWithRetry(() => import('./RevoAlternativeLanding'));
+import RevoAlternativeLanding from './RevoAlternativeLanding';
 
 import DubaiTechBadge from './DubaiTechBadge';
 
@@ -226,6 +226,14 @@ const SuspenseFallback = () => {
             return (
                 <div className="min-h-screen bg-gray-100 flex items-center justify-center">
                     <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+            );
+        }
+        const pathname = window.location.pathname;
+        if (pathname.startsWith('/admin') || pathname.startsWith('/owner') || pathname.startsWith('/business') || pathname.startsWith('/outreach') || pathname.startsWith('/revo-alt')) {
+            return (
+                <div className="min-h-screen bg-[#121212] flex items-center justify-center">
+                    <div className="w-8 h-8 border-4 border-[#00FF66] border-t-transparent rounded-full animate-spin"></div>
                 </div>
             );
         }
