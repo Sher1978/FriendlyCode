@@ -60,6 +60,41 @@ const SLIDER_TEXTS_RU = [
     "Узнайте упущенную выгоду вашего бизнеса из-за потери локального трафика в 2026 году."
 ];
 
+const darkMapStyle = [
+    { elementType: "geometry", stylers: [{ color: "#212121" }] },
+    { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
+    { elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+    { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
+    { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }] },
+    { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
+    { featureType: "road", elementType: "geometry.fill", stylers: [{ color: "#2c2c2c" }] },
+    { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] }
+];
+
+const extractPlaceQueryFromUrl = (str) => {
+    if (!str) return '';
+    const trimmed = str.trim();
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+        return trimmed;
+    }
+    try {
+        const urlObj = new URL(trimmed);
+        if (urlObj.pathname.includes('/place/')) {
+            const parts = urlObj.pathname.split('/place/');
+            if (parts[1]) {
+                const subPart = parts[1].split('/')[0];
+                return decodeURIComponent(subPart.replace(/\+/g, ' '));
+            }
+        }
+        if (urlObj.searchParams.has('q')) return urlObj.searchParams.get('q');
+        if (urlObj.searchParams.has('query')) return urlObj.searchParams.get('query');
+        if (urlObj.searchParams.has('cid')) return `cid:${urlObj.searchParams.get('cid')}`;
+    } catch (err) {
+        console.warn("URL parse exception:", err);
+    }
+    return trimmed;
+};
+
 const OutrichRevenueWidget = () => {
     // UI States
     const [activeStep, setActiveStep] = useState(1);
@@ -75,6 +110,12 @@ const OutrichRevenueWidget = () => {
     const [searchResults, setSearchResults] = useState([]);
     const [isSearchingMap, setIsSearchingMap] = useState(false);
     const [searchError, setSearchError] = useState(false);
+    const [searchErrorMessage, setSearchErrorMessage] = useState('');
+
+    // Interactive Google Map Picker States
+    const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
+    const [nearbyPlaces, setNearbyPlaces] = useState([]);
+    const [isSearchingNearby, setIsSearchingNearby] = useState(false);
     
     // Lead Capture
     const [contact, setContact] = useState('');
@@ -116,6 +157,65 @@ const OutrichRevenueWidget = () => {
         }, 4000);
         return () => clearInterval(interval);
     }, [activeStep]);
+
+    // Map Picker Listener Effect
+    useEffect(() => {
+        if (!isMapPickerOpen) return;
+
+        const timer = setTimeout(() => {
+            const mapContainer = document.getElementById('google-map-picker-canvas');
+            if (mapContainer && window.google && window.google.maps) {
+                const initialPos = userLoc ? { lat: userLoc.lat, lng: userLoc.lon } : { lat: 55.7558, lng: 37.6173 };
+                const map = new window.google.maps.Map(mapContainer, {
+                    center: initialPos,
+                    zoom: 14,
+                    styles: darkMapStyle,
+                    disableDefaultUI: false,
+                });
+
+                const marker = new window.google.maps.Marker({
+                    position: initialPos,
+                    map: map,
+                    draggable: true,
+                    title: "Перетащите маркер к вашему заведению"
+                });
+
+                const fetchPlacesAtCoord = (latLng) => {
+                    setIsSearchingNearby(true);
+                    setNearbyPlaces([]);
+                    const placesService = new window.google.maps.places.PlacesService(map);
+                    placesService.nearbySearch(
+                        {
+                            location: latLng,
+                            radius: 300,
+                            type: ['establishment']
+                        },
+                        (resultsList, status) => {
+                            setIsSearchingNearby(false);
+                            if (status === window.google.maps.places.PlacesServiceStatus.OK && resultsList) {
+                                setNearbyPlaces(resultsList);
+                            } else {
+                                setNearbyPlaces([]);
+                            }
+                        }
+                    );
+                };
+
+                fetchPlacesAtCoord(initialPos);
+
+                map.addListener('click', (e) => {
+                    marker.setPosition(e.latLng);
+                    fetchPlacesAtCoord(e.latLng);
+                });
+
+                marker.addListener('dragend', (e) => {
+                    fetchPlacesAtCoord(e.latLng);
+                });
+            }
+        }, 150);
+
+        return () => clearTimeout(timer);
+    }, [isMapPickerOpen, userLoc]);
 
     const formatMoney = (val) => {
         return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val);
@@ -191,11 +291,12 @@ const OutrichRevenueWidget = () => {
         }
         setActiveStep(2);
         setSearchResults([]);
+        setSearchError(false);
     };
 
     // Google Places Autocomplete Predictions effect as user types
     useEffect(() => {
-        const queryStr = searchQuery.trim();
+        const queryStr = extractPlaceQueryFromUrl(searchQuery);
         if (queryStr.length < 2 || activeStep !== 1) {
             setSearchResults([]);
             return;
@@ -266,7 +367,8 @@ const OutrichRevenueWidget = () => {
                                 null
                             );
                         } else {
-                            proceedToStep2(pred.name, pred.address);
+                            setSearchError(true);
+                            setSearchErrorMessage(`Не удалось загрузить данные заведения из Google Places API. Выберите другое заведение из списка.`);
                         }
                     }
                 );
@@ -276,22 +378,29 @@ const OutrichRevenueWidget = () => {
             }
         }
         setIsSearchingMap(false);
-        proceedToStep2(pred.name, pred.address);
+        setSearchError(true);
+        setSearchErrorMessage(`Не удалось связаться с Google Places API.`);
     };
 
     const handleSearchSubmit = async (e) => {
         if (e) e.preventDefault();
-        const queryStr = searchQuery.trim();
-        if (!queryStr) return;
+        const rawInput = searchQuery.trim();
+        if (!rawInput) {
+            setSearchError(true);
+            setSearchErrorMessage('Введите название заведения, адрес или прямую ссылку на Google Maps.');
+            return;
+        }
 
         setSearchError(false);
         setIsSearchingMap(true);
 
         // If searchResults has matching autocomplete items, select top match
-        if (searchResults.length > 0) {
+        if (searchResults.length > 0 && !rawInput.startsWith('http')) {
             handleSelectPlacePrediction(searchResults[0]);
             return;
         }
+
+        const queryStr = extractPlaceQueryFromUrl(rawInput);
 
         // Try Google Places Text Search
         if (window.google && window.google.maps && window.google.maps.places) {
@@ -301,21 +410,45 @@ const OutrichRevenueWidget = () => {
                 placesService.textSearch({ query: queryStr }, (resultsList, status) => {
                     if (status === window.google.maps.places.PlacesServiceStatus.OK && resultsList && resultsList.length > 0) {
                         const topMatch = resultsList[0];
-                        setIsSearchingMap(false);
-                        proceedToStep2(
-                            topMatch.name,
-                            topMatch.formatted_address || queryStr,
-                            null,
-                            null,
-                            topMatch.rating ? String(topMatch.rating) : '4.2',
-                            topMatch.user_ratings_total || 30,
-                            null,
-                            false,
-                            null
+                        placesService.getDetails(
+                            {
+                                placeId: topMatch.place_id,
+                                fields: ['name', 'formatted_address', 'rating', 'user_ratings_total', 'website']
+                            },
+                            (details, detailStatus) => {
+                                setIsSearchingMap(false);
+                                if (detailStatus === window.google.maps.places.PlacesServiceStatus.OK && details) {
+                                    proceedToStep2(
+                                        details.name || topMatch.name,
+                                        details.formatted_address || topMatch.formatted_address || queryStr,
+                                        null,
+                                        null,
+                                        details.rating ? String(details.rating) : '4.2',
+                                        details.user_ratings_total || 30,
+                                        null,
+                                        !!details.website,
+                                        null
+                                    );
+                                } else {
+                                    proceedToStep2(
+                                        topMatch.name,
+                                        topMatch.formatted_address || queryStr,
+                                        null,
+                                        null,
+                                        topMatch.rating ? String(topMatch.rating) : '4.2',
+                                        topMatch.user_ratings_total || 30,
+                                        null,
+                                        false,
+                                        null
+                                    );
+                                }
+                            }
                         );
                     } else {
-                        // Try Nominatim geocoding fallback
-                        queryNominatimFallback(queryStr);
+                        // STRICT VALIDATION FAILURE: DO NOT PROCEED TO STEP 2 WITH FAKE DATA!
+                        setIsSearchingMap(false);
+                        setSearchError(true);
+                        setSearchErrorMessage(`Заведение не найдено на Google Картах по запросу «${rawInput}». Пожалуйста, выберите подходящий вариант из выпадающих подсказок Поиска, вставьте прямую ссылку или укажите заведение на карте.`);
                     }
                 });
                 return;
@@ -324,33 +457,10 @@ const OutrichRevenueWidget = () => {
             }
         }
 
-        queryNominatimFallback(queryStr);
-    };
-
-    const queryNominatimFallback = async (queryStr) => {
-        try {
-            let url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(queryStr)}&format=json&limit=3&addressdetails=1`;
-            if (userLoc) {
-                url += `&lat=${userLoc.lat}&lon=${userLoc.lon}`;
-            }
-            const res = await fetch(url);
-            const data = await res.json();
-            
-            if (data && data.length > 0) {
-                const item = data[0];
-                const placeName = item.name || item.display_name.split(',')[0] || queryStr;
-                proceedToStep2(placeName, item.display_name);
-            } else {
-                // STRICT ERROR VALIDATION: DO NOT PROCEED TO STEP 2 WITH FAKE DATA!
-                setSearchError(true);
-            }
-        } catch (error) {
-            console.error("Geocoding error:", error);
-            // STRICT ERROR VALIDATION: DO NOT PROCEED WITH DUMMY DATA!
-            setSearchError(true);
-        } finally {
-            setIsSearchingMap(false);
-        }
+        // Strictly Fail if Google Places API returns nothing or is unverified
+        setIsSearchingMap(false);
+        setSearchError(true);
+        setSearchErrorMessage(`Не удалось получить данные Google Places API для «${rawInput}». Укажите точное название или выберите точку на карте.`);
     };
 
     const handleConfirmData = () => {
@@ -464,7 +574,7 @@ const OutrichRevenueWidget = () => {
                                             required
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            placeholder="Название заведения и город (или ссылка Maps)..."
+                                            placeholder="Название заведения и город (или прямая ссылка Maps)..."
                                             className="w-full bg-black/60 border border-white/20 focus:border-[#00FF66] rounded-2xl pl-12 pr-4 py-4 text-sm sm:text-base text-white placeholder-white/40 focus:outline-none transition-all"
                                         />
                                     </div>
@@ -474,24 +584,18 @@ const OutrichRevenueWidget = () => {
                                         disabled={isSearchingMap}
                                         className="w-full bg-[#00FF66] hover:bg-[#10B981] text-black font-black text-sm py-4 rounded-2xl uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(0,255,102,0.4)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                                     >
-                                        <span>{isSearchingMap ? 'ПОИСК НА КАРТАХ...' : 'FIND PROFILE ->'}</span>
+                                        <span>{isSearchingMap ? 'ПОИСК В GOOGLE PLACES...' : 'FIND PROFILE ->'}</span>
                                         {!isSearchingMap && <FontAwesomeIcon icon={faArrowRight} />}
                                     </button>
                                 </form>
 
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        if (searchQuery.trim()) {
-                                            handleSearchSubmit();
-                                        } else {
-                                            setSearchError(true);
-                                        }
-                                    }}
-                                    className="w-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-mono text-xs py-3.5 rounded-2xl border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                                    onClick={() => setIsMapPickerOpen(true)}
+                                    className="w-full bg-white/5 hover:bg-white/10 text-white/80 hover:text-white font-mono text-xs py-3.5 rounded-2xl border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
                                 >
-                                    <FontAwesomeIcon icon={faMapMarkerAlt} className="text-white/40" />
-                                    <span>📍 Pick on map manually (Указать на карте)</span>
+                                    <FontAwesomeIcon icon={faMapMarkerAlt} className="text-[#00FF66]" />
+                                    <span>📍 Найти заведение на Google Картах (Выбрать точку)</span>
                                 </button>
 
                                 {/* Autocomplete Dropdown Predictions from Google Places API */}
@@ -499,18 +603,18 @@ const OutrichRevenueWidget = () => {
                                     <motion.div 
                                         initial={{ opacity: 0, y: -10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="mt-4 space-y-2 bg-black/80 p-3 rounded-2xl border border-[#00FF66]/40 shadow-xl"
+                                        className="mt-4 space-y-2 bg-black/90 p-3.5 rounded-2xl border border-[#00FF66]/40 shadow-2xl"
                                     >
-                                        <p className="text-[11px] text-white/50 uppercase font-mono mb-2 flex items-center gap-1.5">
-                                            <FontAwesomeIcon icon={faSearch} className="text-[#00FF66]" />
-                                            <span>Варианты из Google Maps (Выберите заведение):</span>
+                                        <p className="text-[11px] text-[#00FF66] uppercase font-mono mb-2 flex items-center gap-1.5 font-bold">
+                                            <FontAwesomeIcon icon={faSearch} />
+                                            <span>Подходящие заведения в Google Places API:</span>
                                         </p>
                                         {searchResults.map((res, idx) => (
                                             <button
                                                 key={idx}
                                                 type="button"
                                                 onClick={() => handleSelectPlacePrediction(res)}
-                                                className="w-full text-left bg-white/5 hover:bg-[#00FF66]/10 p-3 rounded-xl border border-white/5 hover:border-[#00FF66]/50 transition-all flex items-start gap-3 group cursor-pointer"
+                                                className="w-full text-left bg-white/5 hover:bg-[#00FF66]/15 p-3 rounded-xl border border-white/5 hover:border-[#00FF66]/50 transition-all flex items-start gap-3 group cursor-pointer"
                                             >
                                                 <FontAwesomeIcon icon={faMapMarkerAlt} className="text-[#00FF66] mt-1 group-hover:scale-110 transition-transform" />
                                                 <div className="overflow-hidden">
@@ -527,16 +631,25 @@ const OutrichRevenueWidget = () => {
                                     <motion.div 
                                         initial={{ opacity: 0, y: -10 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        className="mt-4 bg-[#EA4335]/10 p-4 rounded-2xl border border-[#EA4335]/40 text-left space-y-2 shadow-lg"
+                                        className="mt-4 bg-[#EA4335]/15 p-4 sm:p-5 rounded-2xl border-2 border-[#EA4335]/50 text-left space-y-3 shadow-xl"
                                     >
-                                        <div className="flex items-center gap-2 text-[#EA4335] font-bold text-xs sm:text-sm">
-                                            <FontAwesomeIcon icon={faTimesCircle} />
-                                            <span>Заведение не найдено на Google Картах</span>
+                                        <div className="flex items-center gap-2.5 text-[#EA4335] font-black text-sm uppercase tracking-wider">
+                                            <FontAwesomeIcon icon={faTimesCircle} className="text-base" />
+                                            <span>Ошибка верификации Google Places API</span>
                                         </div>
-                                        <p className="text-xs text-white/70 leading-relaxed">
-                                            Не удалось извлечь данные Google Maps по запросу {searchQuery ? <>«<strong className="text-white">{searchQuery}</strong>»</> : 'с пустым значением'}. 
-                                            Пожалуйста, выберите подходящий вариант из всплывающего списка или вставьте прямую ссылку на карточку компании.
+                                        <p className="text-xs text-white/80 leading-relaxed font-sans">
+                                            {searchErrorMessage || `Не удалось проверить данные в Google Places API. Система не производит симуляцию без подтвержденного Google Place ID.`}
                                         </p>
+                                        <div className="flex flex-wrap gap-2 pt-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsMapPickerOpen(true)}
+                                                className="text-[11px] font-mono font-bold bg-[#EA4335]/20 hover:bg-[#EA4335]/30 text-white px-3 py-2 rounded-xl border border-[#EA4335]/40 transition-colors flex items-center gap-1.5 cursor-pointer"
+                                            >
+                                                <FontAwesomeIcon icon={faMapMarkerAlt} className="text-[#00FF66]" />
+                                                <span>Указать на карте</span>
+                                            </button>
+                                        </div>
                                     </motion.div>
                                 )}
                             </div>
@@ -544,6 +657,85 @@ const OutrichRevenueWidget = () => {
                     )}
                 </AnimatePresence>
             </div>
+
+            {/* Interactive Google Map Picker Modal */}
+            <AnimatePresence>
+                {isMapPickerOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-[#181A1D] border border-white/20 rounded-3xl p-5 sm:p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto space-y-4 text-left shadow-2xl"
+                        >
+                            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+                                <div>
+                                    <h3 className="font-bold text-white text-base sm:text-lg uppercase flex items-center gap-2">
+                                        <FontAwesomeIcon icon={faMapMarkerAlt} className="text-[#00FF66]" />
+                                        <span>Выбор заведения на Google Картах</span>
+                                    </h3>
+                                    <p className="text-xs text-white/50">Перетащите маркер к вашему заведению или кликните по карте</p>
+                                </div>
+                                <button 
+                                    type="button" 
+                                    onClick={() => setIsMapPickerOpen(false)}
+                                    className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-sm transition-colors cursor-pointer"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+
+                            <div id="google-map-picker-canvas" className="w-full h-72 rounded-2xl border border-white/10 overflow-hidden relative bg-black/40">
+                                <div className="absolute inset-0 flex items-center justify-center text-white/40 text-xs font-mono">
+                                    Загрузка интерактивной карты Google Maps...
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <p className="text-xs font-mono uppercase text-white/60 flex items-center gap-2">
+                                    <FontAwesomeIcon icon={faSearch} className="text-[#00FF66]" />
+                                    <span>Заведения Google Places в радиусе маркера:</span>
+                                </p>
+                                {isSearchingNearby ? (
+                                    <div className="p-4 bg-black/40 rounded-xl border border-white/5 text-center text-xs text-white/50 font-mono">
+                                        Сканирование реестра Google Places API...
+                                    </div>
+                                ) : nearbyPlaces.length > 0 ? (
+                                    <div className="space-y-2 max-h-44 overflow-y-auto pr-1">
+                                        {nearbyPlaces.map((place, idx) => (
+                                            <button
+                                                key={idx}
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsMapPickerOpen(false);
+                                                    handleSelectPlacePrediction({
+                                                        place_id: place.place_id,
+                                                        name: place.name,
+                                                        address: place.vicinity || place.formatted_address
+                                                    });
+                                                }}
+                                                className="w-full text-left bg-white/5 hover:bg-[#00FF66]/15 p-3 rounded-xl border border-white/10 hover:border-[#00FF66]/50 transition-all flex items-start justify-between group cursor-pointer"
+                                            >
+                                                <div className="overflow-hidden">
+                                                    <p className="text-white text-sm font-bold group-hover:text-[#00FF66] transition-colors">{place.name}</p>
+                                                    <p className="text-white/50 text-xs truncate max-w-md">{place.vicinity || place.formatted_address}</p>
+                                                </div>
+                                                <span className="text-xs font-mono bg-[#00FF66]/20 text-[#00FF66] px-2.5 py-1 rounded font-bold border border-[#00FF66]/30 group-hover:bg-[#00FF66] group-hover:text-black transition-colors flex-shrink-0 ml-2">
+                                                    Выбрать &rarr;
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="p-4 bg-[#EA4335]/10 rounded-xl border border-[#EA4335]/30 text-xs text-[#EA4335] leading-relaxed">
+                                        В точке маркера не найдено ни одного зарегистрированного объекта Google Places. Переместите маркер ближе к заведению на карте.
+                                    </div>
+                                )}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Step 2: Data Confirmation */}
             <div className={`bg-[#181A1D] rounded-3xl border ${activeStep === 2 ? 'border-[#00FF66]/40 shadow-lg' : 'border-white/10 opacity-70'} overflow-hidden transition-all duration-300 ${activeStep < 2 ? 'pointer-events-none opacity-40' : ''}`}>

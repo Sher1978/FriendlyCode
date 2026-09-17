@@ -1,0 +1,234 @@
+{
+  "off_total_bill": {
+    "ru": "СКИДКА ОТ ОБЩЕГО СЧЕТА",
+    "en": ""
+  },
+  "b2c_hero_cta_reward": {
+    "ru": "ПОЛУЧИТЬ НАГРАДУ",
+    "en": "GET REWARD"
+  },
+  "b2c_hero_cta_vip": {
+    "ru": "СТАТЬ ВИП",
+    "en": "BECOME VIP"
+  },
+  "b2c_hero_super_vip_title": {
+    "ru": "Сегодня ты гость, а завтра СУПЕР ВИП!",
+    "en": "Today you are a Guest, tomorrow SUPER VIP!"
+  },
+  "b2c_hero_no_points": {
+    "ru": "Единственная система, где не нужно накапливать баллы — просто приходи СНОВА!",
+    "en": "The only system where you don't need to accumulate points — just come AGAIN!"
+  },
+  "b2c_timeline_today": {
+    "ru": "Сегодня: Гость",
+    "en": "Today: Guest"
+  },
+  "b2c_timeline_tomorrow": {
+    "ru": "Завтра: СУПЕР ВИП",
+    "en": "Tomorrow: SUPER VIP"
+  },
+  "b2c_timeline_week": {
+    "ru": "Через неделю: ВИП",
+    "en": "In a week: VIP"
+  },
+  "b2c_timeline_charge": {
+    "ru": "Ходи чаще, чтобы «Зарядить» свой статус",
+    "en": "Come more often to 'Charge' your status"
+  },
+  "b2b_path_step": {
+    "ru": "Шаг",
+    "en": "Step"
+  },
+  "vip_battery_charge_label": {
+    "ru": "Заряд VIP-батареи",
+    "en": "VIP Battery Charge"
+  },
+  "max_vip_achieved": {
+    "ru": "МАКСИМАЛЬНЫЙ VIP СТАТУС",
+    "en": ""
+  },
+  "vip_maintenance_hint": {
+    "ru": "Заходите завтра, чтобы сохранить Ваш статус!",
+    "en": ""
+  },
+  "review_stars_prompt": {
+    "ru": "Как вам понравилось?",
+    "en": "How was your experience?"
+  },
+  "review_gift_hint": {
+    "ru": "Оцените 4–5 звёзд и получите бонусный подарок",
+    "en": "Rate 4–5 stars and get a bonus gift"
+  },
+  "review_tap_stars": {
+    "ru": "Нажмите на звёзду, чтобы оценить",
+    "en": "Tap a star to rate"
+  },
+  "review_thank_you": {
+    "ru": "Спасибо за отзыв!",
+    "en": "Thank you for your feedback!"
+  },
+  "review_gift_screen_title": {
+    "ru": "Поздравляем!",
+    "en": "Congratulations!"
+  },
+  "review_gift_screen_sub": {
+    "ru": "Покажите этот экран персоналу — и получите специальный подарок!",
+    "en": "Show this screen to the staff to receive your special gift!"
+  },
+  "review_gift_close": {
+    "ru": "Понятно!",
+    "en": "Got it!"
+  },
+  "review_instruction_title": {
+    "ru": "Хотите подарок за отзыв?",
+    "en": "Want a bonus gift?"
+  },
+  "review_instruction_step_1": {
+    "ru": "Поставьте 5 звёзд на Гугл Картах",
+    "en": "Tap the button below"
+  },
+  "review_instruction_step_2": {
+    "ru": "Напишите короткий отзыв",
+    "en": "Leave a 5-star rating on Google Maps"
+  },
+  "review_instruction_step_3": {
+    "ru": "Затем покажите ваш отзыв персоналу",
+    "en": "Show your review to the staff"
+  },
+  "review_instruction_step_4": {
+    "ru": "Получите ваш подарок!",
+    "en": "Receive your special gift!"
+  },
+  "review_instruction_button": {
+    "ru": "В ГУГЛ КАРТЫ",
+    "en": "GO TO GOOGLE MAPS"
+  },
+  "review_instruction_close": {
+    "ru": "ПОЗЖЕ",
+    "en": "LATER"
+  },
+  "deposit_qr_code": {
+    "ru": "💰 Депозитный QR-код",
+    "en": "💰 Deposit QR Code"
+  },
+  "balance": {
+    "ru": "Баланс",
+    "en": "Balance"
+  },
+  "deposit_balance_instruction": {
+    "ru": "Ваш депозитный баланс составляет {{balance}} {{currency}}. Покажите QR-код официанту.",
+    "en": "Your deposit balance is {{balance}} {{currency}}. Show this QR code to your waiter."
+  },
+  "deposit_topped_up": {
+    "ru": "Депозит пополнен!",
+    "en": "Deposit Topped Up!"
+  },
+  "deposit_topup_success_sub": {
+    "ru": "Ваше зачисление успешно обработано:",
+    "en": "Your deposit top-up was processed successfully:"
+  },
+  "current_deposit_balance": {
+    "ru": "Текущий баланс депозита",
+    "en": "Current Deposit Balance"
+  },
+  "great": {
+    "ru": "Отлично",
+    "en": "Awesome"
+  },
+  "recent_visit": {
+    "ru": "Недавний визит",
+    "en": "Recent visit"
+  },
+  "visit_history_empty": {
+    "ru": "История визитов пуста",
+    "en": "Visit history is empty"
+  },
+  "visit_history_empty_sub": {
+    "ru": "Сканируйте QR-коды в заведениях для накопления скидок",
+    "en": "Scan venue QR codes to earn discounts and rewards"
+  },
+  "your_venue_visits": {
+    "ru": "Ваши посещения заведения",
+    "en": "Your venue visits"
+  },
+  "loading_history": {
+    "ru": "Загрузка истории...",
+    "en": "Loading history..."
+  },
+  "tier_vip": {
+    "ru": "ВИП",
+    "en": "VIP"
+  },
+  "tier_base": {
+    "ru": "Базовая",
+    "en": "Base"
+  },
+  "tier_n": {
+    "ru": "Тир {{n}}",
+    "en": "Tier {{n}}"
+  },
+  "lock_max_vip": {
+    "ru": "Закрепите депозитный VIP-максимум!",
+    "en": "Lock in your VIP Deposit Max!"
+  },
+  "ask_staff_topup": {
+    "ru": "Попросите сотрудников заведения пополнить депозит и активировать постоянный VIP-уровень на все ваши будущие визиты.",
+    "en": "Ask venue staff to top up your deposit and activate permanent VIP status for all your future visits."
+  },
+  "ask_waiter_scan_qr": {
+    "ru": "Попросите официанта отсканировать ваш QR-код",
+    "en": "Ask your waiter to scan your QR code"
+  },
+  "visit_more_save_more": {
+    "ru": "Чем чаще ты посещаешь, тем выше ВИП статус и награда!",
+    "en": "The more often you visit, the higher your VIP status and reward!"
+  },
+  "hybrid_header_subtitle": {
+    "ru": "Спасибо за визит! Сканирование прошло успешно. Какую бонусную систему вы хотите открыть?",
+    "en": "Thank you for visiting! Scan successful. Which reward system would you like to open?"
+  },
+  "hybrid_revo_title": {
+    "ru": "REVO - СКИДКИ & ДЕПОЗИТ",
+    "en": "REVO - DISCOUNTS & DEPOSIT"
+  },
+  "hybrid_revo_desc": {
+    "ru": "Для накопления скидки за частоту посещений и внесения депозита для постоянной скидки.",
+    "en": "For accumulating frequency discounts and making a deposit for permanent status."
+  },
+  "hybrid_revo_btn": {
+    "ru": "Открыть REVO",
+    "en": "Open REVO"
+  },
+  "hybrid_giftx_title": {
+    "ru": "GIFTX - ПОДАРКИ & КРОСС-МАРКЕТИНГ",
+    "en": "GIFTX - GIFTS & CROSS-MARKETING"
+  },
+  "hybrid_giftx_desc": {
+    "ru": "Для получения подарка от партнеров за чек и участия в акциях кросс-маркетинга.",
+    "en": "For receiving partner gifts on receipts and participating in cross-promotions."
+  },
+  "hybrid_giftx_btn": {
+    "ru": "Открыть GiftX",
+    "en": "Open GiftX"
+  },
+  "hybrid_footer_no_apps": {
+    "ru": "Без скачивания приложений • Мгновенный доступ",
+    "en": "No App Downloads Required • Instant Access"
+  },
+  "badge_type_deposit": {
+    "ru": "ДЕПОЗИТ",
+    "en": "DEPOSIT"
+  },
+  "badge_type_regular": {
+    "ru": "РЕГУЛЯРНАЯ",
+    "en": "REGULAR"
+  },
+  "badge_type_review": {
+    "ru": "GOOGLE MAPS",
+    "en": "GOOGLE MAPS"
+  },
+  "title_discount_type": {
+    "ru": "Вид вашей скидки",
+    "en": "Discount Type"
+  }
+}

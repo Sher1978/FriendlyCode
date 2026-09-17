@@ -1,0 +1,961 @@
+{
+  "calculating_discount": {
+    "ru": "Рассчитываем вашу персональную скидку...",
+    "en": "Calculating your personal discount...",
+    "vi": "Đang tính toán chiết khấu của bạn..."
+  },
+  "b2b_nav_join": {
+    "ru": "СТАТЬ ПАРТНЕРОМ",
+    "en": "JOIN AS PARTNER",
+    "vi": "THAM GIA VỚI TƯ CÁCH ĐỐI TÁC"
+  },
+  "b2b_hero_h1": {
+    "ru": "Лояльность — это не маркетинг. Это КОГНИТИВНАЯ ИНЖЕНЕРИЯ.",
+    "en": "LOYALTY is not marketing. It is COGNITIVE ENGINEERING.",
+    "vi": "LÒNG TRUNG THÀNH không phải là marketing. Đó là KỸ THUẬT NHẬN THỨC."
+  },
+  "b2b_hero_sub_new": {
+    "ru": "Как удерживать 90% гостей, используя Нобелевскую теорию боязни потери и технологию Zero Friction.",
+    "en": "How to retain 90% of guests using the Nobel theory of loss aversion and Zero Friction technology.",
+    "vi": "Cách giữ chân 90% khách hàng bằng lý thuyết Nobel về tâm lý sợ mất mát và công nghệ Zero Friction."
+  },
+  "b2b_hero_cta_demo": {
+    "ru": "ЗАБРОНИРОВАТЬ ТЕСТ-ДРАЙВ",
+    "en": "BOOK TEST DRIVE",
+    "vi": "ĐẶT LỊCH TRẢI NGHIỆM"
+  },
+  "b2b_hero_cta_wp": {
+    "ru": "ПОДАТЬ ЗАЯВКУ",
+    "en": "SUBMIT APPLICATION",
+    "vi": "GỬI YÊU CẦU"
+  },
+  "b2b_hero_cta_calc": {
+    "ru": "Рассчитать окупаемость",
+    "en": "CALCULATE ROI",
+    "vi": "TÍNH TOÁN ROI"
+  },
+  "b2b_leaky_bucket_h2": {
+    "ru": "Почему ваша текущая система лояльности не работает на 100%?",
+    "en": "Why your current loyalty system doesn't work 100%?",
+    "vi": "Tại sao hệ thống khách hàng thân thiết hiện tại của bạn không hiệu quả 100%?"
+  },
+  "b2b_leaky_bucket_intro": {
+    "ru": "Почему вы теряете до 83% гостей, которые пришли к вам впервые? Классические программы лояльности безнадежно устарели. Они не работают, потому что люди не хотят ждать и усложнять. А вы теряете деньги.",
+    "en": "Why do you lose up to 83% of new guests? Classic programs are hopelessly outdated.",
+    "vi": "Tại sao bạn mất tới 83% khách mới? Các chương trình truyền thống đã lỗi thời một cách vô vọng."
+  },
+  "b2b_problem_app_title": {
+    "ru": "Барьер приложения",
+    "en": "App Barrier",
+    "vi": "Rào cản Ứng dụng"
+  },
+  "b2b_problem_app_desc": {
+    "ru": "80% гостей отказываются скачивать еще одно приложение или заполнять долгие анкеты на кассе.",
+    "en": "80% of guests refuse to download a new app or fill out long forms at checkout.",
+    "vi": "80% khách hàng từ chối tải ứng dụng mới hoặc điền các mẫu dài dòng khi thanh toán."
+  },
+  "b2b_problem_stanford_title": {
+    "ru": "Научный факт (Fogg Behavior Model)",
+    "en": "Scientific Fact (Fogg Model)",
+    "vi": "Sự thật khoa học (Mô hình Fogg)"
+  },
+  "b2b_problem_stanford_desc": {
+    "ru": "Ученые Стэнфорда доказали — если действие требует усилий (высокое трение), клиент его не совершит, какой бы большой ни была награда.",
+    "en": "Stanford scientists proved: if an action requires effort (high friction), the customer won't do it.",
+    "vi": "Các nhà khoa học Stanford đã chứng minh: nếu một hành động đòi hỏi nỗ lực (ma sát cao), khách hàng sẽ không thực hiện."
+  },
+  "b2b_problem_blindspot_title": {
+    "ru": "Слепая зона",
+    "en": "Blind Spot",
+    "vi": "Điểm mù"
+  },
+  "b2b_problem_blindspot_desc": {
+    "ru": "Бумажные карточки с печатями ничего не знают о ваших гостях. Вы не видите, кто перестал к вам ходить, пока не становится слишком поздно.",
+    "en": "Paper stamp cards know nothing about your guests.",
+    "vi": "Thẻ tích điểm giấy không biết gì về khách hàng của bạn."
+  },
+  "b2b_leaky_bucket_fact": {
+    "ru": "Важный факт: Помните, что приводя новых клиентов, вы зарабатываете в 7 раз меньше, чем удерживая старых. Весь ваш рекламный бюджет уходит в «дырявое ведро», если гость не возвращается к вам снова.",
+    "en": "Important fact: acquiring a new customer costs 7 times more than retaining an existing one.",
+    "vi": "Sự thật quan trọng: Chi phí tìm kiếm khách hàng mới cao gấp 7 lần so với việc giữ chân khách hàng hiện có."
+  },
+  "b2b_simplicity_h2": {
+    "ru": "Лояльность в одно касание. Буквально.",
+    "en": "Loyalty in one tap. Literally.",
+    "vi": "Khách hàng thân thiết chỉ với một lần chạm. Theo đúng nghĩa đen."
+  },
+  "b2b_simplicity_intro": {
+    "ru": "Мы убрали все барьеры между вами и вашим клиентом.",
+    "en": "We removed all barriers between you and your customer.",
+    "vi": "Chúng tôi đã loại bỏ mọi rào cản giữa bạn và khách hàng."
+  },
+  "b2b_simplicity_tap": {
+    "ru": "Tap & Go: Гость просто прикладывает телефон к стильной NFC-метке на столе или кассе или сканирует QR код.",
+    "en": "Tap & Go: The guest simply taps their phone on an NFC tag or scans a QR code.",
+    "vi": "Chạm & Đi: Khách hàng chỉ cần chạm điện thoại vào thẻ NFC hoặc quét mã QR."
+  },
+  "b2b_simplicity_recognize": {
+    "ru": "Мгновенное узнавание: Устройство распознается прямо в браузере. Никаких SMS-кодов и регистраций.",
+    "en": "Instant Recognition: The device is recognized in the browser. No SMS codes or registrations.",
+    "vi": "Nhận diện tức thì: Thiết bị được nhận diện trong trình duyệt. Không cần mã SMS hay đăng ký."
+  },
+  "b2b_simplicity_done": {
+    "ru": "Готово: Гость уже в вашей базе, а вы получаете 100% конверсию в программу лояльности.",
+    "en": "Done: The customer is now in your database, and you've achieved 100% conversion to the loyalty program.",
+    "vi": "Hoàn tất: Khách hàng hiện đã có trong cơ sở dữ liệu của bạn và bạn đã đạt được tỷ lệ chuyển đổi 100% vào chương trình."
+  },
+  "b2b_diagnosis_h2": {
+    "ru": "Диагноз: Хроническая утечка Lifetime Value (LTV).",
+    "en": "Diagnosis: Chronic Leakage of Lifetime Value (LTV).",
+    "vi": "Chẩn đoán: Rò rỉ Giá trị Vòng đời Khách hàng (LTV) mãn tính."
+  },
+  "b2b_diagnosis_intro": {
+    "ru": "Большинство заведений тратят огромные бюджеты (CAC) на привлечение, но клиенты «вытекают» к конкурентам после первого визита.",
+    "en": "Most establishments spend huge budgets (CAC) on acquisition, but customers \"leak\" to competitors after the first visit.",
+    "vi": "Hầu hết các cơ sở chi ngân sách lớn cho việc tìm kiếm khách mới (CAC), nhưng khách hàng lại \"rò rỉ\" sang đối thủ sau lần ghé thăm đầu tiên."
+  },
+  "b2b_diagnosis_conclusion": {
+    "ru": "Вы не строите бизнес, вы просто оплачиваете рекламные счета Facebook и Google.",
+    "en": "You are not building a business; you are just paying Facebook and Google advertising bills.",
+    "vi": "Bạn không đang xây dựng doanh nghiệp; bạn chỉ đang thanh toán hóa đơn quảng cáo cho Facebook và Google."
+  },
+  "b2b_science_h2": {
+    "ru": "Взлом привычек через Cognitive Hooks.",
+    "en": "Hacking habits through Cognitive Hooks.",
+    "vi": "Hack thói quen thông qua Cognitive Hooks."
+  },
+  "b2b_science_sub": {
+    "ru": "Почему традиционные системы лояльности (приложения и карточки) мертвы? Потому что они создают Neural Friction (нейронное трение).",
+    "en": "Why are traditional loyalty systems (apps and cards) dead? Because they create Neural Friction.",
+    "vi": "Tại sao hệ thống khách hàng thân thiết truyền thống (ứng dụng và thẻ) đã chết? Bởi vì chúng tạo ra Ma sát Thần kinh."
+  },
+  "b2b_science_kahneman_title": {
+    "ru": "Теория Канемана (Loss Aversion)",
+    "en": "Kahneman's Theory (Loss Aversion)",
+    "vi": "Lý thuyết của Kahneman (Tâm lý sợ mất mát)"
+  },
+  "b2b_science_kahneman_text": {
+    "ru": "Мы не предлагаем гостю «накопить на подарок». Мы даем ему актив (статус). Психологически потерять 100% заряда батареи в 2 раза больнее, чем радость от бесплатного кофе.",
+    "en": "We don't offer the guest to \"save for a gift\". We give them an asset (status). Psychologically, losing 100% of the battery charge is twice as painful as the joy of a free coffee.",
+    "vi": "Chúng tôi không đề nghị khách hàng \"tích điểm để nhận quà\". Chúng tôi tặng họ một tài sản (trạng thái). Về mặt tâm lý, việc mất 100% dung lượng pin đau đớn gấp đôi so với niềm vui khi nhận một ly cà phê miễn phí."
+  },
+  "b2b_science_friction_title": {
+    "ru": "Zero Friction",
+    "en": "Zero Friction",
+    "vi": "Zero Friction"
+  },
+  "b2b_science_friction_text": {
+    "ru": "Удаление барьера входа. 0.5 секунды на «Тар» — это быстрее, чем достать кошелек.",
+    "en": "Removing the entry barrier. 0.5 seconds for a \"Tap\" is faster than taking out a wallet.",
+    "vi": "Loại bỏ rào cản tham gia. 0.5 giây cho một lần \"Chạm\" nhanh hơn việc lấy ví ra."
+  },
+  "b2b_science_reward_title": {
+    "ru": "Variable Reward Schedule",
+    "en": "Variable Reward Schedule",
+    "vi": "Lịch trình Thưởng Biến đổi"
+  },
+  "b2b_science_reward_text": {
+    "ru": "Как переменное вознаграждение вызывает дофаминовый отклик, заставляя гостя проверять статус батареи снова и снова.",
+    "en": "How variable rewards trigger a dopamine response, making the guest check the battery status again and again.",
+    "vi": "Cách các phần thưởng không đoán trước được kích hoạt phản ứng dopamine, khiến khách hàng kiểm tra trạng thái pin nhiều lần."
+  },
+  "b2b_tech_h2": {
+    "ru": "Технологический стек 2026 года.",
+    "en": "2026 Technology Stack.",
+    "vi": "Công nghệ 2026."
+  },
+  "b2b_tech_sub": {
+    "ru": "Никаких POS-интеграций. Никакого обучения персонала. Полная автономность.",
+    "en": "No POS integrations. No staff training. Full autonomy.",
+    "vi": "Không cần tích hợp POS. Không cần đào tạo nhân viên. Hoàn toàn tự chủ."
+  },
+  "b2b_tech_segments_title": {
+    "ru": "14-сегментная структура",
+    "en": "14-Segment Structure",
+    "vi": "Cấu trúc 14 phân đoạn"
+  },
+  "b2b_tech_segments_text": {
+    "ru": "Нулевое трение для персонала. Не нужно устанавливать приложения, посещения можно отслеживать с телефона, планшета или получать уведомления на Email и в Телеграм",
+    "en": "Analysis of the 14-segment visualization structure.",
+    "vi": "Phân tích cấu trúc trực quan hóa 14 phân đoạn."
+  },
+  "b2b_tech_melting_title": {
+    "ru": "Melting Logic",
+    "en": "Melting Logic",
+    "vi": "Logic Tan chảy (Melting)"
+  },
+  "b2b_tech_melting_text": {
+    "ru": "Триггерная «тающая» механика: чем дольше пауза между визитами, тем ниже заряд.",
+    "en": "How the \"melting\" mechanic works: the longer the speed between visits, the lower the charge.",
+    "vi": "Cách thức cơ chế \"tan chảy\" hoạt động: thời gian dừng giữa các lần ghé thăm càng lâu, dung lượng pin càng giảm."
+  },
+  "b2b_tech_wallet_title": {
+    "ru": "Apple Wallet & Google Pay",
+    "en": "Apple Wallet & Google Pay",
+    "vi": "Apple Wallet & Google Pay"
+  },
+  "b2b_tech_wallet_text": {
+    "ru": "Использование нативных и привычных пользователю инструментов смартфона вместо сторонних приложений.",
+    "en": "Using native smartphone tools instead of third-party apps.",
+    "vi": "Sử dụng các công cụ có sẵn trên smartphone thay vì ứng dụng của bên thứ ba."
+  },
+  "b2b_matrix_h2": {
+    "ru": "Матрица архитектуры удержания",
+    "en": "The Retention Architecture Matrix",
+    "vi": "Ma trận Kiến trúc Giữ chân"
+  },
+  "b2b_matrix_sub": {
+    "ru": "Сравнение когнитивного и технологического воздействия рыночных альтернатив.",
+    "en": "Comparing the cognitive and technological impact of market alternatives.",
+    "vi": "So sánh tác động nhận thức và công nghệ của các giải pháp thay thế trên thị trường."
+  },
+  "b2b_matrix_integration": {
+    "ru": "IT-интеграция",
+    "en": "Business IT Integration",
+    "vi": "Tích hợp IT Doanh nghiệp"
+  },
+  "b2b_matrix_val_apps": {
+    "ru": "Лояльные приложения",
+    "en": "Custom Loyalty Apps",
+    "vi": "Ứng dụng Loyalty riêng"
+  },
+  "b2b_matrix_val_stamps": {
+    "ru": "Бумажные карты",
+    "en": "Paper Punch Cards",
+    "vi": "Thẻ tích điểm giấy"
+  },
+  "b2b_matrix_friction": {
+    "ru": "Барьер входа (Friction)",
+    "en": "Friction to Entry",
+    "vi": "Ma sát khi tham gia"
+  },
+  "b2b_matrix_val_friction_apps": {
+    "ru": "Высокий (Скачивание/Анкеты)",
+    "en": "High (Downloads/Forms)",
+    "vi": "Cao (Tải xuống/Mẫu đơn)"
+  },
+  "b2b_matrix_val_friction_paper": {
+    "ru": "Низкий (Занимает место в кошельке)",
+    "en": "Low (Takes wallet space)",
+    "vi": "Thấp (Chiếm diện tích ví)"
+  },
+  "b2b_matrix_val_revoo_friction": {
+    "ru": "Нулевой (0.5 сек, Анонимно)",
+    "en": "Zero (0.5s Tap, Anonymous)",
+    "vi": "Không có (0.5 giây Chạm, Ẩn danh)"
+  },
+  "b2b_matrix_hook": {
+    "ru": "Когнитивный хук",
+    "en": "Cognitive Hook",
+    "vi": "Cognitive Hook"
+  },
+  "b2b_matrix_val_hook_apps": {
+    "ru": "Пассивный (Забыто в телефоне)",
+    "en": "Passive (Forgotten in phone)",
+    "vi": "Thụ động (Bị quên trong điện thoại)"
+  },
+  "b2b_matrix_val_hook_paper": {
+    "ru": "Пассивный (Молчит в кошельке)",
+    "en": "Passive (Silent in wallet)",
+    "vi": "Thụ động (Nằm im trong ví)"
+  },
+  "b2b_matrix_val_revoo_hook": {
+    "ru": "Активный (Loss Aversion / Тающая батарея)",
+    "en": "Active (Loss Aversion / Melting Battery)",
+    "vi": "Chủ động (Sợ mất mát / Pin tan chảy)"
+  },
+  "b2b_matrix_val_int_apps": {
+    "ru": "Тяжелая (Дорогой POS-маппинг)",
+    "en": "Heavy (Expensive POS mapping)",
+    "vi": "Phức tạp (Tích hợp POS đắt đỏ)"
+  },
+  "b2b_matrix_val_int_paper": {
+    "ru": "Нет",
+    "en": "None",
+    "vi": "Không có"
+  },
+  "b2b_matrix_val_revoo_integration": {
+    "ru": "Автономная (Параллельные алерты, POS не нужен)",
+    "en": "Autonomous (Parallel Alerts, No POS needed)",
+    "vi": "Tự chủ (Thông báo song song, không cần POS)"
+  },
+  "b2b_matrix_data": {
+    "ru": "Сбор данных",
+    "en": "Data Capture",
+    "vi": "Thu thập Dữ liệu"
+  },
+  "b2b_matrix_val_data_apps": {
+    "ru": "Принудительный (Высокий отток)",
+    "en": "Forced (High drop-off)",
+    "vi": "Ép buộc (Tỷ lệ bỏ ngang cao)"
+  },
+  "b2b_matrix_val_data_paper": {
+    "ru": "Нет (Слепая зона)",
+    "en": "None (Blind to data)",
+    "vi": "Không có (Mù dữ liệu)"
+  },
+  "b2b_matrix_val_revoo_data": {
+    "ru": "Индивидуальные паттерны поведения",
+    "en": "Individual behavioral patterns",
+    "vi": "Các mẫu hành vi cá nhân"
+  },
+  "b2b_matrix_val_revoo": {
+    "ru": "REVOO",
+    "en": "REVOO",
+    "vi": "REVOO"
+  },
+  "b2b_diag_attention": {
+    "ru": "ВНИМАНИЕ",
+    "en": "ATTENTION",
+    "vi": "CHÚ Ý"
+  },
+  "b2b_diag_footer_stop_leakage": {
+    "ru": "REVOO останавливает утечку, превращая разовых гостей в фанатов бренда.",
+    "en": "REVOO allows you to stop the leak, turning one-time guests into brand fans.",
+    "vi": "REVOO cho phép bạn chặn đứng sự rò rỉ, biến khách ghé thăm một lần thành người hâm mộ thương hiệu."
+  },
+  "b2b_science_pillar_1_title": {
+    "ru": "Теория Даниэля Канемана",
+    "en": "Daniel Kahneman's Theory",
+    "vi": "Lý thuyết của Daniel Kahneman"
+  },
+  "b2b_science_pillar_1_quote": {
+    "ru": "Психологически потерять статус в 2 раза больнее, чем радость от бонуса.",
+    "en": "Psychologically, losing a status is twice as painful as the joy of a bonus.",
+    "vi": "Về mặt tâm lý, mất một trạng thái đau đớn gấp đôi niềm vui khi nhận một phần thưởng."
+  },
+  "b2b_science_pillar_1_text": {
+    "ru": "Согласно теории нобелевского лауреата Даниэля Канемана, избегание потери является более мощным стимулом, чем получение эквивалентной выгоды. Ваша лояльность — это личный капитал гостя.",
+    "en": "According to the theory of Nobel laureate Daniel Kahneman, loss aversion is a more powerful incentive than obtaining an equivalent gain. Your loyalty is the guest's personal capital.",
+    "vi": "Theo lý thuyết của người đoạt giải Nobel Daniel Kahneman, tâm lý sợ mất mát là động lực mạnh mẽ hơn so với việc đạt được một lợi ích tương đương. Lòng trung thành là tài sản cá nhân của khách hàng."
+  },
+  "b2b_science_pillar_2_title": {
+    "ru": "Модель Хука Нира Эяля",
+    "en": "Nir Eyal's Hook Model",
+    "vi": "Mô hình Hook của Nir Eyal"
+  },
+  "b2b_science_pillar_2_step_1_label": {
+    "ru": "Trigger",
+    "en": "Trigger",
+    "vi": "Kích hoạt"
+  },
+  "b2b_science_pillar_2_step_1_desc": {
+    "ru": "NFC или QR метка на столе.",
+    "en": "NFC or QR tag on the table.",
+    "vi": "Thẻ NFC hoặc mã QR trên bàn."
+  },
+  "b2b_science_pillar_2_step_2_label": {
+    "ru": "Action",
+    "en": "Action",
+    "vi": "Hành động"
+  },
+  "b2b_science_pillar_2_step_2_desc": {
+    "ru": "Мгновенное сканирование (0.5 сек).",
+    "en": "Instant scan (0.5 sec).",
+    "vi": "Quét tức thì (0.5 giây)."
+  },
+  "b2b_science_pillar_2_step_3_label": {
+    "ru": "Reward",
+    "en": "Reward",
+    "vi": "Phần thưởng"
+  },
+  "b2b_science_pillar_2_step_3_desc": {
+    "ru": "Заряд батареи и VIP статус.",
+    "en": "Battery charge and VIP status.",
+    "vi": "Nạp pin và trạng thái VIP."
+  },
+  "b2b_science_pillar_2_step_4_label": {
+    "ru": "Investment",
+    "en": "Investment",
+    "vi": "Đầu tư"
+  },
+  "b2b_science_pillar_2_step_4_desc": {
+    "ru": "Возврат для сохранения статуса.",
+    "en": "Return to maintain status.",
+    "vi": "Quay lại để duy trì trạng thái."
+  },
+  "b2b_science_pillar_3_title": {
+    "ru": "Дофаминовый отклик (Variable Reward)",
+    "en": "Dopamine Response (Variable Reward)",
+    "vi": "Phản ứng Dopamine (Thưởng biến đổi)"
+  },
+  "b2b_science_pillar_3_text": {
+    "ru": "Непредсказуемость вознаграждения вызывает мощный дофаминовый отклик. Система REVOO использует алгоритмы нелинейного поощрения, заставляя гостя проверять статус батареи как уведомления в соцсетях. Ожидание апдейта превращается в игру.",
+    "en": "Unpredictability of rewards triggers a powerful dopamine response. The REVOO system uses non-linear reward algorithms, forcing the guest to check their battery status like social media notifications. Waiting for an update turns into a game.",
+    "vi": "Các phần thưởng không thể dự đoán kích hoạt phản ứng dopamine mạnh mẽ. Hệ thống REVOO sử dụng các thuật toán thưởng phi tuyến tính, khiến khách hàng liên tục kiểm tra trạng thái pin như kiểm tra thông báo mạng xã hội."
+  },
+  "b2b_science_pillar_4_title": {
+    "ru": "Модель Стэнфорда (BJ Fogg)",
+    "en": "Stanford Model (BJ Fogg)",
+    "vi": "Mô hình Stanford (BJ Fogg)"
+  },
+  "b2b_science_pillar_4_text": {
+    "ru": "Успех = Мотивация + Возможность + Триггер. Если действие требует усилий (трение), клиент его не совершит. Мы свели усилие к нулю.",
+    "en": "Success = Motivation + Ability + Trigger. If an action requires effort (friction), the client will not perform it. We reduced the effort to zero.",
+    "vi": "Thành công = Động lực + Khả năng + Kích hoạt. Nếu một hành động đòi hỏi nỗ lực (ma sát), khách hàng sẽ không làm. Chúng tôi đã giảm nỗ lực xuống bằng không."
+  },
+  "b2b_path_h2": {
+    "ru": "ZERO FRICTION В ДЕЙСТВИИ",
+    "en": "ZERO FRICTION IN ACTION",
+    "vi": "ZERO FRICTION TRONG HÀNH ĐỘNG"
+  },
+  "b2b_path_sub": {
+    "ru": "Путь гостя к вашей лояльности",
+    "en": "The guest's path to your loyalty",
+    "vi": "Hành trình của khách tới lòng trung thành"
+  },
+  "b2b_path_step_1_title": {
+    "ru": "Касание (0.5 сек)",
+    "en": "Touch (0.5 sec)",
+    "vi": "Chạm (0.5 giây)"
+  },
+  "b2b_path_step_1_label": {
+    "ru": "Для гостя:",
+    "en": "For the guest:",
+    "vi": "Đối với khách:"
+  },
+  "b2b_path_step_1_text": {
+    "ru": "Не нужно ничего скачивать. Узнавание смартфона (Device Fingerprinting) происходит мгновенно и анонимно.",
+    "en": "No need to download anything. Device Fingerprinting happens instantly and anonymously.",
+    "vi": "Không cần tải gì cả. Nhận diện thiết bị diễn ra tức thì và ẩn danh."
+  },
+  "b2b_path_step_2_title": {
+    "ru": "Узнавание и Магия",
+    "en": "Recognition and Magic",
+    "vi": "Nhận diện và Phép màu"
+  },
+  "b2b_path_step_2_label": {
+    "ru": "На экране:",
+    "en": "On screen:",
+    "vi": "Trên màn hình:"
+  },
+  "b2b_path_step_2_text": {
+    "ru": "На экране вспыхивает «заряженная батарея» с максимальной наградой на сегодня.",
+    "en": "A \"charged battery\" with the maximum reward for today flashes on the screen.",
+    "vi": "Một \"viên pin được nạp đầy\" với phần thưởng tối đa cho hôm nay hiện lên trên màn hình."
+  },
+  "b2b_path_step_3_title": {
+    "ru": "Автопилот для бизнеса",
+    "en": "Autopilot for Business",
+    "vi": "Tự động hóa cho Doanh nghiệp"
+  },
+  "b2b_path_step_3_label": {
+    "ru": "Для бизнеса:",
+    "en": "For business:",
+    "vi": "Đối với doanh nghiệp:"
+  },
+  "b2b_path_step_3_text": {
+    "ru": "Никаких сложных IT-интеграций с кассой (POS). Не нужно обучать персонал. Установка за 15 минут.",
+    "en": "No complex IT integrations with the checkout (POS). No need to train staff. Installation in 15 minutes.",
+    "vi": "Không cần tích hợp IT phức tạp với POS. Không cần đào tạo nhân viên. Lắp đặt trong 15 phút."
+  },
+  "b2b_analytics_h2": {
+    "ru": "От интуиции к точным алгоритмам.",
+    "en": "From intuition to precise algorithms.",
+    "vi": "Từ trực giác đến các thuật toán chính xác."
+  },
+  "b2b_analytics_sub": {
+    "ru": "От интуиции к точным алгоритмам.",
+    "en": "Managing based on data.",
+    "vi": "Quản trị dựa trên dữ liệu."
+  },
+  "b2b_analytics_velocity_title": {
+    "ru": "Visit Velocity",
+    "en": "Visit Velocity",
+    "vi": "Tốc độ Ghé thăm"
+  },
+  "b2b_analytics_velocity_text": {
+    "ru": "Мониторинг скорости возврата клиентов.",
+    "en": "Monitoring customer return speed.",
+    "vi": "Theo dõi tốc độ quay lại của khách hàng."
+  },
+  "b2b_analytics_bot_title": {
+    "ru": "Telegram Admin Bot",
+    "en": "Telegram Admin Bot",
+    "vi": "Telegram Admin Bot"
+  },
+  "b2b_analytics_bot_text": {
+    "ru": "Уведомления владельцу: «Ваш гость использовал свой Статус»",
+    "en": "Owner notification: «Your guest has used their Status»",
+    "vi": "Thông báo cho chủ: «Khách của bạn vừa sử dụng Trạng thái của họ»"
+  },
+  "b2b_analytics_ai_title": {
+    "ru": "Prediction AI",
+    "en": "Prediction AI",
+    "vi": "Dự đoán AI"
+  },
+  "b2b_analytics_ai_text": {
+    "ru": "Прогноз оттока клиентов до того, как они решат уйти.",
+    "en": "Predicting customer churn before they decide to leave.",
+    "vi": "Dự đoán sự rời bỏ của khách hàng trước khi họ quyết định rời đi."
+  },
+  "b2b_guarantee_h2": {
+    "ru": "30-дневный тест-драйв с гарантией 100% ROI.",
+    "en": "30-day test drive with 100% ROI guarantee.",
+    "vi": "30 ngày dùng thử với cam kết ROI 100%."
+  },
+  "b2b_guarantee_text": {
+    "ru": "Мы настолько уверены в научной базе, что берем все риски на себя. Если через месяц вы не увидите измеримого роста частоты визитов — мы возвращаем инвестиции и забираем оборудование.",
+    "en": "We are so confident in the scientific base that we take all risks. If in a month you don't see a measurable increase in visit frequency, we refund your investment.",
+    "vi": "Chúng tôi tự tin vào cơ sở khoa học đến mức chúng tôi chịu mọi rủi ro. Nếu sau một tháng bạn không thấy tần suất ghé thăm tăng lên rõ rệt, chúng tôi sẽ hoàn lại khoản đầu tư của bạn."
+  },
+  "b2b_final_cta": {
+    "ru": "ЗАБРОНИРОВАТЬ ТЕСТ-ДРАЙВ",
+    "en": "BOOK TEST DRIVE",
+    "vi": "ĐẶT LỊCH TRẢI NGHIỆM"
+  },
+  "b2b_tools_h2": {
+    "ru": "Инструменты для владельца",
+    "en": "Owner Dashboard Tools",
+    "vi": "Công cụ cho Chủ sở hữu"
+  },
+  "b2b_tools_crm_title": {
+    "ru": "Smart CRM & Сегментация",
+    "en": "Smart CRM & Segmentation",
+    "vi": "Smart CRM & Phân đoạn"
+  },
+  "b2b_tools_crm_text": {
+    "ru": "Автоматическая сегментация базы на новых, лояльных и «засыпающих» гостей. ИИ предлагает акции и рассылки для каждой категории клиентов.",
+    "en": "Automated audience segmentation into new, loyal, and \"sleeping\" guests. Triggered messaging that hits the spot.",
+    "vi": "Tự động phân đoạn khách hàng thành: mới, trung thành và \"ngủ quên\". Gửi tin nhắn kích hoạt đúng trọng tâm."
+  },
+  "b2b_tools_reviews_title": {
+    "ru": "Google Reviews на Автопилоте",
+    "en": "Google Reviews on Autopilot",
+    "vi": "Google Reviews tự động"
+  },
+  "b2b_tools_reviews_text": {
+    "ru": "Бесплатный сбор отзывов в момент максимального дофаминового вознаграждения. Самый высокий шанс получить 5 звезд.",
+    "en": "Free review collection at the exact moment of dopamine reward. The highest probability of a 5-star rating.",
+    "vi": "Thu thập đánh giá miễn phí ngay tại thời điểm nhận thưởng. Khả năng cao nhất nhận được đánh giá 5 sao."
+  },
+  "b2b_final_cta_req": {
+    "ru": "Отправить заявку",
+    "en": "Submit Request",
+    "vi": "Gửi yêu cầu"
+  },
+  "b2b_form_city": {
+    "ru": "Город",
+    "en": "City",
+    "vi": "Thành phố"
+  },
+  "b2b_form_phone": {
+    "ru": "Телефон",
+    "en": "Phone",
+    "vi": "Số điện thoại"
+  },
+  "b2b_form_email": {
+    "ru": "Email",
+    "en": "Email",
+    "vi": "Email"
+  },
+  "b2b_hero_title_rich": {
+    "ru": "Привлечь гостя — дорого. Удержать — <1>бесценно</1>.",
+    "en": "Attract a guest — expensive. Retain — <1>priceless</1>.",
+    "vi": "Thu hút một khách hàng — tốn kém. Giữ chân — <1>vô giá</1>."
+  },
+  "b2b_tag_drop_off": {
+    "ru": "80% Отказов",
+    "en": "80% Drop-off",
+    "vi": "80% Bỏ ngang"
+  },
+  "b2b_tag_science": {
+    "ru": "Наука",
+    "en": "Science",
+    "vi": "Khoa học"
+  },
+  "b2b_tag_zero_data": {
+    "ru": "Слепая зона",
+    "en": "Blind Spot",
+    "vi": "Điểm mù"
+  },
+  "b2b_who_is_it_for": {
+    "ru": "Для кого это создано?",
+    "en": "Who is this for?",
+    "vi": "Dành cho ai?"
+  },
+  "b2b_form_title_start": {
+    "ru": "Связаться со",
+    "en": "Connect with",
+    "vi": "Kết nối với"
+  },
+  "b2b_form_title_highlight": {
+    "ru": "Специалистом",
+    "en": "Specialist",
+    "vi": "Chuyên gia"
+  },
+  "b2b_form_title": {
+    "ru": "Связаться со специалистом",
+    "en": "Connect with Specialist",
+    "vi": "Kết nối với Chuyên gia"
+  },
+  "b2b_form_sub": {
+    "ru": "Наш региональный менеджер проконсультирует вас по процессу внедрения и рассчитает потенциальный ROI для вашего заведения.",
+    "en": "Our regional manager will consult you on the implementation process and calculate the potential ROI for your venue.",
+    "vi": "Quản lý khu vực của chúng tôi sẽ tư vấn cho bạn về quy trình triển khai và tính toán ROI tiềm năng cho cơ sở của bạn."
+  },
+  "b2b_form_benefit_1": {
+    "ru": "Персональный план внедрения",
+    "en": "Personalized implementation plan",
+    "vi": "Kế hoạch triển khai cá nhân hóa"
+  },
+  "b2b_form_benefit_2": {
+    "ru": "Технические требования и оборудование",
+    "en": "Hardware & technical requirements",
+    "vi": "Yêu cầu phần cứng & kỹ thuật"
+  },
+  "b2b_form_benefit_3": {
+    "ru": "Обучение персонала и онбординг",
+    "en": "Staff training & onboarding",
+    "vi": "Đào tạo & hướng dẫn nhân viên"
+  },
+  "b2b_form_whatsapp_btn": {
+    "ru": "Подать заявку",
+    "en": "Submit Application",
+    "vi": "Gửi yêu cầu"
+  },
+  "b2b_form_response_time": {
+    "ru": "Среднее время ответа: 15 минут",
+    "en": "Average response time: 15 minutes",
+    "vi": "Thời gian phản hồi trung bình: 15 phút"
+  },
+  "b2b_form_thanks": {
+    "ru": "Спасибо!",
+    "en": "Thank you!",
+    "vi": "Cảm ơn bạn!"
+  },
+  "b2b_form_received": {
+    "ru": "Мы получили вашу заявку и свяжемся с вами в течение 24 часов.",
+    "en": "We have received your request and will contact you within 24 hours.",
+    "vi": "Chúng tôi đã nhận được yêu cầu của bạn và sẽ liên hệ trong vòng 24 giờ."
+  },
+  "b2b_urgent_question": {
+    "ru": "Срочный вопрос?",
+    "en": "Urgent question?",
+    "vi": "Câu hỏi khẩn cấp?"
+  },
+  "b2b_nav_business": {
+    "ru": "ДЛЯ БИЗНЕСА",
+    "en": "FOR BUSINESS",
+    "vi": "CHO DOANH NGHIỆP"
+  },
+  "b2b_hero_tag": {
+    "ru": "Архитектура прибыльности",
+    "en": "The Architecture of Profitability",
+    "vi": "Kiến trúc Lợi nhuận"
+  },
+  "b2b_hud_energy": {
+    "ru": "Поток энергии",
+    "en": "Energy Flow",
+    "vi": "Dòng năng lượng"
+  },
+  "b2b_status_max": {
+    "ru": "Макс. удержание",
+    "en": "Max Retention",
+    "vi": "Giữ chân tối đa"
+  },
+  "b2b_status_warning": {
+    "ru": "Внимание: Отток",
+    "en": "Warning: Decay",
+    "vi": "Cảnh báo: Suy giảm"
+  },
+  "b2b_status_risk": {
+    "ru": "Высокий риск",
+    "en": "High Risk",
+    "vi": "Rủi ro cao"
+  },
+  "b2b_status_critical": {
+    "ru": "Критическая потеря",
+    "en": "Critical Loss",
+    "vi": "Mất khách nghiêm trọng"
+  },
+  "b2b_diag_tag": {
+    "ru": "Экономический анализ",
+    "en": "Economic Analysis",
+    "vi": "Phân tích kinh tế"
+  },
+  "b2b_diag_inflow": {
+    "ru": "Приток",
+    "en": "Inflow",
+    "vi": "Luồng vào"
+  },
+  "b2b_diag_churn": {
+    "ru": "Отток",
+    "en": "Churn",
+    "vi": "Rời bỏ"
+  },
+  "b2b_diag_retained_title": {
+    "ru": "Удержано с REVOO",
+    "en": "Retained",
+    "vi": "Được giữ chân"
+  },
+  "b2b_diag_retained_sub": {
+    "ru": "Стоимость удержания (LTV)",
+    "en": "Cost of Retention (LTV)",
+    "vi": "Chi phí giữ chân (LTV)"
+  },
+  "b2b_diag_retained_text": {
+    "ru": "Увеличение частоты визитов на 90% через когнитивные циклы.",
+    "en": "90% frequency build-up through cognitive loops.",
+    "vi": "90% tần suất quay lại nhờ các vòng lặp nhận thức."
+  },
+  "b2b_diag_lost_title": {
+    "ru": "Потеряно без REVOO",
+    "en": "Lost",
+    "vi": "Bị mất"
+  },
+  "b2b_diag_lost_sub": {
+    "ru": "Стоимость привлечения (CAC)",
+    "en": "Cost of Acquisition (CAC)",
+    "vi": "Chi phí tìm khách mới (CAC)"
+  },
+  "b2b_diag_lost_text": {
+    "ru": "83% новых гостей не возвращаются без крючка лояльности.",
+    "en": "83% of first-time guests never return without a hook.",
+    "vi": "83% khách ghé thăm lần đầu không bao giờ quay lại nếu không có Hook."
+  },
+  "b2b_science_tag": {
+    "ru": "Научная база",
+    "en": "Scientific Core",
+    "vi": "Cốt lõi Khoa học"
+  },
+  "b2b_science_pillar_1": {
+    "ru": "01. Боязнь потери",
+    "en": "01. Loss Aversion",
+    "vi": "01. Sợ mất mát"
+  },
+  "b2b_science_pillar_2": {
+    "ru": "02. Модель крючка",
+    "en": "02. Hook Model",
+    "vi": "02. Mô hình Hook"
+  },
+  "b2b_science_pillar_3": {
+    "ru": "03. Дофаминовый отклик",
+    "en": "03. Dopamine Response",
+    "vi": "03. Phản ứng Dopamine"
+  },
+  "b2b_science_pillar_4": {
+    "ru": "04. Нулевое трение",
+    "en": "04. Zero Friction",
+    "vi": "04. Zero Friction"
+  },
+  "b2b_path_tag": {
+    "ru": "Путь клиента",
+    "en": "Customer Path",
+    "vi": "HÀNH TRÌNH KHÁCH HÀNG"
+  },
+  "b2b_path_step": {
+    "ru": "Шаг",
+    "en": "Step",
+    "vi": null
+  },
+  "b2b_science_h3": {
+    "ru": "Наш успех основан на научных исследованиях",
+    "en": "Our Success is Based on Science",
+    "vi": "Thành công của chúng tôi dựa trên khoa học"
+  },
+  "b2b_science_pillar_2_trigger": {
+    "ru": "Триггер",
+    "en": "Trigger",
+    "vi": "Kích hoạt"
+  },
+  "b2b_science_pillar_2_action": {
+    "ru": "Действие",
+    "en": "Action",
+    "vi": "Hành động"
+  },
+  "b2b_science_pillar_2_reward": {
+    "ru": "Награда",
+    "en": "Reward",
+    "vi": "Phần thưởng"
+  },
+  "b2b_science_pillar_2_invest": {
+    "ru": "Инвестиция",
+    "en": "Investment",
+    "vi": "Đầu tư"
+  },
+  "b2b_hud_status": {
+    "ru": "Статус",
+    "en": "Status",
+    "vi": "Trạng thái"
+  },
+  "b2b_diag_cac": {
+    "ru": "CAC",
+    "en": "CAC",
+    "vi": "CAC"
+  },
+  "b2b_diag_lost": {
+    "ru": "ПОТЕРЯНО",
+    "en": "LOST",
+    "vi": "BỊ MẤT"
+  },
+  "b2b_canvas_footer": {
+    "ru": "Архитектура прибыльности",
+    "en": "Profitability Architecture",
+    "vi": "Kiến trúc Lợi nhuận"
+  },
+  "vip_status_control": {
+    "ru": "Твой VIP статус — это живая батарейка. Заряжай её визитами!",
+    "en": "Your VIP discount is a living battery. Visit often to keep it fully charged!",
+    "vi": "Quản lý trạng thái VIP bằng các lần ghé thăm!"
+  },
+  "vip_battery_charge_label": {
+    "ru": "Заряд VIP-батареи",
+    "en": "VIP Battery Charge",
+    "vi": null
+  },
+  "vip_maintenance_hint": {
+    "ru": "Заходите завтра, чтобы сохранить Ваш статус!",
+    "vi": null
+  },
+  "b2b_matrix_revoo_status": {
+    "ru": "Статус REVOO",
+    "en": "REVOO Status",
+    "vi": "Trạng thái REVOO"
+  },
+  "b2b_crm_loyal": {
+    "ru": "ЛОЯЛЬНЫЕ",
+    "en": "LOYAL",
+    "vi": "TRUNG THÀNH"
+  },
+  "b2b_crm_new": {
+    "ru": "НОВЫЕ",
+    "en": "NEW",
+    "vi": "MỚI"
+  },
+  "b2b_crm_sleeping": {
+    "ru": "ЗАСЫПАЮЩИЕ",
+    "en": "SLEEPING",
+    "vi": "NGỦ QUÊN"
+  },
+  "b2b_reviews_google_maps": {
+    "ru": "GOOGLE MAPS",
+    "en": "GOOGLE MAPS",
+    "vi": "GOOGLE MAPS"
+  },
+  "b2b_reviews_verified": {
+    "ru": "100+ проверенных отзывов",
+    "en": "100+ Verified Reviews",
+    "vi": "100+ Đánh giá đã xác minh"
+  },
+  "b2b_reviews_rating_label": {
+    "ru": "Рейтинг",
+    "en": "Rating",
+    "vi": "Xếp hạng"
+  },
+  "b2b_hud_status_label": {
+    "ru": "Статус",
+    "en": "Status",
+    "vi": "Trạng thái"
+  },
+  "b2b_science_terminated": {
+    "ru": "Статус системы: ПРЕКРАЩЕНО",
+    "en": "System Status: TERMINATED",
+    "vi": "Trạng thái hệ thống: ĐÃ CHẤM DỨT"
+  },
+  "b2b_science_dead_title": {
+    "ru": "Почему традиционные системы лояльности <0>МЕРТВЫ</0>?",
+    "en": "Why are traditional loyalty systems <0>DEAD</0>?",
+    "vi": "Tại sao các hệ thống khách hàng thân thiết truyền thống ĐÃ CHẾT?"
+  },
+  "b2b_science_dead_text": {
+    "ru": "Потому что они создают <0>Neural Friction</0> (нейронное трение). Мы используем когнитивную инженерию для взлома привычек.",
+    "en": "Because they create <0>Neural Friction</0>. We use cognitive engineering to completely eliminate the brain's resistance.",
+    "vi": "Bởi vì chúng tạo ra Ma sát Thần kinh (Neural Friction). Chúng tôi sử dụng kỹ thuật nhận thức để loại bỏ hoàn toàn sự kháng cự của não bộ."
+  },
+  "b2b_science_dead_apps": {
+    "ru": "Приложения",
+    "en": "Apps",
+    "vi": "Ứng dụng"
+  },
+  "b2b_science_dead_paper": {
+    "ru": "Бумажные карты",
+    "en": "Paper Cards",
+    "vi": "Thẻ giấy"
+  },
+  "b2b_science_dead_plastic": {
+    "ru": "Пластик",
+    "en": "Plastic",
+    "vi": "Nhựa"
+  },
+  "b2b_friction_barrier": {
+    "ru": "Коэффициент трения: 1.0 (БАРЬЕР)",
+    "en": "Friction Coefficient: 1.0 (BARRIER)",
+    "vi": "Hệ số ma sát: 1.0 (RÀO CẢN)"
+  },
+  "b2b_friction_sync": {
+    "ru": "Коэффициент трения: 0.0 (СИНХРОНИЗАЦИЯ)",
+    "en": "Friction Coefficient: 0.0 (SYNC)",
+    "vi": "Hệ số ma sát: 0.0 (ĐỒNG BỘ)"
+  },
+  "b2b_friction_blocked": {
+    "ru": "ЗАБЛОКИРОВАНО",
+    "en": "BLOCKED",
+    "vi": "ĐÃ CHẶN"
+  },
+  "b2b_friction_flow": {
+    "ru": "REVOO ПОТОК",
+    "en": "REVOO FLOW",
+    "vi": "DÒNG CHẢY REVOO"
+  },
+  "b2b_matrix_retention_low": {
+    "ru": "Низкое удержание",
+    "en": "Low Retention",
+    "vi": "Giữ chân thấp"
+  },
+  "b2b_matrix_churn_high": {
+    "ru": "Высокий отток",
+    "en": "High Churn",
+    "vi": "Tỷ lệ rời bỏ cao"
+  },
+  "b2b_matrix_friction_high": {
+    "ru": "Высокое трение",
+    "en": "High Friction",
+    "vi": "Ma sát cao"
+  },
+  "b2b_matrix_percent_80": {
+    "ru": "80%",
+    "en": "80%",
+    "vi": "80%"
+  },
+  "b2b_matrix_reject": {
+    "ru": "Отказ",
+    "en": "Reject",
+    "vi": "Từ chối"
+  },
+  "b2b_matrix_friction_barrier_label": {
+    "ru": "Барьер трения",
+    "en": "Friction Barrier",
+    "vi": "Rào cản ma sát"
+  },
+  "b2b_matrix_energy_max": {
+    "ru": "Максимум энергии",
+    "en": "Maximum Energy",
+    "vi": "Năng lượng tối đa"
+  },
+  "b2b_matrix_competitive_advantage": {
+    "ru": "Конкурентное преимущество: 10x",
+    "en": "Competitive Advantage: 10x",
+    "vi": "Lợi thế cạnh tranh: 10x"
+  },
+  "b2b_matrix_paper_cards": {
+    "ru": "БУМАЖНЫЕ КАРТЫ",
+    "en": "PAPER CARDS",
+    "vi": "THẺ GIẤY"
+  },
+  "b2b_matrix_app_solutions": {
+    "ru": "ПРИЛОЖЕНИЯ",
+    "en": "APP SOLUTIONS",
+    "vi": "GIẢI PHÁP ỨNG DỤNG"
+  },
+  "vip_wifi_banner": {
+    "ru": "📶 В этом заведении работает VIP Wi-Fi",
+    "en": "📶 VIP Wi-Fi is available at this venue",
+    "vi": "📶 Wi-Fi VIP có sẵn tại địa điểm này"
+  },
+  "vip_discount_label": {
+    "ru": "{{percent}}% СКИДКА ВИП",
+    "en": "{{percent}}% VIP DISCOUNT",
+    "vi": "GIẢM GIÁ VIP {{percent}}%"
+  }
+}
