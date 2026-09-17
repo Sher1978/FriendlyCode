@@ -41,6 +41,9 @@ const SmartWelcomeScreen = lazyWithRetry(() => import('./SmartWelcomeScreen'));
 const RevooB2BV2         = lazyWithRetry(() => import('./RevooB2BV2'));
 const GoogleMapsPreLanding = lazyWithRetry(() => import('./GoogleMapsPreLanding'));
 const GoogleThankYouScreen = lazyWithRetry(() => import('./GoogleThankYouScreen'));
+const GbpDashboard          = lazyWithRetry(() => import('./GbpDashboard'));
+const GbpGrantPage          = lazyWithRetry(() => import('./GbpGrantPage'));
+const RevoAlternativeLanding = lazyWithRetry(() => import('./RevoAlternativeLanding'));
 
 import DubaiTechBadge from './DubaiTechBadge';
 
@@ -57,7 +60,7 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error("Application Render Error caught by Boundary:", error, errorInfo);
-    this.redirectToTest();
+    // this.redirectToTest();
   }
 
   redirectToTest = () => {
@@ -272,6 +275,9 @@ function App() {
               return <TestQRPage />;
             }
 
+            // [STORIES PREVIEW DISABLED BY USER REQUEST - GO DIRECTLY TO TestQRPage]
+            return <TestQRPage />;
+            /*
             return (
               <RevooStories onComplete={() => {
                 try {
@@ -284,8 +290,14 @@ function App() {
                 window.location.replace(`/test?id=${venueId}`);
               }} />
             );
+            */
           })()} />
           <Route path="/business" element={<RevooB2BV2 />} />
+          <Route path="/business-v3" element={<RevoAlternativeLanding />} />
+          <Route path="/outreach" element={<RevoAlternativeLanding />} />
+          <Route path="/outreach-v2" element={<RevoAlternativeLanding />} />
+          <Route path="/outreach2" element={<RevoAlternativeLanding />} />
+          <Route path="/revo-alt" element={<RevoAlternativeLanding />} />
           <Route path="/legacy/b2c" element={<RevooB2C />} />
           <Route path="/map" element={<PartnerMap />} />
 
@@ -313,6 +325,10 @@ function App() {
           <Route path="/unsubscribe" element={<Unsubscribe />} />
           <Route path="/guest-dashboard" element={<GuestDashboard />} />
           <Route path="/staff-join" element={<StaffJoinPage />} />
+          <Route path="/gbp-audit" element={<GbpDashboard />} />
+          <Route path="/gbp" element={<GbpDashboard />} />
+          <Route path="/gbp-grant" element={<GbpGrantPage />} />
+          <Route path="/gbp-callback" element={<GbpGrantPage />} />
 
           {/* Captive Wi-Fi Entry Point */}
           <Route path="/wifi" element={<CaptiveLanding />} />
