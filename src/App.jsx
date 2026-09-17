@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PngBattery, { GlobalLoaderContext } from './PngBattery';
-import { BrowserRouter, Routes, Route, useParams, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useParams, useNavigate, useLocation } from 'react-router-dom';
 
 // Helper to handle ChunkLoadError on new deployments
 const lazyWithRetry = (componentImport) =>
@@ -182,19 +182,22 @@ const GlobalBatteryLoader = ({ onComplete }) => {
 
 const AppOverlay = ({ children }) => {
     const [showLoader, setShowLoader] = useState(true);
-    let isExcluded = false;
+    const location = useLocation();
     
-    if (typeof window !== 'undefined') {
-        const pathname = window.location.pathname;
-        const searchParams = new URLSearchParams(window.location.search);
-        
-        if (pathname.startsWith('/admin') || pathname.startsWith('/owner') || pathname.startsWith('/Superadmin') || pathname.startsWith('/business') || pathname.startsWith('/outreach') || pathname.startsWith('/revo-alt') || pathname.startsWith('/legacy/b2b')) {
-            isExcluded = true;
-        }
-        if (searchParams.get('utm_source') === 'google_maps') {
-            isExcluded = true;
-        }
-    }
+    const pathname = (location?.pathname || (typeof window !== 'undefined' ? window.location.pathname : '')).toLowerCase();
+    const searchParams = new URLSearchParams(location?.search || (typeof window !== 'undefined' ? window.location.search : ''));
+
+    const isExcluded = 
+        pathname.includes('outreach') || 
+        pathname.includes('revo') || 
+        pathname.includes('business') || 
+        pathname.includes('admin') || 
+        pathname.includes('owner') || 
+        pathname.includes('superadmin') || 
+        pathname.includes('legacy') ||
+        pathname.includes('gbp') ||
+        pathname.includes('grant') ||
+        searchParams.get('utm_source') === 'google_maps';
 
     if (isExcluded) return children;
 
@@ -220,30 +223,43 @@ const AppOverlay = ({ children }) => {
 };
 
 const SuspenseFallback = () => {
-    if (typeof window !== 'undefined') {
-        const searchParams = new URLSearchParams(window.location.search);
-        if (searchParams.get('utm_source') === 'google_maps' && searchParams.get('activated') !== 'true') {
-            return (
-                <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-                    <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-            );
-        }
-        const pathname = window.location.pathname;
-        if (pathname.startsWith('/admin') || pathname.startsWith('/owner') || pathname.startsWith('/business') || pathname.startsWith('/outreach') || pathname.startsWith('/revo-alt')) {
-            return (
-                <div className="min-h-screen bg-[#121212] flex items-center justify-center">
-                    <div className="w-8 h-8 border-4 border-[#00FF66] border-t-transparent rounded-full animate-spin"></div>
-                </div>
-            );
-        }
+    const location = useLocation();
+    const pathname = (location?.pathname || (typeof window !== 'undefined' ? window.location.pathname : '')).toLowerCase();
+    const searchParams = new URLSearchParams(location?.search || (typeof window !== 'undefined' ? window.location.search : ''));
+
+    if (searchParams.get('utm_source') === 'google_maps' && searchParams.get('activated') !== 'true') {
+        return (
+            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        );
     }
+
+    if (
+        pathname.includes('outreach') || 
+        pathname.includes('revo') || 
+        pathname.includes('business') || 
+        pathname.includes('admin') || 
+        pathname.includes('owner') || 
+        pathname.includes('superadmin') || 
+        pathname.includes('legacy') ||
+        pathname.includes('gbp') ||
+        pathname.includes('grant')
+    ) {
+        return (
+            <div className="min-h-screen bg-[#121212] flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-[#00FF66] border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+
     return (
         <div className="fixed inset-0 z-[99998] bg-black">
             <GlobalBatteryLoader />
         </div>
     );
 };
+
 
 // Trigger build change to force new deployment hash
 function App() {
