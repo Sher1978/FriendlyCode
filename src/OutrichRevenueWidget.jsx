@@ -285,13 +285,13 @@ const OutrichRevenueWidget = () => {
         <div className="w-full max-w-4xl mx-auto flex flex-col gap-4 text-left font-sans">
             
             {/* Step 1: Input / Search */}
-            <div className={`bg-[#181A1D] rounded-3xl border ${activeStep === 1 ? 'border-[#00FF66] shadow-[0_0_30px_rgba(0,255,102,0.2)]' : 'border-white/10 opacity-70'} overflow-hidden transition-all duration-500`}>
+            <div className={`bg-[#181A1D] rounded-3xl border ${activeStep === 1 ? 'border-[#00FF66]/40 shadow-lg' : 'border-white/10 opacity-70'} overflow-hidden transition-all duration-300`}>
                 <div 
                     className={`p-5 sm:p-6 flex items-center justify-between cursor-pointer ${activeStep > 1 ? 'hover:bg-white/5' : ''}`}
                     onClick={() => activeStep > 1 && setActiveStep(1)}
                 >
                     <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-sm transition-colors ${activeStep === 1 ? 'bg-[#00FF66] text-black shadow-[0_0_15px_rgba(0,255,102,0.8)]' : 'bg-white/10 text-white'}`}>
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-sm transition-colors ${activeStep === 1 ? 'bg-[#00FF66] text-black' : 'bg-white/10 text-white/70'}`}>
                             1
                         </div>
                         <div>
@@ -325,7 +325,7 @@ const OutrichRevenueWidget = () => {
                                             animate={{ y: 0, opacity: 1 }}
                                             exit={{ y: -20, opacity: 0 }}
                                             transition={{ duration: 0.5 }}
-                                            className="text-xs sm:text-sm text-white/80 font-medium absolute inset-0 px-4 flex items-center gap-2"
+                                            className="text-xs sm:text-sm text-white/70 font-medium absolute inset-0 px-4 flex items-center gap-2"
                                         >
                                             <FontAwesomeIcon icon={faBolt} className="text-[#00FF66]" />
                                             <span>{SLIDER_TEXTS_RU[sliderIndex]}</span>
@@ -341,7 +341,7 @@ const OutrichRevenueWidget = () => {
                                             required
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
-                                            placeholder="Business name & city (or Maps link) / Название и город..."
+                                            placeholder="Название заведения и город (или ссылка Maps)..."
                                             className="w-full bg-black/60 border border-white/20 focus:border-[#00FF66] rounded-2xl pl-12 pr-4 py-4 text-sm sm:text-base text-white placeholder-white/40 focus:outline-none transition-all"
                                         />
                                     </div>
@@ -365,9 +365,9 @@ const OutrichRevenueWidget = () => {
                                             proceedToStep2('Ваш бизнес', 'Центральный район, Ваша локация');
                                         }
                                     }}
-                                    className="w-full bg-white/5 hover:bg-white/10 text-white/80 font-mono text-xs py-3.5 rounded-2xl border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                                    className="w-full bg-white/5 hover:bg-white/10 text-white/60 hover:text-white font-mono text-xs py-3.5 rounded-2xl border border-white/10 transition-all flex items-center justify-center gap-2 cursor-pointer"
                                 >
-                                    <FontAwesomeIcon icon={faMapMarkerAlt} className="text-[#00FF66]" />
+                                    <FontAwesomeIcon icon={faMapMarkerAlt} className="text-white/40" />
                                     <span>📍 Pick on map manually (Указать вручную)</span>
                                 </button>
 
@@ -401,13 +401,13 @@ const OutrichRevenueWidget = () => {
             </div>
 
             {/* Step 2: Data Confirmation */}
-            <div className={`bg-[#181A1D] rounded-3xl border ${activeStep === 2 ? 'border-[#00FF66] shadow-[0_0_30px_rgba(0,255,102,0.2)]' : 'border-white/10 opacity-70'} overflow-hidden transition-all duration-500 ${activeStep < 2 ? 'pointer-events-none opacity-40' : ''}`}>
+            <div className={`bg-[#181A1D] rounded-3xl border ${activeStep === 2 ? 'border-[#00FF66]/40 shadow-lg' : 'border-white/10 opacity-70'} overflow-hidden transition-all duration-300 ${activeStep < 2 ? 'pointer-events-none opacity-40' : ''}`}>
                 <div 
                     className={`p-5 sm:p-6 flex items-center justify-between cursor-pointer ${activeStep > 2 ? 'hover:bg-white/5' : ''}`}
                     onClick={() => activeStep > 2 && setActiveStep(2)}
                 >
                     <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-sm transition-colors ${activeStep === 2 ? 'bg-[#00FF66] text-black shadow-[0_0_15px_rgba(0,255,102,0.8)]' : activeStep > 2 ? 'bg-white/10 text-white' : 'bg-white/5 text-white/30'}`}>
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-black text-sm transition-colors ${activeStep === 2 ? 'bg-[#00FF66] text-black' : activeStep > 2 ? 'bg-white/10 text-white' : 'bg-white/5 text-white/30'}`}>
                             {activeStep > 2 ? <FontAwesomeIcon icon={faCheck} /> : '2'}
                         </div>
                         <div>
@@ -436,31 +436,31 @@ const OutrichRevenueWidget = () => {
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
-                                            <label className="text-xs font-mono font-bold uppercase text-white/60 mb-1.5 block">Компания:</label>
+                                            <label className="text-xs font-mono uppercase text-white/50 mb-1.5 block">Компания:</label>
                                             <input
                                                 type="text"
                                                 value={selectedBusiness}
                                                 onChange={(e) => setSelectedBusiness(e.target.value)}
-                                                className="w-full bg-black/60 border border-white/20 rounded-2xl px-4 py-3.5 text-xs text-white focus:outline-none focus:border-[#00FF66]"
+                                                className="w-full bg-black/60 border border-white/15 rounded-2xl px-4 py-3.5 text-xs text-white focus:outline-none focus:border-[#00FF66]"
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-mono font-bold uppercase text-white/60 mb-1.5 block">Адрес:</label>
+                                            <label className="text-xs font-mono uppercase text-white/50 mb-1.5 block">Адрес:</label>
                                             <input
                                                 type="text"
                                                 value={extractedAddress}
                                                 onChange={(e) => setExtractedAddress(e.target.value)}
-                                                className="w-full bg-black/60 border border-white/20 rounded-2xl px-4 py-3.5 text-xs text-white focus:outline-none focus:border-[#00FF66]"
+                                                className="w-full bg-black/60 border border-white/15 rounded-2xl px-4 py-3.5 text-xs text-white focus:outline-none focus:border-[#00FF66]"
                                             />
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label className="text-xs font-mono font-bold uppercase text-white/60 mb-1.5 block">Категория бизнеса в Google Maps:</label>
+                                        <label className="text-xs font-mono uppercase text-white/50 mb-1.5 block">Категория бизнеса в Google Maps:</label>
                                         <select 
                                             value={nicheId}
                                             onChange={(e) => setNicheId(e.target.value)}
-                                            className="w-full bg-black/60 border border-white/20 rounded-2xl px-4 py-3.5 text-xs text-white focus:outline-none focus:border-[#00FF66]"
+                                            className="w-full bg-black/60 border border-white/15 rounded-2xl px-4 py-3.5 text-xs text-white focus:outline-none focus:border-[#00FF66]"
                                         >
                                             {NICHES.map(n => (
                                                 <option key={n.id} value={n.id}>{n.labelRu}</option>
@@ -470,8 +470,8 @@ const OutrichRevenueWidget = () => {
 
                                     <div className="space-y-2 pt-2">
                                         <div className="flex justify-between items-center text-xs font-mono">
-                                            <span className="text-white/60">Население города:</span>
-                                            <span className="text-[#00FF66] font-bold">
+                                            <span className="text-white/50">Население города:</span>
+                                            <span className="text-white font-bold">
                                                 {population >= 5000000 ? '5M+ человек' : `${population.toLocaleString('ru-RU')} чел.`}
                                             </span>
                                         </div>
