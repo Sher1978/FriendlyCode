@@ -104,62 +104,86 @@ const RevoAlternativeLanding = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Niche Cards data for Hero Slider
+  // Niche Cards data for Hero Slider (1 featured slide per view)
   const nicheCards = [
     {
       id: 'restaurants',
       icon: faUtensils,
       title: '🍽 Рестораны & Кафе',
       stat: '92% людей',
-      statLabel: 'ищут еду через гео-запросы',
-      text: 'Пользователи вбивают «сырники рядом» или «стейкхаус». Это самый высокий транзакционный интент в общепите. Если вас нет в ТОП-3 — вы теряете до 80% горячих чеков.',
-      badge: 'Высокий чек'
+      statLabel: 'ищут еду через локальные гео-запросы',
+      text: 'Пользователи вбивают «сырники рядом» или «стейкхаус». Это самый высокий транзакционный интент в общепите. Если вас нет в ТОП-3 Local Pack — вы теряете до 80% всех горячих чеков района.',
+      badge: 'Высокий чек',
+      metricPercent: 92,
+      metricLabel: 'Поисковый интент гостей',
+      color: '#00FF66'
     },
     {
       id: 'barbershops',
       icon: faCut,
       title: '✂️ Барбершопы & Салоны',
       stat: 'До 40 клиентов',
-      statLabel: 'в неделю отдаются соседям',
-      text: 'Клиент ищет услугу «на сегодня в радиусе 2 км». Если карточка не в ТОП-3 Google — кресла остаются пустыми в середине недели.',
-      badge: 'Локальный пик'
+      statLabel: 'в неделю отдаются соседям из-за отсутствия в выдаче',
+      text: 'Клиент ищет услугу «на сегодня в радиусе 2 км». Если карточка не в ТОП-3 Google — кресла остаются пустыми в середине недели. Сгорающая скидка ⚡ Revo мгновенно закрывает "тихие часы".',
+      badge: 'Локальный пик',
+      metricPercent: 85,
+      metricLabel: 'Загрузка "тихих часов"',
+      color: '#4285F4'
     },
     {
       id: 'clinics',
       icon: faStethoscope,
       title: '🩺 Клиники & Стоматологии',
-      stat: 'Высокое доверие',
-      statLabel: 'к рейтингу 4.9+ в Поиске',
+      stat: 'Рейтинг 4.9+',
+      statLabel: 'формирует 95% первичных онлайн-записей',
       text: 'Первичный прием формируется из Поиска. Люди ищут решение конкретной боли и выбирают профили с топовыми позициями и свежими положительными отзывами.',
-      badge: 'Макс. LTV'
+      badge: 'Макс. LTV',
+      metricPercent: 95,
+      metricLabel: 'Доверие пациентов к ТОП-3',
+      color: '#FBBC05'
     },
     {
       id: 'masters',
       icon: faSpa,
       title: '💆‍♂️ Выездные мастера & СПА',
-      stat: 'Бесплатный сайт',
-      statLabel: 'без расходов на веб-разработку',
+      stat: '0$ За веб-сайт',
+      statLabel: '100% автономный сайт на базе профиля Google',
       text: 'Google Business Profile — это ваш автономный сайт, который индексируется алгоритмами без необходимости тратить тысячи долларов на программистов.',
-      badge: '100% Автономность'
+      badge: '100% Автономность',
+      metricPercent: 100,
+      metricLabel: 'Органический охват локации',
+      color: '#10B981'
     }
   ];
 
-  // Google Places Autocomplete Initialization for Validator Block
+  const handleValInputChange = (e) => {
+    setValInput(e.target.value);
+  };
+
+  // Google Places Autocomplete Initialization for Validator Block (Safe Non-Freezing Setup)
   useEffect(() => {
     let isMounted = true;
-    const initAutocomplete = () => {
-      if (!window.google || !window.google.maps || !window.google.maps.places) return false;
+    let timer = null;
+
+    const setupAutocomplete = () => {
+      if (!isMounted) return;
+      if (!window.google || !window.google.maps || !window.google.maps.places) {
+        timer = setTimeout(setupAutocomplete, 500);
+        return;
+      }
       if (valInputRef.current && !autocompleteRef.current) {
         try {
           autocompleteRef.current = new window.google.maps.places.Autocomplete(valInputRef.current, {
             fields: ['place_id', 'name', 'rating', 'user_ratings_total', 'website', 'formatted_address'],
             types: ['establishment']
           });
+
           autocompleteRef.current.addListener('place_changed', () => {
             if (!isMounted || !autocompleteRef.current) return;
             try {
               const place = autocompleteRef.current.getPlace();
               if (place && (place.place_id || place.name)) {
+                if (place.name) setValInput(place.name);
                 setValPlaceDetails(place);
                 runAuditAnalysis(place);
               }
@@ -167,22 +191,20 @@ const RevoAlternativeLanding = () => {
               console.error('Google Autocomplete place error:', err);
             }
           });
-          return true;
         } catch (e) {
-          return false;
+          console.warn('Autocomplete init warning:', e);
         }
       }
-      return true;
     };
 
     if (valStep === 'input') {
-      const ok = initAutocomplete();
-      if (!ok) {
-        const timer = setTimeout(initAutocomplete, 1000);
-        return () => { isMounted = false; clearTimeout(timer); };
-      }
+      setupAutocomplete();
     }
-    return () => { isMounted = false; };
+
+    return () => {
+      isMounted = false;
+      if (timer) clearTimeout(timer);
+    };
   }, [valStep]);
 
   // Validator Search Submit Handler
@@ -470,48 +492,116 @@ const RevoAlternativeLanding = () => {
               </div>
             </div>
 
-            {/* Interactive Niche Slider (Horizontal Swipe Cards) */}
+            {/* Interactive Niche Carousel (1 Full-Width Card per View) */}
             <div className="mt-8 pt-6 border-t border-white/10">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xs font-mono font-bold uppercase tracking-widest text-white/50">
-                  Выберите вашу нишу (Готовые кейсы ростов):
-                </h3>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => setActiveNicheIdx((prev) => (prev === 0 ? nicheCards.length - 1 : prev - 1))}
-                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white flex items-center justify-center text-xs transition-colors"
-                  >
-                    <FontAwesomeIcon icon={faChevronLeft} />
-                  </button>
-                  <button 
-                    onClick={() => setActiveNicheIdx((prev) => (prev + 1) % nicheCards.length)}
-                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white flex items-center justify-center text-xs transition-colors"
-                  >
-                    <FontAwesomeIcon icon={faChevronRight} />
-                  </button>
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+                <div>
+                  <h3 className="text-xs font-mono font-bold uppercase tracking-widest text-[#00FF66]">
+                    🎯 Выберите вашу нишу (Готовые кейсы роста):
+                  </h3>
+                  <span className="text-[11px] text-white/50 font-mono">
+                    Слайд {activeNicheIdx + 1} из {nicheCards.length}
+                  </span>
+                </div>
+
+                {/* Dots & Nav controls */}
+                <div className="flex items-center gap-4">
+                  <div className="flex gap-1.5">
+                    {nicheCards.map((_, dotIdx) => (
+                      <button
+                        key={dotIdx}
+                        onClick={() => setActiveNicheIdx(dotIdx)}
+                        className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${dotIdx === activeNicheIdx ? 'w-6 bg-[#00FF66] shadow-[0_0_10px_rgba(0,255,102,0.8)]' : 'w-2 bg-white/20 hover:bg-white/40'}`}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setActiveNicheIdx((prev) => (prev === 0 ? nicheCards.length - 1 : prev - 1))}
+                      className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-white flex items-center justify-center text-xs transition-colors cursor-pointer"
+                    >
+                      <FontAwesomeIcon icon={faChevronLeft} />
+                    </button>
+                    <button 
+                      onClick={() => setActiveNicheIdx((prev) => (prev + 1) % nicheCards.length)}
+                      className="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-white flex items-center justify-center text-xs transition-colors cursor-pointer"
+                    >
+                      <FontAwesomeIcon icon={faChevronRight} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {nicheCards.map((card, idx) => {
-                  const isActive = idx === activeNicheIdx;
-                  return (
-                    <motion.div 
-                      key={card.id}
-                      onClick={() => setActiveNicheIdx(idx)}
-                      whileHover={{ scale: 1.02 }}
-                      className={`p-5 rounded-2xl border transition-all cursor-pointer text-left relative overflow-hidden ${isActive ? 'bg-[#1E2024] border-[#00FF66]/50 shadow-[0_0_20px_rgba(0,255,102,0.15)]' : 'bg-black/30 border-white/5 hover:border-white/20 opacity-70'}`}
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <span className="text-xl"><FontAwesomeIcon icon={card.icon} className={isActive ? 'text-[#00FF66]' : 'text-white/60'} /></span>
-                        <span className="text-[10px] font-mono font-bold bg-white/10 px-2 py-0.5 rounded text-white/80">{card.badge}</span>
+              {/* Full Width Featured Card Showcase */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={nicheCards[activeNicheIdx].id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.35, ease: 'easeInOut' }}
+                  className="bg-[#181A1D] border-2 border-[#00FF66]/40 rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-[0_0_35px_rgba(0,255,102,0.15)] text-left"
+                >
+                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+                    <div className="lg:col-span-7 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+                          <FontAwesomeIcon icon={nicheCards[activeNicheIdx].icon} className="text-[#00FF66]" />
+                          {nicheCards[activeNicheIdx].title}
+                        </span>
+                        <span className="text-xs font-mono font-bold bg-[#00FF66]/10 text-[#00FF66] border border-[#00FF66]/30 px-3 py-1 rounded-full uppercase tracking-wider">
+                          {nicheCards[activeNicheIdx].badge}
+                        </span>
                       </div>
-                      <h4 className="font-bold text-white text-base mb-1">{card.title}</h4>
-                      <div className="text-xs font-black text-[#00FF66] mb-2">{card.stat} <span className="text-white/50 font-normal">{card.statLabel}</span></div>
-                      <p className="text-xs text-white/60 leading-relaxed">{card.text}</p>
-                    </motion.div>
-                  );
-                })}
+
+                      <div className="text-sm sm:text-base font-black text-[#00FF66]">
+                        {nicheCards[activeNicheIdx].stat} <span className="text-white/60 font-normal">{nicheCards[activeNicheIdx].statLabel}</span>
+                      </div>
+
+                      <p className="text-xs sm:text-sm text-white/70 leading-relaxed font-medium">
+                        {nicheCards[activeNicheIdx].text}
+                      </p>
+                    </div>
+
+                    {/* Infographic Metric Meter Panel for Active Card */}
+                    <div className="lg:col-span-5 bg-black/60 border border-white/10 rounded-2xl p-5 flex flex-col justify-center space-y-3">
+                      <div className="flex justify-between text-xs font-mono">
+                        <span className="text-white/60">{nicheCards[activeNicheIdx].metricLabel}</span>
+                        <span className="font-bold text-[#00FF66]">{nicheCards[activeNicheIdx].metricPercent}%</span>
+                      </div>
+                      
+                      {/* Visual Infographic Progress Bar */}
+                      <div className="w-full bg-white/10 h-3 rounded-full overflow-hidden p-0.5 border border-white/5">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${nicheCards[activeNicheIdx].metricPercent}%` }}
+                          transition={{ duration: 0.8, ease: 'easeOut' }}
+                          className="h-full rounded-full bg-gradient-to-r from-[#00FF66] to-[#10B981] shadow-[0_0_12px_rgba(0,255,102,0.8)]"
+                        />
+                      </div>
+
+                      <div className="flex justify-between items-center text-[10px] font-mono text-white/40 pt-1">
+                        <span>Без REVO: ~15%</span>
+                        <span className="text-[#00FF66] font-bold">● REVO ТОП-3: {nicheCards[activeNicheIdx].metricPercent}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Niche Selector Tabs Navigation Bar */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+                {nicheCards.map((c, i) => (
+                  <button
+                    key={c.id}
+                    onClick={() => setActiveNicheIdx(i)}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all text-center flex items-center justify-center gap-2 cursor-pointer ${i === activeNicheIdx ? 'bg-[#00FF66]/20 border-[#00FF66] text-[#00FF66] shadow-[0_0_15px_rgba(0,255,102,0.2)]' : 'bg-black/30 border-white/5 text-white/50 hover:bg-white/5 hover:text-white'}`}
+                  >
+                    <FontAwesomeIcon icon={c.icon} className="text-xs" />
+                    <span className="truncate">{c.title.split(' ')[1]}</span>
+                  </button>
+                ))}
               </div>
             </div>
           </motion.div>
@@ -629,6 +719,36 @@ const RevoAlternativeLanding = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Vector Infographic: SMM vs Google Search Local Pack Comparison Bar */}
+              <div className="mt-8 p-6 rounded-3xl bg-[#121212] border border-white/10 space-y-4">
+                <div className="text-xs font-mono font-bold uppercase tracking-wider text-white/60 flex flex-col sm:flex-row justify-between gap-1">
+                  <span>📊 ИНФОГРАФИКА: СРАВНЕНИЕ КОНВЕРСИИ КАНАЛОВ</span>
+                  <span className="text-[#00FF66]">Поисковый Интент Покупателя</span>
+                </div>
+
+                {/* Channel 1: SMM Instagram */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-bold text-white/60">
+                    <span>Социальные сети (Instagram / Таргет SMM)</span>
+                    <span className="text-[#EA4335]">Конверсия ~1.2% (Пассивный просмотр)</span>
+                  </div>
+                  <div className="w-full bg-white/5 h-3 rounded-full overflow-hidden">
+                    <div className="w-[12%] h-full bg-[#EA4335]/70 rounded-full" />
+                  </div>
+                </div>
+
+                {/* Channel 2: Google Maps Local Pack */}
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-bold text-white">
+                    <span className="text-[#00FF66]">Google Maps ТОП-3 Local Pack (REVO)</span>
+                    <span className="text-[#00FF66] font-mono font-black">Конверсия 84% (Горячая покупка)</span>
+                  </div>
+                  <div className="w-full bg-white/5 h-3 rounded-full overflow-hidden p-0.5 border border-[#00FF66]/30">
+                    <div className="w-[84%] h-full bg-gradient-to-r from-[#00FF66] to-[#10B981] rounded-full shadow-[0_0_15px_rgba(0,255,102,0.8)]" />
+                  </div>
+                </div>
+              </div>
             </motion.div>
 
           </div>
@@ -686,6 +806,39 @@ const RevoAlternativeLanding = () => {
               <p className="text-xs text-white/50 text-center max-w-xs">
                 Столько вы отдаете прямым конкурентам в вашем районе, пока ваш профиль не активен.
               </p>
+            </div>
+          </div>
+
+          {/* Visual Leaky Revenue Funnel Diagram Infographic */}
+          <div className="mt-8 p-6 rounded-3xl bg-[#1E2024] border border-[#EA4335]/30 space-y-3 text-left">
+            <h4 className="text-xs font-mono font-bold uppercase text-[#EA4335] tracking-widest mb-3 flex items-center gap-2">
+              <FontAwesomeIcon icon={faExclamationTriangle} /> 🔻 ИНФОГРАФИКА: СХЕМА УТЕЧКИ ЛОКАЛЬНОГО ТРАФИКА
+            </h4>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="p-4 rounded-2xl bg-black/50 border border-white/10">
+                <span className="text-[10px] font-mono text-white/40 block mb-1">01. ПОИСК В РАЙОНЕ</span>
+                <span className="text-lg font-black text-white block">1,000 запросов</span>
+                <span className="text-[11px] text-white/50 block mt-1">Клиенты ищут заведение рядом</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-black/50 border border-[#00FF66]/30">
+                <span className="text-[10px] font-mono text-[#00FF66] block mb-1">02. LOCAL PACK TOP-3</span>
+                <span className="text-lg font-black text-[#00FF66] block">800 кликов (80%)</span>
+                <span className="text-[11px] text-white/50 block mt-1">Забирают 3 первых места</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#EA4335]/10 border border-[#EA4335]/30">
+                <span className="text-[10px] font-mono text-[#EA4335] block mb-1">03. НЕАКТИВНЫЙ ПРОФИЛЬ</span>
+                <span className="text-lg font-black text-[#EA4335] block">50 кликов (5%)</span>
+                <span className="text-[11px] text-white/50 block mt-1">Делят остальные 20 заведений</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-[#EA4335]/20 border border-[#EA4335] shadow-[0_0_20px_rgba(234,67,53,0.3)]">
+                <span className="text-[10px] font-mono text-white block mb-1">04. ПОТЕРЯ ВЫРУЧКИ</span>
+                <span className="text-lg font-black text-[#EA4335] block">-$4,500 /мес</span>
+                <span className="text-[11px] text-white/80 block mt-1">Уходит прямым конкурентам</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1074,7 +1227,8 @@ const RevoAlternativeLanding = () => {
                         ref={valInputRef}
                         type="text" 
                         value={valInput}
-                        onChange={(e) => setValInput(e.target.value)}
+                        onChange={handleValInputChange}
+                        autoComplete="off"
                         placeholder="Введите название заведения или вставьте ссылку Google Maps..."
                         className="w-full bg-black/60 border border-white/20 rounded-2xl py-4 pl-12 pr-4 text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#00FF66]"
                       />
