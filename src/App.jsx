@@ -188,7 +188,7 @@ const AppOverlay = ({ children }) => {
         const pathname = window.location.pathname;
         const searchParams = new URLSearchParams(window.location.search);
         
-        if (pathname.startsWith('/admin') || pathname.startsWith('/owner') || pathname.startsWith('/Superadmin') || pathname.startsWith('/business') || pathname.startsWith('/legacy/b2b')) {
+        if (pathname.startsWith('/admin') || pathname.startsWith('/owner') || pathname.startsWith('/Superadmin') || pathname.startsWith('/business') || pathname.startsWith('/outreach') || pathname.startsWith('/revo-alt') || pathname.startsWith('/legacy/b2b')) {
             isExcluded = true;
         }
         if (searchParams.get('utm_source') === 'google_maps') {
