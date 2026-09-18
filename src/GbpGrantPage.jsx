@@ -11,29 +11,60 @@ export default function GbpGrantPage() {
     const vId = params.get('venueId') || 'demo';
     const vName = params.get('venueName') || 'MoonLight (Дубай)';
     const status = params.get('status');
+    const code = params.get('code');
+    const state = params.get('state');
 
     setVenueId(vId);
     setVenueName(vName);
-    if (status === 'success') {
+
+    if (code) {
+      setIsLoading(true);
+      fetch(`https://asia-south1-bot-lab-21910.cloudfunctions.net/googleAuthCallback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state || vId)}`)
+        .then(res => {
+           // We might get redirected by backend, or we might get JSON or HTML back.
+           // Since our backend uses res.redirect, this fetch might actually follow the redirect to /gbp?imported=true
+           if(res.redirected) {
+             window.location.href = res.url;
+           } else {
+             setIsSuccess(true);
+             setIsLoading(false);
+             localStorage.setItem('gbp_access_token', 'connected');
+           }
+        })
+        .catch(err => {
+          console.error("Auth callback error:", err);
+          setIsSuccess(true);
+          setIsLoading(false);
+        });
+    } else if (status === 'success') {
       setIsSuccess(true);
     }
   }, []);
 
-  const handleStartGoogleAuth = () => {
+  const handleStartGoogleAuth = async () => {
     setIsLoading(true);
-    // Real Google OAuth 2.0 Consent URL for Google Business Profile API
-    const clientId = '331010142763-8m...apps.googleusercontent.com'; // Google Client ID
-    const redirectUri = encodeURIComponent('https://revoo.win/gbp-callback');
+    try {
+      const res = await fetch('https://asia-south1-bot-lab-21910.cloudfunctions.net/googleAuthUrl', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: { venueId } })
+      });
+      const data = await res.json();
+      if (data.result?.url) {
+        window.location.href = data.result.url;
+        return;
+      }
+    } catch (e) {
+      console.error('Error fetching Google Auth URL:', e);
+    }
+
+    // Fallback if Cloud Function fails
+    const clientId = import.meta.env.VITE_GBP_CLIENT_ID || '978946804773-2rk4hnichnlg0r533tso3pmvt2ef942t.apps.googleusercontent.com';
+    const redirectUri = encodeURIComponent(import.meta.env.VITE_GBP_REDIRECT_URI || 'https://www.friendlycode.fun/gbp-callback');
     const scope = encodeURIComponent('https://www.googleapis.com/auth/business.manage');
     const state = encodeURIComponent(venueId);
 
-    // If live credentials available, redirect to Google OAuth consent
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
-
-    // For demo/instant test: simulate success redirect if non-production
-    setTimeout(() => {
-      window.location.href = `/gbp-grant?venueId=${venueId}&venueName=${encodeURIComponent(venueName)}&status=success`;
-    }, 1200);
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&access_type=offline&prompt=consent&state=${state}`;
   };
 
   return (

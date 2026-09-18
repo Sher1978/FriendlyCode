@@ -601,10 +601,13 @@ module.exports.importVenueFromUrl = importVenueFromUrl;
  */
 async function generateGoogleAuthUrl() {
   const { google } = require('googleapis');
-  // Temporary mock keys - replace with real ones from Google Cloud
-  const CLIENT_ID = process.env.GBP_CLIENT_ID || 'mock_client_id';
-  const CLIENT_SECRET = process.env.GBP_CLIENT_SECRET || 'mock_client_secret';
-  const REDIRECT_URI = process.env.GBP_REDIRECT_URI || 'https://asia-south1-bot-lab-21910.cloudfunctions.net/googleAuthCallback';
+  const CLIENT_ID = process.env.GBP_CLIENT_ID;
+  const CLIENT_SECRET = process.env.GBP_CLIENT_SECRET;
+  const REDIRECT_URI = process.env.GBP_REDIRECT_URI || 'https://www.friendlycode.fun/gbp-callback';
+
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    throw new Error('GBP_CLIENT_ID or GBP_CLIENT_SECRET environment variable is missing.');
+  }
 
   const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 
@@ -627,9 +630,13 @@ async function generateGoogleAuthUrl() {
  */
 async function handleGoogleAuthCallback(code, userId) {
   const { google } = require('googleapis');
-  const CLIENT_ID = process.env.GBP_CLIENT_ID || 'mock_client_id';
-  const CLIENT_SECRET = process.env.GBP_CLIENT_SECRET || 'mock_client_secret';
-  const REDIRECT_URI = process.env.GBP_REDIRECT_URI || 'https://asia-south1-bot-lab-21910.cloudfunctions.net/googleAuthCallback';
+  const CLIENT_ID = process.env.GBP_CLIENT_ID;
+  const CLIENT_SECRET = process.env.GBP_CLIENT_SECRET;
+  const REDIRECT_URI = process.env.GBP_REDIRECT_URI || 'https://www.friendlycode.fun/gbp-callback';
+
+  if (!CLIENT_ID || !CLIENT_SECRET) {
+    throw new Error('GBP_CLIENT_ID or GBP_CLIENT_SECRET environment variable is missing.');
+  }
 
   const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
 
