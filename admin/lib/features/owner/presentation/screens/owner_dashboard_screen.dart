@@ -525,9 +525,46 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
       );
   }
 
+  Widget _buildQuickActionPill({
+    required String icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.14),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.4)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 13)),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w900,
+                fontSize: 11,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDashboardContent(BuildContext context, RoleProvider roleProvider, String? activeVenueId) {
     final l10n = AppLocalizations.of(context)!;
     final venueIds = roleProvider.venueIds;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 700;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -537,145 +574,217 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
         centerTitle: false,
         title: _buildVenueSelector(venueIds, roleProvider),
         actions: [
-          // ── 🏢 МОЙ БИЗНЕС — Quick Access ──
-          GestureDetector(
-            onTap: () {
-              if (activeVenueId != null) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => VenueStaffScreen(venueId: activeVenueId)),
-                );
-              }
-            },
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.accentGreen.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.accentGreen.withOpacity(0.5)),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('🏢', style: TextStyle(fontSize: 14)),
-                  SizedBox(width: 6),
-                  Text(
-                    'МОЙ БИЗНЕС',
-                    style: TextStyle(
-                      color: AppColors.accentGreen,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 11,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // ── 💰 ДЕПОЗИТЫ — Quick Access ──
-          GestureDetector(
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => DepositAnalyticsScreen(venueId: activeVenueId)),
-            ),
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: AppColors.accentYellow.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.accentYellow.withOpacity(0.5)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Text('💰', style: TextStyle(fontSize: 14)),
-                  SizedBox(width: 6),
-                  Text(
-                    'ДЕПОЗИТЫ',
-                    style: TextStyle(
-                      color: AppColors.accentYellow,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 11,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // ── 🎁 GIFTX — Hybrid Toggle Quick Button ──
-          if (activeVenueId != null)
-            StreamBuilder<VenueModel?>(
-              stream: _venueRepo.getVenueStream(activeVenueId),
-              builder: (context, snap) {
-                final isHybrid = snap.data?.isHybridEnabled ?? false;
-                return GestureDetector(
-                  onTap: () {
-                    final venue = snap.data;
-                    if (venue != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => GiftxSetupScreen(venue: venue)),
-                      );
-                    }
-                  },
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: isHybrid
-                          ? AppColors.accentGreen.withOpacity(0.18)
-                          : Colors.white.withOpacity(0.06),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isHybrid
-                            ? AppColors.accentGreen.withOpacity(0.6)
-                            : Colors.white.withOpacity(0.15),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text('🎁', style: const TextStyle(fontSize: 13)),
-                        const SizedBox(width: 5),
-                        Text(
-                          'GIFTX',
-                          style: TextStyle(
-                            color: isHybrid ? AppColors.accentGreen : Colors.white38,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 11,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isHybrid ? AppColors.accentGreen : Colors.white24,
-                            boxShadow: isHybrid
-                                ? [BoxShadow(color: AppColors.accentGreen.withOpacity(0.6), blurRadius: 4)]
-                                : [],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
+          if (isMobile) ...[
+            // Compact touch icons on mobile
+            IconButton(
+              icon: const Text('🏢', style: TextStyle(fontSize: 16)),
+              tooltip: 'Мой бизнес',
+              onPressed: () {
+                if (activeVenueId != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => VenueStaffScreen(venueId: activeVenueId)),
+                  );
+                }
               },
             ),
-          CupertinoButton(
-            child: const Icon(CupertinoIcons.plus_circle, color: AppColors.accentOrange, size: 22),
-            onPressed: () async {
-              final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen()));
-              if (result == true && context.mounted) {
-                _refreshRole();
-              }
-            },
-          ),
+            IconButton(
+              icon: const Text('💰', style: TextStyle(fontSize: 16)),
+              tooltip: 'Депозиты',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => DepositAnalyticsScreen(venueId: activeVenueId)),
+              ),
+            ),
+            if (activeVenueId != null)
+              StreamBuilder<VenueModel?>(
+                stream: _venueRepo.getVenueStream(activeVenueId),
+                builder: (context, snap) {
+                  final isHybrid = snap.data?.isHybridEnabled ?? false;
+                  return IconButton(
+                    icon: Stack(
+                      children: [
+                        const Text('🎁', style: TextStyle(fontSize: 16)),
+                        if (isHybrid)
+                          Positioned(
+                            right: 0,
+                            top: 0,
+                            child: Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: AppColors.accentGreen,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    tooltip: 'GIFTX',
+                    onPressed: () {
+                      final venue = snap.data;
+                      if (venue != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => GiftxSetupScreen(venue: venue)),
+                        );
+                      }
+                    },
+                  );
+                },
+              ),
+            IconButton(
+              icon: const Icon(CupertinoIcons.plus_circle, color: AppColors.accentOrange, size: 20),
+              tooltip: 'Создать заведение',
+              onPressed: () async {
+                final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen()));
+                if (result == true && context.mounted) {
+                  _refreshRole();
+                }
+              },
+            ),
+          ] else ...[
+            // Full desktop actions
+            // ── 🏢 МОЙ БИЗНЕС — Quick Access ──
+            GestureDetector(
+              onTap: () {
+                if (activeVenueId != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => VenueStaffScreen(venueId: activeVenueId)),
+                  );
+                }
+              },
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.accentGreen.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.accentGreen.withOpacity(0.5)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('🏢', style: TextStyle(fontSize: 14)),
+                    SizedBox(width: 6),
+                    Text(
+                      'МОЙ БИЗНЕС',
+                      style: TextStyle(
+                        color: AppColors.accentGreen,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // ── 💰 ДЕПОЗИТЫ — Quick Access ──
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => DepositAnalyticsScreen(venueId: activeVenueId)),
+              ),
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.accentYellow.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.accentYellow.withOpacity(0.5)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('💰', style: TextStyle(fontSize: 14)),
+                    SizedBox(width: 6),
+                    Text(
+                      'ДЕПОЗИТЫ',
+                      style: TextStyle(
+                        color: AppColors.accentYellow,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // ── 🎁 GIFTX — Hybrid Toggle Quick Button ──
+            if (activeVenueId != null)
+              StreamBuilder<VenueModel?>(
+                stream: _venueRepo.getVenueStream(activeVenueId),
+                builder: (context, snap) {
+                  final isHybrid = snap.data?.isHybridEnabled ?? false;
+                  return GestureDetector(
+                    onTap: () {
+                      final venue = snap.data;
+                      if (venue != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => GiftxSetupScreen(venue: venue)),
+                        );
+                      }
+                    },
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: isHybrid
+                            ? AppColors.accentGreen.withOpacity(0.18)
+                            : Colors.white.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isHybrid
+                              ? AppColors.accentGreen.withOpacity(0.6)
+                              : Colors.white.withOpacity(0.15),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('🎁', style: TextStyle(fontSize: 13)),
+                          const SizedBox(width: 5),
+                          Text(
+                            'GIFTX',
+                            style: TextStyle(
+                              color: isHybrid ? AppColors.accentGreen : Colors.white38,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isHybrid ? AppColors.accentGreen : Colors.white24,
+                              boxShadow: isHybrid
+                                  ? [BoxShadow(color: AppColors.accentGreen.withOpacity(0.6), blurRadius: 4)]
+                                  : [],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            CupertinoButton(
+              child: const Icon(CupertinoIcons.plus_circle, color: AppColors.accentOrange, size: 22),
+              onPressed: () async {
+                final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen()));
+                if (result == true && context.mounted) {
+                  _refreshRole();
+                }
+              },
+            ),
+          ],
           const SizedBox(width: 8),
         ],
       ),
@@ -779,10 +888,10 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 600;
+        final isMobile = constraints.maxWidth < 650;
 
         return SingleChildScrollView(
-          padding: EdgeInsets.all(isMobile ? 16 : 24),
+          padding: EdgeInsets.all(isMobile ? 14 : 24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -802,12 +911,14 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                         const SizedBox(height: 6),
                         Text(
                           venue.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.macosTextPrimary,
                             fontWeight: FontWeight.w900,
-                            fontSize: 34,
-                            letterSpacing: -1.0,
+                            fontSize: isMobile ? 24 : 34,
+                            letterSpacing: isMobile ? -0.5 : -1.0,
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -815,6 +926,67 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                   _buildSubscriptionBadge(venue),
                 ],
               ),
+
+              // ─── Mobile Quick Actions Bar ──────────────────────────────
+              if (isMobile) ...[
+                const SizedBox(height: 14),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildQuickActionPill(
+                        icon: '🏢',
+                        label: 'МОЙ БИЗНЕС',
+                        color: AppColors.accentGreen,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => VenueStaffScreen(venueId: venue.id)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildQuickActionPill(
+                        icon: '💰',
+                        label: 'ДЕПОЗИТЫ',
+                        color: AppColors.accentYellow,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => DepositAnalyticsScreen(venueId: venue.id)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildQuickActionPill(
+                        icon: '👥',
+                        label: 'БАЗА ГОСТЕЙ',
+                        color: AppColors.accentTeal,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => GuestListScreen(venueId: venue.id)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildQuickActionPill(
+                        icon: '🎁',
+                        label: 'GIFTX',
+                        color: AppColors.accentGreen,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => GiftxSetupScreen(venue: venue)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildQuickActionPill(
+                        icon: '📍',
+                        label: 'GOOGLE MAPS',
+                        color: AppColors.accentOrange,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => GoogleMapsIntegrationScreen(venueId: venue.id)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 20),
 
@@ -857,7 +1029,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 12,
                 mainAxisSpacing: 12,
-                childAspectRatio: 1.1,
+                childAspectRatio: isMobile ? 1.25 : 1.1,
                 children: [
                   PulseCheckCard(
                     title: _selectedStatsMonth == null
@@ -886,7 +1058,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                   ),
                 ],
               ),
-
 
               const SizedBox(height: 32),
 

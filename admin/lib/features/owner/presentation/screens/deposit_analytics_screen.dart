@@ -274,14 +274,14 @@ class _DepositAnalyticsScreenState extends State<DepositAnalyticsScreen> with Si
       children: [
         // ── 4 KPI TILES WITH HIGH-TECH BACKGROUND ARTWORK & WATERMARKS ──
         GridView.count(
-          crossAxisCount: screenWidth > 900 ? 4 : (screenWidth > 550 ? 2 : 1),
+          crossAxisCount: screenWidth > 900 ? 4 : 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
           childAspectRatio: screenWidth > 1200
               ? 1.55
-              : (screenWidth > 900 ? 1.35 : (screenWidth > 550 ? 1.35 : 1.7)),
+              : (screenWidth > 900 ? 1.35 : (screenWidth > 600 ? 1.35 : 1.25)),
           children: [
             _buildDepositTile(
               title: 'Активный депозит',
@@ -971,6 +971,9 @@ class _DepositAnalyticsScreenState extends State<DepositAnalyticsScreen> with Si
       'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
     ];
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 650;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1016,88 +1019,167 @@ class _DepositAnalyticsScreenState extends State<DepositAnalyticsScreen> with Si
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Row 1: Search by User & Guest Dropdown Selector
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextField(
-                      controller: _journalSearchCtrl,
-                      onChanged: (val) => setState(() => _journalSearchQuery = val),
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText: 'Поиск по гостю, email или ID...',
-                        hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
-                        prefixIcon: const Icon(CupertinoIcons.search, color: AppColors.accentYellow, size: 16),
-                        suffixIcon: _journalSearchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(CupertinoIcons.clear_circled_solid, color: Colors.white38, size: 16),
-                                onPressed: () {
-                                  setState(() {
-                                    _journalSearchQuery = '';
-                                    _journalSearchCtrl.clear();
-                                  });
-                                },
-                              )
-                            : null,
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        filled: true,
-                        fillColor: Colors.white.withOpacity(0.05),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  // User Picker Dropdown
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
+              if (isMobile) ...[
+                TextField(
+                  controller: _journalSearchCtrl,
+                  onChanged: (val) => setState(() => _journalSearchQuery = val),
+                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  decoration: InputDecoration(
+                    hintText: 'Поиск по гостю, email или ID...',
+                    hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                    prefixIcon: const Icon(CupertinoIcons.search, color: AppColors.accentYellow, size: 16),
+                    suffixIcon: _journalSearchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(CupertinoIcons.clear_circled_solid, color: Colors.white38, size: 16),
+                            onPressed: () {
+                              setState(() {
+                                _journalSearchQuery = '';
+                                _journalSearchCtrl.clear();
+                              });
+                            },
+                          )
+                        : null,
+                    isDense: true,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.05),
+                    border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.08)),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String?>(
-                        value: _selectedUserId,
-                        dropdownColor: const Color(0xFF242426),
-                        icon: const Icon(CupertinoIcons.chevron_down, size: 12, color: AppColors.accentYellow),
-                        hint: const Row(
-                          children: [
-                            Icon(CupertinoIcons.person_crop_circle, size: 14, color: Colors.white70),
-                            SizedBox(width: 6),
-                            Text('Все гости', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                        items: [
-                          const DropdownMenuItem<String?>(
-                            value: null,
-                            child: Text('Все гости', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                          ),
-                          ...userNamesMap.entries.map((entry) {
-                            return DropdownMenuItem<String?>(
-                              value: entry.key,
-                              child: Text(
-                                entry.value.isNotEmpty ? entry.value : entry.key.substring(0, 8),
-                                style: const TextStyle(color: Colors.white, fontSize: 12),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            );
-                          }),
-                        ],
-                        onChanged: (val) {
-                          setState(() {
-                            _selectedUserId = val;
-                            _selectedUserName = val != null ? userNamesMap[val] : null;
-                          });
-                        },
-                      ),
+                      borderSide: BorderSide.none,
                     ),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.08)),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String?>(
+                      value: _selectedUserId,
+                      isExpanded: true,
+                      dropdownColor: const Color(0xFF242426),
+                      icon: const Icon(CupertinoIcons.chevron_down, size: 12, color: AppColors.accentYellow),
+                      hint: const Row(
+                        children: [
+                          Icon(CupertinoIcons.person_crop_circle, size: 14, color: Colors.white70),
+                          SizedBox(width: 6),
+                          Text('Все гости', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('Все гости', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                        ),
+                        ...userNamesMap.entries.map((entry) {
+                          return DropdownMenuItem<String?>(
+                            value: entry.key,
+                            child: Text(
+                              entry.value.isNotEmpty ? entry.value : entry.key.substring(0, 8),
+                              style: const TextStyle(color: Colors.white, fontSize: 12),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }),
+                      ],
+                      onChanged: (val) {
+                        setState(() {
+                          _selectedUserId = val;
+                          _selectedUserName = val != null ? userNamesMap[val] : null;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ] else ...[
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 2,
+                      child: TextField(
+                        controller: _journalSearchCtrl,
+                        onChanged: (val) => setState(() => _journalSearchQuery = val),
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        decoration: InputDecoration(
+                          hintText: 'Поиск по гостю, email или ID...',
+                          hintStyle: const TextStyle(color: Colors.white38, fontSize: 12),
+                          prefixIcon: const Icon(CupertinoIcons.search, color: AppColors.accentYellow, size: 16),
+                          suffixIcon: _journalSearchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(CupertinoIcons.clear_circled_solid, color: Colors.white38, size: 16),
+                                  onPressed: () {
+                                    setState(() {
+                                      _journalSearchQuery = '';
+                                      _journalSearchCtrl.clear();
+                                    });
+                                  },
+                                )
+                              : null,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.05),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // User Picker Dropdown
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withOpacity(0.08)),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String?>(
+                          value: _selectedUserId,
+                          dropdownColor: const Color(0xFF242426),
+                          icon: const Icon(CupertinoIcons.chevron_down, size: 12, color: AppColors.accentYellow),
+                          hint: const Row(
+                            children: [
+                              Icon(CupertinoIcons.person_crop_circle, size: 14, color: Colors.white70),
+                              SizedBox(width: 6),
+                              Text('Все гости', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                          items: [
+                            const DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text('Все гости', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            ),
+                            ...userNamesMap.entries.map((entry) {
+                              return DropdownMenuItem<String?>(
+                                value: entry.key,
+                                child: Text(
+                                  entry.value.isNotEmpty ? entry.value : entry.key.substring(0, 8),
+                                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }),
+                          ],
+                          onChanged: (val) {
+                            setState(() {
+                              _selectedUserId = val;
+                              _selectedUserName = val != null ? userNamesMap[val] : null;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
 
               const SizedBox(height: 14),
 
@@ -1295,19 +1377,45 @@ class _DepositAnalyticsScreenState extends State<DepositAnalyticsScreen> with Si
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.white.withOpacity(0.06)),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildSummaryPill('Операций', '${filteredTxs.length}', Colors.white),
-              _buildSummaryPill('Внесено', '+${_formatNum(filteredCredit)} ₫', AppColors.accentGreen),
-              _buildSummaryPill('Списано', '-${_formatNum(filteredDebit)} ₫', Colors.redAccent),
-              _buildSummaryPill(
-                'Сальдо',
-                '${filteredNet >= 0 ? '+' : ''}${_formatNum(filteredNet)} ₫',
-                filteredNet >= 0 ? AppColors.accentYellow : Colors.orangeAccent,
-              ),
-            ],
-          ),
+          child: isMobile
+              ? Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: _buildSummaryPill('Операций', '${filteredTxs.length}', Colors.white)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildSummaryPill(
+                            'Сальдо',
+                            '${filteredNet >= 0 ? '+' : ''}${_formatNum(filteredNet)} ₫',
+                            filteredNet >= 0 ? AppColors.accentYellow : Colors.orangeAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(child: _buildSummaryPill('Внесено', '+${_formatNum(filteredCredit)} ₫', AppColors.accentGreen)),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildSummaryPill('Списано', '-${_formatNum(filteredDebit)} ₫', Colors.redAccent)),
+                      ],
+                    ),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildSummaryPill('Операций', '${filteredTxs.length}', Colors.white),
+                    _buildSummaryPill('Внесено', '+${_formatNum(filteredCredit)} ₫', AppColors.accentGreen),
+                    _buildSummaryPill('Списано', '-${_formatNum(filteredDebit)} ₫', Colors.redAccent),
+                    _buildSummaryPill(
+                      'Сальдо',
+                      '${filteredNet >= 0 ? '+' : ''}${_formatNum(filteredNet)} ₫',
+                      filteredNet >= 0 ? AppColors.accentYellow : Colors.orangeAccent,
+                    ),
+                  ],
+                ),
         ),
 
         const SizedBox(height: 16),

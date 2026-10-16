@@ -123,8 +123,53 @@ class _GuestListScreenState extends State<GuestListScreen> {
     super.dispose();
   }
 
+  // --- AVERAGE DISCOUNT CALCULATION & FORMATTING HELPERS ---
+  double _calculateAvgDiscount(String guestId, List<Map<String, dynamic>> visitList, Map<String, dynamic>? uData) {
+    num totalDiscount = 0;
+    int discountCount = 0;
+
+    for (final v in visitList) {
+      final val = v['discountValue'] ?? v['discount'] ?? v['appliedDiscount'];
+      if (val != null && val is num && val > 0) {
+        totalDiscount += val;
+        discountCount++;
+      }
+    }
+
+    if (discountCount > 0) {
+      return totalDiscount / discountCount;
+    }
+
+    if (uData != null) {
+      final userDiscount = uData['current_discount'] ?? uData['discount'] ?? uData['currentDiscount'];
+      if (userDiscount != null && userDiscount is num && userDiscount > 0) {
+        return userDiscount.toDouble();
+      }
+    }
+
+    // Default tiered discount structure if visits exist
+    final totalVisits = visitList.length;
+    if (totalVisits >= 4) return 20.0;
+    if (totalVisits == 3) return 15.0;
+    if (totalVisits == 2) return 10.0;
+    if (totalVisits == 1) return 5.0;
+
+    return 0.0;
+  }
+
+  String _formatDiscount(double discount) {
+    if (discount == 0) return "0%";
+    if (discount == discount.roundToDouble()) {
+      return "${discount.toInt()}%";
+    }
+    return "${discount.toStringAsFixed(1)}%";
+  }
+
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -157,70 +202,110 @@ class _GuestListScreenState extends State<GuestListScreen> {
           final totalGuestsCount = uniqueGuestsSet.length;
 
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+            padding: EdgeInsets.symmetric(
+              horizontal: isMobile ? 12 : 32,
+              vertical: isMobile ? 12 : 20,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Header & Mode Switcher
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _selectedTab == 0
-                              ? AppLocalizations.of(context)!.yourLoyalGuests
-                              : "ЖУРНАЛ СКАНИРОВАНИЙ QR",
-                          style: const TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.title,
-                            letterSpacing: -0.5,
+                if (isMobile) ...[
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _selectedTab == 0
+                            ? AppLocalizations.of(context)!.yourLoyalGuests
+                            : "ЖУРНАЛ СКАНИРОВАНИЙ QR",
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.title,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        _selectedTab == 0
+                            ? AppLocalizations.of(context)!.guestDatabaseSub
+                            : "Лента всех сканирований QR в реальном времени",
+                        style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildTabSwitcher(totalGuestsCount, totalScansCount, isMobile: true),
+                    ],
+                  ),
+                ] else ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _selectedTab == 0
+                                ? AppLocalizations.of(context)!.yourLoyalGuests
+                                : "ЖУРНАЛ СКАНИРОВАНИЙ QR",
+                            style: const TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.title,
+                              letterSpacing: -0.5,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _selectedTab == 0
-                              ? AppLocalizations.of(context)!.guestDatabaseSub
-                              : "Лента всех сканирований QR-кодов заведения в реальном времени",
-                          style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
-                        ),
-                      ],
-                    ),
-                    // Tab Switcher Pill
-                    _buildTabSwitcher(totalGuestsCount, totalScansCount),
-                  ],
-                ),
-                const SizedBox(height: 20),
+                          const SizedBox(height: 4),
+                          Text(
+                            _selectedTab == 0
+                                ? AppLocalizations.of(context)!.guestDatabaseSub
+                                : "Лента всех сканирований QR-кодов заведения в реальном времени",
+                            style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                          ),
+                        ],
+                      ),
+                      // Tab Switcher Pill
+                      _buildTabSwitcher(totalGuestsCount, totalScansCount, isMobile: false),
+                    ],
+                  ),
+                ],
+                SizedBox(height: isMobile ? 14 : 20),
 
                 // Content depending on selected tab
                 if (_selectedTab == 0) ...[
                   // --- TAB 0: GUEST DATABASE ---
-                  _buildCategoryAnalyticsSection(visitDocs),
-                  const SizedBox(height: 18),
-                  _buildSearchBar("Поиск гостей по имени, контакту или ID..."),
-                  const SizedBox(height: 18),
+                  _buildCategoryAnalyticsSection(visitDocs, isMobile: isMobile),
+                  SizedBox(height: isMobile ? 12 : 18),
+                  _buildSearchBar("Поиск гостей по имени, контакту или ID...", isMobile: isMobile),
+                  SizedBox(height: isMobile ? 12 : 18),
                   Expanded(
-                    child: _buildGuestListFromVisits(visitDocs),
+                    child: _buildGuestListFromVisits(visitDocs, isMobile: isMobile),
                   ),
                 ] else ...[
                   // --- TAB 1: SCAN JOURNAL ---
-                  _buildScanJournalMetrics(visitDocs),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildSearchBar("Поиск в журнале по имени, email или источнику QR..."),
-                      ),
-                      const SizedBox(width: 16),
-                      _buildScanFilterPills(),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
+                  _buildScanJournalMetrics(visitDocs, isMobile: isMobile),
+                  SizedBox(height: isMobile ? 12 : 18),
+                  if (isMobile) ...[
+                    _buildSearchBar("Поиск в журнале...", isMobile: true),
+                    const SizedBox(height: 10),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: _buildScanFilterPills(),
+                    ),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildSearchBar("Поиск в журнале по имени, email или источнику QR..."),
+                        ),
+                        const SizedBox(width: 16),
+                        _buildScanFilterPills(),
+                      ],
+                    ),
+                  ],
+                  SizedBox(height: isMobile ? 12 : 18),
                   Expanded(
-                    child: _buildScanJournalTable(visitDocs),
+                    child: _buildScanJournalTable(visitDocs, isMobile: isMobile),
                   ),
                 ],
               ],
@@ -232,8 +317,9 @@ class _GuestListScreenState extends State<GuestListScreen> {
   }
 
   // --- MODERN TAB SWITCHER ---
-  Widget _buildTabSwitcher(int guestCount, int scanCount) {
+  Widget _buildTabSwitcher(int guestCount, int scanCount, {bool isMobile = false}) {
     return Container(
+      width: isMobile ? double.infinity : null,
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: const Color(0xFF1C1C1E),
@@ -241,22 +327,45 @@ class _GuestListScreenState extends State<GuestListScreen> {
         border: Border.all(color: Colors.white.withOpacity(0.1)),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: isMobile ? MainAxisSize.max : MainAxisSize.min,
         children: [
-          _buildTabButton(
-            index: 0,
-            label: "База гостей",
-            count: guestCount,
-            icon: Icons.people_outline,
-          ),
+          if (isMobile)
+            Expanded(
+              child: _buildTabButton(
+                index: 0,
+                label: "База гостей",
+                count: guestCount,
+                icon: Icons.people_outline,
+                isMobile: true,
+              ),
+            )
+          else
+            _buildTabButton(
+              index: 0,
+              label: "База гостей",
+              count: guestCount,
+              icon: Icons.people_outline,
+            ),
           const SizedBox(width: 4),
-          _buildTabButton(
-            index: 1,
-            label: "Журнал сканирований",
-            count: scanCount,
-            icon: Icons.qr_code_scanner_rounded,
-            isLive: true,
-          ),
+          if (isMobile)
+            Expanded(
+              child: _buildTabButton(
+                index: 1,
+                label: "Журнал сканов",
+                count: scanCount,
+                icon: Icons.qr_code_scanner_rounded,
+                isLive: true,
+                isMobile: true,
+              ),
+            )
+          else
+            _buildTabButton(
+              index: 1,
+              label: "Журнал сканирований",
+              count: scanCount,
+              icon: Icons.qr_code_scanner_rounded,
+              isLive: true,
+            ),
         ],
       ),
     );
@@ -268,6 +377,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
     required int count,
     required IconData icon,
     bool isLive = false,
+    bool isMobile = false,
   }) {
     final isSelected = _selectedTab == index;
     return GestureDetector(
@@ -280,32 +390,39 @@ class _GuestListScreenState extends State<GuestListScreen> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 10 : 16,
+          vertical: isMobile ? 8 : 10,
+        ),
         decoration: BoxDecoration(
           color: isSelected ? Colors.white.withOpacity(0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
           border: isSelected ? Border.all(color: Colors.white.withOpacity(0.2)) : null,
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: isMobile ? MainAxisAlignment.center : MainAxisSize.min == MainAxisSize.min ? MainAxisAlignment.start : MainAxisAlignment.center,
+          mainAxisSize: isMobile ? MainAxisSize.max : MainAxisSize.min,
           children: [
             Icon(
               icon,
-              size: 16,
+              size: isMobile ? 14 : 16,
               color: isSelected ? (isLive ? AppColors.accentGreen : AppColors.accentOrange) : Colors.white60,
             ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.white60,
-                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
-                fontSize: 13,
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.white60,
+                  fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                  fontSize: isMobile ? 11 : 13,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: isSelected
                     ? (isLive ? AppColors.accentGreen.withOpacity(0.2) : AppColors.accentOrange.withOpacity(0.2))
@@ -317,9 +434,9 @@ class _GuestListScreenState extends State<GuestListScreen> {
                 children: [
                   if (isLive && isSelected) ...[
                     Container(
-                      width: 6,
-                      height: 6,
-                      margin: const EdgeInsets.only(right: 4),
+                      width: 5,
+                      height: 5,
+                      margin: const EdgeInsets.only(right: 3),
                       decoration: const BoxDecoration(
                         color: AppColors.accentGreen,
                         shape: BoxShape.circle,
@@ -329,7 +446,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
                   Text(
                     "$count",
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: FontWeight.bold,
                       color: isSelected
                           ? (isLive ? AppColors.accentGreen : AppColors.accentOrange)
@@ -346,9 +463,9 @@ class _GuestListScreenState extends State<GuestListScreen> {
   }
 
   // --- SEARCH BAR (DARK OLED STYLING) ---
-  Widget _buildSearchBar(String hint) {
+  Widget _buildSearchBar(String hint, {bool isMobile = false}) {
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 440),
+      constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 440),
       child: TextField(
         controller: _searchCtrl,
         onChanged: (val) {
@@ -391,7 +508,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
   }
 
   // --- CATEGORY ANALYTICS SECTION (ACCURATE & NO DOUBLE-COUNTING) ---
-  Widget _buildCategoryAnalyticsSection(List<QueryDocumentSnapshot> docs) {
+  Widget _buildCategoryAnalyticsSection(List<QueryDocumentSnapshot> docs, {bool isMobile = false}) {
     Map<String, List<Map<String, dynamic>>> guestVisits = {};
     for (var doc in docs) {
       final data = doc.data() as Map<String, dynamic>;
@@ -461,7 +578,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
     final monthFormat = DateFormat('MMMM yyyy');
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isMobile ? 14 : 20),
       decoration: BoxDecoration(
         color: const Color(0xFF1C1C1E),
         borderRadius: BorderRadius.circular(18),
@@ -477,37 +594,38 @@ class _GuestListScreenState extends State<GuestListScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Text(
-                    "📊 Аналитика категорий клиентов",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+          if (isMobile) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  "📊 Клиенты заведения",
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentOrange.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentOrange.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      "Всего активных: $totalActive",
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.accentOrange,
-                      ),
+                  child: Text(
+                    "Активных: $totalActive",
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.accentOrange,
                     ),
                   ),
-                ],
-              ),
-              DropdownButton<DateTime>(
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerRight,
+              child: DropdownButton<DateTime>(
                 value: _selectedMonth,
                 dropdownColor: const Color(0xFF2C2C2E),
-                style: const TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.bold, fontSize: 13),
+                style: const TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.bold, fontSize: 12),
                 underline: Container(height: 1, color: AppColors.accentOrange),
                 items: months.map((m) {
                   return DropdownMenuItem<DateTime>(
@@ -521,53 +639,150 @@ class _GuestListScreenState extends State<GuestListScreen> {
                   }
                 },
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildCategoryCard(
-                  title: "Новые (≤2)",
-                  count: newCount,
-                  percent: newPerc,
-                  color: Colors.blue,
-                  icon: Icons.person_add,
+            ),
+          ] else ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      "📊 Аналитика категорий клиентов",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentOrange.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        "Всего активных: $totalActive",
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.accentOrange,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildCategoryCard(
-                  title: "Постоянные (≥3)",
-                  count: constantCount,
-                  percent: constPerc,
-                  color: Colors.green,
-                  icon: Icons.star,
+                DropdownButton<DateTime>(
+                  value: _selectedMonth,
+                  dropdownColor: const Color(0xFF2C2C2E),
+                  style: const TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.bold, fontSize: 13),
+                  underline: Container(height: 1, color: AppColors.accentOrange),
+                  items: months.map((m) {
+                    return DropdownMenuItem<DateTime>(
+                      value: m,
+                      child: Text(monthFormat.format(m)),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      setState(() => _selectedMonth = val);
+                    }
+                  },
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildCategoryCard(
-                  title: "Потерянные (>14 дн)",
-                  count: lostCount,
-                  percent: lostPerc,
-                  color: Colors.redAccent,
-                  icon: Icons.person_off,
+              ],
+            ),
+          ],
+          const SizedBox(height: 14),
+          if (isMobile) ...[
+            Row(
+              children: [
+                Expanded(
+                  child: _buildCategoryCard(
+                    title: "Новые (≤2)",
+                    count: newCount,
+                    percent: newPerc,
+                    color: Colors.blue,
+                    icon: Icons.person_add,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _buildCategoryCard(
-                  title: "Не дошли (Google)",
-                  count: didNotArriveCount,
-                  percent: didNotArrivePerc,
-                  color: Colors.purpleAccent,
-                  icon: Icons.location_off,
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildCategoryCard(
+                    title: "Постоянные (≥3)",
+                    count: constantCount,
+                    percent: constPerc,
+                    color: Colors.green,
+                    icon: Icons.star,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildCategoryCard(
+                    title: "Потерянные (>14 дн)",
+                    count: lostCount,
+                    percent: lostPerc,
+                    color: Colors.redAccent,
+                    icon: Icons.person_off,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildCategoryCard(
+                    title: "Не дошли (Google)",
+                    count: didNotArriveCount,
+                    percent: didNotArrivePerc,
+                    color: Colors.purpleAccent,
+                    icon: Icons.location_off,
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(
+                  child: _buildCategoryCard(
+                    title: "Новые (≤2)",
+                    count: newCount,
+                    percent: newPerc,
+                    color: Colors.blue,
+                    icon: Icons.person_add,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildCategoryCard(
+                    title: "Постоянные (≥3)",
+                    count: constantCount,
+                    percent: constPerc,
+                    color: Colors.green,
+                    icon: Icons.star,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildCategoryCard(
+                    title: "Потерянные (>14 дн)",
+                    count: lostCount,
+                    percent: lostPerc,
+                    color: Colors.redAccent,
+                    icon: Icons.person_off,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildCategoryCard(
+                    title: "Не дошли (Google)",
+                    count: didNotArriveCount,
+                    percent: didNotArrivePerc,
+                    color: Colors.purpleAccent,
+                    icon: Icons.location_off,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 14),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: SizedBox(
@@ -639,7 +854,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
   }
 
   // --- STREAMING GUESTS COMPLETE LIST (ALL GUESTS, NO MISSING RECORDS) ---
-  Widget _buildGuestListFromVisits(List<QueryDocumentSnapshot> visitDocs) {
+  Widget _buildGuestListFromVisits(List<QueryDocumentSnapshot> visitDocs, {bool isMobile = false}) {
     if (visitDocs.isEmpty) {
       return _buildEmptyState();
     }
@@ -732,7 +947,11 @@ class _GuestListScreenState extends State<GuestListScreen> {
           );
         }
 
-        return _buildGuestTable(filteredGuests, guestVisits);
+        if (isMobile) {
+          return _buildMobileGuestList(filteredGuests, guestVisits, userProfiles);
+        }
+
+        return _buildGuestTable(filteredGuests, guestVisits, userProfiles);
       },
     );
   }
@@ -756,8 +975,12 @@ class _GuestListScreenState extends State<GuestListScreen> {
     return result;
   }
 
-  // --- GUEST TABLE (DARK OLED STYLING, NO WHITE BACKGROUND) ---
-  Widget _buildGuestTable(List<LeadModel> guests, Map<String, List<Map<String, dynamic>>> guestVisits) {
+  // --- GUEST TABLE (DESKTOP: DARK OLED STYLING WITH AVERAGE DISCOUNT COLUMN) ---
+  Widget _buildGuestTable(
+    List<LeadModel> guests,
+    Map<String, List<Map<String, dynamic>>> guestVisits,
+    Map<String, Map<String, dynamic>> userProfiles,
+  ) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Container(
@@ -812,6 +1035,12 @@ class _GuestListScreenState extends State<GuestListScreen> {
                 ),
                 DataColumn(
                   label: Text(
+                    "СРЕДНЯЯ СКИДКА",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
                     "ДЕПОЗИТ",
                     style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
                   ),
@@ -832,6 +1061,8 @@ class _GuestListScreenState extends State<GuestListScreen> {
               rows: guests.map((guest) {
                 final visitList = guestVisits[guest.guestId] ?? [];
                 final totalVisits = visitList.length;
+                final uData = userProfiles[guest.guestId];
+                final avgDiscount = _calculateAvgDiscount(guest.guestId, visitList, uData);
 
                 return DataRow(cells: [
                   // Guest Name + Avatar
@@ -932,6 +1163,32 @@ class _GuestListScreenState extends State<GuestListScreen> {
                       ),
                     ),
                   ),
+                  // Average Discount (НОВАЯ КОЛОНКА ПО ТРЕБОВАНИЮ)
+                  DataCell(
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentOrange.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.accentOrange.withOpacity(0.4)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.percent_rounded, size: 12, color: AppColors.accentOrange),
+                          const SizedBox(width: 4),
+                          Text(
+                            _formatDiscount(avgDiscount),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.accentOrange,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                   // Deposit Balance
                   DataCell(
                     StreamBuilder<DocumentSnapshot>(
@@ -1025,11 +1282,313 @@ class _GuestListScreenState extends State<GuestListScreen> {
     );
   }
 
+  // --- MOBILE-FIRST GUEST CARDS LIST (RESPONSIVE, TOUCH-FRIENDLY, NO SQUISHED TABLES) ---
+  Widget _buildMobileGuestList(
+    List<LeadModel> guests,
+    Map<String, List<Map<String, dynamic>>> guestVisits,
+    Map<String, Map<String, dynamic>> userProfiles,
+  ) {
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 24),
+      itemCount: guests.length,
+      itemBuilder: (context, index) {
+        final guest = guests[index];
+        final visitList = guestVisits[guest.guestId] ?? [];
+        final totalVisits = visitList.length;
+        final uData = userProfiles[guest.guestId];
+        final avgDiscount = _calculateAvgDiscount(guest.guestId, visitList, uData);
+
+        return StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance.collection('users').doc(guest.guestId).snapshots(),
+          builder: (context, userSnap) {
+            final liveUserData = userSnap.data?.data() as Map<String, dynamic>?;
+            final balance = (liveUserData?['deposit_balance'] ?? uData?['deposit_balance'] ?? 0.0).toDouble();
+            final isLocked = liveUserData?['hasLockedDiscount'] ?? uData?['hasLockedDiscount'] ?? false;
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1C1E),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white.withOpacity(0.08)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.4),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top Row: Avatar + Name + Contact + Status Badge
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundColor: AppColors.accentOrange.withOpacity(0.2),
+                        child: Text(
+                          guest.guestName.isNotEmpty ? guest.guestName[0].toUpperCase() : '?',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.accentOrange, fontSize: 16),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              guest.guestName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                fontSize: 15,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (guest.guestContact.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                guest.guestContact,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.55),
+                                  fontSize: 12,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Status Badge + Lock
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _getStatusColor(guest.status).withOpacity(0.18),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: _getStatusColor(guest.status).withOpacity(0.45)),
+                            ),
+                            child: Text(
+                              guest.status == 'did_not_arrive'
+                                  ? 'НЕ ДОШЛИ'
+                                  : guest.status == 'new'
+                                      ? 'НОВЫЙ'
+                                      : guest.status == 'lost'
+                                          ? 'ПОТЕРЯН'
+                                          : guest.status.toUpperCase(),
+                              style: TextStyle(
+                                color: _getStatusColor(guest.status),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ),
+                          if (isLocked) ...[
+                            const SizedBox(width: 4),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.purple.withOpacity(0.5)),
+                              ),
+                              child: const Icon(Icons.lock, size: 11, color: Colors.purpleAccent),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // 3-Column Stats Ribbon: ВИЗИТЫ, СР. СКИДКА, ДЕПОЗИТ
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.04),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withOpacity(0.06)),
+                    ),
+                    child: Row(
+                      children: [
+                        // 1. Visits
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                "ВИЗИТЫ",
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white.withOpacity(0.45),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.repeat_rounded, size: 12, color: Colors.white70),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    "$totalVisits",
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(width: 1, height: 24, color: Colors.white10),
+                        // 2. Avg Discount
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                "СР. СКИДКА",
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.accentOrange.withOpacity(0.85),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.percent_rounded, size: 12, color: AppColors.accentOrange),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    _formatDiscount(avgDiscount),
+                                    style: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.accentOrange, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(width: 1, height: 24, color: Colors.white10),
+                        // 3. Deposit Balance
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Text(
+                                "ДЕПОЗИТ",
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.statusActiveText.withOpacity(0.85),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                balance > 0 ? "${balance.toStringAsFixed(0)} ₫" : "0 ₫",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: balance > 0 ? AppColors.statusActiveText : Colors.white38,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Last visit & Action Buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.access_time_rounded, size: 12, color: Colors.white.withOpacity(0.4)),
+                          const SizedBox(width: 4),
+                          Text(
+                            DateFormat('dd.MM.yy').format(guest.createdAt),
+                            style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.5)),
+                          ),
+                        ],
+                      ),
+                      // Action Buttons (Touch Friendly)
+                      Row(
+                        children: [
+                          CupertinoButton(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            color: AppColors.accentOrange.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            minSize: 34,
+                            onPressed: () => _showTopUpDialog(guest.guestId, guest.guestName, balance),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(CupertinoIcons.add, size: 12, color: AppColors.accentOrange),
+                                SizedBox(width: 3),
+                                Text("Пополнить", style: TextStyle(color: AppColors.accentOrange, fontSize: 11, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          CupertinoButton(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            color: Colors.blue.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            minSize: 34,
+                            onPressed: () => _showDeductDialog(guest.guestId, guest.guestName, balance),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(CupertinoIcons.minus, size: 12, color: Colors.blueAccent),
+                                SizedBox(width: 3),
+                                Text("Списать", style: TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          CupertinoButton(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            color: isLocked ? Colors.red.withOpacity(0.18) : Colors.green.withOpacity(0.18),
+                            borderRadius: BorderRadius.circular(8),
+                            minSize: 34,
+                            onPressed: () => _toggleLockDiscount(guest.guestId, !isLocked),
+                            child: Icon(
+                              isLocked ? CupertinoIcons.lock_open : CupertinoIcons.lock,
+                              size: 13,
+                              color: isLocked ? Colors.redAccent : Colors.greenAccent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   // =========================================================================
   // --- TAB 1: ЖУРНАЛ СКАНИРОВАНИЙ (SCAN JOURNAL IMPLEMENTATION) ---
   // =========================================================================
 
-  Widget _buildScanJournalMetrics(List<QueryDocumentSnapshot> docs) {
+  Widget _buildScanJournalMetrics(List<QueryDocumentSnapshot> docs, {bool isMobile = false}) {
     final now = DateTime.now();
     final todayStart = DateTime(now.year, now.month, now.day);
     final weekStart = now.subtract(const Duration(days: 7));
@@ -1054,6 +1613,61 @@ class _GuestListScreenState extends State<GuestListScreen> {
     }
 
     final avgDiscount = total > 0 ? (totalDiscount / total).toStringAsFixed(1) : "0";
+
+    if (isMobile) {
+      return Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricCard(
+                  title: "Всего сканов",
+                  value: "$total",
+                  subtitle: "За все время",
+                  color: AppColors.accentTeal,
+                  icon: Icons.qr_code_2_rounded,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildMetricCard(
+                  title: "Сегодня",
+                  value: "$todayCount",
+                  subtitle: DateFormat('d MMMM').format(now),
+                  color: AppColors.accentGreen,
+                  icon: Icons.bolt_rounded,
+                  badge: "LIVE",
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetricCard(
+                  title: "За 7 дней",
+                  value: "$weekCount",
+                  subtitle: "Активность",
+                  color: AppColors.accentOrange,
+                  icon: Icons.calendar_view_week_rounded,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildMetricCard(
+                  title: "За месяц",
+                  value: "$monthCount",
+                  subtitle: "Ср. скидка: $avgDiscount%",
+                  color: Colors.purpleAccent,
+                  icon: Icons.discount_outlined,
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
 
     return Row(
       children: [
@@ -1110,7 +1724,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
     String? badge,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFF1C1C1E),
         borderRadius: BorderRadius.circular(16),
@@ -1135,7 +1749,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
                   color: color.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: color, size: 20),
+                child: Icon(icon, color: color, size: 18),
               ),
               if (badge != null)
                 Container(
@@ -1163,19 +1777,23 @@ class _GuestListScreenState extends State<GuestListScreen> {
                 ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Text(
             value,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
             title,
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.8)),
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.8)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           Text(
             subtitle,
-            style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.4)),
+            style: TextStyle(fontSize: 10, color: Colors.white.withOpacity(0.4)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -1215,7 +1833,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
     );
   }
 
-  Widget _buildScanJournalTable(List<QueryDocumentSnapshot> docs) {
+  Widget _buildScanJournalTable(List<QueryDocumentSnapshot> docs, {bool isMobile = false}) {
     if (docs.isEmpty) {
       return Center(
         child: Text(
@@ -1282,6 +1900,10 @@ class _GuestListScreenState extends State<GuestListScreen> {
           ),
         ),
       );
+    }
+
+    if (isMobile) {
+      return _buildMobileScanList(scans, todayStart);
     }
 
     return ClipRRect(
@@ -1383,7 +2005,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
                               ),
                             ),
                             if (isToday)
-                              Text(
+                              const Text(
                                 "Сегодня",
                                 style: TextStyle(
                                   color: AppColors.accentGreen,
@@ -1517,6 +2139,184 @@ class _GuestListScreenState extends State<GuestListScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  // --- MOBILE-FIRST SCAN RECORDS LIST ---
+  Widget _buildMobileScanList(List<ScanRecord> scans, DateTime todayStart) {
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 24),
+      itemCount: scans.length,
+      itemBuilder: (context, index) {
+        final scan = scans[index];
+        final isToday = scan.timestamp.isAfter(todayStart);
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1C1C1E),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withOpacity(0.08)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.35),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top: Time + Live badge + Source tag
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time_rounded,
+                        size: 13,
+                        color: isToday ? AppColors.accentGreen : Colors.white38,
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        DateFormat('dd.MM.yy HH:mm:ss').format(scan.timestamp),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                          color: isToday ? Colors.white : Colors.white70,
+                        ),
+                      ),
+                      if (isToday) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.accentGreen.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.accentGreen.withOpacity(0.5)),
+                          ),
+                          child: const Text("СЕГОДНЯ", style: TextStyle(color: AppColors.accentGreen, fontWeight: FontWeight.bold, fontSize: 9)),
+                        ),
+                      ],
+                    ],
+                  ),
+                  _buildSourceBadge(scan.source),
+                ],
+              ),
+
+              const SizedBox(height: 10),
+
+              // Middle: Guest Name & Contact + Discount Badge
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundColor: AppColors.accentTeal.withOpacity(0.2),
+                    child: Text(
+                      scan.guestName.isNotEmpty ? scan.guestName[0].toUpperCase() : '?',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.accentTeal, fontSize: 13),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          scan.guestName,
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (scan.guestContact.isNotEmpty)
+                          Text(
+                            scan.guestContact,
+                            style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.5)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                      ],
+                    ),
+                  ),
+                  // Discount Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentOrange.withOpacity(0.18),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.accentOrange.withOpacity(0.4)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.percent, size: 11, color: AppColors.accentOrange),
+                        const SizedBox(width: 2),
+                        Text(
+                          "${scan.discount}%",
+                          style: const TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w900, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 10),
+
+              // Bottom: Realtime Deposit Balance + TopUp/Deduct buttons
+              if (scan.guestId.isNotEmpty)
+                StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance.collection('users').doc(scan.guestId).snapshots(),
+                  builder: (context, userSnap) {
+                    final uData = userSnap.data?.data() as Map<String, dynamic>?;
+                    final balance = (uData?['deposit_balance'] ?? 0.0).toDouble();
+
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Text("Депозит: ", style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.5))),
+                            Text(
+                              "${balance.toStringAsFixed(0)} ₫",
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: balance > 0 ? AppColors.statusActiveText : Colors.white54,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            CupertinoButton(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              color: AppColors.accentOrange.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                              minSize: 30,
+                              onPressed: () => _showTopUpDialog(scan.guestId, scan.guestName, balance),
+                              child: const Text("Пополнить", style: TextStyle(color: AppColors.accentOrange, fontSize: 11, fontWeight: FontWeight.bold)),
+                            ),
+                            const SizedBox(width: 6),
+                            CupertinoButton(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              color: Colors.blue.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                              minSize: 30,
+                              onPressed: () => _showDeductDialog(scan.guestId, scan.guestName, balance),
+                              child: const Text("Списать", style: TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 
