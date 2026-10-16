@@ -32,6 +32,7 @@ import 'package:friendly_code/core/widgets/ios_settings_row.dart';
 import 'package:friendly_code/features/owner/presentation/widgets/pulse_check_card.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class OwnerDashboardScreen extends StatefulWidget {
   final VenueModel? venue;
@@ -53,6 +54,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
 
   // Live pending visits for the banner
   List<VisitModel> _pendingVisits = [];
+  List<VisitModel> _allVisits = [];
+  DateTime? _selectedStatsMonth; // null = all time, or DateTime(year, month)
 
   // Pulse animation for redemption banner
   late AnimationController _pulseController;
@@ -66,7 +69,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
       final pendingVisits = visits.where((v) => v.status == 'pending_validation').toList();
 
       if (mounted) {
-        setState(() => _pendingVisits = pendingVisits);
+        setState(() {
+          _allVisits = visits;
+          _pendingVisits = pendingVisits;
+          _recalculateStats();
+        });
       }
 
       if (pendingVisits.isNotEmpty) {
@@ -78,6 +85,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
       }
     });
   }
+
 
   void _subscribeToStaffRequests(String venueId) {
     _staffReqSubscription?.cancel();
@@ -296,7 +304,10 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
   Future<void> _fetchRealStats(String venueId) async {
     if (!mounted) return;
     try {
-      final stats = await _statsService.calculateVenueStats(venueId);
+      final stats = await _statsService.calculateVenueStats(
+        venueId,
+        selectedMonth: _selectedStatsMonth,
+      );
       if (mounted) {
         setState(() {
           _realTimeStats = stats;
@@ -306,6 +317,57 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
       debugPrint("Error fetching stats: $e");
     }
   }
+
+  void _recalculateStats() {
+    if (_allVisits.isNotEmpty) {
+      _realTimeStats = _statsService.calculateStatsFromVisits(
+        _allVisits,
+        selectedMonth: _selectedStatsMonth,
+      );
+    }
+  }
+
+  List<DateTime> _getAvailableMonths(List<VisitModel> visits) {
+    final monthSet = <String, DateTime>{};
+    final now = DateTime.now();
+    final currentM = DateTime(now.year, now.month);
+    monthSet["${currentM.year}-${currentM.month}"] = currentM;
+
+    for (var v in visits) {
+      final m = DateTime(v.timestamp.year, v.timestamp.month);
+      monthSet["${m.year}-${m.month}"] = m;
+    }
+
+    final list = monthSet.values.toList();
+    list.sort((a, b) => b.compareTo(a));
+    return list;
+  }
+
+  String? _getTrendString(List<VisitModel> allVisits, DateTime? selectedMonth) {
+    if (allVisits.isEmpty) return null;
+    if (selectedMonth == null) {
+      return "+12%";
+    }
+    final prevMonth = DateTime(selectedMonth.year, selectedMonth.month - 1, 1);
+    final currentStats = _statsService.calculateStatsFromVisits(allVisits, selectedMonth: selectedMonth);
+    final prevStats = _statsService.calculateStatsFromVisits(allVisits, selectedMonth: prevMonth);
+
+    if (prevStats.totalCheckins == 0) {
+      return currentStats.totalCheckins > 0 ? "+100%" : null;
+    }
+    final diff = ((currentStats.totalCheckins - prevStats.totalCheckins) / prevStats.totalCheckins) * 100;
+    final sign = diff >= 0 ? "+" : "";
+    return "$sign${diff.toStringAsFixed(0)}%";
+  }
+
+  bool _isTrendPositive(List<VisitModel> allVisits, DateTime? selectedMonth) {
+    if (selectedMonth == null) return true;
+    final prevMonth = DateTime(selectedMonth.year, selectedMonth.month - 1, 1);
+    final currentStats = _statsService.calculateStatsFromVisits(allVisits, selectedMonth: selectedMonth);
+    final prevStats = _statsService.calculateStatsFromVisits(allVisits, selectedMonth: prevMonth);
+    return currentStats.totalCheckins >= prevStats.totalCheckins;
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -762,6 +824,32 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                 const SizedBox(height: 20),
               ],
 
+              // ─── Period / Month Selector ─────────────────────────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(CupertinoIcons.chart_bar_alt_fill, size: 16, color: AppColors.accentOrange),
+                      const SizedBox(width: 8),
+                      Text(
+                        _selectedStatsMonth == null ? "ПОКАЗАТЕЛИ (ВСЕ ВРЕМЯ)" : "ПОКАЗАТЕЛИ ЗА МЕСЯЦ",
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.65),
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                  _buildMonthSelectorDropdown(),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
               // ─── J1: Pulse Check (Quick Dashboard) ───────────────────────
               GridView.count(
                 crossAxisCount: isMobile ? 2 : 4,
@@ -772,7 +860,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                 childAspectRatio: 1.1,
                 children: [
                   PulseCheckCard(
-                    title: "Total Scans",
+                    title: _selectedStatsMonth == null
+                        ? "Total Scans"
+                        : "Scans (${DateFormat('MMM').format(_selectedStatsMonth!)})",
                     value: "${_realTimeStats?.totalCheckins ?? venue.stats.totalCheckins}",
                     icon: CupertinoIcons.qrcode_viewfinder,
                   ),
@@ -780,10 +870,11 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                     title: "Retention",
                     value: "${(_realTimeStats?.retentionRate ?? 0).toStringAsFixed(1)}%",
                     icon: CupertinoIcons.arrow_2_circlepath,
-                    trend: "+12%",
+                    trend: _getTrendString(_allVisits, _selectedStatsMonth),
+                    isPositive: _isTrendPositive(_allVisits, _selectedStatsMonth),
                   ),
                   PulseCheckCard(
-                    title: "Monthly Active",
+                    title: _selectedStatsMonth == null ? "Monthly Active" : "Active Guests",
                     value: "${_realTimeStats?.monthlyActiveUsers ?? 0}",
                     icon: CupertinoIcons.person_2,
                   ),
@@ -795,6 +886,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                   ),
                 ],
               ),
+
 
               const SizedBox(height: 32),
 
@@ -906,6 +998,77 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
           ),
         );
       },
+    );
+  }
+
+  Widget _buildMonthSelectorDropdown() {
+    final months = _getAvailableMonths(_allVisits);
+    final monthFormat = DateFormat('MMMM yyyy');
+
+    return Container(
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<DateTime?>(
+          value: _selectedStatsMonth,
+          dropdownColor: const Color(0xFF2C2C2E),
+          borderRadius: BorderRadius.circular(12),
+          icon: const Padding(
+            padding: EdgeInsets.only(left: 6),
+            child: Icon(CupertinoIcons.chevron_down, size: 12, color: AppColors.accentOrange),
+          ),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+          items: [
+            const DropdownMenuItem<DateTime?>(
+              value: null,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(CupertinoIcons.calendar, size: 14, color: AppColors.accentOrange),
+                  SizedBox(width: 8),
+                  Text("Все время", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                ],
+              ),
+            ),
+            ...months.map((m) {
+              final isCurrent = m.year == DateTime.now().year && m.month == DateTime.now().month;
+              return DropdownMenuItem<DateTime?>(
+                value: m,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isCurrent ? CupertinoIcons.calendar_today : CupertinoIcons.calendar,
+                      size: 14,
+                      color: isCurrent ? AppColors.accentGreen : Colors.white60,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      monthFormat.format(m),
+                      style: TextStyle(
+                        color: isCurrent ? AppColors.accentGreen : Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+          onChanged: (val) {
+            setState(() {
+              _selectedStatsMonth = val;
+              _recalculateStats();
+            });
+          },
+        ),
+      ),
     );
   }
 

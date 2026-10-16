@@ -55,9 +55,10 @@ const NICHES = [
 ];
 
 const SLIDER_TEXTS_RU = [
+    "Сколько заявок получит Ваш бизнес, если завтра отключить рекламу? Google Maps генерирует поток клиентов на автопилоте без вложений в рекламу.",
     "Google дает в выдачу только ТОП-3 заведения в локальном поиске. Они забирают 80% бесплатных клиентов.",
     "Около 30% искавших бизнес на карте приходят в тот же день. С Outrich их количество достигает 57%.",
-    "Узнайте упущенную выгоду вашего бизнеса из-за потери локального трафика в 2026 году."
+    "Google Maps — самый надежный инвестиционный актив в локальный трафик вашего бизнеса."
 ];
 
 const darkMapStyle = [
@@ -532,13 +533,13 @@ const OutrichRevenueWidget = () => {
                                 1. FIND BUSINESS (ПОИСК БИЗНЕСА)
                             </h3>
                             {activeStep > 1 && (
-                                <p className="text-xs text-white/50 truncate max-w-xs">
+                                <p className="text-xs text-white/80 truncate max-w-xs">
                                     {selectedBusiness || searchQuery}
                                 </p>
                             )}
                         </div>
                     </div>
-                    {activeStep > 1 && <FontAwesomeIcon icon={faChevronDown} className="text-white/40 text-sm" />}
+                    {activeStep > 1 && <FontAwesomeIcon icon={faChevronDown} className="text-white/70 text-sm" />}
                 </div>
 
                 <AnimatePresence initial={false}>
@@ -568,7 +569,7 @@ const OutrichRevenueWidget = () => {
 
                                 <form onSubmit={handleSearchSubmit} className="space-y-3">
                                     <div className="relative">
-                                        <FontAwesomeIcon icon={faSearch} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 text-base" />
+                                        <FontAwesomeIcon icon={faSearch} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 text-base" />
                                         <input
                                             type="text"
                                             required
@@ -605,7 +606,7 @@ const OutrichRevenueWidget = () => {
                                         animate={{ opacity: 1, y: 0 }}
                                         className="mt-4 space-y-2 bg-black/90 p-3.5 rounded-2xl border border-[#00FF66]/40 shadow-2xl"
                                     >
-                                        <p className="text-[11px] text-[#00FF66] uppercase font-mono mb-2 flex items-center gap-1.5 font-bold">
+                                        <p className="text-xs text-[#00FF66] uppercase font-mono mb-2 flex items-center gap-1.5 font-bold">
                                             <FontAwesomeIcon icon={faSearch} />
                                             <span>Подходящие заведения в Google Places API:</span>
                                         </p>
@@ -619,7 +620,7 @@ const OutrichRevenueWidget = () => {
                                                 <FontAwesomeIcon icon={faMapMarkerAlt} className="text-[#00FF66] mt-1 group-hover:scale-110 transition-transform" />
                                                 <div className="overflow-hidden">
                                                     <p className="text-white text-sm font-bold group-hover:text-[#00FF66] transition-colors">{res.name}</p>
-                                                    <p className="text-white/50 text-xs truncate">{res.address || res.description}</p>
+                                                    <p className="text-white/80 text-xs truncate">{res.address || res.description}</p>
                                                 </div>
                                             </button>
                                         ))}
@@ -644,7 +645,7 @@ const OutrichRevenueWidget = () => {
                                             <button
                                                 type="button"
                                                 onClick={() => setIsMapPickerOpen(true)}
-                                                className="text-[11px] font-mono font-bold bg-[#EA4335]/20 hover:bg-[#EA4335]/30 text-white px-3 py-2 rounded-xl border border-[#EA4335]/40 transition-colors flex items-center gap-1.5 cursor-pointer"
+                                                className="text-xs font-mono font-bold bg-[#EA4335]/20 hover:bg-[#EA4335]/30 text-white px-3 py-2 rounded-xl border border-[#EA4335]/40 transition-colors flex items-center gap-1.5 cursor-pointer"
                                             >
                                                 <FontAwesomeIcon icon={faMapMarkerAlt} className="text-[#00FF66]" />
                                                 <span>Указать на карте</span>
@@ -674,7 +675,7 @@ const OutrichRevenueWidget = () => {
                                         <FontAwesomeIcon icon={faMapMarkerAlt} className="text-[#00FF66]" />
                                         <span>Выбор заведения на Google Картах</span>
                                     </h3>
-                                    <p className="text-xs text-white/50">Перетащите маркер к вашему заведению или кликните по карте</p>
+                                    <p className="text-xs text-white/80">Перетащите маркер к вашему заведению или кликните по карте</p>
                                 </div>
                                 <button 
                                     type="button" 
@@ -686,7 +687,7 @@ const OutrichRevenueWidget = () => {
                             </div>
 
                             <div id="google-map-picker-canvas" className="w-full h-72 rounded-2xl border border-white/10 overflow-hidden relative bg-black/40">
-                                <div className="absolute inset-0 flex items-center justify-center text-white/40 text-xs font-mono">
+                                <div className="absolute inset-0 flex items-center justify-center text-white/70 text-xs font-mono">
                                     Загрузка интерактивной карты Google Maps...
                                 </div>
                             </div>
@@ -697,7 +698,7 @@ const OutrichRevenueWidget = () => {
                                     <span>Заведения Google Places в радиусе маркера:</span>
                                 </p>
                                 {isSearchingNearby ? (
-                                    <div className="p-4 bg-black/40 rounded-xl border border-white/5 text-center text-xs text-white/50 font-mono">
+                                    <div className="p-4 bg-black/40 rounded-xl border border-white/5 text-center text-xs text-white/80 font-mono">
                                         Сканирование реестра Google Places API...
                                     </div>
                                 ) : nearbyPlaces.length > 0 ? (
@@ -718,7 +719,7 @@ const OutrichRevenueWidget = () => {
                                             >
                                                 <div className="overflow-hidden">
                                                     <p className="text-white text-sm font-bold group-hover:text-[#00FF66] transition-colors">{place.name}</p>
-                                                    <p className="text-white/50 text-xs truncate max-w-md">{place.vicinity || place.formatted_address}</p>
+                                                    <p className="text-white/80 text-xs truncate max-w-md">{place.vicinity || place.formatted_address}</p>
                                                 </div>
                                                 <span className="text-xs font-mono bg-[#00FF66]/20 text-[#00FF66] px-2.5 py-1 rounded font-bold border border-[#00FF66]/30 group-hover:bg-[#00FF66] group-hover:text-black transition-colors flex-shrink-0 ml-2">
                                                     Выбрать &rarr;
@@ -752,13 +753,13 @@ const OutrichRevenueWidget = () => {
                                 2. CONFIRM DATA (ПОДТВЕРЖДЕНИЕ ДАННЫХ)
                             </h3>
                             {activeStep > 2 && (
-                                <p className="text-xs text-white/50 truncate max-w-xs">
+                                <p className="text-xs text-white/80 truncate max-w-xs">
                                     {NICHES.find(n => n.id === nicheId)?.labelRu || '...'} • {population.toLocaleString()} чел.
                                 </p>
                             )}
                         </div>
                     </div>
-                    {activeStep > 2 && <FontAwesomeIcon icon={faChevronDown} className="text-white/40 text-sm" />}
+                    {activeStep > 2 && <FontAwesomeIcon icon={faChevronDown} className="text-white/70 text-sm" />}
                 </div>
 
                 <AnimatePresence initial={false}>
@@ -773,7 +774,7 @@ const OutrichRevenueWidget = () => {
                                 <div className="space-y-4">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div>
-                                            <label className="text-xs font-mono uppercase text-white/50 mb-1.5 block">Компания:</label>
+                                            <label className="text-xs font-mono uppercase text-white/80 mb-1.5 block">Компания:</label>
                                             <input
                                                 type="text"
                                                 value={selectedBusiness}
@@ -782,7 +783,7 @@ const OutrichRevenueWidget = () => {
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-xs font-mono uppercase text-white/50 mb-1.5 block">Адрес:</label>
+                                            <label className="text-xs font-mono uppercase text-white/80 mb-1.5 block">Адрес:</label>
                                             <input
                                                 type="text"
                                                 value={extractedAddress}
@@ -793,7 +794,7 @@ const OutrichRevenueWidget = () => {
                                     </div>
 
                                     <div>
-                                        <label className="text-xs font-mono uppercase text-white/50 mb-1.5 block">Категория бизнеса в Google Maps:</label>
+                                        <label className="text-xs font-mono uppercase text-white/80 mb-1.5 block">Категория бизнеса в Google Maps:</label>
                                         <select 
                                             value={nicheId}
                                             onChange={(e) => setNicheId(e.target.value)}
@@ -807,7 +808,7 @@ const OutrichRevenueWidget = () => {
 
                                     <div className="space-y-2 pt-2">
                                         <div className="flex justify-between items-center text-xs font-mono">
-                                            <span className="text-white/50">Население города:</span>
+                                            <span className="text-white/80">Население города:</span>
                                             <span className="text-white font-bold">
                                                 {population >= 5000000 ? '5M+ человек' : `${population.toLocaleString('ru-RU')} чел.`}
                                             </span>
@@ -860,7 +861,7 @@ const OutrichRevenueWidget = () => {
                                 {isAnalyzing ? (
                                     <div className="py-8 space-y-6 text-center">
                                         <div className="space-y-3">
-                                            <div className="inline-flex items-center gap-2 text-[10px] bg-[#00FF66]/10 border border-[#00FF66]/40 px-3 py-1 rounded-full text-[#00FF66] font-mono font-bold uppercase">
+                                            <div className="inline-flex items-center gap-2 text-xs bg-[#00FF66]/10 border border-[#00FF66]/40 px-3 py-1 rounded-full text-[#00FF66] font-mono font-bold uppercase">
                                                 <div className="w-2 h-2 rounded-full bg-[#00FF66] animate-pulse" />
                                                 <span>ИИ-СКАНЕР В РЕАЛЬНОМ ВРЕМЕНИ</span>
                                             </div>
@@ -896,10 +897,10 @@ const OutrichRevenueWidget = () => {
                                                             )}
                                                         </div>
                                                         <div className="space-y-0.5">
-                                                            <p className={`text-xs sm:text-sm font-mono font-bold ${isCurrent ? 'text-[#00FF66]' : isDone ? 'text-white' : 'text-white/50'}`}>
+                                                            <p className={`text-xs sm:text-sm font-mono font-bold ${isCurrent ? 'text-[#00FF66]' : isDone ? 'text-white' : 'text-white/80'}`}>
                                                                 {st.label}
                                                             </p>
-                                                            <p className="text-[10px] text-white/50 font-mono">{st.detail}</p>
+                                                            <p className="text-xs text-white/80 font-mono">{st.detail}</p>
                                                         </div>
                                                     </div>
                                                 );
@@ -915,12 +916,12 @@ const OutrichRevenueWidget = () => {
                                                     <h4 className="text-xl sm:text-2xl font-black text-white uppercase">
                                                         «{selectedBusiness || 'Профиль бизнеса'}»
                                                     </h4>
-                                                    <p className="text-xs text-white/50 font-mono">{results.address}</p>
+                                                    <p className="text-xs text-white/80 font-mono">{results.address}</p>
                                                 </div>
                                                 <div className="bg-[#1E2024] border border-[#00FF66]/40 px-4 py-2 rounded-xl flex items-center gap-2">
                                                     <span className="text-[#FBBC05] text-lg">⭐</span>
                                                     <span className="font-mono font-bold text-white text-base">{results.rating}</span>
-                                                    <span className="text-xs text-white/50 font-mono">({results.reviews} отзывов)</span>
+                                                    <span className="text-xs text-white/80 font-mono">({results.reviews} отзывов)</span>
                                                 </div>
                                             </div>
 
@@ -934,24 +935,24 @@ const OutrichRevenueWidget = () => {
                                                         <span className="text-xs font-mono text-white/60 block uppercase">
                                                             Индекс видимости Google GBP
                                                         </span>
-                                                        <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-[#00FF66]/20 text-[#00FF66] border border-[#00FF66]/40">
+                                                        <span className="inline-block px-2.5 py-0.5 rounded text-xs font-mono font-bold uppercase bg-[#00FF66]/20 text-[#00FF66] border border-[#00FF66]/40">
                                                             ТРЕБУЕТСЯ ИИ-ОПТИМИЗАЦИЯ
                                                         </span>
                                                     </div>
                                                 </div>
                                                 <div className="text-right text-xs font-mono">
                                                     <p className="text-[#EA4335] font-bold">🚨 ВНЕ TOP-3 GOOGLE MAPS</p>
-                                                    <p className="text-white/40 text-[11px]">Потеря трафика категории: ~{100 - results.healthScore}%</p>
+                                                    <p className="text-white/70 text-xs">Потеря трафика категории: ~{100 - results.healthScore}%</p>
                                                 </div>
                                             </div>
 
                                             {/* Deductions list */}
                                             {results.deductions && (
                                                 <div className="bg-black/40 border border-[#EA4335]/30 rounded-xl p-3 space-y-2">
-                                                    <p className="text-[10px] font-mono text-[#EA4335] uppercase font-bold">📉 РАСШИФРОВКА ШТРАФОВ (ОТ 100%):</p>
+                                                    <p className="text-xs font-mono text-[#EA4335] uppercase font-bold">📉 РАСШИФРОВКА ШТРАФОВ (ОТ 100%):</p>
                                                     <div className="flex flex-wrap gap-2">
                                                         {results.deductions.map((d, i) => (
-                                                            <span key={i} className="inline-flex items-center gap-1.5 bg-[#EA4335]/10 border border-[#EA4335]/30 text-white/80 text-[11px] font-mono px-2.5 py-1 rounded-lg">
+                                                            <span key={i} className="inline-flex items-center gap-1.5 bg-[#EA4335]/10 border border-[#EA4335]/30 text-white/80 text-xs font-mono px-2.5 py-1 rounded-lg">
                                                                 <span className="font-bold text-[#EA4335]">-{d.points} б.</span>
                                                                 <span>{d.labelRu}</span>
                                                             </span>

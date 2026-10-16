@@ -108,7 +108,7 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
 
         {/* CARD HEADER SECTION */}
         <div className="mb-8 text-left relative z-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-[10px] sm:text-xs font-black uppercase tracking-[0.25em] mb-4 shadow-[0_0_15px_rgba(212,175,55,0.15)]">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-xs sm:text-xs font-black uppercase tracking-[0.25em] mb-4 shadow-[0_0_15px_rgba(212,175,55,0.15)]">
             <FontAwesomeIcon icon={faChartLine} />
             <span>{t('calc_tag_sim', 'Интерактивный симулятор ROI')}</span>
           </div>
@@ -146,7 +146,7 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
 
                 <div className="text-center font-mono font-black text-base sm:text-lg text-white">
                   {formatNumber(monthlyChecks)}
-                  <span className="text-[9px] text-white/40 font-sans uppercase font-bold block leading-none">чеков/мес</span>
+                  <span className="text-xs text-white/70 font-sans uppercase font-bold block leading-none">чеков/мес</span>
                 </div>
 
                 <button
@@ -178,7 +178,7 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
                     key={preset}
                     type="button"
                     onClick={() => setMonthlyChecks(preset)}
-                    className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold transition-all border cursor-pointer ${
+                    className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer ${
                       monthlyChecks === preset
                         ? 'bg-[#D4AF37]/20 border-[#D4AF37] text-[#D4AF37]'
                         : 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10'
@@ -190,8 +190,8 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-white/5 flex justify-between items-center text-[11px] font-bold">
-              <span className="text-white/50">До Revo: <span className="text-white font-mono">{formatNumber(monthlyChecks)}</span></span>
+            <div className="pt-3 border-t border-white/5 flex justify-between items-center text-xs font-bold">
+              <span className="text-white/80">До Revo: <span className="text-white font-mono">{formatNumber(monthlyChecks)}</span></span>
               <span className="text-[#00FF41] font-mono bg-[#00FF41]/10 px-1.5 py-0.5 rounded border border-[#00FF41]/20">
                 +{activeTier.liftPercent}% ➔ {formatNumber(checksWithRevo)}
               </span>
@@ -220,7 +220,7 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
 
                 <div className="text-center font-mono font-black text-base sm:text-lg text-cyan-400">
                   ${avgCheck}
-                  <span className="text-[9px] text-white/40 font-sans uppercase font-bold block leading-none">стандартный</span>
+                  <span className="text-xs text-white/70 font-sans uppercase font-bold block leading-none">стандартный</span>
                 </div>
 
                 <button
@@ -252,7 +252,7 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
                     key={preset}
                     type="button"
                     onClick={() => setAvgCheck(preset)}
-                    className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold transition-all border cursor-pointer ${
+                    className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer ${
                       avgCheck === preset
                         ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300'
                         : 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10'
@@ -264,8 +264,8 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-white/5 flex justify-between items-center text-[11px] font-bold">
-              <span className="text-white/50">Со скидкой:</span>
+            <div className="pt-3 border-t border-white/5 flex justify-between items-center text-xs font-bold">
+              <span className="text-white/80">Со скидкой:</span>
               <span className="text-amber-300 font-mono bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/30">
                 ${discountedAvgCheck.toFixed(2)}
               </span>
@@ -287,14 +287,14 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
               {/* Display Header */}
               <div className="flex items-center justify-between gap-2 mb-4 bg-amber-950/40 p-2 rounded-xl border border-amber-500/30">
                 <div className="text-left">
-                  <span className="text-[10px] text-amber-400/80 font-mono uppercase font-black block leading-none">Скидка гостя</span>
+                  <span className="text-xs text-amber-400/80 font-mono uppercase font-black block leading-none">Скидка гостя</span>
                   <div className="font-mono font-black text-base sm:text-lg text-amber-300">
                     {activeTier.label}
                   </div>
                 </div>
 
                 <div className="text-right border-l border-amber-500/20 pl-3">
-                  <span className="text-[10px] text-[#00FF41] font-mono uppercase font-black block leading-none">Рост возвратов</span>
+                  <span className="text-xs text-[#00FF41] font-mono uppercase font-black block leading-none">Рост возвратов</span>
                   <div className="font-mono font-black text-base sm:text-lg text-[#00FF41]">
                     +{activeTier.liftPercent}%
                   </div>
@@ -321,7 +321,7 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
                     key={tier.label}
                     type="button"
                     onClick={() => setDiscountTierIdx(idx)}
-                    className={`py-1.5 px-1 rounded-lg text-[9px] font-mono font-black transition-all border text-center cursor-pointer ${
+                    className={`py-1.5 px-1 rounded-lg text-xs font-mono font-black transition-all border text-center cursor-pointer ${
                       discountTierIdx === idx
                         ? 'bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB] text-black border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.4)]'
                         : 'bg-white/5 border-white/10 text-white/70 hover:text-white hover:bg-white/10'
@@ -334,8 +334,8 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-white/5 flex justify-between items-center text-[11px] font-bold">
-              <span className="text-white/50">Корреляция:</span>
+            <div className="pt-3 border-t border-white/5 flex justify-between items-center text-xs font-bold">
+              <span className="text-white/80">Корреляция:</span>
               <span className="text-[#00FF41] font-mono bg-[#00FF41]/10 px-1.5 py-0.5 rounded border border-[#00FF41]/20">
                 Выше скидка ➔ Больше визитов
               </span>
@@ -364,7 +364,7 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
 
                 <div className="text-center font-mono font-black text-base sm:text-lg text-indigo-300">
                   ${formatNumber(fixedCosts)}
-                  <span className="text-[9px] text-white/40 font-sans uppercase font-bold block leading-none">Аренда+ФОТ</span>
+                  <span className="text-xs text-white/70 font-sans uppercase font-bold block leading-none">Аренда+ФОТ</span>
                 </div>
 
                 <button
@@ -396,7 +396,7 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
                     key={preset}
                     type="button"
                     onClick={() => setFixedCosts(preset)}
-                    className={`px-2 py-1 rounded-lg text-[10px] font-mono font-bold transition-all border cursor-pointer ${
+                    className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer ${
                       fixedCosts === preset
                         ? 'bg-indigo-500/20 border-indigo-400 text-indigo-300'
                         : 'bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10'
@@ -408,8 +408,8 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-white/5 flex justify-between items-center text-[11px] font-bold">
-              <span className="text-white/50">Рост расходов:</span>
+            <div className="pt-3 border-t border-white/5 flex justify-between items-center text-xs font-bold">
+              <span className="text-white/80">Рост расходов:</span>
               <span className="text-indigo-400 font-mono bg-indigo-950/60 px-1.5 py-0.5 rounded border border-indigo-500/30">
                 0% с Revo
               </span>
@@ -438,7 +438,7 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
                 <FontAwesomeIcon icon={faRocket} />
               </div>
               <div>
-                <span className="text-[10px] font-mono font-black tracking-[0.3em] uppercase text-[#00FF41] flex items-center gap-1.5">
+                <span className="text-xs font-mono font-black tracking-[0.3em] uppercase text-[#00FF41] flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-[#00FF41] animate-ping" />
                   {t('calc_result_hero_badge', 'ИТОГОВЫЙ РАСЧЕТ ОКУПАЕМОСТИ')}
                 </span>
@@ -488,7 +488,7 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
               {/* CARD BEFORE REVO */}
               <div className="bg-white/[0.03] p-4 sm:p-5 rounded-2xl border border-white/10 flex flex-col justify-between">
                 <div>
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">
                     {t('calc_net_profit_before', 'Чистая прибыль До Revo:')}
                   </span>
                   <div className={`font-mono text-2xl sm:text-3xl font-black ${netProfitBefore < 0 ? 'text-red-400' : 'text-slate-200'}`}>
@@ -497,7 +497,7 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
                   </div>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-white/5 text-[11px] text-slate-400 font-mono">
+                <div className="mt-3 pt-3 border-t border-white/5 text-xs text-slate-400 font-mono">
                   Выручка: ${formatNumber(revenueBefore)}
                 </div>
               </div>
@@ -505,7 +505,7 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
               {/* CARD WITH REVO */}
               <div className="bg-[#00FF41]/10 p-4 sm:p-5 rounded-2xl border border-[#00FF41]/40 shadow-[0_0_20px_rgba(0,255,65,0.15)] flex flex-col justify-between">
                 <div>
-                  <span className="text-[11px] font-bold text-[#00FF41] uppercase tracking-wider block mb-1 flex items-center gap-1">
+                  <span className="text-xs font-bold text-[#00FF41] uppercase tracking-wider block mb-1 flex items-center gap-1">
                     <FontAwesomeIcon icon={faCheck} />
                     {t('calc_net_profit_with', 'Чистая прибыль С Revo:')}
                   </span>
@@ -515,7 +515,7 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
                   </div>
                 </div>
 
-                <div className="mt-3 pt-3 border-t border-[#00FF41]/20 text-[11px] text-emerald-300 font-mono">
+                <div className="mt-3 pt-3 border-t border-[#00FF41]/20 text-xs text-emerald-300 font-mono">
                   Выручка: ${formatNumber(revenueWithRevo)} (+{activeTier.liftPercent}%)
                 </div>
               </div>
@@ -534,7 +534,7 @@ const ProfitCalculator = ({ onOpenContactModal }) => {
               </div>
               
               <div className="space-y-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/40 text-[#D4AF37] text-[10px] font-black uppercase tracking-widest">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/40 text-[#D4AF37] text-xs font-black uppercase tracking-widest">
                   ЭКОНОМИКА ЛОЯЛЬНОСТИ REVOO
                 </div>
                 

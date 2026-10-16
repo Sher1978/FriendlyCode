@@ -3,9 +3,30 @@ import 'package:flutter/cupertino.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:friendly_code/core/models/lead_model.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
-import 'package:friendly_code/core/services/lead_service.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:intl/intl.dart';
+
+class ScanRecord {
+  final String id;
+  final String guestId;
+  final String guestName;
+  final String guestContact;
+  final DateTime timestamp;
+  final num discount;
+  final String source;
+  final String venueId;
+
+  ScanRecord({
+    required this.id,
+    required this.guestId,
+    required this.guestName,
+    required this.guestContact,
+    required this.timestamp,
+    required this.discount,
+    required this.source,
+    required this.venueId,
+  });
+}
 
 class GuestListScreen extends StatefulWidget {
   final String venueId;
@@ -16,16 +37,31 @@ class GuestListScreen extends StatefulWidget {
 }
 
 class _GuestListScreenState extends State<GuestListScreen> {
-  final LeadsService _leadsService = LeadsService();
   final TextEditingController _searchCtrl = TextEditingController();
   String _searchQuery = "";
+
+  // Active Tab: 0 = База гостей, 1 = Журнал сканирований
+  int _selectedTab = 0;
+
+  // Scan Journal filter: 0 = Все, 1 = Сегодня, 2 = 7 дней, 3 = Этот месяц
+  int _scanTimeFilter = 0;
+
+  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
 
   @override
   void initState() {
     super.initState();
     try {
-      final searchVal = Uri.base.queryParameters['search'] ?? Uri.base.queryParameters['uid'] ?? Uri.base.queryParameters['q'];
+      final searchVal = Uri.base.queryParameters['search'] ??
+          Uri.base.queryParameters['uid'] ??
+          Uri.base.queryParameters['q'];
       final action = Uri.base.queryParameters['action'];
+      final tabParam = Uri.base.queryParameters['tab'];
+
+      if (tabParam == 'scans' || tabParam == 'journal') {
+        _selectedTab = 1;
+      }
+
       if (searchVal != null && searchVal.isNotEmpty) {
         _searchQuery = searchVal;
         _searchCtrl.text = searchVal;
@@ -43,25 +79,25 @@ class _GuestListScreenState extends State<GuestListScreen> {
             guestId = userDoc.id;
             guestName = userDoc.data()?['displayName'] ?? userDoc.data()?['name'] ?? 'Guest';
           } else {
-            // 2. Try searching by email or name in leads
+            // 2. Try searching by email or name in visits for this venue
             final snap = await FirebaseFirestore.instance
-                .collection('leads')
+                .collection('visits')
                 .where('venueId', isEqualTo: widget.venueId)
                 .get();
-            
+
             final matches = snap.docs.where((doc) {
               final data = doc.data();
               final name = (data['guestName'] ?? '').toString().toLowerCase();
-              final contact = (data['guestContact'] ?? '').toString().toLowerCase();
-              final id = doc.id.toLowerCase();
+              final contact = (data['guestEmail'] ?? data['guestContact'] ?? '').toString().toLowerCase();
+              final id = (data['uid'] ?? doc.id).toString().toLowerCase();
               final searchLower = q.toLowerCase();
               return name.contains(searchLower) || contact.contains(searchLower) || id == searchLower;
             }).toList();
 
             if (matches.isNotEmpty) {
-              final leadData = matches.first.data();
-              guestId = leadData['guestId'] ?? matches.first.id;
-              guestName = leadData['guestName'] ?? 'Guest';
+              final visitData = matches.first.data();
+              guestId = visitData['uid'] ?? visitData['guestId'] ?? matches.first.id;
+              guestName = visitData['guestName'] ?? 'Guest';
               userDoc = await FirebaseFirestore.instance.collection('users').doc(guestId).get();
             }
           }
@@ -92,111 +128,215 @@ class _GuestListScreenState extends State<GuestListScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.guestDatabase, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+        title: Text(
+          AppLocalizations.of(context)!.guestDatabase,
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.white),
+        ),
         backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppColors.title),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('visits')
+            .where('venueId', isEqualTo: widget.venueId)
+            .snapshots(),
+        builder: (context, visitSnapshot) {
+          final visitDocs = visitSnapshot.data?.docs ?? [];
+          final totalScansCount = visitDocs.length;
+
+          // Unique guests count
+          final uniqueGuestsSet = <String>{};
+          for (var doc in visitDocs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final uid = (data['uid'] ?? data['guestId'] ?? data['guestEmail'] ?? '').toString();
+            if (uid.isNotEmpty && uid != 'anonymous') {
+              uniqueGuestsSet.add(uid);
+            }
+          }
+          final totalGuestsCount = uniqueGuestsSet.length;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // Header & Mode Switcher
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      AppLocalizations.of(context)!.yourLoyalGuests,
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppColors.title),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _selectedTab == 0
+                              ? AppLocalizations.of(context)!.yourLoyalGuests
+                              : "ЖУРНАЛ СКАНИРОВАНИЙ QR",
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.title,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _selectedTab == 0
+                              ? AppLocalizations.of(context)!.guestDatabaseSub
+                              : "Лента всех сканирований QR-кодов заведения в реальном времени",
+                          style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      AppLocalizations.of(context)!.guestDatabaseSub,
-                      style: TextStyle(color: AppColors.body.withOpacity(0.7)),
-                    ),
+                    // Tab Switcher Pill
+                    _buildTabSwitcher(totalGuestsCount, totalScansCount),
                   ],
                 ),
+                const SizedBox(height: 20),
+
+                // Content depending on selected tab
+                if (_selectedTab == 0) ...[
+                  // --- TAB 0: GUEST DATABASE ---
+                  _buildCategoryAnalyticsSection(visitDocs),
+                  const SizedBox(height: 18),
+                  _buildSearchBar("Поиск гостей по имени, контакту или ID..."),
+                  const SizedBox(height: 18),
+                  Expanded(
+                    child: _buildGuestListFromVisits(visitDocs),
+                  ),
+                ] else ...[
+                  // --- TAB 1: SCAN JOURNAL ---
+                  _buildScanJournalMetrics(visitDocs),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildSearchBar("Поиск в журнале по имени, email или источнику QR..."),
+                      ),
+                      const SizedBox(width: 16),
+                      _buildScanFilterPills(),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  Expanded(
+                    child: _buildScanJournalTable(visitDocs),
+                  ),
+                ],
               ],
             ),
-            const SizedBox(height: 20),
-            
-            // --- 3 CATEGORIES ANALYTICS WIDGET WITH MONTHLY FILTER ---
-            _buildCategoryAnalyticsSection(widget.venueId),
-            const SizedBox(height: 24),
-            const SizedBox(height: 16),
-            ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: TextField(
-                controller: _searchCtrl,
-                onChanged: (val) {
-                  setState(() {
-                    _searchQuery = val.trim();
-                  });
-                },
-                decoration: InputDecoration(
-                  hintText: "Search guests by name, contact or ID...",
-                  prefixIcon: const Icon(Icons.search, color: AppColors.body),
-                  filled: true,
-                  fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.body.withOpacity(0.15)),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: AppColors.body.withOpacity(0.15)),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: AppColors.accentOrange),
-                  ),
-                ),
+          );
+        },
+      ),
+    );
+  }
+
+  // --- MODERN TAB SWITCHER ---
+  Widget _buildTabSwitcher(int guestCount, int scanCount) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.1)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildTabButton(
+            index: 0,
+            label: "База гостей",
+            count: guestCount,
+            icon: Icons.people_outline,
+          ),
+          const SizedBox(width: 4),
+          _buildTabButton(
+            index: 1,
+            label: "Журнал сканирований",
+            count: scanCount,
+            icon: Icons.qr_code_scanner_rounded,
+            isLive: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabButton({
+    required int index,
+    required String label,
+    required int count,
+    required IconData icon,
+    bool isLive = false,
+  }) {
+    final isSelected = _selectedTab == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedTab = index;
+          _searchCtrl.clear();
+          _searchQuery = "";
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white.withOpacity(0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: isSelected ? Border.all(color: Colors.white.withOpacity(0.2)) : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? (isLive ? AppColors.accentGreen : AppColors.accentOrange) : Colors.white60,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.white60,
+                fontWeight: isSelected ? FontWeight.w900 : FontWeight.w600,
+                fontSize: 13,
               ),
             ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: StreamBuilder<List<LeadModel>>(
-                stream: _getGuestsStream(widget.venueId),
-                builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    return Center(child: Text("Error loading guests: ${snapshot.error}"));
-                  }
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  final guests = snapshot.data!;
-                  if (guests.isEmpty) {
-                    return _buildEmptyState();
-                  }
-
-                  final filteredGuests = _searchQuery.isEmpty
-                      ? guests
-                      : guests.where((g) {
-                          final query = _searchQuery.toLowerCase();
-                          return g.guestName.toLowerCase().contains(query) ||
-                              g.guestContact.toLowerCase().contains(query) ||
-                              g.guestId.toLowerCase() == query;
-                        }).toList();
-
-                  if (filteredGuests.isEmpty) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Text(
-                          "No guests match your search filter.",
-                          style: TextStyle(color: AppColors.body.withOpacity(0.5), fontSize: 16, fontWeight: FontWeight.bold),
-                        ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? (isLive ? AppColors.accentGreen.withOpacity(0.2) : AppColors.accentOrange.withOpacity(0.2))
+                    : Colors.white.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isLive && isSelected) ...[
+                    Container(
+                      width: 6,
+                      height: 6,
+                      margin: const EdgeInsets.only(right: 4),
+                      decoration: const BoxDecoration(
+                        color: AppColors.accentGreen,
+                        shape: BoxShape.circle,
                       ),
-                    );
-                  }
-
-                  return _buildGuestTable(filteredGuests);
-                },
+                    ),
+                  ],
+                  Text(
+                    "$count",
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected
+                          ? (isLive ? AppColors.accentGreen : AppColors.accentOrange)
+                          : Colors.white70,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -205,258 +345,1270 @@ class _GuestListScreenState extends State<GuestListScreen> {
     );
   }
 
-  Stream<List<LeadModel>> _getGuestsStream(String venueId) {
-    return FirebaseFirestore.instance
-        .collection('visits')
-        .where('venueId', isEqualTo: venueId)
-        .snapshots()
-        .asyncMap((visitSnap) async {
-      
-      Map<String, List<Map<String, dynamic>>> guestVisits = {};
-      for (var doc in visitSnap.docs) {
-        final data = doc.data();
-        final uid = (data['uid'] ?? data['guestId'] ?? data['guestEmail'] ?? '').toString();
-        if (uid.isEmpty || uid == 'anonymous') continue;
-        
-        guestVisits.putIfAbsent(uid, () => []).add(data);
+  // --- SEARCH BAR (DARK OLED STYLING) ---
+  Widget _buildSearchBar(String hint) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 440),
+      child: TextField(
+        controller: _searchCtrl,
+        onChanged: (val) {
+          setState(() {
+            _searchQuery = val.trim();
+          });
+        },
+        style: const TextStyle(color: Colors.white, fontSize: 14),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13),
+          prefixIcon: Icon(Icons.search, color: Colors.white.withOpacity(0.5), size: 20),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear, color: Colors.white60, size: 18),
+                  onPressed: () {
+                    _searchCtrl.clear();
+                    setState(() => _searchQuery = "");
+                  },
+                )
+              : null,
+          filled: true,
+          fillColor: const Color(0xFF1C1C1E),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(color: Colors.white.withOpacity(0.12)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.accentOrange, width: 1.5),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- CATEGORY ANALYTICS SECTION (ACCURATE & NO DOUBLE-COUNTING) ---
+  Widget _buildCategoryAnalyticsSection(List<QueryDocumentSnapshot> docs) {
+    Map<String, List<Map<String, dynamic>>> guestVisits = {};
+    for (var doc in docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final uid = (data['uid'] ?? data['guestId'] ?? data['guestEmail'] ?? '').toString();
+      if (uid.isEmpty || uid == 'anonymous') continue;
+      guestVisits.putIfAbsent(uid, () => []).add(data);
+    }
+
+    final startOfMonth = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
+    final endOfMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0, 23, 59, 59);
+
+    int newCount = 0;
+    int constantCount = 0;
+    int lostCount = 0;
+    int didNotArriveCount = 0;
+    final now = DateTime.now();
+
+    guestVisits.forEach((uid, visitsData) {
+      visitsData.sort((a, b) {
+        final tsA = a['timestamp'] != null ? (a['timestamp'] as Timestamp).toDate() : DateTime.now();
+        final tsB = b['timestamp'] != null ? (b['timestamp'] as Timestamp).toDate() : DateTime.now();
+        return tsA.compareTo(tsB);
+      });
+
+      // Filter visits in the selected month
+      final visitsInMonth = visitsData.where((v) {
+        final ts = v['timestamp'] != null ? (v['timestamp'] as Timestamp).toDate() : DateTime.now();
+        return ts.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
+            ts.isBefore(endOfMonth.add(const Duration(seconds: 1)));
+      }).toList();
+
+      if (visitsInMonth.isEmpty) return;
+
+      final totalCount = visitsData.length;
+      final lastVisitData = visitsData.last;
+      final lastVisitTs = lastVisitData['timestamp'] != null
+          ? (lastVisitData['timestamp'] as Timestamp).toDate()
+          : DateTime.now();
+      final daysSince = now.difference(lastVisitTs).inDays;
+
+      // Exclusive mutually-exclusive categorization:
+      // 1. Google Maps Lead who never returned
+      if (totalCount == 1 && lastVisitData['acquisition_source'] == 'google_maps_bonus') {
+        didNotArriveCount++;
       }
-      
-      final now = DateTime.now();
-      List<LeadModel> guests = [];
-      final uids = guestVisits.keys.toList();
-      
-      for (int i = 0; i < uids.length; i += 30) {
-        final chunk = uids.sublist(i, i + 30 > uids.length ? uids.length : i + 30);
-        final userSnap = await FirebaseFirestore.instance.collection('users').where(FieldPath.documentId, whereIn: chunk).get();
-        
-        for (var doc in userSnap.docs) {
-          final data = doc.data();
-          final uid = doc.id;
-          final visitDocs = guestVisits[uid]!;
-          visitDocs.sort((a, b) {
+      // 2. Lost guests (no visit in >14 days)
+      else if (daysSince >= 14) {
+        lostCount++;
+      }
+      // 3. New guests (active within 14 days, total visits <= 2)
+      else if (totalCount <= 2) {
+        newCount++;
+      }
+      // 4. Constant guests (active within 14 days, total visits >= 3)
+      else {
+        constantCount++;
+      }
+    });
+
+    final totalActive = newCount + constantCount + lostCount + didNotArriveCount;
+    final newPerc = totalActive > 0 ? (newCount / totalActive * 100).round() : 0;
+    final constPerc = totalActive > 0 ? (constantCount / totalActive * 100).round() : 0;
+    final lostPerc = totalActive > 0 ? (lostCount / totalActive * 100).round() : 0;
+    final didNotArrivePerc = totalActive > 0 ? (didNotArriveCount / totalActive * 100).round() : 0;
+
+    final months = List.generate(12, (i) => DateTime(DateTime.now().year, i + 1));
+    final monthFormat = DateFormat('MMMM yyyy');
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    "📊 Аналитика категорий клиентов",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentOrange.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      "Всего активных: $totalActive",
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.accentOrange,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              DropdownButton<DateTime>(
+                value: _selectedMonth,
+                dropdownColor: const Color(0xFF2C2C2E),
+                style: const TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.bold, fontSize: 13),
+                underline: Container(height: 1, color: AppColors.accentOrange),
+                items: months.map((m) {
+                  return DropdownMenuItem<DateTime>(
+                    value: m,
+                    child: Text(monthFormat.format(m)),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() => _selectedMonth = val);
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildCategoryCard(
+                  title: "Новые (≤2)",
+                  count: newCount,
+                  percent: newPerc,
+                  color: Colors.blue,
+                  icon: Icons.person_add,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildCategoryCard(
+                  title: "Постоянные (≥3)",
+                  count: constantCount,
+                  percent: constPerc,
+                  color: Colors.green,
+                  icon: Icons.star,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildCategoryCard(
+                  title: "Потерянные (>14 дн)",
+                  count: lostCount,
+                  percent: lostPerc,
+                  color: Colors.redAccent,
+                  icon: Icons.person_off,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildCategoryCard(
+                  title: "Не дошли (Google)",
+                  count: didNotArriveCount,
+                  percent: didNotArrivePerc,
+                  color: Colors.purpleAccent,
+                  icon: Icons.location_off,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              height: 8,
+              child: Row(
+                children: [
+                  if (newPerc > 0) Expanded(flex: newPerc, child: Container(color: Colors.blue)),
+                  if (constPerc > 0) Expanded(flex: constPerc, child: Container(color: Colors.green)),
+                  if (lostPerc > 0) Expanded(flex: lostPerc, child: Container(color: Colors.redAccent)),
+                  if (didNotArrivePerc > 0) Expanded(flex: didNotArrivePerc, child: Container(color: Colors.purpleAccent)),
+                  if (totalActive == 0) Expanded(child: Container(color: Colors.white10)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryCard({
+    required String title,
+    required int count,
+    required int percent,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withOpacity(0.25)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.7)),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("$count", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+                    Text("$percent%", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color.withOpacity(0.85))),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- STREAMING GUESTS COMPLETE LIST (ALL GUESTS, NO MISSING RECORDS) ---
+  Widget _buildGuestListFromVisits(List<QueryDocumentSnapshot> visitDocs) {
+    if (visitDocs.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    // Group visits by guest UID
+    Map<String, List<Map<String, dynamic>>> guestVisits = {};
+    for (var doc in visitDocs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final uid = (data['uid'] ?? data['guestId'] ?? data['guestEmail'] ?? '').toString();
+      if (uid.isEmpty || uid == 'anonymous') continue;
+      guestVisits.putIfAbsent(uid, () => []).add(data);
+    }
+
+    final now = DateTime.now();
+    final uids = guestVisits.keys.toList();
+
+    return FutureBuilder<Map<String, Map<String, dynamic>>>(
+      future: _fetchUserProfiles(uids),
+      builder: (context, userProfilesSnap) {
+        final userProfiles = userProfilesSnap.data ?? {};
+
+        List<LeadModel> guests = [];
+
+        for (final uid in uids) {
+          final visitList = guestVisits[uid]!;
+          visitList.sort((a, b) {
             final tsA = a['timestamp'] != null ? (a['timestamp'] as Timestamp).toDate() : DateTime.now();
             final tsB = b['timestamp'] != null ? (b['timestamp'] as Timestamp).toDate() : DateTime.now();
             return tsA.compareTo(tsB);
           });
-          
-          final lastVisitData = visitDocs.last;
-          final lastVisit = lastVisitData['timestamp'] != null ? (lastVisitData['timestamp'] as Timestamp).toDate() : DateTime.now();
-          final totalVisits = visitDocs.length;
-          
+
+          final lastVisitData = visitList.last;
+          final lastVisit = lastVisitData['timestamp'] != null
+              ? (lastVisitData['timestamp'] as Timestamp).toDate()
+              : DateTime.now();
+          final totalVisits = visitList.length;
+
           String status = 'new';
           if (totalVisits == 1 && lastVisitData['acquisition_source'] == 'google_maps_bonus') {
             status = 'did_not_arrive';
           } else if (now.difference(lastVisit).inDays >= 14) {
             status = 'lost';
           } else if (totalVisits >= 3) {
-            status = 'vip'; 
+            status = 'vip';
           }
-          
+
+          final uData = userProfiles[uid];
+          final name = uData?['displayName'] ??
+              uData?['name'] ??
+              lastVisitData['guestName'] ??
+              'Guest';
+          final contact = uData?['email'] ??
+              uData?['phone'] ??
+              lastVisitData['guestEmail'] ??
+              lastVisitData['guestContact'] ??
+              '';
+
           guests.add(LeadModel(
             id: uid,
-            venueId: venueId,
+            venueId: widget.venueId,
             guestId: uid,
-            guestName: data['displayName'] ?? data['name'] ?? 'Guest',
-            guestContact: data['email'] ?? data['phone'] ?? '',
+            guestName: name.toString().trim().isNotEmpty ? name.toString() : 'Гость',
+            guestContact: contact.toString().trim(),
             createdAt: lastVisit,
             status: status,
           ));
         }
-      }
-      
-      guests.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      return guests;
-    });
+
+        // Sort by last visit descending
+        guests.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+        final filteredGuests = _searchQuery.isEmpty
+            ? guests
+            : guests.where((g) {
+                final query = _searchQuery.toLowerCase();
+                return g.guestName.toLowerCase().contains(query) ||
+                    g.guestContact.toLowerCase().contains(query) ||
+                    g.guestId.toLowerCase() == query;
+              }).toList();
+
+        if (filteredGuests.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Text(
+                "Ни один гость не соответствует условиям поиска.",
+                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ),
+          );
+        }
+
+        return _buildGuestTable(filteredGuests, guestVisits);
+      },
+    );
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.people_outline, size: 64, color: AppColors.body.withOpacity(0.3)),
-          const SizedBox(height: 16),
-          Text(
-            AppLocalizations.of(context)!.noGuestsFound,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.body.withOpacity(0.5)),
+  Future<Map<String, Map<String, dynamic>>> _fetchUserProfiles(List<String> uids) async {
+    Map<String, Map<String, dynamic>> result = {};
+    for (int i = 0; i < uids.length; i += 30) {
+      final chunk = uids.sublist(i, i + 30 > uids.length ? uids.length : i + 30);
+      try {
+        final snap = await FirebaseFirestore.instance
+            .collection('users')
+            .where(FieldPath.documentId, whereIn: chunk)
+            .get();
+        for (var doc in snap.docs) {
+          result[doc.id] = doc.data();
+        }
+      } catch (e) {
+        debugPrint("Error fetching users chunk: $e");
+      }
+    }
+    return result;
+  }
+
+  // --- GUEST TABLE (DARK OLED STYLING, NO WHITE BACKGROUND) ---
+  Widget _buildGuestTable(List<LeadModel> guests, Map<String, List<Map<String, dynamic>>> guestVisits) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1C1C1E), // Dark OLED Apple Surface
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowColor: WidgetStateProperty.all(const Color(0xFF2C2C2E)),
+              dataRowColor: WidgetStateProperty.all(const Color(0xFF1C1C1E)),
+              border: TableBorder(
+                horizontalInside: BorderSide(color: Colors.white.withOpacity(0.06), width: 1),
+              ),
+              dataRowMinHeight: 68,
+              dataRowMaxHeight: 74,
+              columns: const [
+                DataColumn(
+                  label: Text(
+                    "ИМЯ ГОСТЯ",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    "КОНТАКТЫ",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    "СТАТУС",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    "ВИЗИТЫ",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    "ДЕПОЗИТ",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    "ПОСЛЕДНИЙ ВИЗИТ",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    "ДЕЙСТВИЯ",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  ),
+                ),
+              ],
+              rows: guests.map((guest) {
+                final visitList = guestVisits[guest.guestId] ?? [];
+                final totalVisits = visitList.length;
+
+                return DataRow(cells: [
+                  // Guest Name + Avatar
+                  DataCell(
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: AppColors.accentOrange.withOpacity(0.18),
+                          child: Text(
+                            guest.guestName.isNotEmpty ? guest.guestName[0].toUpperCase() : '?',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.accentOrange, fontSize: 15),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          guest.guestName,
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Contact
+                  DataCell(
+                    Text(
+                      guest.guestContact.isNotEmpty ? guest.guestContact : 'N/A',
+                      style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
+                    ),
+                  ),
+                  // Status + VIP Lock
+                  DataCell(
+                    StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance.collection('users').doc(guest.guestId).snapshots(),
+                      builder: (context, userSnap) {
+                        final data = userSnap.data?.data() as Map<String, dynamic>?;
+                        final isLocked = data?['hasLockedDiscount'] == true;
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: _getStatusColor(guest.status).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: _getStatusColor(guest.status).withOpacity(0.4)),
+                              ),
+                              child: Text(
+                                guest.status == 'did_not_arrive'
+                                    ? 'НЕ ДОШЛИ'
+                                    : guest.status == 'new'
+                                        ? 'НОВЫЙ'
+                                        : guest.status == 'lost'
+                                            ? 'ПОТЕРЯН'
+                                            : guest.status.toUpperCase(),
+                                style: TextStyle(
+                                  color: _getStatusColor(guest.status),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                            if (isLocked) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.purple.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.purple.withOpacity(0.5)),
+                                ),
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.lock, size: 10, color: Colors.purpleAccent),
+                                    SizedBox(width: 3),
+                                    Text("VIP Lock", style: TextStyle(color: Colors.purpleAccent, fontWeight: FontWeight.bold, fontSize: 9)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  // Total Visits
+                  DataCell(
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        "$totalVisits ${totalVisits == 1 ? 'визит' : (totalVisits >= 2 && totalVisits <= 4) ? 'визита' : 'визитов'}",
+                        style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 12),
+                      ),
+                    ),
+                  ),
+                  // Deposit Balance
+                  DataCell(
+                    StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance.collection('users').doc(guest.guestId).snapshots(),
+                      builder: (context, userSnap) {
+                        if (!userSnap.hasData) return const Text("...", style: TextStyle(color: Colors.white54));
+                        final data = userSnap.data!.data() as Map<String, dynamic>?;
+                        final balance = (data?['deposit_balance'] ?? 0.0).toDouble();
+                        return Text(
+                          balance.toStringAsFixed(2),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.statusActiveText,
+                            fontSize: 14,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  // Last Visit Date
+                  DataCell(
+                    Text(
+                      DateFormat('MMM d, yyyy').format(guest.createdAt),
+                      style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 13),
+                    ),
+                  ),
+                  // Actions (+ Top Up, - Deduct Bill, VIP Lock)
+                  DataCell(
+                    StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance.collection('users').doc(guest.guestId).snapshots(),
+                      builder: (context, userSnap) {
+                        final data = userSnap.data?.data() as Map<String, dynamic>?;
+                        final balance = (data?['deposit_balance'] ?? 0.0).toDouble();
+                        final isLocked = data?['hasLockedDiscount'] == true;
+
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CupertinoButton(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              color: AppColors.accentOrange.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                              onPressed: () => _showTopUpDialog(guest.guestId, guest.guestName, balance),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(CupertinoIcons.add, size: 12, color: AppColors.accentOrange),
+                                  SizedBox(width: 4),
+                                  Text("Top Up", style: TextStyle(color: AppColors.accentOrange, fontSize: 12, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            CupertinoButton(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              color: Colors.blue.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(8),
+                              onPressed: () => _showDeductDialog(guest.guestId, guest.guestName, balance),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(CupertinoIcons.minus, size: 12, color: Colors.blueAccent),
+                                  SizedBox(width: 4),
+                                  Text("Deduct Bill", style: TextStyle(color: Colors.blueAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            CupertinoButton(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              color: isLocked ? Colors.red.withOpacity(0.15) : Colors.green.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              onPressed: () => _toggleLockDiscount(guest.guestId, !isLocked),
+                              child: Icon(
+                                isLocked ? CupertinoIcons.lock_open : CupertinoIcons.lock,
+                                size: 14,
+                                color: isLocked ? Colors.redAccent : Colors.greenAccent,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ]);
+              }).toList(),
+            ),
           ),
-          const SizedBox(height: 8),
-          Text(AppLocalizations.of(context)!.noGuestsSub),
+        ),
+      ),
+    );
+  }
+
+  // =========================================================================
+  // --- TAB 1: ЖУРНАЛ СКАНИРОВАНИЙ (SCAN JOURNAL IMPLEMENTATION) ---
+  // =========================================================================
+
+  Widget _buildScanJournalMetrics(List<QueryDocumentSnapshot> docs) {
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final weekStart = now.subtract(const Duration(days: 7));
+    final monthStart = DateTime(now.year, now.month, 1);
+
+    int total = docs.length;
+    int todayCount = 0;
+    int weekCount = 0;
+    int monthCount = 0;
+    num totalDiscount = 0;
+
+    for (var doc in docs) {
+      final data = doc.data() as Map<String, dynamic>;
+      final ts = data['timestamp'] != null ? (data['timestamp'] as Timestamp).toDate() : null;
+      if (ts != null) {
+        if (ts.isAfter(todayStart)) todayCount++;
+        if (ts.isAfter(weekStart)) weekCount++;
+        if (ts.isAfter(monthStart)) monthCount++;
+      }
+      final disc = data['discount'] as num? ?? 0;
+      totalDiscount += disc;
+    }
+
+    final avgDiscount = total > 0 ? (totalDiscount / total).toStringAsFixed(1) : "0";
+
+    return Row(
+      children: [
+        Expanded(
+          child: _buildMetricCard(
+            title: "Всего сканирований",
+            value: "$total",
+            subtitle: "За все время",
+            color: AppColors.accentTeal,
+            icon: Icons.qr_code_2_rounded,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildMetricCard(
+            title: "Сканирований сегодня",
+            value: "$todayCount",
+            subtitle: DateFormat('d MMMM').format(now),
+            color: AppColors.accentGreen,
+            icon: Icons.bolt_rounded,
+            badge: "LIVE",
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildMetricCard(
+            title: "За последние 7 дней",
+            value: "$weekCount",
+            subtitle: "Недельная активность",
+            color: AppColors.accentOrange,
+            icon: Icons.calendar_view_week_rounded,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildMetricCard(
+            title: "За этот месяц",
+            value: "$monthCount",
+            subtitle: "Средняя скидка: $avgDiscount%",
+            color: Colors.purpleAccent,
+            icon: Icons.discount_outlined,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetricCard({
+    required String title,
+    required String value,
+    required String subtitle,
+    required Color color,
+    required IconData icon,
+    String? badge,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              if (badge != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: color.withOpacity(0.5)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 5,
+                        height: 5,
+                        margin: const EdgeInsets.only(right: 4),
+                        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                      ),
+                      Text(
+                        badge,
+                        style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 10),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.8)),
+          ),
+          Text(
+            subtitle,
+            style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.4)),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildGuestTable(List<LeadModel> guests) {
+  Widget _buildScanFilterPills() {
+    final filters = ["Все", "Сегодня", "7 дней", "Этот месяц"];
+    return Row(
+      children: List.generate(filters.length, (i) {
+        final isSelected = _scanTimeFilter == i;
+        return Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: GestureDetector(
+            onTap: () => setState(() => _scanTimeFilter = i),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.accentOrange.withOpacity(0.25) : const Color(0xFF1C1C1E),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected ? AppColors.accentOrange : Colors.white.withOpacity(0.1),
+                ),
+              ),
+              child: Text(
+                filters[i],
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  color: isSelected ? AppColors.accentOrange : Colors.white70,
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildScanJournalTable(List<QueryDocumentSnapshot> docs) {
+    if (docs.isEmpty) {
+      return Center(
+        child: Text(
+          "В журнале пока нет записей сканирований для этого заведения.",
+          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 16),
+        ),
+      );
+    }
+
+    // Convert to ScanRecord list
+    List<ScanRecord> scans = docs.map((d) {
+      final data = d.data() as Map<String, dynamic>;
+      final ts = data['timestamp'] != null
+          ? (data['timestamp'] as Timestamp).toDate()
+          : DateTime.now();
+
+      return ScanRecord(
+        id: d.id,
+        guestId: (data['uid'] ?? data['userId'] ?? data['guestId'] ?? '').toString(),
+        guestName: (data['guestName'] ?? data['userName'] ?? 'Гость').toString(),
+        guestContact: (data['guestEmail'] ?? data['userEmail'] ?? data['guestContact'] ?? '').toString(),
+        timestamp: ts,
+        discount: (data['discount'] as num?) ?? 0,
+        source: (data['source'] ?? data['linkType'] ?? 'qr_scan_auto').toString(),
+        venueId: widget.venueId,
+      );
+    }).toList();
+
+    // Sort latest scans first
+    scans.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
+    // Filter by time
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final weekStart = now.subtract(const Duration(days: 7));
+    final monthStart = DateTime(now.year, now.month, 1);
+
+    if (_scanTimeFilter == 1) {
+      scans = scans.where((s) => s.timestamp.isAfter(todayStart)).toList();
+    } else if (_scanTimeFilter == 2) {
+      scans = scans.where((s) => s.timestamp.isAfter(weekStart)).toList();
+    } else if (_scanTimeFilter == 3) {
+      scans = scans.where((s) => s.timestamp.isAfter(monthStart)).toList();
+    }
+
+    // Filter by search query
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      scans = scans.where((s) {
+        return s.guestName.toLowerCase().contains(q) ||
+            s.guestContact.toLowerCase().contains(q) ||
+            s.guestId.toLowerCase().contains(q) ||
+            s.source.toLowerCase().contains(q);
+      }).toList();
+    }
+
+    if (scans.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            "Нет сканирований по выбранному фильтру.",
+            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    }
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFF1C1C1E),
           borderRadius: BorderRadius.circular(16),
-          boxShadow: AppColors.softShadow,
+          border: Border.all(color: Colors.white.withOpacity(0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.5),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
         ),
         child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            headingRowColor: MaterialStateProperty.all(AppColors.background.withOpacity(0.5)),
-            dataRowHeight: 72,
-            columns: [
-              DataColumn(label: Text(AppLocalizations.of(context)!.guestNameCol, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12))),
-              DataColumn(label: Text(AppLocalizations.of(context)!.contactInfoCol, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12))),
-              DataColumn(label: Text(AppLocalizations.of(context)!.statusCol, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12))),
-              const DataColumn(label: Text("Deposit Balance", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12))),
-              DataColumn(label: Text(AppLocalizations.of(context)!.joinedDateCol, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12))),
-              const DataColumn(label: Text("Actions", style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12))),
-            ],
-            rows: guests.map((guest) {
-              return DataRow(cells: [
-                DataCell(
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        backgroundColor: AppColors.accentOrange.withOpacity(0.1),
-                        child: Text(
-                          guest.guestName.isNotEmpty ? guest.guestName[0].toUpperCase() : '?',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.accentOrange),
+          scrollDirection: Axis.vertical,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowColor: WidgetStateProperty.all(const Color(0xFF2C2C2E)),
+              dataRowColor: WidgetStateProperty.all(const Color(0xFF1C1C1E)),
+              border: TableBorder(
+                horizontalInside: BorderSide(color: Colors.white.withOpacity(0.06), width: 1),
+              ),
+              dataRowMinHeight: 64,
+              dataRowMaxHeight: 70,
+              columns: const [
+                DataColumn(
+                  label: Text(
+                    "ВРЕМЯ СКАНИРОВАНИЯ",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    "ГОСТЬ",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    "КОНТАКТЫ",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    "ИСТОЧНИК / QR",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    "ВЫДАННАЯ СКИДКА",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    "БАЛАНС ДЕПОЗИТА",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  ),
+                ),
+                DataColumn(
+                  label: Text(
+                    "ДЕЙСТВИЯ",
+                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  ),
+                ),
+              ],
+              rows: scans.map((scan) {
+                final isToday = scan.timestamp.isAfter(todayStart);
+
+                return DataRow(cells: [
+                  // Time
+                  DataCell(
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.access_time_rounded,
+                          size: 14,
+                          color: isToday ? AppColors.accentGreen : Colors.white38,
+                        ),
+                        const SizedBox(width: 8),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              DateFormat('dd.MM.yyyy HH:mm:ss').format(scan.timestamp),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isToday ? Colors.white : Colors.white.withOpacity(0.8),
+                                fontSize: 13,
+                              ),
+                            ),
+                            if (isToday)
+                              Text(
+                                "Сегодня",
+                                style: TextStyle(
+                                  color: AppColors.accentGreen,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Guest
+                  DataCell(
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: AppColors.accentGreen.withOpacity(0.15),
+                          child: Text(
+                            scan.guestName.isNotEmpty ? scan.guestName[0].toUpperCase() : '?',
+                            style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.accentGreen, fontSize: 13),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          scan.guestName,
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Contact
+                  DataCell(
+                    Text(
+                      scan.guestContact.isNotEmpty ? scan.guestContact : 'N/A',
+                      style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
+                    ),
+                  ),
+                  // Source badge
+                  DataCell(
+                    _buildSourceBadge(scan.source),
+                  ),
+                  // Discount badge
+                  DataCell(
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentGreen.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.accentGreen.withOpacity(0.35)),
+                      ),
+                      child: Text(
+                        "${scan.discount}%",
+                        style: const TextStyle(
+                          color: AppColors.accentGreen,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Text(guest.guestName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    ],
+                    ),
                   ),
-                ),
-                DataCell(Text(guest.guestContact.isNotEmpty ? guest.guestContact : 'N/A')),
-                DataCell(
-                  StreamBuilder<DocumentSnapshot>(
-                    stream: FirebaseFirestore.instance.collection('users').doc(guest.guestId).snapshots(),
-                    builder: (context, userSnap) {
-                      final data = userSnap.data?.data() as Map<String, dynamic>?;
-                      final isLocked = data?['hasLockedDiscount'] == true;
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: _getStatusColor(guest.status).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              guest.status == 'did_not_arrive' ? 'НЕ ДОШЛИ' : guest.status.toUpperCase(),
-                              style: TextStyle(
-                                color: _getStatusColor(guest.status),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ),
-                          if (isLocked) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.purple.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.purple.withOpacity(0.3)),
-                              ),
-                              child: const Row(
+                  // Deposit balance
+                  DataCell(
+                    scan.guestId.isNotEmpty
+                        ? StreamBuilder<DocumentSnapshot>(
+                            stream: FirebaseFirestore.instance.collection('users').doc(scan.guestId).snapshots(),
+                            builder: (context, userSnap) {
+                              if (!userSnap.hasData) return const Text("...", style: TextStyle(color: Colors.white54));
+                              final data = userSnap.data?.data() as Map<String, dynamic>?;
+                              final balance = (data?['deposit_balance'] ?? 0.0).toDouble();
+                              return Text(
+                                balance.toStringAsFixed(2),
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.statusActiveText, fontSize: 13),
+                              );
+                            },
+                          )
+                        : const Text("0.00", style: TextStyle(color: Colors.white54, fontSize: 13)),
+                  ),
+                  // Actions (+ Top Up, - Deduct)
+                  DataCell(
+                    scan.guestId.isNotEmpty
+                        ? StreamBuilder<DocumentSnapshot>(
+                            stream: FirebaseFirestore.instance.collection('users').doc(scan.guestId).snapshots(),
+                            builder: (context, userSnap) {
+                              final data = userSnap.data?.data() as Map<String, dynamic>?;
+                              final balance = (data?['deposit_balance'] ?? 0.0).toDouble();
+
+                              return Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.lock, size: 10, color: Colors.purple),
-                                  SizedBox(width: 3),
-                                  Text("VIP Lock", style: TextStyle(color: Colors.purple, fontWeight: FontWeight.bold, fontSize: 9)),
+                                  CupertinoButton(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    color: AppColors.accentOrange.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                    onPressed: () => _showTopUpDialog(scan.guestId, scan.guestName, balance),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(CupertinoIcons.add, size: 12, color: AppColors.accentOrange),
+                                        SizedBox(width: 4),
+                                        Text("Пополнить", style: TextStyle(color: AppColors.accentOrange, fontSize: 11, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  CupertinoButton(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    color: Colors.blue.withOpacity(0.2),
+                                    borderRadius: BorderRadius.circular(8),
+                                    onPressed: () => _showDeductDialog(scan.guestId, scan.guestName, balance),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(CupertinoIcons.minus, size: 12, color: Colors.blueAccent),
+                                        SizedBox(width: 4),
+                                        Text("Списать", style: TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                  ),
                                 ],
-                              ),
-                            ),
-                          ],
-                        ],
-                      );
-                    },
+                              );
+                            },
+                          )
+                        : const SizedBox.shrink(),
                   ),
-                ),
-                // Stream Deposit Balance
-                DataCell(
-                  StreamBuilder<DocumentSnapshot>(
-                    stream: FirebaseFirestore.instance.collection('users').doc(guest.guestId).snapshots(),
-                    builder: (context, userSnap) {
-                      if (!userSnap.hasData) return const Text("...");
-                      final data = userSnap.data!.data() as Map<String, dynamic>?;
-                      final balance = (data?['deposit_balance'] ?? 0.0).toDouble();
-                      return Text(
-                        balance.toStringAsFixed(2),
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.statusActiveText),
-                      );
-                    },
-                  ),
-                ),
-                DataCell(Text(DateFormat('MMM d, yyyy').format(guest.createdAt))),
-                // Deposit Top Up Action buttons
-                DataCell(
-                  StreamBuilder<DocumentSnapshot>(
-                    stream: FirebaseFirestore.instance.collection('users').doc(guest.guestId).snapshots(),
-                    builder: (context, userSnap) {
-                      final data = userSnap.data?.data() as Map<String, dynamic>?;
-                      final balance = (data?['deposit_balance'] ?? 0.0).toDouble();
-                      final isLocked = data?['hasLockedDiscount'] == true;
-
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CupertinoButton(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            color: AppColors.accentOrange.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(8),
-                            onPressed: () => _showTopUpDialog(guest.guestId, guest.guestName, balance),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(CupertinoIcons.add, size: 12, color: AppColors.accentOrange),
-                                SizedBox(width: 4),
-                                Text("Top Up", style: TextStyle(color: AppColors.accentOrange, fontSize: 12, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          CupertinoButton(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                            color: Colors.blue.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(8),
-                            onPressed: () => _showDeductDialog(guest.guestId, guest.guestName, balance),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(CupertinoIcons.minus, size: 12, color: Colors.blue),
-                                SizedBox(width: 4),
-                                Text("Deduct Bill", style: TextStyle(color: Colors.blue, fontSize: 12, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          CupertinoButton(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                            color: isLocked ? Colors.red.withOpacity(0.1) : Colors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            onPressed: () => _toggleLockDiscount(guest.guestId, !isLocked),
-                            child: Icon(
-                              isLocked ? CupertinoIcons.lock_open : CupertinoIcons.lock,
-                              size: 14,
-                              color: isLocked ? Colors.red : Colors.green,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ]);
-            }).toList(),
+                ]);
+              }).toList(),
+            ),
           ),
         ),
       ),
     );
   }
 
+  Widget _buildSourceBadge(String source) {
+    Color color;
+    IconData icon;
+    String label;
+
+    switch (source.toLowerCase()) {
+      case 'qr_scan_auto':
+        color = Colors.cyanAccent;
+        icon = Icons.qr_code_2;
+        label = "QR стола / меню";
+        break;
+      case 'qr_reward_claim':
+        color = AppColors.accentGreen;
+        icon = Icons.check_circle_outline;
+        label = "Получение скидки";
+        break;
+      case 'qr_test_button':
+        color = Colors.amber;
+        icon = Icons.flash_on;
+        label = "Тестовый скан";
+        break;
+      case 'google_maps_bonus':
+      case 'google_maps_auto':
+      case 'google_maps':
+        color = Colors.purpleAccent;
+        icon = Icons.map_outlined;
+        label = "Google Maps QR";
+        break;
+      case 'captive_portal':
+        color = Colors.tealAccent;
+        icon = Icons.wifi;
+        label = "Wi-Fi Авторизация";
+        break;
+      case 'nfc':
+        color = Colors.orangeAccent;
+        icon = Icons.nfc;
+        label = "NFC метка";
+        break;
+      default:
+        color = Colors.blueAccent;
+        icon = Icons.qr_code;
+        label = source;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- EMPTY STATE ---
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.people_outline, size: 64, color: Colors.white.withOpacity(0.3)),
+          const SizedBox(height: 16),
+          Text(
+            AppLocalizations.of(context)!.noGuestsFound,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white.withOpacity(0.6)),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            AppLocalizations.of(context)!.noGuestsSub,
+            style: TextStyle(color: Colors.white.withOpacity(0.4)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- DIALOGS & ACTIONS (UNCHANGED CORE LOGIC) ---
   Future<void> _toggleLockDiscount(String guestId, bool lockState) async {
     try {
       await FirebaseFirestore.instance.collection('users').doc(guestId).update({
@@ -477,26 +1629,28 @@ class _GuestListScreenState extends State<GuestListScreen> {
 
   Future<void> _showTopUpDialog(String guestId, String guestName, double currentBalance) async {
     final ctrl = TextEditingController();
-    double bonusPercent = 10.0; // Default +10% bonus credit for venue deposit
+    double bonusPercent = 10.0;
     bool lockDiscount = true;
 
     showCupertinoDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => CupertinoAlertDialog(
-          title: Text("Top Up Deposit: $guestName"),
+          title: Text("Пополнение депозита: $guestName"),
           content: Padding(
             padding: const EdgeInsets.only(top: 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Current Balance: ${currentBalance.toStringAsFixed(2)}", 
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                Text(
+                  "Текущий баланс: ${currentBalance.toStringAsFixed(2)}",
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
                 const SizedBox(height: 12),
                 CupertinoTextField(
                   controller: ctrl,
-                  placeholder: "Payment amount (e.g. 1000000)...",
+                  placeholder: "Сумма пополнения...",
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   style: const TextStyle(color: Colors.white, fontSize: 14),
                   padding: const EdgeInsets.all(12),
@@ -508,20 +1662,27 @@ class _GuestListScreenState extends State<GuestListScreen> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    const Text("Deposit Bonus: ", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white70)),
+                    const Text("Бонус: ", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white70)),
                     const SizedBox(width: 6),
                     ...[0, 5, 10, 15, 20].map((p) => GestureDetector(
-                      onTap: () => setDialogState(() => bonusPercent = p.toDouble()),
-                      child: Container(
-                        margin: const EdgeInsets.only(right: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: bonusPercent == p ? CupertinoColors.activeGreen : Colors.white10,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text("+$p%", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: bonusPercent == p ? Colors.black : Colors.white)),
-                      ),
-                    )),
+                          onTap: () => setDialogState(() => bonusPercent = p.toDouble()),
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: bonusPercent == p ? CupertinoColors.activeGreen : Colors.white10,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              "+$p%",
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: bonusPercent == p ? Colors.black : Colors.white,
+                              ),
+                            ),
+                          ),
+                        )),
                   ],
                 ),
                 const SizedBox(height: 16),
@@ -549,20 +1710,18 @@ class _GuestListScreenState extends State<GuestListScreen> {
           ),
           actions: [
             CupertinoDialogAction(
-              child: const Text("Cancel"),
+              child: const Text("Отмена"),
               onPressed: () => Navigator.pop(context),
             ),
             CupertinoDialogAction(
-              child: const Text("Confirm"),
+              child: const Text("Подтвердить"),
               onPressed: () async {
                 final val = ctrl.text.trim();
                 final payAmount = double.tryParse(val);
-                if (payAmount == null || payAmount <= 0) {
-                  return;
-                }
+                if (payAmount == null || payAmount <= 0) return;
 
                 final creditAmount = payAmount * (1 + bonusPercent / 100);
-                Navigator.pop(context); // Close dialog
+                Navigator.pop(context);
                 _performTopUp(guestId, guestName, creditAmount, lockDiscount);
               },
             ),
@@ -586,8 +1745,10 @@ class _GuestListScreenState extends State<GuestListScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Баланс клиента: ${currentBalance.toStringAsFixed(2)}", 
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.amber)),
+                Text(
+                  "Баланс клиента: ${currentBalance.toStringAsFixed(2)}",
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.amber),
+                ),
                 const SizedBox(height: 12),
                 CupertinoTextField(
                   controller: ctrl,
@@ -613,9 +1774,8 @@ class _GuestListScreenState extends State<GuestListScreen> {
               onPressed: () async {
                 final val = ctrl.text.trim();
                 final amount = double.tryParse(val);
-                if (amount == null || amount <= 0) {
-                  return;
-                }
+                if (amount == null || amount <= 0) return;
+
                 if (amount > currentBalance) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Сумма чека превышает баланс депозита!"), backgroundColor: Colors.red),
@@ -695,7 +1855,7 @@ class _GuestListScreenState extends State<GuestListScreen> {
         final userSnap = await transaction.get(userRef);
         final currentBalance = (userSnap.data()?['deposit_balance'] ?? 0.0).toDouble();
         newBalance = currentBalance + amount;
-        
+
         final userUpdates = <String, dynamic>{
           'deposit_balance': newBalance,
         };
@@ -751,228 +1911,10 @@ class _GuestListScreenState extends State<GuestListScreen> {
         return Colors.green;
       case 'did_not_arrive':
         return Colors.purpleAccent;
+      case 'lost':
+        return Colors.redAccent;
       default:
         return AppColors.body;
     }
-  }
-
-  DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
-
-  Widget _buildCategoryAnalyticsSection(String venueId) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('visits').where('venueId', isEqualTo: venueId).snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return const SizedBox.shrink();
-
-        final docs = snapshot.data!.docs;
-        
-        Map<String, List<Map<String, dynamic>>> guestVisits = {};
-        for (var doc in docs) {
-          final data = doc.data() as Map<String, dynamic>;
-          final uid = (data['uid'] ?? data['guestId'] ?? data['guestEmail'] ?? '').toString();
-          if (uid.isEmpty) continue;
-          guestVisits.putIfAbsent(uid, () => []).add(data);
-        }
-
-        final startOfMonth = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
-        final endOfMonth = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0, 23, 59, 59);
-
-        int newCount = 0;
-        int constantCount = 0;
-        int lostCount = 0;
-        int didNotArriveCount = 0;
-        final now = DateTime.now();
-
-        guestVisits.forEach((uid, visitsData) {
-          visitsData.sort((a, b) {
-            final tsA = a['timestamp'] != null ? (a['timestamp'] as Timestamp).toDate() : DateTime.now();
-            final tsB = b['timestamp'] != null ? (b['timestamp'] as Timestamp).toDate() : DateTime.now();
-            return tsA.compareTo(tsB);
-          });
-          
-          final visitsInMonth = visitsData.where((v) {
-            final ts = v['timestamp'] != null ? (v['timestamp'] as Timestamp).toDate() : DateTime.now();
-            return ts.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) && ts.isBefore(endOfMonth.add(const Duration(seconds: 1)));
-          }).toList();
-          
-          if (visitsInMonth.isEmpty) return;
-
-          final totalCount = visitsData.length;
-          final lastVisitData = visitsData.last;
-          final lastVisitTs = lastVisitData['timestamp'] != null ? (lastVisitData['timestamp'] as Timestamp).toDate() : DateTime.now();
-          final daysSince = now.difference(lastVisitTs).inDays;
-
-          // Check for "Не дошли"
-          if (totalCount == 1 && lastVisitData['acquisition_source'] == 'google_maps_bonus') {
-            didNotArriveCount++;
-            return;
-          }
-
-          if (daysSince >= 14) {
-            lostCount++;
-          }
-          if (totalCount <= 2) {
-            newCount++;
-          } else {
-            constantCount++;
-          }
-        });
-
-        final totalActive = newCount + constantCount + lostCount + didNotArriveCount;
-        final newPerc = totalActive > 0 ? (newCount / totalActive * 100).round() : 0;
-        final constPerc = totalActive > 0 ? (constantCount / totalActive * 100).round() : 0;
-        final lostPerc = totalActive > 0 ? (lostCount / totalActive * 100).round() : 0;
-        final didNotArrivePerc = totalActive > 0 ? (didNotArriveCount / totalActive * 100).round() : 0;
-
-        final months = List.generate(12, (i) => DateTime(DateTime.now().year, i + 1));
-        final monthFormat = DateFormat('MMMM yyyy');
-
-        return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.04),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.1)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "📊 Аналитика категорий клиентов",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  DropdownButton<DateTime>(
-                    value: _selectedMonth,
-                    dropdownColor: const Color(0xFF1C1C1E),
-                    style: const TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.bold, fontSize: 13),
-                    underline: Container(height: 1, color: AppColors.accentOrange),
-                    items: months.map((m) {
-                      return DropdownMenuItem<DateTime>(
-                        value: m,
-                        child: Text(monthFormat.format(m)),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) {
-                        setState(() => _selectedMonth = val);
-                      }
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildCategoryCard(
-                      title: "Новые (≤2)",
-                      count: newCount,
-                      percent: newPerc,
-                      color: Colors.blue,
-                      icon: Icons.person_add,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildCategoryCard(
-                      title: "Постоянные (≥3)",
-                      count: constantCount,
-                      percent: constPerc,
-                      color: Colors.green,
-                      icon: Icons.star,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildCategoryCard(
-                      title: "Потерянные (>14 дн)",
-                      count: lostCount,
-                      percent: lostPerc,
-                      color: Colors.redAccent,
-                      icon: Icons.person_off,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildCategoryCard(
-                      title: "Не дошли (Google)",
-                      count: didNotArriveCount,
-                      percent: didNotArrivePerc,
-                      color: Colors.purpleAccent,
-                      icon: Icons.location_off,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: SizedBox(
-                  height: 10,
-                  child: Row(
-                    children: [
-                      if (newPerc > 0) Expanded(flex: newPerc, child: Container(color: Colors.blue)),
-                      if (constPerc > 0) Expanded(flex: constPerc, child: Container(color: Colors.green)),
-                      if (lostPerc > 0) Expanded(flex: lostPerc, child: Container(color: Colors.redAccent)),
-                      if (didNotArrivePerc > 0) Expanded(flex: didNotArrivePerc, child: Container(color: Colors.purpleAccent)),
-                      if (totalActive == 0) Expanded(child: Container(color: Colors.white10)),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildCategoryCard({
-    required String title,
-    required int count,
-    required int percent,
-    required Color color,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color.withOpacity(0.25)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.7))),
-                const SizedBox(height: 2),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text("$count", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-                    Text("$percent%", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: color.withOpacity(0.8))),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

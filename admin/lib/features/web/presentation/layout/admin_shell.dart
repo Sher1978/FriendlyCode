@@ -18,7 +18,9 @@ import 'package:friendly_code/features/admin/presentation/screens/global_email_s
 import 'package:friendly_code/features/admin/presentation/screens/global_guests_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/my_team_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_role_assignment_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/scan_logs_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/billing_screen.dart';
+import 'package:flutter/cupertino.dart';
 
 class AdminShell extends StatefulWidget {
   final Widget child; // Default/Initial screen
@@ -72,7 +74,10 @@ class _AdminShellState extends State<AdminShell> {
       if (widget.role == UserRole.superAdmin)
           const VenueRoleAssignmentScreen(), // Role Assignment
 
-      GeneralSettingsScreen(), // Settings
+      if (widget.role == UserRole.superAdmin)
+          const ScanLogsScreen(), // 7: Журнал регистраций
+
+      GeneralSettingsScreen(), // Settings (8 for SuperAdmin, 4 for others)
     ];
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -284,8 +289,11 @@ class _AdminShellState extends State<AdminShell> {
               if (widget.role == UserRole.superAdmin)
                  _buildNavItem(6, Icons.manage_accounts_outlined, "Roles", isMobile: isMobile),
 
+              if (widget.role == UserRole.superAdmin)
+                 _buildNavItem(7, CupertinoIcons.doc_text_search, "Журнал регистраций", isMobile: isMobile),
+
               const Spacer(),
-              _buildNavItem(widget.role == UserRole.superAdmin ? 7 : 4, Icons.settings_outlined, "Settings", isMobile: isMobile),
+              _buildNavItem(widget.role == UserRole.superAdmin ? 8 : 4, Icons.settings_outlined, "Settings", isMobile: isMobile),
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: InkWell(

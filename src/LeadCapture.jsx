@@ -48,7 +48,6 @@ const LeadCapture = () => {
 
     React.useEffect(() => {
         if (location.state?.fromGoogleMaps || searchParams.get('utm_source') === 'google_maps') {
-            safeStorage.setItem('fromGoogleMaps', 'true');
             safeSessionStorage.setItem('fromGoogleMaps', 'true');
         }
         if (location.state?.returnTo) {

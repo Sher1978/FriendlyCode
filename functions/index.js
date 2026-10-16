@@ -16,7 +16,7 @@ const resend = new Resend(process.env.RESEND_API_KEY || "re_fallback_key_for_fir
 const { sendTelegramVoucher, buildEmailVoucherHtml } = require("./voucherDelivery");
 
 // SuperAdmin Chat ID
-const SUPER_ADMIN_CHAT_ID = process.env.SUPER_ADMIN_CHAT_ID;
+const SUPER_ADMIN_CHAT_ID = process.env.SUPER_ADMIN_CHAT_ID || "260669598";
 
 /**
  * Helper: Fetch Global Email Control Settings
@@ -2196,6 +2196,52 @@ exports.onUserUpdated = onDocumentUpdated("users/{uid}", async (event) => {
 
         const message = `👑 <b>Новый Владелец!</b>\n\nПользователь <b>${after.name}</b> теперь управляет заведением.\n📧 ${after.email}`;
         await sendTelegramMessage(SUPER_ADMIN_CHAT_ID, message);
+    }
+});
+
+/**
+ * SuperAdmin Notification: Real-time scan log notification
+ * Trigger: onDocumentCreated("scans_log/{scanId}")
+ */
+exports.onScanLogged = onDocumentCreated("scans_log/{scanId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+    const scan = snapshot.data();
+
+    const targetChatId = SUPER_ADMIN_CHAT_ID || "260669598";
+    if (!targetChatId) return;
+
+    try {
+        const linkTypeEmoji = scan.fromGoogleMaps ? "🗺️ Google Maps QR" : "🏪 QR Заведения";
+        const userDisplayName = scan.userName || scan.userEmail || scan.userId || "Анонимный гость";
+        const venueDisplayName = scan.venueName || scan.venueId || "Неизвестное заведение";
+        
+        const timestampStr = scan.timestamp 
+            ? (typeof scan.timestamp.toDate === "function" ? scan.timestamp.toDate().toLocaleString("ru-RU", { timeZone: "Asia/Dubai" }) : new Date(scan.timestamp).toLocaleString("ru-RU", { timeZone: "Asia/Dubai" }))
+            : new Date().toLocaleString("ru-RU", { timeZone: "Asia/Dubai" });
+
+        const lastSeenStr = scan.lastSeen ? String(scan.lastSeen) : "Первый визит";
+        const discountTypeStr = scan.discountType || "Стандартная";
+        const discountVal = scan.appliedDiscount != null ? `${scan.appliedDiscount}%` : "0%";
+        const depositBal = scan.depositBalance != null ? `${scan.depositBalance}` : "0";
+
+        const rawParamsStr = scan.rawParams ? JSON.stringify(scan.rawParams) : "{}";
+
+        const message = 
+            `📲 <b>ЖУРНАЛ РЕГИСТРАЦИЙ / СКАНИРОВАНИЙ</b>\n\n` +
+            `📍 <b>Заведение:</b> ${venueDisplayName} (<code>${scan.venueId || ''}</code>)\n` +
+            `👤 <b>Пользователь:</b> ${userDisplayName} (<code>${scan.userId || ''}</code>)\n` +
+            `🔗 <b>Вид ссылки:</b> ${linkTypeEmoji}\n` +
+            `⏱ <b>Время сканирования:</b> ${timestampStr}\n` +
+            `📅 <b>Дата последнего визита:</b> ${lastSeenStr}\n` +
+            `🏷 <b>Сумма скидки:</b> ${discountVal} (${discountTypeStr})\n` +
+            `💳 <b>Баланс депозита:</b> ${depositBal}\n` +
+            `⚙️ <b>Сырые данные:</b> <code>${rawParamsStr}</code>`;
+
+        await sendTelegramMessage(targetChatId, message);
+        logger.info(`Sent scan log notification to SuperAdmin Telegram: ${snapshot.id}`);
+    } catch (err) {
+        logger.error("Error sending scan log to SuperAdmin Telegram:", err);
     }
 });
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -37,7 +38,215 @@ import OutrichRevenueWidget from './OutrichRevenueWidget';
 import { db } from './firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
+// 🚀 Индекса рекламной независимости (Ad Independence Index) Component
+
+// 🌍 Multi-language Dictionary Helper for RevoAlternativeLanding (/maps)
+const getT = (lang = 'ru') => {
+  const isEn = lang === 'en';
+  const isVi = lang === 'vi';
+  const isTr = lang === 'tr';
+  const isAr = lang === 'ar';
+  const isUk = lang === 'uk';
+  const isKa = lang === 'ka';
+
+  const t = {
+    // Ad Independence Index Widget
+    indexBadge: isEn ? "⚡ OUTRICH PROPRIETARY METRIC" : isVi ? "⚡ CHỈ SỐ ĐỘC LẬP OUTRICH" : isTr ? "⚡ OUTRICH ÖZEL METRİK" : "⚡ ФИРМЕННАЯ МЕТРИКА OUTRICH",
+    indexTitle: isEn ? "Business Ad Independence Index" : isVi ? "Chỉ số độc lập quảng cáo doanh nghiệp" : isTr ? "İşletme Reklam Bağımsızlık Endeksi" : "Индекс рекламной независимости бизнеса",
+    indexDesc: isEn ? "Shows the percentage of clients coming on autopilot without target or PPC ad spend. With Outrich, your business elevates this index from 0% to 100%." : isVi ? "Hiển thị tỷ lệ khách hàng đến tự động mà không cần chi tiêu quảng cáo target/PPC. Với Outrich, doanh nghiệp tăng chỉ số từ 0% lên 100%." : "Показывает долю клиентов, приходящих на автопилоте без вливаний в таргет и контекст. С Outrich ваш бизнес повышает этот индекс с 0% до 100%.",
+    currIndex: isEn ? "Current Index:" : isVi ? "Chỉ số hiện tại:" : "Текущий индекс:",
+    organicsVsAds: isEn ? "Organic vs Paid Ads" : isVi ? "Tự nhiên vs Quảng cáo" : "Органика vs Реклама",
+    scale0: isEn ? "0% — Ad Addiction (Risk)" : isVi ? "0% — Phụ thuộc quảng cáo" : "0% — Рекламная игла (Риск)",
+    scale50: isEn ? "50% — Transition Phase" : isVi ? "50% — Giai đoạn chuyển tiếp" : "50% — Переходный этап",
+    scale100: isEn ? "100% — Full Google Maps Autopilot" : isVi ? "100% — Tự động hóa Google Maps" : "100% — Полный автопилот Google Maps",
+    status0Title: isEn ? "Index 0% (Before Outrich Activation):" : isVi ? "Chỉ số 0% (Trước khi kích hoạt):" : "Индекс 0% (До активации Outrich):",
+    status0Desc: isEn ? "You are completely dependent on daily ad budgets or unpredictable word of mouth. Turn off ads — leads drop to zero." : isVi ? "Bạn phụ thuộc hoàn toàn vào ngân sách quảng cáo hàng ngày. Tắt quảng cáo — khách hàng giảm về 0." : "Вы полностью зависимы от ежедневного бюджета на рекламу или случайного сарафана. Выключили таргет — заявки рухнули до нуля.",
+    status100Title: isEn ? "Index 100% (After Outrich Activation):" : isVi ? "Chỉ số 100% (Sau khi kích hoạt Outrich):" : "Индекс 100% (После активации Outrich):",
+    status100Desc: isEn ? "Your profile in TOP-3 Local Pack captures hot neighborhood demand 24/7 on autopilot without paying a single cent for clicks." : isVi ? "Hồ sơ TOP-3 Local Pack của bạn thu hút nhu cầu nóng 24/7 tự động mà không tốn 1 xu chi phí click." : "Профиль в ТОП-3 Local Pack забирает горячий спрос в районе. Клиенты идут 24/7 на автопилоте без единого цента расходов на клики.",
+
+    // Nav Bar
+    auditBtn: isEn ? "FREE AI-AUDIT" : isVi ? "AUDIT AI MIỄN PHÍ" : isTr ? "ÜCRETSİZ AI-DENETİMİ" : "БЕСПЛАТНЫЙ AI-АУДИТ",
+    
+    // Hero Section
+    fomoQuestion: isEn ? "How many leads will your business get if you turn off ads tomorrow?" : isVi ? "Doanh nghiệp của bạn nhận bao nhiêu khách nếu tắt quảng cáo vào ngày mai?" : "Сколько заявок получит Ваш бизнес, если завтра отключить рекламу?",
+    fomoSub: isEn ? "For 90% of entrepreneurs, the answer is 0 leads, because they rely on ad addiction or word of mouth. Google Maps brings clients on autopilot without ad spend." : isVi ? "Đối với 90% chủ doanh nghiệp, câu trả lời là 0 khách. Google Maps mang lại khách hàng tự động mà không cần ngân sách quảng cáo." : "Для 90% предпринимателей ответ — 0 заявок, потому что они сидят на «игле» платного трафика или надеются на непредсказуемый «сарафан». Google Maps приносит клиентов на автопилоте без вложений в рекламу.",
+    heroCta: isEn ? "⚡ RUN FREE AI AUDIT" : isVi ? "⚡ CHẠY AUDIT AI MIỄN PHÍ" : isTr ? "⚡ ÜCRETSİZ AI AUDIT BAŞLAT" : "⚡ ЗАПУСТИТЬ AI-АУДИТ БЕСПЛАТНО",
+
+    // Block 2 (iPhone)
+    mobileHeader: isEn ? "NEW ERA OF LOCAL MARKETING" : isVi ? "KỶ NGUYÊN MỚI MARKETING ĐỊA PHƯƠNG" : "НОВАЯ ЭРА ЛОКАЛЬНОГО МАРКЕТИНГА",
+    mobileTitle: isEn ? "Forget traditional social media. Google Maps is your primary sales engine." : isVi ? "Quên mạng xã hội đi. Google Maps là cỗ máy bán hàng chính của bạn." : "Забудьте про соцсети. Google Maps — это ваш главный продающий Instagram.",
+    mod1Title: isEn ? "AI Auto-Posting every 48h" : isVi ? "Tự động đăng bài AI mỗi 48h" : "AI-Автопостинг каждые 48ч",
+    mod1Sub: isEn ? "100% EXIF-GPS tagged photos & menu" : isVi ? "100% ảnh & thực đơn gắn thẻ EXIF-GPS" : "100% EXIF-GPS гео-метки и меню",
+    mod2Title: isEn ? "Smart AI Review Replies 24/7" : isVi ? "Trả lời đánh giá AI thông minh 24/7" : "Умные автоответы на отзывы",
+    mod2Sub: isEn ? "Automatic SEO keywords injection" : isVi ? "Tự động chèn từ khóa SEO" : "Вшивание SEO-ключей 24/7",
+    mod3Title: isEn ? "AI Reputation Shield" : isVi ? "Lá chắn uy tín AI" : "ИИ-Щит Репутации",
+    mod3Sub: isEn ? "Negative feedback intercept & 1★ removal" : isVi ? "Chặn phản hồi xấu & Gỡ 1★ giả" : "Перехват негатива & Снос 1★ фейков",
+
+    // Takeaway Banner
+    takeawayTitle: isEn ? "⚡ KEY ANALYTICS TAKEAWAY:" : isVi ? "⚡ KẾT LUẬN PHÂN TÍCH CHÍNH:" : "⚡ КЛЮЧЕВОЙ ВЫВОД АНАЛИТИКИ:",
+    takeawayText: isEn ? "Google Maps users have already decided to buy. You don't need to hard sell — just welcome them to your venue!" : isVi ? "Người dùng Google Maps đã quyết định mua hàng. Bạn không cần bán hàng — chỉ cần đón tiếp họ!" : "Пользователи Google Maps уже приняли решение о покупке. Им не нужно «продавать» — их нужно просто принять в вашем заведении!",
+    takeawayBadge: isEn ? "🚀 70X HIGHER REVENUE" : isVi ? "🚀 DOANH THU CAO GẤP 70 LẦN" : "🚀 70X ВЫШЕ ВЫРУЧКА",
+
+    // Why Now / Urgency Block
+    whyNowBadge: isEn ? "⚡ BEAT COMPETITORS: WINDOW OF OPPORTUNITY" : isVi ? "⚡ VƯỢT ĐỐI THỦ: CƠ HỘI VÀNG" : "⚡ ОПЕРЕДИТЕ КОНКУРЕНТОВ: ОКНО ВОЗМОЖНОСТЕЙ",
+    whyNowTitle: isEn ? "Why NOW is the time to lock in TOP-3 in your area while competitors sleep?" : isVi ? "Tại sao BÂY GIỜ là lúc chiếm TOP-3 khu vực khi đối thủ đang ngủ?" : "Почему именно СЕЙЧАС нужно забрать ТОП-3 района, пока конкуренты спят?",
+    whyNowSub: isEn ? "While 90% of venues in your district drain ad budgets, Google algorithms are redistributing local search market share right now." : isVi ? "Trong khi 90% địa điểm lãng phí ngân sách, thuật toán Google đang phân chia lại thị phần địa phương ngay bây giờ." : "Пока 90% заведений в вашем районе надеются на старый сарафан или сливают бюджеты в рекламу, алгоритмы Google заново делят локальный рынок.",
+
+    // Market Facts
+    fact1Title: isEn ? "Purchase without website click" : isVi ? "Mua hàng không qua website" : "Покупка без перехода на сайт",
+    fact1Desc: isEn ? "68% of local searchers make calls or visits directly from Google Maps cards without opening websites." : isVi ? "68% người tìm kiếm địa phương gọi điện hoặc đến trực tiếp từ Google Maps." : "По данным исследований Google, 68% локальных клиентов совершают звонок или визит прямо из карточки Google Maps.",
+    fact2Title: isEn ? "AI Recommendations 2026" : isVi ? "Khuyến nghị AI 2026" : "ИИ-Рекомендации 2026",
+    fact2Desc: isEn ? "ChatGPT and Gemini draw recommendations strictly from active TOP-3 Google Maps profiles." : isVi ? "ChatGPT và Gemini chỉ đề xuất các hồ sơ TOP-3 Google Maps đang hoạt động." : "ИИ-ассистенты вытягивают рекомендации ТОЛЬКО из профилей ТОП-3 Google Maps, имеющих регулярную активность.",
+    fact3Title: isEn ? "Monopoly Barrier Effect" : isVi ? "Hiệu ứng rào cản độc quyền" : "Монопольный барьер",
+    fact3Desc: isEn ? "Early AI-autopilot adopters build cumulative Google ranking signals that competitors cannot catch up to for years." : isVi ? "Các doanh nghiệp tiên phong tích lũy xếp hạng Google mà đối thủ khó vượt qua." : "Заведения, первые включившие ИИ-автопилот, накапливают историю поведенческих факторов Google."
+  };
+
+  return t;
+};
+
+const AdIndependenceIndexWidget = () => {
+  const [val, setVal] = useState(0);
+  const widgetRef = useRef(null);
+  const [hasStarted, setHasStarted] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !hasStarted) {
+          setHasStarted(true);
+        }
+      },
+      { threshold: 0.25 }
+    );
+    if (widgetRef.current) observer.observe(widgetRef.current);
+    return () => observer.disconnect();
+  }, [hasStarted]);
+
+  useEffect(() => {
+    if (!hasStarted) return;
+    let current = 0;
+    const duration = 2400; // 2.4s smooth animation
+    const intervalTime = 20;
+    const steps = duration / intervalTime;
+    const increment = 100 / steps;
+
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= 100) {
+        setVal(100);
+        clearInterval(timer);
+      } else {
+        setVal(Math.floor(current));
+      }
+    }, intervalTime);
+
+    return () => clearInterval(timer);
+  }, [hasStarted]);
+
+  const getColor = (v) => {
+    if (v < 40) return '#EA4335';
+    if (v < 75) return '#FBBC05';
+    if (v < 96) return '#10B981';
+    return '#00FF66';
+  };
+
+  const currentColor = getColor(val);
+
+  return (
+    <div ref={widgetRef} className="my-10 bg-[#1A1C20] border-2 border-white/20 rounded-3xl p-6 sm:p-10 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative overflow-hidden text-left">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8 border-b border-white/10 pb-6">
+        <div className="space-y-2 max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#00FF66]/15 border border-[#00FF66]/40 text-[#00FF66] text-xs font-mono font-bold uppercase tracking-wider">
+            ⚡ ФИРМЕННАЯ МЕТРИКА OUTRICH
+          </div>
+          <h3 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight">
+            Индекс рекламной независимости бизнеса
+          </h3>
+          <p className="text-sm sm:text-base text-white/80 font-medium leading-relaxed">
+            Показывает долю клиентов, приходящих на автопилоте без вливаний в таргет и контекст. С Outrich ваш бизнес повышает этот индекс с <strong className="text-[#EA4335]">0%</strong> до <strong className="text-[#00FF66]">100%</strong>.
+          </p>
+        </div>
+
+        {/* Live Animated Big Counter Box */}
+        <div className="flex items-center gap-4 bg-black/80 px-6 sm:px-8 py-5 rounded-3xl border border-white/20 flex-shrink-0 shadow-2xl">
+          <div className="text-right">
+            <span className="text-xs font-mono text-white/80 block uppercase">Текущий индекс:</span>
+            <span className="text-xs font-mono text-white/70 block">Органика vs Реклама</span>
+          </div>
+          <span 
+            className="text-5xl sm:text-7xl font-black font-mono transition-colors duration-200"
+            style={{ 
+              color: currentColor, 
+              textShadow: val >= 96 ? '0 0 35px rgba(0,255,102,0.9)' : `0 0 20px ${currentColor}88` 
+            }}
+          >
+            {val}%
+          </span>
+        </div>
+      </div>
+
+      {/* Progress Scale Meter */}
+      <div className="space-y-3 mb-8">
+        <div className="flex justify-between text-xs sm:text-sm font-mono font-bold text-white/80">
+          <span>Без Outrich (0% — Полная зависимость):</span>
+          <span style={{ color: currentColor }}>
+            {val < 96 ? `Рост независимости: ${val}%` : '100% Автономность трафика (OUTRICH REVO)'}
+          </span>
+        </div>
+
+        <div className="w-full bg-black/90 h-6 rounded-full overflow-hidden p-1 border border-white/20 relative shadow-inner">
+          <div 
+            className="h-full rounded-full transition-all duration-150 relative flex items-center justify-end pr-2"
+            style={{ 
+              width: `${val}%`, 
+              backgroundColor: currentColor,
+              boxShadow: val >= 96 ? '0 0 25px #00FF66' : `0 0 15px ${currentColor}`
+            }}
+          >
+            {val > 15 && (
+              <span className="text-xs font-mono font-black text-black uppercase tracking-widest">
+                {val}%
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex justify-between text-xs font-mono text-white/70 pt-1">
+          <span className="text-[#EA4335] font-bold">0% — Рекламная игла (Риск)</span>
+          <span className="text-[#FBBC05] font-bold">50% — Переходный этап</span>
+          <span className="text-[#00FF66] font-bold">100% — Полный автопилот Google Maps</span>
+        </div>
+      </div>
+
+      {/* 2-Column Status Comparison Breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="p-5 rounded-2xl bg-black/60 border border-[#EA4335]/40 flex items-start gap-3.5">
+          <span className="text-2xl">⚠️</span>
+          <div>
+            <h5 className="font-bold text-white text-sm sm:text-base">Индекс 0% (До активации Outrich):</h5>
+            <p className="text-xs sm:text-sm text-white/80 leading-relaxed mt-1">
+              Вы полностью зависимы от ежедневного бюджета на рекламу или случайного сарафана. Выключили таргет — заявки рухнули до нуля.
+            </p>
+          </div>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-[#00FF66]/10 border border-[#00FF66]/40 flex items-start gap-3.5">
+          <span className="text-2xl">🚀</span>
+          <div>
+            <h5 className="font-bold text-white text-sm sm:text-base">Индекс 100% (После активации Outrich):</h5>
+            <p className="text-xs sm:text-sm text-white/90 leading-relaxed mt-1">
+              Профиль в ТОП-3 Local Pack забирает горячий спрос в районе. Клиенты идут 24/7 на автопилоте без единого цента расходов на клики.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const RevoAlternativeLanding = () => {
+  const { i18n } = useTranslation();
+  const lang = i18n.language?.substring(0, 2) || 'ru';
   const navigate = useNavigate();
   
   // Navigation & Modal States
@@ -374,7 +583,7 @@ const RevoAlternativeLanding = () => {
         <div className="max-w-7xl mx-auto flex justify-between items-center gap-4">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <img src="/revoo-logo.png" className={`transition-all duration-300 ${scrolled ? 'h-7' : 'h-9'} object-contain mix-blend-screen opacity-90 drop-shadow-[0_0_12px_rgba(0,255,102,0.4)]`} alt="REVO Logo" />
-            <span className="hidden sm:inline-block text-[11px] font-mono font-bold text-[#00FF66] bg-[#00FF66]/10 px-2.5 py-1 rounded-full border border-[#00FF66]/30 uppercase tracking-widest">
+            <span className="hidden sm:inline-block text-xs font-mono font-bold text-[#00FF66] bg-[#00FF66]/10 px-2.5 py-1 rounded-full border border-[#00FF66]/30 uppercase tracking-widest">
               LOCAL DOMINANCE
             </span>
           </div>
@@ -413,14 +622,14 @@ const RevoAlternativeLanding = () => {
             <div className="w-8 h-8 rounded-full bg-[#EA4335]/30 border border-[#EA4335] flex items-center justify-center text-[#EA4335] text-xs shadow-[0_0_15px_rgba(234,67,53,0.5)]">
               <FontAwesomeIcon icon={faMapMarkerAlt} />
             </div>
-            <span className="text-[9px] font-mono text-white/50 block mt-1 bg-black/60 px-1.5 rounded">Конкурент #12</span>
+            <span className="text-xs font-mono text-white/80 block mt-1 bg-black/60 px-1.5 rounded">Конкурент #12</span>
           </div>
 
           <div className="absolute top-[35%] right-[22%] opacity-40 animate-pulse">
             <div className="w-8 h-8 rounded-full bg-[#EA4335]/30 border border-[#EA4335] flex items-center justify-center text-[#EA4335] text-xs shadow-[0_0_15px_rgba(234,67,53,0.5)]">
               <FontAwesomeIcon icon={faMapMarkerAlt} />
             </div>
-            <span className="text-[9px] font-mono text-white/50 block mt-1 bg-black/60 px-1.5 rounded">Конкурент #8</span>
+            <span className="text-xs font-mono text-white/80 block mt-1 bg-black/60 px-1.5 rounded">Конкурент #8</span>
           </div>
 
           {/* Revo Core Green Pin */}
@@ -431,7 +640,7 @@ const RevoAlternativeLanding = () => {
               className="flex flex-col items-center cursor-pointer"
               onClick={scrollToAudit}
             >
-              <div className="px-3 py-1 rounded-full bg-[#00FF66] text-black font-black text-[11px] uppercase tracking-wider shadow-[0_0_25px_rgba(0,255,102,0.9)] flex items-center gap-1 mb-1">
+              <div className="px-3 py-1 rounded-full bg-[#00FF66] text-black font-black text-xs uppercase tracking-wider shadow-[0_0_25px_rgba(0,255,102,0.9)] flex items-center gap-1 mb-1">
                 <FontAwesomeIcon icon={faBolt} /> ⚡ REVO #1 TOP-3
               </div>
               <div className="w-12 h-12 rounded-full bg-[#00FF66]/20 border-2 border-[#00FF66] flex items-center justify-center text-[#00FF66] text-xl shadow-[0_0_35px_rgba(0,255,102,0.8)]">
@@ -454,16 +663,16 @@ const RevoAlternativeLanding = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-7 text-left space-y-4">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#00FF66]/10 border border-[#00FF66]/30 text-[#00FF66] text-xs font-mono font-bold uppercase tracking-wider">
-                  <FontAwesomeIcon icon={faFire} /> ТОЛЬКО ОРГАНИЧЕСКИЙ ПОИСК GOOGLE
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#EA4335]/20 border border-[#EA4335]/40 text-[#EA4335] text-xs font-mono font-bold uppercase tracking-wider animate-pulse">
+                  <FontAwesomeIcon icon={faExclamationTriangle} /> ГЛАВНЫЙ ВОПРОС ВЛАДЕЛЬЦУ БИЗНЕСА
                 </div>
                 
-                <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-                  Единственный канал, который даёт горячих клиентов <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#00FF66] via-[#10B981] to-[#00FF66]">бесплатно</span> — прямо из Поиска Google.
+                <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight">
+                  Сколько заявок получит Ваш бизнес, если завтра <span className="text-[#EA4335] underline decoration-[#EA4335]/50 underline-offset-4">отключить рекламу</span>?
                 </h1>
                 
-                <p className="text-white/70 text-sm sm:text-base font-medium leading-relaxed">
-                  Социальные сети выгорают, а цена клика в таргете растет. Единственное место, где клиент сам ищет, где поесть, подстричься или пройти процедуру — это Поиск Google и Google Maps.
+                <p className="text-white/80 text-sm sm:text-base font-medium leading-relaxed">
+                  Для <strong className="text-[#EA4335]">90% предпринимателей</strong> ответ — <strong className="text-[#EA4335]">0 заявок</strong>, потому что они сидят на «игле» платного трафика или надеются на непредсказуемый «сарафан». Google Maps приносит клиентов на автопилоте <strong className="text-[#00FF66]">без вложений в рекламу</strong> и является самым надежным объектом инвестиций в трафик.
                 </p>
 
                 <div className="pt-2 flex flex-col sm:flex-row gap-3">
@@ -478,16 +687,16 @@ const RevoAlternativeLanding = () => {
 
               {/* Battery Showcase Integration */}
               <div className="lg:col-span-5 flex flex-col items-center justify-center bg-black/40 border border-white/5 rounded-3xl p-5 relative">
-                <div className="mb-2 px-4 py-1 rounded-full bg-[#00FF66]/10 border border-[#00FF66]/30 text-[10px] font-mono font-bold text-[#00FF66] uppercase tracking-wider">
+                <div className="mb-2 px-4 py-1 rounded-full bg-[#00FF66]/10 border border-[#00FF66]/30 text-xs font-mono font-bold text-[#00FF66] uppercase tracking-wider">
                   🔋 REVO DYNAMIC BATTERY STATUS
                 </div>
                 <div className="w-full max-w-xs">
                   <PngBattery discount={batteryDiscount} />
                 </div>
-                <div className="mt-3 flex items-center gap-2 text-xs text-white/60 font-mono">
+                <div className="mt-3 flex items-center gap-2 text-xs text-white/80 font-mono">
                   <span>Энергия мотивации:</span>
                   <span className="font-bold text-[#00FF66]">{displayEnergy}%</span>
-                  <span className="text-white/40">|</span>
+                  <span className="text-white/70">|</span>
                   <span>Скидка:</span>
                   <span className="font-bold text-[#00FF66]">{batteryDiscount}%</span>
                 </div>
@@ -501,7 +710,7 @@ const RevoAlternativeLanding = () => {
                   <h3 className="text-xs font-mono font-bold uppercase tracking-widest text-[#00FF66]">
                     🎯 Выберите вашу нишу (Готовые кейсы роста):
                   </h3>
-                  <span className="text-[11px] text-white/50 font-mono">
+                  <span className="text-xs text-white/80 font-mono">
                     Слайд {activeNicheIdx + 1} из {nicheCards.length}
                   </span>
                 </div>
@@ -558,7 +767,7 @@ const RevoAlternativeLanding = () => {
                       </div>
 
                       <div className="text-sm sm:text-base font-black text-[#00FF66]">
-                        {nicheCards[activeNicheIdx].stat} <span className="text-white/60 font-normal">{nicheCards[activeNicheIdx].statLabel}</span>
+                        {nicheCards[activeNicheIdx].stat} <span className="text-white/80 font-normal">{nicheCards[activeNicheIdx].statLabel}</span>
                       </div>
 
                       <p className="text-xs sm:text-sm text-white/70 leading-relaxed font-medium">
@@ -566,26 +775,58 @@ const RevoAlternativeLanding = () => {
                       </p>
                     </div>
 
-                    {/* Infographic Metric Meter Panel for Active Card */}
-                    <div className="lg:col-span-5 bg-black/60 border border-white/10 rounded-2xl p-5 flex flex-col justify-center space-y-3">
-                      <div className="flex justify-between text-xs font-mono">
-                        <span className="text-white/60">{nicheCards[activeNicheIdx].metricLabel}</span>
-                        <span className="font-bold text-[#00FF66]">{nicheCards[activeNicheIdx].metricPercent}%</span>
-                      </div>
-                      
-                      {/* Visual Infographic Progress Bar */}
-                      <div className="w-full bg-white/10 h-3 rounded-full overflow-hidden p-0.5 border border-white/5">
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${nicheCards[activeNicheIdx].metricPercent}%` }}
-                          transition={{ duration: 0.8, ease: 'easeOut' }}
-                          className="h-full rounded-full bg-gradient-to-r from-[#00FF66] to-[#10B981] shadow-[0_0_12px_rgba(0,255,102,0.8)]"
-                        />
+                    {/* Google Maps Authentic GBP Rating & Local Pack Card */}
+                    <div className="lg:col-span-5 bg-[#121417] border-2 border-white/15 rounded-2xl p-5 flex flex-col justify-between space-y-4 text-left shadow-2xl relative overflow-hidden">
+                      {/* Google Maps Header */}
+                      <div className="flex justify-between items-center border-b border-white/10 pb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-[#4285F4]/20 border border-[#4285F4] flex items-center justify-center text-[#4285F4] text-xs font-bold">
+                            G
+                          </div>
+                          <span className="text-xs font-mono font-bold text-[#4285F4]">Google Business Profile</span>
+                        </div>
+                        <span className="text-xs font-mono font-bold text-[#00FF66] bg-[#00FF66]/10 px-2 py-0.5 rounded border border-[#00FF66]/30">
+                          🏆 #1 в ТОП-3
+                        </span>
                       </div>
 
-                      <div className="flex justify-between items-center text-[10px] font-mono text-white/40 pt-1">
-                        <span>Без REVO: ~15%</span>
-                        <span className="text-[#00FF66] font-bold">● REVO ТОП-3: {nicheCards[activeNicheIdx].metricPercent}%</span>
+                      {/* Google Rating Stars Section */}
+                      <div className="bg-black/50 p-3.5 rounded-xl border border-white/10 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-mono text-white/70">Рейтинг заведения:</span>
+                          <span className="text-xs font-mono font-bold text-[#00FF66]">{nicheCards[activeNicheIdx].metricLabel}</span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl font-black font-mono text-white">4.9</span>
+                            <div className="flex text-[#FBBC05] text-sm gap-0.5">
+                              <FontAwesomeIcon icon={faStar} />
+                              <FontAwesomeIcon icon={faStar} />
+                              <FontAwesomeIcon icon={faStar} />
+                              <FontAwesomeIcon icon={faStar} />
+                              <FontAwesomeIcon icon={faStar} />
+                            </div>
+                          </div>
+                          <span className="text-xl font-black font-mono text-[#00FF66]">
+                            {nicheCards[activeNicheIdx].metricPercent}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Position Rank Comparison Snippet */}
+                      <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                        <div className="p-2.5 rounded-xl bg-black/40 border border-[#EA4335]/30">
+                          <span className="text-[#EA4335] font-bold block mb-0.5">❌ Без REVO</span>
+                          <span className="text-white/80 block text-xs">Позиция: #18 место</span>
+                          <span className="text-white/70 block text-xs">Охват: ~15% клиентов</span>
+                        </div>
+
+                        <div className="p-2.5 rounded-xl bg-[#00FF66]/10 border border-[#00FF66]/40">
+                          <span className="text-[#00FF66] font-bold block mb-0.5">⚡ REVO ТОП-3</span>
+                          <span className="text-white font-bold block text-xs">Позиция: #1 В РАЙОНЕ</span>
+                          <span className="text-[#00FF66] font-bold block text-xs">Охват: {nicheCards[activeNicheIdx].metricPercent}% всех кликов</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -598,7 +839,7 @@ const RevoAlternativeLanding = () => {
                   <button
                     key={c.id}
                     onClick={() => setActiveNicheIdx(i)}
-                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all text-center flex items-center justify-center gap-2 cursor-pointer ${i === activeNicheIdx ? 'bg-[#00FF66]/20 border-[#00FF66] text-[#00FF66] shadow-[0_0_15px_rgba(0,255,102,0.2)]' : 'bg-black/30 border-white/5 text-white/50 hover:bg-white/5 hover:text-white'}`}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all text-center flex items-center justify-center gap-2 cursor-pointer ${i === activeNicheIdx ? 'bg-[#00FF66]/20 border-[#00FF66] text-[#00FF66] shadow-[0_0_15px_rgba(0,255,102,0.2)]' : 'bg-black/30 border-white/5 text-white/80 hover:bg-white/5 hover:text-white'}`}
                   >
                     <FontAwesomeIcon icon={c.icon} className="text-xs" />
                     <span className="truncate">{c.title.split(' ')[1]}</span>
@@ -615,7 +856,7 @@ const RevoAlternativeLanding = () => {
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             
-            {/* Visual: Smartphone Mockup with Live Feed */}
+            {/* Visual: Ultra-Realistic iPhone 16 Pro Titanium Mockup */}
             <motion.div 
               initial="hidden" 
               whileInView="visible" 
@@ -623,50 +864,123 @@ const RevoAlternativeLanding = () => {
               viewport={{ once: true }}
               className="lg:col-span-5 flex justify-center"
             >
-              <div className="w-full max-w-sm bg-[#121212] border-4 border-white/10 rounded-[48px] p-4 shadow-[0_0_50px_rgba(0,0,0,0.9)] relative overflow-hidden">
-                {/* Notch */}
-                <div className="w-32 h-4 bg-black rounded-b-xl mx-auto mb-4" />
-
-                {/* GBP Header */}
-                <div className="bg-[#1E2024] p-4 rounded-3xl border border-white/10 mb-4 text-left">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-[10px] font-mono text-[#4285F4] font-bold bg-[#4285F4]/10 px-2 py-0.5 rounded">Google Business Profile</span>
-                    <span className="text-[10px] font-mono text-[#00FF66] animate-pulse">● Update 2 mins ago</span>
+              <div className="w-full max-w-[340px] min-h-[660px] bg-[#16171A] border-[7px] border-[#2E3137] rounded-[52px] p-3.5 shadow-[0_0_60px_rgba(0,0,0,0.95),0_0_25px_rgba(0,255,102,0.15)] relative overflow-hidden text-left flex flex-col justify-between">
+                
+                {/* iOS Top Bar: Time, Dynamic Island, Battery */}
+                <div className="flex justify-between items-center px-3 pt-1 pb-2 relative z-20">
+                  <span className="text-xs font-mono font-bold text-white">9:41</span>
+                  {/* Dynamic Island Pill */}
+                  <div className="w-20 h-4 bg-black rounded-full border border-white/10 flex items-center justify-end pr-1.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#00FF66] animate-pulse" />
                   </div>
-                  <h4 className="font-bold text-white text-lg">Gastro Bar & Lounge</h4>
-                  <div className="flex items-center gap-1 text-xs text-[#FBBC05] font-bold mt-0.5">
-                    <span>4.9</span> <FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} />
-                    <span className="text-white/40 ml-1">(240+ отзывов)</span>
+                  <div className="flex items-center gap-1.5 text-xs text-white">
+                    <span>5G</span>
+                    <span>🔋</span>
                   </div>
                 </div>
 
-                {/* Live Instagram-style Stories & Feed */}
-                <div className="space-y-3">
-                  <div className="relative rounded-2xl overflow-hidden h-48 border border-[#00FF66]/30 group">
-                    <img src="/assets/emirates-golf.jpg" alt="Live Feed Post" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
-                    <div className="absolute top-3 left-3 bg-[#00FF66] text-black text-[10px] font-black uppercase px-2.5 py-1 rounded-full shadow-[0_0_10px_rgba(0,255,102,0.8)]">
-                      ⚡ SPECIAL OFFER -15%
-                    </div>
-                    <div className="absolute bottom-3 left-3 text-left">
-                      <p className="text-xs font-bold text-white">Авторский сет «Стейк & Коктейль»</p>
-                      <p className="text-[10px] text-white/60">📍 GEO-tagged • 150m от вас</p>
-                    </div>
+                {/* Google Maps Search Bar in iOS App */}
+                <div className="bg-[#24272D] p-2.5 rounded-2xl border border-white/10 mb-2.5 flex items-center justify-between shadow-md">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <span className="text-[#EA4335] text-xs">📍</span>
+                    <span className="text-xs font-bold text-white truncate">Gastro Bar & Lounge</span>
                   </div>
+                  <span className="text-xs font-mono bg-[#00FF66]/20 text-[#00FF66] px-2 py-0.5 rounded font-bold border border-[#00FF66]/40">
+                    #1 TOP-3
+                  </span>
+                </div>
 
-                  <div className="bg-[#1E2024] p-3 rounded-2xl border border-white/10 flex items-center justify-between text-left">
+                {/* GBP Header Inside iPhone Screen */}
+                <div className="bg-[#1E2024] p-3 rounded-2xl border border-white/10 mb-2.5 space-y-1 shadow-md">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-mono text-[#4285F4] font-bold bg-[#4285F4]/15 px-2 py-0.5 rounded">
+                      Google Business Profile
+                    </span>
+                    <span className="text-xs font-mono text-[#00FF66] font-bold flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#00FF66] animate-ping" />
+                      Live 24/7
+                    </span>
+                  </div>
+                  <h4 className="font-extrabold text-white text-base">Gastro Bar & Lounge</h4>
+                  <div className="flex items-center gap-1.5 text-xs text-[#FBBC05] font-bold">
+                    <span>4.9</span>
+                    <div className="flex text-[#FBBC05] text-xs gap-0.5">
+                      <FontAwesomeIcon icon={faStar} />
+                      <FontAwesomeIcon icon={faStar} />
+                      <FontAwesomeIcon icon={faStar} />
+                      <FontAwesomeIcon icon={faStar} />
+                      <FontAwesomeIcon icon={faStar} />
+                    </div>
+                    <span className="text-white/80 text-xs ml-1">(240+ отзывов)</span>
+                  </div>
+                </div>
+
+                {/* Live Feed Image Card */}
+                <div className="relative rounded-2xl overflow-hidden h-36 border border-[#00FF66]/40 group shadow-lg mb-2.5">
+                  <img src="/assets/emirates-golf.jpg" alt="Live Feed Post" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+                  <div className="absolute top-2 left-2 bg-[#00FF66] text-black text-[11px] font-black uppercase px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(0,255,102,0.8)]">
+                    ⚡ SPECIAL OFFER -15%
+                  </div>
+                  <div className="absolute bottom-2 left-2 text-left">
+                    <p className="text-xs font-bold text-white">Авторский сет «Стейк & Коктейль»</p>
+                    <p className="text-[11px] text-white/80">📍 GEO-tagged • 150m от вас</p>
+                  </div>
+                </div>
+
+                {/* 3 Interactive Feature Modules Inside iPhone */}
+                <div className="space-y-2">
+                  {/* Module 1: AI Auto-Posting */}
+                  <div className="bg-[#1E2024] p-2.5 rounded-2xl border border-white/10 flex items-center justify-between text-left shadow-md">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-[#00FF66]/20 border border-[#00FF66] flex items-center justify-center text-[#00FF66] text-xs">
+                      <div className="w-7 h-7 rounded-full bg-[#00FF66]/20 border border-[#00FF66] flex items-center justify-center text-[#00FF66] text-xs flex-shrink-0">
                         <FontAwesomeIcon icon={faBolt} />
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-white">AI-Автопостинг каждые 48 часов</p>
-                        <p className="text-[10px] text-white/50">100% EXIF-GPS фото метки</p>
+                        <p className="text-xs font-bold text-white leading-tight">AI-Автопостинг каждые 48ч</p>
+                        <p className="text-[11px] text-white/70">100% EXIF-GPS гео-метки и меню</p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-mono text-[#00FF66]">Active</span>
+                    <span className="text-[11px] font-mono font-bold text-[#00FF66] bg-[#00FF66]/10 px-2 py-0.5 rounded border border-[#00FF66]/30 flex-shrink-0">
+                      Active
+                    </span>
+                  </div>
+
+                  {/* Module 2: Auto Responses to Reviews */}
+                  <div className="bg-[#1E2024] p-2.5 rounded-2xl border border-white/10 flex items-center justify-between text-left shadow-md">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-[#4285F4]/20 border border-[#4285F4] flex items-center justify-center text-[#4285F4] text-xs flex-shrink-0">
+                        💬
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-white leading-tight">Умные автоответы на отзывы</p>
+                        <p className="text-[11px] text-white/70">Вшивание SEO-ключей 24/7</p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-mono font-bold text-[#4285F4] bg-[#4285F4]/10 px-2 py-0.5 rounded border border-[#4285F4]/30 flex-shrink-0">
+                      Auto-SEO
+                    </span>
+                  </div>
+
+                  {/* Module 3: Reputation Shield & Penalty Appeals */}
+                  <div className="bg-[#1E2024] p-2.5 rounded-2xl border border-white/10 flex items-center justify-between text-left shadow-md">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-[#FBBC05]/20 border border-[#FBBC05] flex items-center justify-center text-[#FBBC05] text-xs flex-shrink-0">
+                        🛡
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-white leading-tight">ИИ-Щит Репутации</p>
+                        <p className="text-[11px] text-white/70">Перехват негатива & Снос 1★ фейков</p>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-mono font-bold text-[#FBBC05] bg-[#FBBC05]/10 px-2 py-0.5 rounded border border-[#FBBC05]/30 flex-shrink-0">
+                      Shielded
+                    </span>
                   </div>
                 </div>
+
+                {/* iOS Bottom Home Bar */}
+                <div className="w-32 h-1 bg-white/40 rounded-full mx-auto mt-3 mb-0.5" />
               </div>
             </motion.div>
 
@@ -697,7 +1011,7 @@ const RevoAlternativeLanding = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-white text-base mb-1">Бесконечный живой лендинг</h4>
-                    <p className="text-xs text-white/60 leading-relaxed">ИИ на постоянной основе публикует в вашей карточке GBP обновления, сторис-посты, акции, новинки меню и GEO-тегированные фото высокого качества.</p>
+                    <p className="text-xs text-white/80 leading-relaxed">ИИ на постоянной основе публикует в вашей карточке GBP обновления, сторис-посты, акции, новинки меню и GEO-тегированные фото высокого качества.</p>
                   </div>
                 </div>
 
@@ -707,7 +1021,7 @@ const RevoAlternativeLanding = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-white text-base mb-1">Магия алгоритмов Google</h4>
-                    <p className="text-xs text-white/60 leading-relaxed">Google обожает активные профили. Постоянные обновления показывают поисковому роботу, что заведение «живое», поднимая вас в <strong className="text-white">ТОП-3 выдачи (Local Pack)</strong>.</p>
+                    <p className="text-xs text-white/80 leading-relaxed">Google обожает активные профили. Постоянные обновления показывают поисковому роботу, что заведение «живое», поднимая вас в <strong className="text-white">ТОП-3 выдачи (Local Pack)</strong>.</p>
                   </div>
                 </div>
 
@@ -717,37 +1031,128 @@ const RevoAlternativeLanding = () => {
                   </div>
                   <div>
                     <h4 className="font-bold text-white text-base mb-1">Доминирование в районе</h4>
-                    <p className="text-xs text-white/60 leading-relaxed">ТОП-3 выдачи Google забирает <strong className="text-[#00FF66]">более 80% всех реальных клиентов</strong> в вашем районе. Все остальные 20 заведений делят между собой оставшиеся крохи.</p>
+                    <p className="text-xs text-white/80 leading-relaxed">ТОП-3 выдачи Google забирает <strong className="text-[#00FF66]">более 80% всех реальных клиентов</strong> в вашем районе. Все остальные 20 заведений делят между собой оставшиеся крохи.</p>
                   </div>
                 </div>
               </div>
 
-              {/* Vector Infographic: SMM vs Google Search Local Pack Comparison Bar */}
-              <div className="mt-8 p-6 rounded-3xl bg-[#121212] border border-white/10 space-y-4">
-                <div className="text-xs font-mono font-bold uppercase tracking-wider text-white/60 flex flex-col sm:flex-row justify-between gap-1">
-                  <span>📊 ИНФОГРАФИКА: СРАВНЕНИЕ КОНВЕРСИИ КАНАЛОВ</span>
-                  <span className="text-[#00FF66]">Поисковый Интент Покупателя</span>
+              {/* Redesigned Premium Channel Conversion Comparison Infographic */}
+              <div className="mt-10 bg-[#121417] border-2 border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative overflow-hidden">
+                {/* Header Banner */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-white/10 pb-4">
+                  <div>
+                    <span className="text-xs font-mono font-bold uppercase tracking-widest text-[#00FF66] bg-[#00FF66]/10 px-3 py-1 rounded-full border border-[#00FF66]/30 inline-block mb-1">
+                      📊 СРАВНИТЕЛЬНАЯ АНАЛИТИКА КАНАЛОВ
+                    </span>
+                    <h3 className="text-lg sm:text-xl font-extrabold text-white">
+                      Почему конверсия из Google Maps в 70 раз выше, чем в соцсетях?
+                    </h3>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-white/80 bg-black/60 px-3 py-1.5 rounded-xl border border-white/10">
+                    🎯 ИНТЕНТ ПОКУПАТЕЛЯ
+                  </span>
                 </div>
 
-                {/* Channel 1: SMM Instagram */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-xs font-bold text-white/60">
-                    <span>Социальные сети (Instagram / Таргет SMM)</span>
-                    <span className="text-[#EA4335]">Конверсия ~1.2% (Пассивный просмотр)</span>
+                {/* 2-Column Visual Cards Comparison Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  
+                  {/* CARD 1: SMM / Instagram / Target */}
+                  <div className="bg-[#1A1C20] border border-[#EA4335]/30 rounded-2xl p-5 sm:p-6 space-y-4 relative overflow-hidden">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-mono font-bold text-[#EA4335] bg-[#EA4335]/10 px-2.5 py-1 rounded border border-[#EA4335]/30 uppercase">
+                        ❌ Соцсети & Таргет SMM
+                      </span>
+                      <span className="text-xs font-mono text-white/70">Пассивный интерес</span>
+                    </div>
+
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl sm:text-5xl font-black font-mono text-[#EA4335]">1.2%</span>
+                      <span className="text-xs font-bold text-white/80">конверсия в визит</span>
+                    </div>
+
+                    <p className="text-xs text-white/80 leading-relaxed">
+                      Пользователь <strong>листает ленту от скуки</strong>. Он не планировал покупать услугу прямо сейчас. 99% пролистывают вашу рекламу дальше.
+                    </p>
+
+                    {/* Progress Meter Bar */}
+                    <div className="space-y-1 pt-2">
+                      <div className="flex justify-between text-xs font-mono text-white/80">
+                        <span>Эффективность клика</span>
+                        <span className="text-[#EA4335] font-bold">1.2% из 100%</span>
+                      </div>
+                      <div className="w-full bg-black/60 h-3 rounded-full overflow-hidden p-0.5 border border-white/10">
+                        <div className="w-[8%] h-full bg-[#EA4335] rounded-full" />
+                      </div>
+                    </div>
+
+                    <div className="text-xs font-mono text-[#EA4335] bg-[#EA4335]/10 p-2.5 rounded-xl border border-[#EA4335]/20 flex items-center gap-2">
+                      <span>💸</span>
+                      <span>Сжигание бюджета без гарантии визита</span>
+                    </div>
                   </div>
-                  <div className="w-full bg-white/5 h-3 rounded-full overflow-hidden">
-                    <div className="w-[12%] h-full bg-[#EA4335]/70 rounded-full" />
+
+                  {/* CARD 2: Google Maps Local Pack */}
+                  <div className="bg-[#1A231C] border-2 border-[#00FF66]/50 rounded-2xl p-5 sm:p-6 space-y-4 relative overflow-hidden shadow-[0_0_30px_rgba(0,255,102,0.15)]">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-mono font-bold text-[#00FF66] bg-[#00FF66]/10 px-2.5 py-1 rounded border border-[#00FF66]/30 uppercase">
+                        ⚡ Google Maps ТОП-3 Local Pack
+                      </span>
+                      <span className="text-xs font-mono text-[#00FF66] font-bold animate-pulse">🔥 Горячий интент</span>
+                    </div>
+
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-4xl sm:text-5xl font-black font-mono text-[#00FF66] drop-shadow-[0_0_15px_rgba(0,255,102,0.5)]">84.0%</span>
+                      <span className="text-xs font-bold text-[#00FF66]">конверсия в визит</span>
+                    </div>
+
+                    <p className="text-xs text-white/80 leading-relaxed">
+                      Клиент <strong>сам ищет услугу рядом с вами прямо сейчас</strong> с деньгами в руках. Ему нужен только адрес и подтверждение качества.
+                    </p>
+
+                    {/* Progress Meter Bar */}
+                    <div className="space-y-1 pt-2">
+                      <div className="flex justify-between text-xs font-mono text-white/70">
+                        <span>Эффективность клика</span>
+                        <span className="text-[#00FF66] font-bold">84% из 100% (Лидер локации)</span>
+                      </div>
+                      <div className="w-full bg-black/60 h-3 rounded-full overflow-hidden p-0.5 border border-[#00FF66]/40">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          whileInView={{ width: '84%' }}
+                          transition={{ duration: 1, ease: 'easeOut' }}
+                          className="h-full bg-gradient-to-r from-[#00FF66] via-[#10B981] to-[#00FF66] rounded-full shadow-[0_0_12px_rgba(0,255,102,0.9)]" 
+                        />
+                      </div>
+                    </div>
+
+                    <div className="text-xs font-mono text-[#00FF66] bg-[#00FF66]/10 p-2.5 rounded-xl border border-[#00FF66]/30 flex items-center gap-2">
+                      <span>💎</span>
+                      <span className="font-bold">0$ за клик — Долгосрочный актив бизнеса</span>
+                    </div>
                   </div>
+
                 </div>
 
-                {/* Channel 2: Google Maps Local Pack */}
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-xs font-bold text-white">
-                    <span className="text-[#00FF66]">Google Maps ТОП-3 Local Pack (REVO)</span>
-                    <span className="text-[#00FF66] font-mono font-black">Конверсия 84% (Горячая покупка)</span>
+                {/* High-Impact Highlighted Takeaway Banner */}
+                <div className="p-6 rounded-3xl bg-gradient-to-r from-[#00FF66]/20 via-[#1A231C] to-[#00FF66]/10 border-2 border-[#00FF66] shadow-[0_0_35px_rgba(0,255,102,0.25)] flex flex-col md:flex-row justify-between items-start md:items-center gap-5 text-left relative overflow-hidden">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-[#00FF66]/20 border-2 border-[#00FF66] text-2xl flex items-center justify-center text-[#00FF66] shadow-[0_0_20px_rgba(0,255,102,0.6)] flex-shrink-0 mt-0.5">
+                      💡
+                    </div>
+                    <div className="space-y-1">
+                      <span className="text-xs font-mono font-black text-[#00FF66] uppercase tracking-widest block">
+                        ⚡ КЛЮЧЕВОЙ ВЫВОД АНАЛИТИКИ:
+                      </span>
+                      <p className="text-sm sm:text-base lg:text-lg font-bold text-white leading-relaxed">
+                        Пользователи Google Maps <strong className="text-[#00FF66] underline decoration-[#00FF66]/60 underline-offset-4">уже приняли решение о покупке</strong>. Им не нужно «продавать» — их нужно просто принять в вашем заведении!
+                      </p>
+                    </div>
                   </div>
-                  <div className="w-full bg-white/5 h-3 rounded-full overflow-hidden p-0.5 border border-[#00FF66]/30">
-                    <div className="w-[84%] h-full bg-gradient-to-r from-[#00FF66] to-[#10B981] rounded-full shadow-[0_0_15px_rgba(0,255,102,0.8)]" />
+
+                  <div className="flex-shrink-0 self-stretch md:self-center flex items-center justify-center">
+                    <span className="text-xs sm:text-sm font-black font-mono text-[#00FF66] bg-[#00FF66]/20 px-5 py-3 rounded-2xl border-2 border-[#00FF66] shadow-[0_0_25px_rgba(0,255,102,0.5)] whitespace-nowrap tracking-wider">
+                      🚀 70X ВЫШЕ ВЫРУЧКА
+                    </span>
                   </div>
                 </div>
               </div>
@@ -767,7 +1172,7 @@ const RevoAlternativeLanding = () => {
             <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
               «Мы уже настраивали Google Business Profile, но клиентов не было». Знакомо?
             </h2>
-            <p className="text-white/60 text-base max-w-2xl mx-auto mt-4">
+            <p className="text-white/80 text-base max-w-2xl mx-auto mt-4">
               Вы платили SEO-шникам за однократное заполнение профиля, но получили только статичные просмотры в аналитике и пустой зал.
             </p>
           </div>
@@ -782,7 +1187,7 @@ const RevoAlternativeLanding = () => {
                   <span className="w-8 h-8 rounded-full bg-[#EA4335]/20 border border-[#EA4335] text-[#EA4335] font-bold flex items-center justify-center text-sm flex-shrink-0">1</span>
                   <div>
                     <h4 className="font-bold text-white text-base">Профиль «застыл в прошлом»</h4>
-                    <p className="text-xs text-white/60 leading-relaxed mt-1">Если вы не публикуете контент каждые 2–3 дня, алгоритмы Google опускают вас вниз выдачи, считая заведение неактивным.</p>
+                    <p className="text-xs text-white/80 leading-relaxed mt-1">Если вы не публикуете контент каждые 2–3 дня, алгоритмы Google опускают вас вниз выдачи, считая заведение неактивным.</p>
                   </div>
                 </div>
 
@@ -790,7 +1195,7 @@ const RevoAlternativeLanding = () => {
                   <span className="w-8 h-8 rounded-full bg-[#EA4335]/20 border border-[#EA4335] text-[#EA4335] font-bold flex items-center justify-center text-sm flex-shrink-0">2</span>
                   <div>
                     <h4 className="font-bold text-white text-base">Нулевая мотивация (Zero Reason to Act)</h4>
-                    <p className="text-xs text-white/60 leading-relaxed mt-1">Пользователь находит ваш профиль, видит обычную справочную информацию... и закрывает вкладку. <strong className="text-white">У него нет причины заказать прямо сейчас.</strong></p>
+                    <p className="text-xs text-white/80 leading-relaxed mt-1">Пользователь находит ваш профиль, видит обычную справочную информацию... и закрывает вкладку. <strong className="text-white">У него нет причины заказать прямо сейчас.</strong></p>
                   </div>
                 </div>
               </div>
@@ -800,12 +1205,12 @@ const RevoAlternativeLanding = () => {
             <div className="lg:col-span-6 flex flex-col items-center justify-center bg-black/60 border border-[#EA4335]/40 rounded-2xl p-8 relative">
               <span className="text-xs font-mono font-bold uppercase tracking-widest text-[#EA4335] mb-2">ЕЖЕМЕСЯЧНАЯ СКРЫТАЯ УТЕЧКА ВЫРУЧКИ</span>
               <div className="text-4xl sm:text-6xl font-black font-mono text-[#EA4335] drop-shadow-[0_0_20px_rgba(234,67,53,0.6)] mb-2">
-                - $4,500 <span className="text-xl font-normal text-white/40">/мес</span>
+                - $4,500 <span className="text-xl font-normal text-white/70">/мес</span>
               </div>
               <div className="inline-block bg-[#EA4335]/20 text-[#EA4335] text-xs font-mono font-bold px-3 py-1 rounded-full border border-[#EA4335]/40 mb-4">
                 Статус карточки: "No Activity for 30 Days"
               </div>
-              <p className="text-xs text-white/50 text-center max-w-xs">
+              <p className="text-xs text-white/80 text-center max-w-xs">
                 Столько вы отдаете прямым конкурентам в вашем районе, пока ваш профиль не активен.
               </p>
             </div>
@@ -813,33 +1218,164 @@ const RevoAlternativeLanding = () => {
 
           {/* Visual Leaky Revenue Funnel Diagram Infographic */}
           <div className="mt-8 p-6 rounded-3xl bg-[#1E2024] border border-[#EA4335]/30 space-y-3 text-left">
-            <h4 className="text-xs font-mono font-bold uppercase text-[#EA4335] tracking-widest mb-3 flex items-center gap-2">
-              <FontAwesomeIcon icon={faExclamationTriangle} /> 🔻 ИНФОГРАФИКА: СХЕМА УТЕЧКИ ЛОКАЛЬНОГО ТРАФИКА
+            <h4 className="text-sm sm:text-base font-extrabold uppercase text-[#00FF66] tracking-wider mb-3 flex items-center gap-2">
+              <FontAwesomeIcon icon={faExclamationTriangle} className="text-[#EA4335]" /> ПОЧЕМУ ВСЕ ЗАЯВКИ ПОЛУЧАЮТ ЛИДЕРЫ ТОП 3:
             </h4>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="p-4 rounded-2xl bg-black/50 border border-white/10">
-                <span className="text-[10px] font-mono text-white/40 block mb-1">01. ПОИСК В РАЙОНЕ</span>
-                <span className="text-lg font-black text-white block">1,000 запросов</span>
-                <span className="text-[11px] text-white/50 block mt-1">Клиенты ищут заведение рядом</span>
+                <span className="text-xs font-mono font-bold text-white/70 block mb-1">01. ПОИСК В РАЙОНЕ</span>
+                <span className="text-xl font-black text-white block">1,000 запросов</span>
+                <span className="text-xs font-medium text-white/80 block mt-1">Клиенты ищут заведение рядом</span>
               </div>
 
               <div className="p-4 rounded-2xl bg-black/50 border border-[#00FF66]/30">
-                <span className="text-[10px] font-mono text-[#00FF66] block mb-1">02. LOCAL PACK TOP-3</span>
-                <span className="text-lg font-black text-[#00FF66] block">800 кликов (80%)</span>
-                <span className="text-[11px] text-white/50 block mt-1">Забирают 3 первых места</span>
+                <span className="text-xs font-mono font-bold text-[#00FF66] block mb-1">02. LOCAL PACK TOP-3</span>
+                <span className="text-xl font-black text-[#00FF66] block">800 кликов (80%)</span>
+                <span className="text-xs font-medium text-white/80 block mt-1">Забирают 3 первых места</span>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#EA4335]/10 border border-[#EA4335]/30">
-                <span className="text-[10px] font-mono text-[#EA4335] block mb-1">03. НЕАКТИВНЫЙ ПРОФИЛЬ</span>
-                <span className="text-lg font-black text-[#EA4335] block">50 кликов (5%)</span>
-                <span className="text-[11px] text-white/50 block mt-1">Делят остальные 20 заведений</span>
+                <span className="text-xs font-mono font-bold text-[#EA4335] block mb-1">03. НЕАКТИВНЫЙ ПРОФИЛЬ</span>
+                <span className="text-xl font-black text-[#EA4335] block">50 кликов (5%)</span>
+                <span className="text-xs font-medium text-white/80 block mt-1">Делят остальные 20 заведений</span>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#EA4335]/20 border border-[#EA4335] shadow-[0_0_20px_rgba(234,67,53,0.3)]">
-                <span className="text-[10px] font-mono text-white block mb-1">04. ПОТЕРЯ ВЫРУЧКИ</span>
-                <span className="text-lg font-black text-[#EA4335] block">-$4,500 /мес</span>
-                <span className="text-[11px] text-white/80 block mt-1">Уходит прямым конкурентам</span>
+                <span className="text-xs font-mono font-bold text-white block mb-1">04. ПОТЕРЯ ВЫРУЧКИ</span>
+                <span className="text-xl font-black text-[#EA4335] block">-$4,500 /мес</span>
+                <span className="text-xs font-medium text-white/90 block mt-1">Уходит прямым конкурентам</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 🟢 БЛОК 3.5: ФОМО-БЛОК — РЕКЛАМНАЯ ИГЛА VS НАДЕЖНЫЙ АКТИВ GOOGLE MAPS */}
+      <section className="py-20 px-4 sm:px-6 relative z-10 border-b border-white/10 bg-[#15171A]">
+        <div className="max-w-7xl mx-auto">
+          {/* Main Thesis Banner */}
+          <motion.div 
+            initial="hidden" 
+            whileInView="visible" 
+            variants={fadeInUp} 
+            viewport={{ once: true }}
+            className="bg-gradient-to-r from-[#00FF66]/20 via-[#1E2024] to-[#4285F4]/20 border-2 border-[#00FF66]/40 rounded-3xl p-6 sm:p-12 text-center relative overflow-hidden shadow-[0_0_50px_rgba(0,255,102,0.2)] mb-14"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#00FF66]/20 border border-[#00FF66]/40 text-[#00FF66] text-xs font-mono font-bold uppercase tracking-wider mb-6 animate-pulse">
+              <FontAwesomeIcon icon={faBolt} /> ⚡ ОПЕРЕДИТЕ КОНКУРЕНТОВ: ОКНО ВОЗМОЖНОСТЕЙ
+            </div>
+
+            <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight max-w-4xl mx-auto">
+              Почему именно <span className="text-[#00FF66] underline decoration-[#00FF66]/50 underline-offset-8">СЕЙЧАС</span> нужно забрать ТОП-3 района, пока конкуренты спят?
+            </h2>
+
+            <p className="text-white/90 text-base sm:text-xl max-w-3xl mx-auto mt-6 font-medium leading-relaxed">
+              Пока 90% заведений в вашем районе надеются на старый сарафан или сливают бюджеты в рекламу, <strong className="text-[#00FF66]">алгоритмы Google заново делят локальный рынок</strong>. Заняв лидерство в ТОП-3 сегодня, вы блокируете горячий трафик района для конкурентов на годы вперед.
+            </p>
+
+            {/* 3 Real Market Facts Cards Grid */}
+            <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+              <div className="p-5 rounded-2xl bg-black/60 border border-white/10 space-y-2">
+                <span className="text-xs font-mono font-bold text-[#00FF66] bg-[#00FF66]/10 px-2.5 py-1 rounded border border-[#00FF66]/30 inline-block">
+                  📊 68% ZERO-CLICK
+                </span>
+                <h4 className="font-bold text-white text-sm sm:text-base">Покупка без перехода на сайт</h4>
+                <p className="text-xs text-white/70 leading-relaxed">
+                  По данным исследований Google, 68% локальных клиентов совершают звонок или визит прямо из карточки Google Maps, вообще не открывая сайты.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-black/60 border border-white/10 space-y-2">
+                <span className="text-xs font-mono font-bold text-[#4285F4] bg-[#4285F4]/10 px-2.5 py-1 rounded border border-[#4285F4]/30 inline-block">
+                  🤖 ChatGPT & GEMINI
+                </span>
+                <h4 className="font-bold text-white text-sm sm:text-base">ИИ-Рекомендации 2026</h4>
+                <p className="text-xs text-white/70 leading-relaxed">
+                  ИИ-ассистенты вытягивают рекомендации ТОЛЬКО из профилей ТОП-3 Google Maps, имеющих регулярную активность и динамические отзывы.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-black/60 border border-white/10 space-y-2">
+                <span className="text-xs font-mono font-bold text-[#FBBC05] bg-[#FBBC05]/10 px-2.5 py-1 rounded border border-[#FBBC05]/30 inline-block">
+                  🏰 НАКОПИТЕЛЬНЫЙ ЭФФЕКТ
+                </span>
+                <h4 className="font-bold text-white text-sm sm:text-base">Монопольный барьер</h4>
+                <p className="text-xs text-white/70 leading-relaxed">
+                  Заведения, первые включившие ИИ-автопилот, накапливают историю поведенческих факторов Google, опередить которую позже почти невозможно.
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Индекса рекламной независимости Widget */}
+          <AdIndependenceIndexWidget />
+
+          {/* Side-by-Side Comparison: Paid Ads Addiction vs. Google Maps Asset */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-left">
+            {/* Model A: Paid Ads Addiction */}
+            <div className="bg-[#1E2024] border border-[#EA4335]/40 rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-xl hover:border-[#EA4335]/80 transition-colors">
+              <div className="flex justify-between items-center mb-6">
+                <span className="text-xs font-mono font-bold bg-[#EA4335]/20 text-[#EA4335] border border-[#EA4335]/40 px-3 py-1 rounded-full uppercase tracking-wider">
+                  ❌ ТАРГЕТ / PPC / САРАФАН
+                </span>
+                <span className="text-xs font-mono text-white/80">Риск и нестабильность</span>
+              </div>
+
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">
+                «Рекламная игла и сарафан»
+              </h3>
+
+              <p className="text-sm text-white/80 leading-relaxed mb-6">
+                Вы сжигаете бюджеты на таргет или сидите в ожидании непредсказуемых рекомендаций. В обоих случаях у вашего бизнеса нет собственного управляемого актива.
+              </p>
+
+              <div className="space-y-3 font-mono text-sm">
+                <div className="p-4 rounded-xl bg-black/50 border border-white/10 flex justify-between items-center">
+                  <span className="text-white/70">Затраты на клик:</span>
+                  <span className="text-[#EA4335] font-bold">$15 – $45 /лид (растут)</span>
+                </div>
+                <div className="p-4 rounded-xl bg-black/50 border border-white/10 flex justify-between items-center">
+                  <span className="text-white/70">Заявки при выключении бюджета:</span>
+                  <span className="text-[#EA4335] font-bold">0 заявок (Мгновенный ноль)</span>
+                </div>
+                <div className="p-4 rounded-xl bg-black/50 border border-white/10 flex justify-between items-center">
+                  <span className="text-white/70">Накопленный капитал в трафике:</span>
+                  <span className="text-[#EA4335] font-bold">0$ (Сгорел в рекламе)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Model B: Google Maps Traffic Asset */}
+            <div className="bg-[#1E2024] border-2 border-[#00FF66]/50 rounded-3xl p-6 sm:p-8 relative overflow-hidden shadow-[0_0_40px_rgba(0,255,102,0.15)] hover:border-[#00FF66] transition-colors">
+              <div className="flex justify-between items-center mb-6">
+                <span className="text-xs font-mono font-bold bg-[#00FF66]/20 text-[#00FF66] border border-[#00FF66]/40 px-3 py-1 rounded-full uppercase tracking-wider">
+                  ⚡ GOOGLE MAPS (OUTRICH / REVO)
+                </span>
+                <span className="text-xs font-mono text-[#00FF66] font-bold">Надежный актив</span>
+              </div>
+
+              <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">
+                «Автономный трафиковый актив»
+              </h3>
+
+              <p className="text-sm text-white/80 leading-relaxed mb-6">
+                Вы инвестируете в капитализацию собственного профиля. Карточка забирает горячий Поиск и приносит клиентов без постоянного бюджета.
+              </p>
+
+              <div className="space-y-3 font-mono text-sm">
+                <div className="p-4 rounded-xl bg-black/50 border border-[#00FF66]/30 flex justify-between items-center">
+                  <span className="text-white/70">Затраты на каждый клик:</span>
+                  <span className="text-[#00FF66] font-bold">0$ (Органический поиск)</span>
+                </div>
+                <div className="p-4 rounded-xl bg-black/50 border border-[#00FF66]/30 flex justify-between items-center">
+                  <span className="text-white/70">Заявки при $0 рекламном бюджете:</span>
+                  <span className="text-[#00FF66] font-bold">Непрерывный поток 24/7</span>
+                </div>
+                <div className="p-4 rounded-xl bg-black/50 border border-[#00FF66]/30 flex justify-between items-center">
+                  <span className="text-white/70">Накопленный капитал в трафике:</span>
+                  <span className="text-[#00FF66] font-bold">ТОП-3 Место в районе (Бессрочно)</span>
+                </div>
               </div>
             </div>
           </div>
@@ -866,22 +1402,22 @@ const RevoAlternativeLanding = () => {
             <div className="bg-[#1E2024] border border-white/10 p-6 rounded-3xl text-left relative overflow-hidden group hover:border-[#00FF66]/50 transition-colors">
               <div className="text-3xl font-black text-[#00FF66] mb-3">01</div>
               <h4 className="font-bold text-white text-lg mb-2">AI Instagram-Mode & SEO</h4>
-              <p className="text-xs text-white/60 leading-relaxed mb-4">Публикация акций, новостей, меню и гео-фото на автопилоте каждые 48 часов.</p>
-              <div className="text-[10px] font-mono text-[#00FF66] bg-[#00FF66]/10 px-2.5 py-1 rounded inline-block">Захват Поиска</div>
+              <p className="text-xs text-white/80 leading-relaxed mb-4">Публикация акций, новостей, меню и гео-фото на автопилоте каждые 48 часов.</p>
+              <div className="text-xs font-mono text-[#00FF66] bg-[#00FF66]/10 px-2.5 py-1 rounded inline-block">Захват Поиска</div>
             </div>
 
             <div className="bg-[#1E2024] border border-[#00FF66]/40 p-6 rounded-3xl text-left relative overflow-hidden group shadow-[0_0_25px_rgba(0,255,102,0.1)]">
               <div className="text-3xl font-black text-[#00FF66] mb-3">02</div>
               <h4 className="font-bold text-white text-lg mb-2">Revo Dynamic Engine</h4>
-              <p className="text-xs text-white/60 leading-relaxed mb-4">Клиент получает сгорающую скидку ⚡ «Здесь и сейчас» (🔋 Revo Battery Status).</p>
-              <div className="text-[10px] font-mono text-[#00FF66] bg-[#00FF66]/10 px-2.5 py-1 rounded inline-block">Мгновенный визит</div>
+              <p className="text-xs text-white/80 leading-relaxed mb-4">Клиент получает сгорающую скидку ⚡ «Здесь и сейчас» (🔋 Revo Battery Status).</p>
+              <div className="text-xs font-mono text-[#00FF66] bg-[#00FF66]/10 px-2.5 py-1 rounded inline-block">Мгновенный визит</div>
             </div>
 
             <div className="bg-[#1E2024] border border-white/10 p-6 rounded-3xl text-left relative overflow-hidden group hover:border-[#00FF66]/50 transition-colors">
               <div className="text-3xl font-black text-[#00FF66] mb-3">03</div>
               <h4 className="font-bold text-white text-lg mb-2">Direct Sales & Retention</h4>
-              <p className="text-xs text-white/60 leading-relaxed mb-4">Прямой расчет без комиссий + Возврат клиента на следующий день.</p>
-              <div className="text-[10px] font-mono text-[#00FF66] bg-[#00FF66]/10 px-2.5 py-1 rounded inline-block">100% Выручка</div>
+              <p className="text-xs text-white/80 leading-relaxed mb-4">Прямой расчет без комиссий + Возврат клиента на следующий день.</p>
+              <div className="text-xs font-mono text-[#00FF66] bg-[#00FF66]/10 px-2.5 py-1 rounded inline-block">100% Выручка</div>
             </div>
           </div>
 
@@ -889,22 +1425,22 @@ const RevoAlternativeLanding = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 text-left">
             <div className="p-6 rounded-2xl bg-[#121212] border border-white/10">
               <h5 className="font-bold text-white text-base mb-2 text-[#00FF66]">1. ИИ-Автопилот Google</h5>
-              <p className="text-xs text-white/60 leading-relaxed">Наш ИИ настраивает профиль под точечные микро-запросы («сложное окрашивание», «авторские коктейли») и держит профиль в ТОП-3 за счет постоянного автопостинга.</p>
+              <p className="text-xs text-white/80 leading-relaxed">Наш ИИ настраивает профиль под точечные микро-запросы («сложное окрашивание», «авторские коктейли») и держит профиль в ТОП-3 за счет постоянного автопостинга.</p>
             </div>
 
             <div className="p-6 rounded-2xl bg-[#121212] border border-white/10">
               <h5 className="font-bold text-white text-base mb-2 text-[#00FF66]">2. Триггер срочности</h5>
-              <p className="text-xs text-white/60 leading-relaxed">Кликая по ссылке ⚡ Revo, клиент попадает в ваше меню и видит сгорающую скидку (🔋 Revo Battery Status). Человек принимает решение мгновенно.</p>
+              <p className="text-xs text-white/80 leading-relaxed">Кликая по ссылке ⚡ Revo, клиент попадает в ваше меню и видит сгорающую скидку (🔋 Revo Battery Status). Человек принимает решение мгновенно.</p>
             </div>
 
             <div className="p-6 rounded-2xl bg-[#121212] border border-white/10">
               <h5 className="font-bold text-white text-base mb-2 text-[#00FF66]">3. Прямая экономика</h5>
-              <p className="text-xs text-white/60 leading-relaxed">Заказ или бронирование оформляется напрямую. Клиент рассчитывается с вами на кассе или с курьером. Вы не платите ни цента комиссии с чека.</p>
+              <p className="text-xs text-white/80 leading-relaxed">Заказ или бронирование оформляется напрямую. Клиент рассчитывается с вами на кассе или с курьером. Вы не платите ни цента комиссии с чека.</p>
             </div>
 
             <div className="p-6 rounded-2xl bg-[#121212] border border-white/10">
               <h5 className="font-bold text-white text-base mb-2 text-[#00FF66]">4. ИИ-Щит Репутации</h5>
-              <p className="text-xs text-white/60 leading-relaxed">Перехват плохих оценок внутри Revo-меню до их попадания на Карты + авто-подача апелляций на снос фейковых отзывов 1–2 звезды.</p>
+              <p className="text-xs text-white/80 leading-relaxed">Перехват плохих оценок внутри Revo-меню до их попадания на Карты + авто-подача апелляций на снос фейковых отзывов 1–2 звезды.</p>
             </div>
           </div>
         </div>
@@ -921,7 +1457,7 @@ const RevoAlternativeLanding = () => {
             <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
               Как устроена наша система: От первого поиска в Google до бесконечных повторных визитов
             </h2>
-            <p className="text-white/60 text-base max-w-3xl mx-auto mt-4 font-medium">
+            <p className="text-white/80 text-base max-w-3xl mx-auto mt-4 font-medium">
               4-этапная замкнутая петля конверсии, объединяющая алгоритмы ИИ, психологию неприятия потерь (Нобелевская премия) и авто-воронку сбора отзывов.
             </p>
           </div>
@@ -946,7 +1482,7 @@ const RevoAlternativeLanding = () => {
                     <span className="w-12 h-12 rounded-2xl bg-[#4285F4]/20 border border-[#4285F4] text-[#4285F4] font-black text-xl flex items-center justify-center shadow-[0_0_15px_rgba(66,133,244,0.4)]">
                       01
                     </span>
-                    <span className="text-[10px] font-mono font-bold bg-[#4285F4]/10 text-[#4285F4] border border-[#4285F4]/30 px-2.5 py-1 rounded-full uppercase">
+                    <span className="text-xs font-mono font-bold bg-[#4285F4]/10 text-[#4285F4] border border-[#4285F4]/30 px-2.5 py-1 rounded-full uppercase">
                       🔍 SEARCH & AI RECOM
                     </span>
                   </div>
@@ -961,13 +1497,13 @@ const RevoAlternativeLanding = () => {
                 </div>
 
                 {/* Infographic Widget 1 */}
-                <div className="bg-black/60 border border-white/10 p-3 rounded-2xl text-[11px] font-mono space-y-1 mt-2">
-                  <div className="flex justify-between text-white/60">
+                <div className="bg-black/60 border border-white/10 p-3 rounded-2xl text-xs font-mono space-y-1 mt-2">
+                  <div className="flex justify-between text-white/80">
                     <span>Индекс видимости AI:</span>
                     <span className="text-[#4285F4] font-bold">TOP-3 (#1)</span>
                   </div>
                   <div className="flex items-center gap-1.5 text-[#00FF66] font-bold">
-                    <FontAwesomeIcon icon={faCheck} className="text-[10px]" />
+                    <FontAwesomeIcon icon={faCheck} className="text-xs" />
                     <span>ChatGPT & Google Recommended</span>
                   </div>
                 </div>
@@ -986,7 +1522,7 @@ const RevoAlternativeLanding = () => {
                     <span className="w-12 h-12 rounded-2xl bg-[#00FF66]/20 border border-[#00FF66] text-[#00FF66] font-black text-xl flex items-center justify-center shadow-[0_0_15px_rgba(0,255,102,0.4)]">
                       02
                     </span>
-                    <span className="text-[10px] font-mono font-bold bg-[#00FF66]/10 text-[#00FF66] border border-[#00FF66]/30 px-2.5 py-1 rounded-full uppercase">
+                    <span className="text-xs font-mono font-bold bg-[#00FF66]/10 text-[#00FF66] border border-[#00FF66]/30 px-2.5 py-1 rounded-full uppercase">
                       ⏳ 24H URGENCY TIMER
                     </span>
                   </div>
@@ -1001,8 +1537,8 @@ const RevoAlternativeLanding = () => {
                 </div>
 
                 {/* Infographic Widget 2 */}
-                <div className="bg-black/60 border border-[#00FF66]/30 p-3 rounded-2xl text-[11px] font-mono space-y-1 mt-2">
-                  <div className="flex justify-between text-white/60">
+                <div className="bg-black/60 border border-[#00FF66]/30 p-3 rounded-2xl text-xs font-mono space-y-1 mt-2">
+                  <div className="flex justify-between text-white/80">
                     <span>Таймер активности:</span>
                     <span className="text-[#00FF66] font-bold animate-pulse">23:59:59 ч.</span>
                   </div>
@@ -1025,7 +1561,7 @@ const RevoAlternativeLanding = () => {
                     <span className="w-12 h-12 rounded-2xl bg-[#FBBC05]/20 border border-[#FBBC05] text-[#FBBC05] font-black text-xl flex items-center justify-center shadow-[0_0_15px_rgba(251,188,5,0.4)]">
                       03
                     </span>
-                    <span className="text-[10px] font-mono font-bold bg-[#FBBC05]/10 text-[#FBBC05] border border-[#FBBC05]/30 px-2.5 py-1 rounded-full uppercase">
+                    <span className="text-xs font-mono font-bold bg-[#FBBC05]/10 text-[#FBBC05] border border-[#FBBC05]/30 px-2.5 py-1 rounded-full uppercase">
                       🧠 FOMO (LOSS AVERSION)
                     </span>
                   </div>
@@ -1040,12 +1576,12 @@ const RevoAlternativeLanding = () => {
                 </div>
 
                 {/* Infographic Widget 3 */}
-                <div className="bg-black/60 border border-[#FBBC05]/30 p-3 rounded-2xl text-[11px] font-mono space-y-1 mt-2">
+                <div className="bg-black/60 border border-[#FBBC05]/30 p-3 rounded-2xl text-xs font-mono space-y-1 mt-2">
                   <div className="flex justify-between text-[#FBBC05]">
                     <span>Нобелевский эффект:</span>
                     <span className="font-bold">Loss Aversion</span>
                   </div>
-                  <div className="text-[10px] text-white/50">Мгновенный визит «Здесь и сейчас»</div>
+                  <div className="text-xs text-white/80">Мгновенный визит «Здесь и сейчас»</div>
                 </div>
               </div>
 
@@ -1062,7 +1598,7 @@ const RevoAlternativeLanding = () => {
                     <span className="w-12 h-12 rounded-2xl bg-[#00FF66]/20 border border-[#00FF66] text-[#00FF66] font-black text-xl flex items-center justify-center shadow-[0_0_15px_rgba(0,255,102,0.4)]">
                       04
                     </span>
-                    <span className="text-[10px] font-mono font-bold bg-[#00FF66]/10 text-[#00FF66] border border-[#00FF66]/30 px-2.5 py-1 rounded-full uppercase">
+                    <span className="text-xs font-mono font-bold bg-[#00FF66]/10 text-[#00FF66] border border-[#00FF66]/30 px-2.5 py-1 rounded-full uppercase">
                       🔄 MAX RETENTION & LTV
                     </span>
                   </div>
@@ -1077,14 +1613,14 @@ const RevoAlternativeLanding = () => {
                 </div>
 
                 {/* Infographic Widget 4 */}
-                <div className="bg-black/60 border border-[#00FF66]/30 p-3 rounded-2xl text-[11px] font-mono space-y-1 mt-2">
-                  <div className="flex justify-between text-white/60">
+                <div className="bg-black/60 border border-[#00FF66]/30 p-3 rounded-2xl text-xs font-mono space-y-1 mt-2">
+                  <div className="flex justify-between text-white/80">
                     <span>Петля возврата:</span>
                     <span className="text-[#00FF66] font-bold">Retention +300%</span>
                   </div>
-                  <div className="flex items-center gap-1 text-[#FBBC05] text-[10px]">
+                  <div className="flex items-center gap-1 text-[#FBBC05] text-xs">
                     <FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} />
-                    <span className="text-white/60 ml-1">5★ На Картах</span>
+                    <span className="text-white/80 ml-1">5★ На Картах</span>
                   </div>
                 </div>
               </div>
@@ -1094,59 +1630,161 @@ const RevoAlternativeLanding = () => {
         </div>
       </section>
 
-      {/* 🟢 БЛОК 5: 3 ПРОСТЫХ ШАГА ПО ДОНАЛЬДУ МИЛЛЕРУ (STORYBRAND PLAN) */}
-      <section className="py-20 px-4 sm:px-6 relative z-10 border-b border-white/10 bg-[#121212]">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#00FF66]/10 border border-[#00FF66]/30 text-[#00FF66] text-xs font-mono font-bold uppercase tracking-wider mb-4">
-              <FontAwesomeIcon icon={faChartLine} /> ПРОСТОЙ ПОШАГОВЫЙ ПЛАН
+      {/* 🟢 БЛОК 5: 3 ПРОСТЫХ ШАГА К ТОП-3 (ПОРЕВОЛЮЦИОННЫЙ GPS ПАЙПЛАЙН) */}
+      <section className="py-24 px-4 sm:px-6 relative z-10 border-b border-white/10 bg-gradient-to-b from-[#121212] via-[#15181C] to-[#121212] overflow-hidden">
+        
+        {/* Ambient background glows */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-[#00FF66]/5 blur-[160px] rounded-full pointer-events-none" />
+
+        <div className="max-w-5xl mx-auto relative z-10">
+          
+          {/* Header Banner */}
+          <div className="text-center mb-16 space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#00FF66]/15 border border-[#00FF66]/40 text-[#00FF66] text-xs font-mono font-bold uppercase tracking-wider shadow-[0_0_20px_rgba(0,255,102,0.2)]">
+              <FontAwesomeIcon icon={faChartLine} /> 🎯 ГЛАВНЫЙ МАРШРУТ УСПЕХА
             </div>
-            <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
-              Начать получать прямых клиентов из Google — проще, чем заварить кофе
+
+            <h2 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-tight max-w-3xl mx-auto">
+              Начать получать клиентов из Google — <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00FF66] via-[#10B981] to-[#00FF66]">проще, чем заварить кофе</span>
             </h2>
-            <p className="text-white/60 text-base max-w-2xl mx-auto mt-4">
-              Вам не нужно нанимать IT-специалистов, переобучать персонал или менять привычные процессы. Все технические настройки и автоматизации мы берем на себя.
+
+            <p className="text-white/80 text-base sm:text-xl max-w-2xl mx-auto font-medium leading-relaxed">
+              Вам не нужно нанимать программистов, менять персонал или разбираться в SEO. Все 100% технических настроек мы берем на себя <strong className="text-white">«под ключ» за 48 часов</strong>.
             </p>
           </div>
 
-          {/* Google Maps Route Preview Navigation Line */}
-          <div className="relative max-w-4xl mx-auto space-y-8">
-            {/* Vertical Neon-Green Route Line */}
-            <div className="absolute left-6 sm:left-1/2 top-4 bottom-4 w-1 bg-gradient-to-b from-[#00FF66] via-[#10B981] to-[#00FF66] -translate-x-1/2 z-0 hidden sm:block" />
+          {/* 3 Step Interactive Visual Cards Stack */}
+          <div className="space-y-6 relative">
+            
+            {/* Connecting Neon Flow Indicator (Desktop) */}
+            <div className="hidden md:block absolute left-[43px] top-12 bottom-12 w-1 bg-gradient-to-b from-[#4285F4] via-[#FBBC05] to-[#00FF66] z-0 opacity-40 rounded-full" />
 
-            {/* STEP 1 */}
-            <div className="relative z-10 bg-[#1E2024] border border-white/10 rounded-3xl p-6 sm:p-8 text-left shadow-xl hover:border-[#00FF66]/40 transition-colors">
-              <div className="flex items-center gap-4 mb-3">
-                <span className="w-10 h-10 rounded-full bg-[#00FF66] text-black font-black flex items-center justify-center text-base shadow-[0_0_15px_rgba(0,255,102,0.8)]">📍 A</span>
-                <h3 className="font-bold text-white text-xl sm:text-2xl">ШАГ 1: Подайте заявку за 30 секунд</h3>
+            {/* ШАГ 1 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="relative z-10 bg-[#1A1C20] border-2 border-[#4285F4]/40 hover:border-[#4285F4] rounded-3xl p-6 sm:p-8 transition-all duration-300 shadow-[0_0_30px_rgba(66,133,244,0.1)] hover:shadow-[0_0_40px_rgba(66,133,244,0.25)] group text-left"
+            >
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 border-b border-white/10 pb-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-[#4285F4]/20 border-2 border-[#4285F4] text-[#4285F4] font-black font-mono text-2xl flex items-center justify-center shadow-[0_0_20px_rgba(66,133,244,0.5)] group-hover:scale-110 transition-transform">
+                    01
+                  </div>
+                  <div>
+                    <span className="text-xs font-mono font-bold text-[#4285F4] bg-[#4285F4]/10 border border-[#4285F4]/30 px-2.5 py-0.5 rounded uppercase">
+                      📍 ДЕЙСТВИЕ: 30 СЕКУНД
+                    </span>
+                    <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
+                      ШАГ 1: Подайте заявку и получите бесплатный AI-Скан
+                    </h3>
+                  </div>
+                </div>
+                <span className="text-xs font-mono text-white/80 bg-black/60 px-3 py-1.5 rounded-xl border border-white/10">
+                  Занимает 30 сек
+                </span>
               </div>
-              <p className="text-sm text-white/70 leading-relaxed pl-14">
-                Вы заполняете короткую форму и отправляете нам ссылку на ваше заведение в Google Maps. Наш ИИ мгновенно сканирует ваш профиль, находит точки потери трафика и строит персональную карту роста.
-              </p>
-            </div>
 
-            {/* STEP 2 */}
-            <div className="relative z-10 bg-[#1E2024] border border-[#00FF66]/40 rounded-3xl p-6 sm:p-8 text-left shadow-xl">
-              <div className="flex items-center gap-4 mb-3">
-                <span className="w-10 h-10 rounded-full bg-[#00FF66] text-black font-black flex items-center justify-center text-base shadow-[0_0_15px_rgba(0,255,102,0.8)]">⚙️ B</span>
-                <h3 className="font-bold text-white text-xl sm:text-2xl">ШАГ 2: Мы настраиваем систему под ключ</h3>
-              </div>
-              <p className="text-sm text-white/70 leading-relaxed pl-14">
-                Мы оцифровываем ваше меню или прайс-лист, подключаем ваш POS-терминал / R-Keeper, прошиваем профиль в Google ключевыми запросами и запускаем автоматический постинг и модуль сгорающей скидки <strong className="text-[#00FF66]">⚡ Revo</strong>.
+              <p className="text-sm sm:text-base text-white/80 leading-relaxed font-medium">
+                Вы отправляете нам название или ссылку на ваше заведение в Google Maps. Наш ИИ за 15 секунд сканирует профиль, находит скрытые утечки клиентов и строит персональную стратегию локального доминирования.
               </p>
-            </div>
 
-            {/* STEP 3 */}
-            <div className="relative z-10 bg-[#1E2024] border border-white/10 rounded-3xl p-6 sm:p-8 text-left shadow-xl hover:border-[#00FF66]/40 transition-colors">
-              <div className="flex items-center gap-4 mb-3">
-                <span className="w-10 h-10 rounded-full bg-[#00FF66] text-black font-black flex items-center justify-center text-base shadow-[0_0_15px_rgba(0,255,102,0.8)]">🚀 C</span>
-                <h3 className="font-bold text-white text-xl sm:text-2xl">ШАГ 3: Получайте гостей и растите прибыль</h3>
+              <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-2 text-xs font-mono text-[#4285F4]">
+                <span>✓ Без обязательств</span>
+                <span>•</span>
+                <span>✓ Без доступа к администраторским правам</span>
               </div>
-              <p className="text-sm text-white/70 leading-relaxed pl-14">
-                Ваш профиль вылетает в <strong className="text-white">ТОП-3 выдачи Google Maps</strong>, забирая горячий Поиск. Вы получаете <strong className="text-[#00FF66]">рост органического трафика до +300%</strong> и <strong className="text-[#00FF66]">прирост чистой прибыли до +45%</strong> уже в первый месяц — без комиссий агрегаторам.
+            </motion.div>
+
+            {/* ШАГ 2 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="relative z-10 bg-[#1A1C20] border-2 border-[#FBBC05]/40 hover:border-[#FBBC05] rounded-3xl p-6 sm:p-8 transition-all duration-300 shadow-[0_0_30px_rgba(251,188,5,0.1)] hover:shadow-[0_0_40px_rgba(251,188,5,0.25)] group text-left"
+            >
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 border-b border-white/10 pb-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-[#FBBC05]/20 border-2 border-[#FBBC05] text-[#FBBC05] font-black font-mono text-2xl flex items-center justify-center shadow-[0_0_20px_rgba(251,188,5,0.5)] group-hover:scale-110 transition-transform">
+                    02
+                  </div>
+                  <div>
+                    <span className="text-xs font-mono font-bold text-[#FBBC05] bg-[#FBBC05]/10 border border-[#FBBC05]/30 px-2.5 py-0.5 rounded uppercase">
+                      ⚙️ НАСТРОЙКА: 48 ЧАСОВ
+                    </span>
+                    <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
+                      ШАГ 2: Мы запускаем автопилот и упаковку под ключ
+                    </h3>
+                  </div>
+                </div>
+                <span className="text-xs font-mono text-[#FBBC05] bg-[#FBBC05]/10 px-3 py-1.5 rounded-xl border border-[#FBBC05]/30 font-bold">
+                  100% Под ключ
+                </span>
+              </div>
+
+              <p className="text-sm sm:text-base text-white/80 leading-relaxed font-medium">
+                Мы оцифровываем ваше меню/прайс, прошиваем карточку высокочастотными гео-ключами, подключаем POS-интеграцию и активируем авто-постинг со сгорающими скидками <strong className="text-[#00FF66]">⚡ Revo Battery Status</strong>.
               </p>
-            </div>
+
+              <div className="mt-4 pt-3 border-t border-white/5 flex items-center gap-2 text-xs font-mono text-[#FBBC05]">
+                <span>✓ Полная автономность</span>
+                <span>•</span>
+                <span>✓ Ваш персонал работает в привычном режиме</span>
+              </div>
+            </motion.div>
+
+            {/* ШАГ 3 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              className="relative z-10 bg-[#1A231C] border-2 border-[#00FF66]/60 hover:border-[#00FF66] rounded-3xl p-6 sm:p-8 transition-all duration-300 shadow-[0_0_40px_rgba(0,255,102,0.2)] hover:shadow-[0_0_60px_rgba(0,255,102,0.35)] group text-left"
+            >
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4 border-b border-white/10 pb-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-[#00FF66]/20 border-2 border-[#00FF66] text-[#00FF66] font-black font-mono text-2xl flex items-center justify-center shadow-[0_0_25px_rgba(0,255,102,0.7)] group-hover:scale-110 transition-transform">
+                    03
+                  </div>
+                  <div>
+                    <span className="text-xs font-mono font-bold text-[#00FF66] bg-[#00FF66]/10 border border-[#00FF66]/30 px-2.5 py-0.5 rounded uppercase">
+                      🏆 РЕЗУЛЬТАТ: ТОП-3 GOOGLE MAPS
+                    </span>
+                    <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
+                      ШАГ 3: Забирайте горячий Поиск и растите чистую прибыль
+                    </h3>
+                  </div>
+                </div>
+                <span className="text-xs font-mono text-[#00FF66] bg-[#00FF66]/20 px-3 py-1.5 rounded-xl border border-[#00FF66]/40 font-bold animate-pulse">
+                  +300% Органический рост
+                </span>
+              </div>
+
+              <p className="text-sm sm:text-base text-white/90 leading-relaxed font-medium">
+                Заведение взлетает в <strong className="text-[#00FF66]">ТОП-3 Local Pack</strong> вашего района. Вы получаете рост органического трафика до <strong className="text-[#00FF66]">+300%</strong> и прирост чистой прибыли до <strong className="text-[#00FF66]">+45%</strong> без комиссии агрегаторам.
+              </p>
+
+              <div className="mt-4 pt-3 border-t border-white/10 flex items-center gap-2 text-xs font-mono text-[#00FF66] font-bold">
+                <span>💰 100% Выручки в вашу кассу</span>
+                <span>•</span>
+                <span>💎 Бессрочный цифровой актив</span>
+              </div>
+            </motion.div>
+
           </div>
+
+          {/* Action CTA Button Below Pipeline */}
+          <div className="mt-12 text-center">
+            <button 
+              onClick={scrollToAudit}
+              className="bg-[#00FF66] hover:bg-[#10B981] text-black font-black uppercase tracking-wider text-sm sm:text-base py-5 px-10 rounded-full transition-all shadow-[0_0_35px_rgba(0,255,102,0.6)] hover:scale-105 active:scale-95 inline-flex items-center gap-3 cursor-pointer"
+            >
+              <FontAwesomeIcon icon={faBolt} /> ⚡ НАЧАТЬ ШАГ 1: ПОЛУЧИТЬ БЕСПЛАТНЫЙ AI-АУДИТ
+            </button>
+          </div>
+
         </div>
       </section>
 
@@ -1170,7 +1808,7 @@ const RevoAlternativeLanding = () => {
                   <div className="flex text-[#FBBC05] gap-1 text-sm">
                     <FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} />
                   </div>
-                  <span className="text-[10px] font-mono text-[#00FF66] bg-[#00FF66]/10 px-2 py-0.5 rounded border border-[#00FF66]/30">Verified GBP Owner</span>
+                  <span className="text-xs font-mono text-[#00FF66] bg-[#00FF66]/10 px-2 py-0.5 rounded border border-[#00FF66]/30">Verified GBP Owner</span>
                 </div>
                 <p className="text-xs text-white/80 leading-relaxed italic mb-6">
                   «Раньше мы отдавали Deliveroo почти 30% с каждого заказа только за то, чтобы нас видели. После запуска Revo наш Google-профиль превратился в полноценную витрину. ИИ постоянно выкладывает фото наших рибаев с гео-тегами. За второй месяц прямые заказы из Google Maps выросли на 45%, и мы перестали кормить агрегаторы».
@@ -1178,7 +1816,7 @@ const RevoAlternativeLanding = () => {
               </div>
               <div className="pt-4 border-t border-white/10">
                 <h4 className="font-bold text-white text-sm">🍽 Марк</h4>
-                <p className="text-[11px] text-white/50">Управляющий стейк-хауса (Дубай Marina)</p>
+                <p className="text-xs text-white/80">Управляющий стейк-хауса (Дубай Marina)</p>
               </div>
             </div>
 
@@ -1189,7 +1827,7 @@ const RevoAlternativeLanding = () => {
                   <div className="flex text-[#FBBC05] gap-1 text-sm">
                     <FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} />
                   </div>
-                  <span className="text-[10px] font-mono text-[#00FF66] bg-[#00FF66]/10 px-2 py-0.5 rounded border border-[#00FF66]/30">Verified GBP Owner</span>
+                  <span className="text-xs font-mono text-[#00FF66] bg-[#00FF66]/10 px-2 py-0.5 rounded border border-[#00FF66]/30">Verified GBP Owner</span>
                 </div>
                 <p className="text-xs text-white/80 leading-relaxed italic mb-6">
                   «У нас была обычная карточка на Картах, но пустые кресла в середине недели всё равно оставались. Revo запустил динамическую скидку на "тихие часы". Мужики открывают Карты, видят наш маркер ⚡, понимают, что прямо сейчас скидка 15%, и бронируют кресло за 10 секунд. Загрузка выросла до 90%».
@@ -1197,7 +1835,7 @@ const RevoAlternativeLanding = () => {
               </div>
               <div className="pt-4 border-t border-white/10">
                 <h4 className="font-bold text-white text-sm">✂️ Алекс</h4>
-                <p className="text-[11px] text-white/50">Владелец сети барбершопов (Майами)</p>
+                <p className="text-xs text-white/80">Владелец сети барбершопов (Майами)</p>
               </div>
             </div>
 
@@ -1208,7 +1846,7 @@ const RevoAlternativeLanding = () => {
                   <div className="flex text-[#FBBC05] gap-1 text-sm">
                     <FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} /><FontAwesomeIcon icon={faStar} />
                   </div>
-                  <span className="text-[10px] font-mono text-[#00FF66] bg-[#00FF66]/10 px-2 py-0.5 rounded border border-[#00FF66]/30">Verified GBP Owner</span>
+                  <span className="text-xs font-mono text-[#00FF66] bg-[#00FF66]/10 px-2 py-0.5 rounded border border-[#00FF66]/30">Verified GBP Owner</span>
                 </div>
                 <p className="text-xs text-white/80 leading-relaxed italic mb-6">
                   «Нам часто прилетали фейковые 1-звездочные отзывы от конкурентов, из-за чего рейтинг падал до 4.3 и записи рушились. Revo не просто публикует наши посты, он в фоновом режиме через апелляции снес 4 неадекватных отзыва за месяц и поднял наш рейтинг до 4.9. Теперь мы на 1-м месте в поиске района».
@@ -1216,7 +1854,7 @@ const RevoAlternativeLanding = () => {
               </div>
               <div className="pt-4 border-t border-white/10">
                 <h4 className="font-bold text-white text-sm">🩺 Д-р Елена</h4>
-                <p className="text-[11px] text-white/50">Главный врач косметологии</p>
+                <p className="text-xs text-white/80">Главный врач косметологии</p>
               </div>
             </div>
           </div>
@@ -1266,7 +1904,7 @@ const RevoAlternativeLanding = () => {
                     className="w-full p-5 sm:p-6 text-left font-bold text-white text-base sm:text-lg flex justify-between items-center gap-4 cursor-pointer hover:bg-white/5"
                   >
                     <span>{faq.q}</span>
-                    <FontAwesomeIcon icon={faChevronDown} className={`text-xs transition-transform duration-300 ${isOpen ? 'rotate-180 text-[#00FF66]' : 'text-white/40'}`} />
+                    <FontAwesomeIcon icon={faChevronDown} className={`text-xs transition-transform duration-300 ${isOpen ? 'rotate-180 text-[#00FF66]' : 'text-white/70'}`} />
                   </button>
                   <AnimatePresence>
                     {isOpen && (
@@ -1294,7 +1932,7 @@ const RevoAlternativeLanding = () => {
             <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
               Разделение дорог: Где ваш бизнес окажется через 30 дней?
             </h2>
-            <p className="text-white/60 text-base max-w-2xl mx-auto mt-4">
+            <p className="text-white/80 text-base max-w-2xl mx-auto mt-4">
               Прямо сейчас вы стоите перед выбором. Рынок в вашем районе не будет ждать — ваши конкуренты уже ищут способы забрать трафик из Google Поиска.
             </p>
           </div>
@@ -1385,7 +2023,7 @@ const RevoAlternativeLanding = () => {
             <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight">
               Включите Revo сегодня — заберите ТОП-3 в вашем районе уже в первый месяц
             </h2>
-            <p className="text-white/60 text-base max-w-xl mx-auto mt-3">
+            <p className="text-white/80 text-base max-w-xl mx-auto mt-3">
               Не отдавайте своих клиентов конкурентам. Запустите бесплатный AI-скан прямо сейчас.
             </p>
           </div>
@@ -1403,7 +2041,7 @@ const RevoAlternativeLanding = () => {
           {/* Interactive Capture Form (Search Bar Google Styled Card) */}
           <div className="bg-[#1E2024] border border-[#00FF66]/40 rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden text-left">
             <h3 className="text-xl sm:text-2xl font-bold text-white mb-2">Бесплатный AI-Скан регионального доминирования</h3>
-            <p className="text-xs text-white/60 mb-6">Заполните форму, и мы забронируем ваш микрорайон для эксклюзивного подключения.</p>
+            <p className="text-xs text-white/80 mb-6">Заполните форму, и мы забронируем ваш микрорайон для эксклюзивного подключения.</p>
 
             {formSuccess ? (
               <div className="text-center py-8">
@@ -1415,7 +2053,7 @@ const RevoAlternativeLanding = () => {
               <form onSubmit={handleFinalFormSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-mono font-bold uppercase text-white/60 mb-1.5">1. Название заведения / Мастера:</label>
+                    <label className="block text-xs font-mono font-bold uppercase text-white/80 mb-1.5">1. Название заведения / Мастера:</label>
                     <input 
                       type="text" 
                       required
@@ -1427,7 +2065,7 @@ const RevoAlternativeLanding = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-mono font-bold uppercase text-white/60 mb-1.5">2. Ниша:</label>
+                    <label className="block text-xs font-mono font-bold uppercase text-white/80 mb-1.5">2. Ниша:</label>
                     <select 
                       value={formNiche}
                       onChange={(e) => setFormNiche(e.target.value)}
@@ -1444,7 +2082,7 @@ const RevoAlternativeLanding = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-mono font-bold uppercase text-white/60 mb-1.5">3. Локация (Город / Район):</label>
+                    <label className="block text-xs font-mono font-bold uppercase text-white/80 mb-1.5">3. Локация (Город / Район):</label>
                     <input 
                       type="text" 
                       required
@@ -1456,7 +2094,7 @@ const RevoAlternativeLanding = () => {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-mono font-bold uppercase text-white/60 mb-1.5">4. WhatsApp / Telegram:</label>
+                    <label className="block text-xs font-mono font-bold uppercase text-white/80 mb-1.5">4. WhatsApp / Telegram:</label>
                     <input 
                       type="text" 
                       required

@@ -324,6 +324,7 @@ function App() {
           <Route path="/outreach-v2" element={<RevoAlternativeLanding />} />
           <Route path="/outreach2" element={<RevoAlternativeLanding />} />
           <Route path="/revo-alt" element={<RevoAlternativeLanding />} />
+          <Route path="/maps" element={<RevoAlternativeLanding />} />
           <Route path="/legacy/b2c" element={<RevooB2C />} />
           <Route path="/map" element={<PartnerMap />} />
 

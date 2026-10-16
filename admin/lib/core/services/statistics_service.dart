@@ -5,7 +5,7 @@ import 'package:friendly_code/core/models/visit_model.dart';
 class StatisticsService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Future<VenueStats> calculateVenueStats(String venueId) async {
+  Future<VenueStats> calculateVenueStats(String venueId, {DateTime? selectedMonth}) async {
     // 1. Fetch ALL visits for venue (Scans + Redeems)
     final visitsSnap = await _firestore
         .collection('visits')
@@ -14,83 +14,100 @@ class StatisticsService {
 
     final allVisits = visitsSnap.docs.map((d) => VisitModel.fromMap(d.id, d.data())).toList();
 
-    // 2. Filter by status/type
-    // Scans are 'completed' and 'type: scan'
-    // Redemptions are 'approved' and 'type: redeem'
-    final scans = allVisits.where((v) => v.type == 'scan').toList();
-    final redemptions = allVisits.where((v) => v.type == 'redeem' && v.status == 'approved').toList();
+    return calculateStatsFromVisits(allVisits, selectedMonth: selectedMonth);
+  }
 
+  VenueStats calculateStatsFromVisits(List<VisitModel> allVisits, {DateTime? selectedMonth}) {
     if (allVisits.isEmpty) {
       return VenueStats(avgReturnHours: 0, totalCheckins: 0);
     }
 
-    // 3. Basic Counts (Total Scans)
-    final totalCheckins = scans.length;
-    
-    // 4. Monthly Active Users (calculated from anyone who scanned/visited)
-    final now = DateTime.now();
-    final startOfMonth = DateTime(now.year, now.month, 1);
-    final visitsThisMonth = allVisits.where((v) => v.timestamp.isAfter(startOfMonth));
-    final monthlyActiveUsers = visitsThisMonth.map((v) => v.guestId).toSet().length;
+    // Filter by selected month if provided
+    List<VisitModel> inScopeVisits;
+    if (selectedMonth != null) {
+      final startOfMonth = DateTime(selectedMonth.year, selectedMonth.month, 1);
+      final endOfMonth = DateTime(selectedMonth.year, selectedMonth.month + 1, 0, 23, 59, 59);
+      inScopeVisits = allVisits.where((v) {
+        return v.timestamp.isAfter(startOfMonth.subtract(const Duration(seconds: 1))) &&
+            v.timestamp.isBefore(endOfMonth.add(const Duration(seconds: 1)));
+      }).toList();
+    } else {
+      inScopeVisits = allVisits;
+    }
 
-    // 5. Avg Discount (calculated from all visits with recorded discount or defaulting to at least base discount)
+    // 1. Total Scans in period
+    final scans = inScopeVisits.where((v) => v.type == 'scan').toList();
+    final totalCheckins = scans.length;
+
+    // 2. Active Guests in period
+    final uniqueGuestsInScope = inScopeVisits
+        .map((v) => v.guestId)
+        .where((uid) => uid.isNotEmpty && uid != 'anonymous')
+        .toSet();
+    final monthlyActiveUsers = uniqueGuestsInScope.length;
+
+    // 3. Avg Discount in period
     double totalDiscount = 0;
     int countWithDiscount = 0;
-    for (var v in allVisits) {
-      final val = v.discountValue > 0 ? v.discountValue : 5; // fallback to base tier 5% if unspecified
+    for (var v in inScopeVisits) {
+      final val = v.discountValue > 0 ? v.discountValue.toDouble() : 5.0;
       totalDiscount += val;
       countWithDiscount++;
     }
     final avgDiscount = countWithDiscount > 0 ? (totalDiscount / countWithDiscount) : 0.0;
 
-    // 5. Avg Return Time (Logic from before or simplified)
-    // Group by guest
-    Map<String, List<VisitModel>> guestVisits = {};
+    // 4. Return Intervals & Retention
+    Map<String, List<VisitModel>> allGuestVisits = {};
     for (var v in allVisits) {
-      guestVisits.putIfAbsent(v.guestId, () => []).add(v);
+      final uid = v.guestId;
+      if (uid.isEmpty || uid == 'anonymous') continue;
+      allGuestVisits.putIfAbsent(uid, () => []).add(v);
     }
 
-    // Calculate return times
     List<double> returnIntervals = [];
-    guestVisits.forEach((guestId, gVisits) {
-      gVisits.sort((a, b) => a.timestamp.compareTo(b.timestamp)); // Sort by time
+    allGuestVisits.forEach((guestId, gVisits) {
+      gVisits.sort((a, b) => a.timestamp.compareTo(b.timestamp));
       for (int i = 1; i < gVisits.length; i++) {
         final diff = gVisits[i].timestamp.difference(gVisits[i - 1].timestamp).inHours;
         returnIntervals.add(diff.toDouble());
       }
     });
 
-    final avgReturn = returnIntervals.isEmpty 
-        ? 0.0 
+    final avgReturn = returnIntervals.isEmpty
+        ? 0.0
         : returnIntervals.reduce((a, b) => a + b) / returnIntervals.length;
 
-    // 6. Retention Rate (Recurring Guests / Total Guests)
-    final totalGuests = guestVisits.length;
-    final recurringGuests = guestVisits.values.where((list) => list.length > 1).length;
-    final retentionRate = totalGuests > 0 ? (recurringGuests / totalGuests) * 100 : 0.0;
+    // Retention Rate: for selected month, fraction of active guests who have >= 2 lifetime visits
+    int recurringCount = 0;
+    for (var guestId in uniqueGuestsInScope) {
+      final history = allGuestVisits[guestId] ?? [];
+      if (history.length > 1) {
+        recurringCount++;
+      }
+    }
+    final totalScopeGuests = uniqueGuestsInScope.length;
+    final retentionRate = totalScopeGuests > 0 ? (recurringCount / totalScopeGuests) * 100 : 0.0;
 
-    // --- SEGMENTATION ---
-    int newGuests = 0;      // New: <= 2 visits
-    int regularGuests = 0;  // Regular (Постоянные): >= 3 visits
-    int lostGuests = 0;     // Lost (Потерянные): no visit in last 14 days
+    // 5. Segmentation
+    final now = DateTime.now();
+    int newGuests = 0;
+    int regularGuests = 0;
+    int lostGuests = 0;
 
-    guestVisits.forEach((guestId, history) {
+    for (var guestId in uniqueGuestsInScope) {
+      final history = allGuestVisits[guestId] ?? [];
       final totalVisitsCount = history.length;
-      final lastVisit = history.last.timestamp;
+      final lastVisit = history.isNotEmpty ? history.last.timestamp : now;
       final daysSinceLastVisit = now.difference(lastVisit).inDays;
 
-      // 1. Lost check (>14 days without visit)
       if (daysSinceLastVisit >= 14) {
         lostGuests++;
-      }
-
-      // 2. New vs Regular check
-      if (totalVisitsCount <= 2) {
+      } else if (totalVisitsCount <= 2) {
         newGuests++;
       } else {
         regularGuests++;
       }
-    });
+    }
 
     return VenueStats(
       avgReturnHours: avgReturn,
@@ -99,7 +116,7 @@ class StatisticsService {
       avgDiscount: avgDiscount,
       retentionRate: retentionRate,
       newGuestsCount: newGuests,
-      vipGuestsCount: regularGuests, // Regular / Constant guests mapped to VIP field
+      vipGuestsCount: regularGuests,
       lostGuestsCount: lostGuests,
     );
   }

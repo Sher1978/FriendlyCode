@@ -41,8 +41,7 @@ const GoogleLeadCapture = () => {
     });
 
     React.useEffect(() => {
-        // ALWAYS mark as Google Maps funnel when in GoogleLeadCapture
-        safeStorage.setItem('fromGoogleMaps', 'true');
+        // Mark as Google Maps funnel for this session
         safeSessionStorage.setItem('fromGoogleMaps', 'true');
 
         if (location.state?.returnTo) {
@@ -423,7 +422,6 @@ const GoogleLeadCapture = () => {
         // Persist redirect & funnel flags BEFORE triggering auth
         safeSessionStorage.setItem('googleRedirectStarted', 'true');
         safeStorage.setItem('googleRedirectStarted', 'true');
-        safeStorage.setItem('fromGoogleMaps', 'true');
         safeSessionStorage.setItem('fromGoogleMaps', 'true');
 
         try {

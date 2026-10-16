@@ -81,7 +81,6 @@ const SmartWelcomeScreen = () => {
     const lng = searchParams.get('lng');
 
     const handleClaimGift = () => {
-        safeStorage.setItem('fromGoogleMaps', 'true');
         safeSessionStorage.setItem('fromGoogleMaps', 'true');
         safeStorage.setItem('currentVenueId', venueId);
         navigate(`/google-activate?venueId=${venueId}`, {

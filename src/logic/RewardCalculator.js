@@ -25,13 +25,13 @@ export class RewardCalculator {
      * @param {boolean} isDayActive - true if the user already activated a visit TODAY.
      * @param {boolean} hasLockedDiscount - true if user has a pinned/locked deposit discount.
      */
-    static calculate(lastVisitDateStr, currentTime, config, venueTimezone = 'Asia/Dubai', isDayActive = false, hasLockedDiscount = false, baseDiscountFallback = 5) {
-        // If user has a locked deposit discount, return highest deposit tier
+    static calculate(lastVisitDateStr, currentTime, config, venueTimezone = 'Asia/Dubai', isDayActive = false, hasLockedDiscount = false, baseDiscountFallback = 5, depositBalance = 0) {
+        // If user has a locked deposit discount AND depositBalance > 0, return deposit discount
         const lockedDiscountAmount = Array.isArray(config) 
-            ? Math.max(...config.map(t => Number(t.percentage || t.percent || 0)).filter(p => p > 0), 25)
-            : Number(config?.percDeposit ?? 25);
+            ? Math.max(...config.map(t => Number(t.percentage || t.percent || 0)).filter(p => p > 0), 10)
+            : Number(config?.percDeposit ?? 10);
             
-        if (hasLockedDiscount) {
+        if (hasLockedDiscount && Number(depositBalance) > 0) {
             return {
                 discount: lockedDiscountAmount,
                 status: 'deposit',

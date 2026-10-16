@@ -120,8 +120,15 @@ service cloud.firestore {
     match /scheduled_vouchers/{voucherId} {
       allow read, write, create, update, delete: if isAuthenticated();
     }
+
+    // 12. Scans Log Collection (Audit & Journal)
+    match /scans_log/{scanId} {
+      allow create: if true;
+      allow read, update, delete: if isAuthenticated();
+    }
   }
 }
+
 
 
 

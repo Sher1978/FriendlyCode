@@ -463,7 +463,7 @@ const TestQRPage = () => {
                             lastVisitDateStr = uniqueDays[0].dateStr;
                         }
 
-                        result = RewardCalculator.calculate(lastVisitDateStr, now, venueData.loyaltyConfig, tz, isDayActive, userProfile?.hasLockedDiscount || false, venueData.baseDiscount || 5);
+                        result = RewardCalculator.calculate(lastVisitDateStr, now, venueData.loyaltyConfig, tz, isDayActive, (userProfile?.hasLockedDiscount || false) && Number(depositBalance) > 0, venueData.baseDiscount || 5, depositBalance);
                         calculatedDiscount = result.discount;
 
                         const todayVisitsDocs = visitDocs.filter(d => {
@@ -511,9 +511,38 @@ const TestQRPage = () => {
 
                         if (result.status === 'cooldown') setCooldown({ hoursPassed: result.hoursPassed, required: venueData.loyaltyConfig?.safetyCooldownHours || 12 });
                     } else {
-                        result = RewardCalculator.calculate(null, now, venueData.loyaltyConfig, tz, false, userProfile?.hasLockedDiscount || false, venueData.baseDiscount || 5);
+                        result = RewardCalculator.calculate(null, now, venueData.loyaltyConfig, tz, false, (userProfile?.hasLockedDiscount || false) && Number(depositBalance) > 0, venueData.baseDiscount || 5, depositBalance);
                         calculatedDiscount = result.discount;
                         debugInfo.diffDays = result.diffDays ?? 'N/A';
+                    }
+
+                    // Helper to get VIP Max Visit Tier ONLY (never deposit)
+                    const getMaxVipVisitDiscount = (cfg, tiers) => {
+                        if (cfg && typeof cfg === 'object') {
+                            if (Array.isArray(cfg)) {
+                                const percs = cfg.map(t => Number(t.percentage || t.percent || 0)).filter(p => p > 0);
+                                if (percs.length > 0) return Math.max(...percs);
+                            } else {
+                                if (cfg.percVip && Number(cfg.percVip) > 0) return Number(cfg.percVip);
+                                if (Array.isArray(cfg.decayStages) && cfg.decayStages.length > 0) {
+                                    const percs = cfg.decayStages.map(s => Number(s.discount || 0)).filter(p => p > 0);
+                                    if (percs.length > 0) return Math.max(...percs, Number(cfg.percBase || 3));
+                                }
+                                if (cfg.percBase) return Number(cfg.percBase);
+                            }
+                        }
+                        if (Array.isArray(tiers) && tiers.length > 0) {
+                            const percs = tiers.map(t => Number(t.percentage || t.percent || 0)).filter(p => p > 0);
+                            if (percs.length > 0) return Math.max(...percs);
+                        }
+                        return 7;
+                    };
+
+                    // Override discount ONLY if Google Maps promotion is active AND no active deposit
+                    if (isGoogleMaps && Number(depositBalance) <= 0) {
+                        calculatedDiscount = getMaxVipVisitDiscount(venueData.loyaltyConfig, venueData.tiers);
+                        result = result || {};
+                        result.status = 'google_maps_bonus';
                     }
 
                     if (venueId && venueId !== 'demo' && user) {
@@ -528,8 +557,48 @@ const TestQRPage = () => {
                                 uid: user.uid,
                                 userId: user.uid,
                                 timestamp: serverTimestamp(),
-                                source: 'qr_scan_auto'
+                                source: isGoogleMaps ? 'google_maps_auto' : 'qr_scan_auto'
                             }).catch(err => console.warn("Auto visit log error:", err));
+                        }
+
+                        // Audit Log for SuperAdmin Registrations/Scans Journal
+                        const scanLogKey = `scan_logged_${venueId}_${user.uid}_${todayStr}_${isGoogleMaps ? 'gm' : 'qr'}`;
+                        if (!safeSessionStorage.getItem(scanLogKey)) {
+                            safeSessionStorage.setItem(scanLogKey, 'true');
+                            
+                            const hasDep = Number(depositBalance) > 0;
+                            let dTypeLabel = 'Тир 1 (Базовая)';
+                            if (hasDep) {
+                                dTypeLabel = `Депозит (${calculatedDiscount}%)`;
+                            } else if (isGoogleMaps) {
+                                dTypeLabel = `Google Maps Bonus (${calculatedDiscount}%)`;
+                            } else if (result?.status === 'vip' || calculatedDiscount === venueData?.loyaltyConfig?.percVip) {
+                                dTypeLabel = `Тир 3 (VIP ${calculatedDiscount}%)`;
+                            } else if (result?.status === 'decay1' || result?.status === 'decay2') {
+                                dTypeLabel = `Тир 2 (Средняя ${calculatedDiscount}%)`;
+                            } else {
+                                dTypeLabel = `Тир 1 (Базовая ${calculatedDiscount}%)`;
+                            }
+
+                            const linkTypeStr = isGoogleMaps ? 'google_maps' : (searchParams.get('source') || searchParams.get('utm_source') || 'qr_venue');
+                            const linkTypeLabelStr = isGoogleMaps ? 'куар гугл мапс' : (searchParams.get('source') === 'nfc' ? 'NFC метка' : 'куар заведения');
+
+                            addDoc(collection(db, 'scans_log'), {
+                                userName: guestName || userData?.displayName || userData?.name || 'Гость',
+                                userEmail: (email || userData?.email || safeStorage.getItem('guestEmail') || 'guest').toLowerCase(),
+                                userId: user.uid,
+                                venueId: venueId,
+                                venueName: venueData?.name || 'Заведение',
+                                linkType: linkTypeStr,
+                                linkTypeLabel: linkTypeLabelStr,
+                                timestamp: serverTimestamp(),
+                                lastVisitDate: debugInfo?.lastVisitDisplay || 'Никогда',
+                                discount: calculatedDiscount,
+                                discountType: dTypeLabel,
+                                depositBalance: depositBalance || 0,
+                                rawParams: window.location.search || location.search || '',
+                                createdAtIso: new Date().toISOString()
+                            }).catch(err => console.warn("Scan log save error:", err));
                         }
                     }
 
