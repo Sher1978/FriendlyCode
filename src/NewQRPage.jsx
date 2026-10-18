@@ -1014,7 +1014,7 @@ const NewQRPage = () => {
             type: 'regular',
             badge: t('badge_regular', { tier: tierName, defaultValue: `🔄 Regular (${tierName})` }),
             title: t('title_regular', { tier: tierName, defaultValue: `Regular Loyalty (${tierName})` }),
-            subtitle: t('subtitle_regular', 'Визит завтра (до 48ч) заряжает батарею на максимум! Регулярные визиты сохраняют скидку.'),
+            subtitle: t('subtitle_regular', 'Ваша скидка на следующий заказ — максимальная! Повторите визит завтра, чтобы не потерять её.'),
             color: batCfg.fillColor || '#00FF41',
             bgClass: 'from-[#00FF41]/20 via-[#00FF41]/5 to-black/40',
             borderClass: 'border-[#00FF41]/30',
@@ -1507,10 +1507,10 @@ const NewQRPage = () => {
                             </div>
 
                             <div className="text-base font-black text-white mb-1.5 leading-snug">
-                                {t('offer_return_tomorrow_title', { percent: maxDiscount, defaultValue: `Зарядите батарею до максимума ${maxDiscount}% завтра!` })}
+                                {t('offer_return_tomorrow_title', { percent: maxDiscount, defaultValue: `Ваша скидка на завтра — ${maxDiscount}%!` })}
                             </div>
                             <p className="text-[11px] font-medium text-white/70 leading-relaxed mb-4">
-                                {t('offer_return_tomorrow_sub', 'Приходите завтра (до 48ч) или закажите доставку — батарея зарядится до максимального Тира 3! Регулярные визиты сохраняют полный заряд.')}
+                                {t('offer_return_tomorrow_sub', 'Спасибо за визит сегодня! Ваша скидка на следующий заказ — максимальная (Тир 3)! Повторите заказ завтра, чтобы не потерять её!')}
                             </p>
 
                             {/* 2-Column Tomorrow Discount & Timer Display */}
@@ -1567,7 +1567,7 @@ const NewQRPage = () => {
                             </div>
 
                             <p className="text-[11px] font-medium text-white/40 text-center px-4 leading-relaxed tracking-wider py-2">
-                                {t('timeline_motivation', 'Визит завтра заряжает батарею до максимума. Регулярные визиты сохраняют скидку, а при долгих паузах заряд тает!')}
+                                {t('timeline_motivation', 'Ваша скидка на следующий визит — максимальная! Повторите заказ завтра, чтобы не дать батарее разрядиться!')}
                             </p>
                         </>
                     )}

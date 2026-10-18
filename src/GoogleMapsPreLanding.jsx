@@ -1247,11 +1247,11 @@ const GoogleMapsPreLanding = () => {
                   Скидка ДО {maxPossibleDiscount}%
                 </span>
                 <span className="text-emerald-300 font-bold text-[11px]">
-                  • Ваша скидка — это батарея!
+                  • Заряжайте Вашу скидку покупками!
                 </span>
               </div>
               <p className="text-[11px] text-gray-300 leading-tight">
-                Первый заказ активирует скидку, а заказ завтра (до 48ч) заряжает батарею сразу до максимума ({maxPossibleDiscount}%)! Регулярные заказы сохраняют максимальный заряд.
+                Заказ сегодня открывает максимальную скидку (Тир 3) на следующий заказ! Повторите заказ завтра, чтобы не потерять её.
               </p>
             </div>
             <button 
@@ -1288,7 +1288,7 @@ const GoogleMapsPreLanding = () => {
               <p className="text-[11px] text-gray-300 leading-tight">
                 {depositBalance > 0 
                   ? `💰 Депозит: ${formatPrice(depositBalance, venueCurrency)} — вечный 100% заряд батареи!` 
-                  : 'Повторный заказ в течение 7 дней сохраняет полный заряд и максимальную скидку!'}
+                  : 'Спасибо за заказ сегодня! Ваша скидка на следующий заказ — максимальная (Тир 3)! Повторите заказ завтра, чтобы не потерять её!'}
               </p>
               {activeHappyHour && (
                 <div className="text-orange-400 font-bold text-[11px] flex items-center gap-1">
@@ -1854,7 +1854,7 @@ const GoogleMapsPreLanding = () => {
                   <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-2.5 text-[11px] text-emerald-300 flex items-center gap-2 mt-2">
                     <span className="text-base shrink-0">🔋</span>
                     <span className="leading-tight">
-                      <strong>Этот заказ заряжает батарею:</strong> сделайте следующий заказ завтра (до 48ч) и получите максимальную скидку до {maxPossibleDiscount}%!
+                      <strong>Спасибо за заказ сегодня!</strong> Ваша скидка на следующий заказ — максимальная (Тир 3)! Повторите заказ завтра, чтобы не потерять её!
                     </span>
                   </div>
                 </div>
@@ -1920,13 +1920,13 @@ const GoogleMapsPreLanding = () => {
                 <div className="flex items-start gap-2.5">
                   <span className="text-base shrink-0">🔋</span>
                   <span className="text-gray-300 text-[11.5px] leading-snug">
-                    <strong className="text-emerald-400">Как зарядить на максимум:</strong> Первый заказ дает базовую скидку, а повторный заказ завтра (до 48ч) заряжает батарею сразу до максимума ({maxPossibleDiscount}%)!
+                    <strong className="text-emerald-400">Скидка на следующий заказ:</strong> Заказ сегодня активирует для вас максимальную скидку (Тир 3) на следующий заказ!
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-base shrink-0">⚡</span>
                   <span className="text-gray-300 text-[11.5px] leading-snug">
-                    <strong className="text-amber-300">Как сохранить заряд:</strong> Регулярные заказы удерживают максимальную скидку. Если долго не заказывать — заряд батареи начинает таять.
+                    <strong className="text-amber-300">Не дайте скидке сгореть:</strong> Повторите заказ завтра, чтобы не потерять её! Если пропустить день, заряд батареи начнет таять.
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">
@@ -2276,7 +2276,7 @@ const GoogleMapsPreLanding = () => {
                   {depositBalance > 0 ? (
                     <span>💰 <strong className="text-amber-300">Депозит активен:</strong> максимальный 100% заряд батареи закреплен навсегда!</span>
                   ) : (
-                    <span>⚡ <strong className="text-emerald-400">Правило батареи:</strong> Заказ завтра (до 48ч) заряжает батарею на максимум. Регулярные заказы сохраняют 100% заряд, а при долгих паузах скидка начинает таять.</span>
+                    <span>⚡ <strong className="text-emerald-400">Правило батареи:</strong> Заказ сегодня активирует максимальную скидку (Тир 3) на следующий заказ. Повторите заказ завтра, чтобы не потерять её!</span>
                   )}
                 </div>
                 {depositBalance > 0 && (
@@ -2340,10 +2340,10 @@ const GoogleMapsPreLanding = () => {
               {/* Battery Charge Success Soundbite */}
               <div className="bg-emerald-950/50 border border-emerald-500/40 rounded-2xl p-3 text-xs text-emerald-300 space-y-1">
                 <div className="font-black text-white flex items-center justify-center gap-1.5">
-                  <span>🔋</span> Батарея заряжается покупками!
+                  <span>🔋</span> Батарея заряжена на максимум!
                 </div>
                 <p className="text-[11px] text-gray-300 leading-tight">
-                  Повторите заказ завтра (до 48ч) — и ваша скидка вырастет до максимального Тира 3! Регулярные заказы сохраняют максимальную скидку.
+                  Спасибо за заказ сегодня! Ваша скидка на следующий заказ — максимальная (Тир 3)! Повторите заказ завтра, чтобы не потерять её!
                 </p>
               </div>
 
