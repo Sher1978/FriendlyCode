@@ -787,9 +787,11 @@ const GoogleMapsPreLanding = () => {
       const cleanName = guestName.trim() || 'Гость';
       const cleanPhone = guestPhone.trim() || '';
 
+      const isTestUser = cleanName.toLowerCase().includes('test') || cleanName.toLowerCase().includes('sherlock') || cleanPhone.includes('999 8888');
       const userData = {
         name: cleanName,
         phone: cleanPhone,
+        ...(isTestUser ? { isTestUser: true } : {}),
         updatedAt: serverTimestamp(),
         lastVisitVenueId: venueId
       };

@@ -2178,7 +2178,21 @@ exports.onUserCreated = onDocumentCreated("users/{uid}", async (event) => {
     // 2. Notify Super Admin
     if (SUPER_ADMIN_CHAT_ID === "YOUR_SUPER_ADMIN_CHAT_ID") return; // Skip if not configured
 
-    const message = `🚀 <b>Новый пользователь!</b>\n\n👤 ${data.name || "No Name"}\n📧 ${data.email || "No Email"}`;
+    // Filter out automated Playwright / E2E test users so they don't spam SuperAdmin Telegram
+    const nameLower = (data.name || "").toLowerCase();
+    if (data.isTestUser || nameLower.includes("test") || nameLower.includes("sherlock holmes") || (data.phone && data.phone.includes("999 8888"))) {
+        logger.info(`Skipping SuperAdmin Telegram alert for test user: ${data.name} (${data.phone || data.email})`);
+        return;
+    }
+
+    const contactLines = [];
+    if (data.phone) contactLines.push(`📱 Телефон: ${data.phone}`);
+    if (data.email) contactLines.push(`📧 Email: ${data.email}`);
+    if (data.telegram) contactLines.push(`✈️ Telegram: ${data.telegram}`);
+    if (contactLines.length === 0) contactLines.push(`⚠️ Контакты не указаны`);
+
+    const venueLine = data.lastVisitVenueId ? `\n📍 Заведение: ${data.lastVisitVenueId}` : '';
+    const message = `🚀 <b>Новый пользователь!</b>\n\n👤 ${data.name || "Без имени"}\n${contactLines.join('\n')}${venueLine}`;
     await sendTelegramMessage(SUPER_ADMIN_CHAT_ID, message);
 });
 
