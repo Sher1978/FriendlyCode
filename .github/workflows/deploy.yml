@@ -37,15 +37,11 @@ jobs:
           mkdir -p dist/admin
           cp -r admin/build/web/* dist/admin/
         
-      - name: Install Functions Dependencies
-        run: npm install --prefix functions
-
-      - name: Deploy to Firebase Hosting and Firestore Rules
+      - name: Deploy to Firebase Hosting
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_BOT_LAB_21910 }}' > gcp-key.json
           export GOOGLE_APPLICATION_CREDENTIALS=gcp-key.json
-          OUTPUT=$(npx --yes firebase-tools deploy --only hosting,firestore:rules --project bot-lab-21910 --non-interactive 2>&1) && EXIT_CODE=0 || EXIT_CODE=$?
-          npx --yes firebase-tools deploy --only functions --project bot-lab-21910 --non-interactive || echo "Functions deployment note: verified."
+          OUTPUT=$(npx --yes firebase-tools deploy --only hosting --project bot-lab-21910 --non-interactive 2>&1) && EXIT_CODE=0 || EXIT_CODE=$?
           rm -f gcp-key.json
           echo "$OUTPUT"
           if [ $EXIT_CODE -ne 0 ]; then
@@ -55,4 +51,5 @@ jobs:
             fi
             exit $EXIT_CODE
           fi
+
 
