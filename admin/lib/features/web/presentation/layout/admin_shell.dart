@@ -38,6 +38,7 @@ import 'package:friendly_code/features/owner/presentation/screens/owner_venues_s
 import 'package:friendly_code/features/owner/presentation/screens/pos_sticker_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/rules_config_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/settings_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/venue_regional_settings_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/venue_staff_screen.dart';
 
 /// Scope to allow nested widgets to switch the active AdminShell tab
@@ -425,6 +426,19 @@ class _AdminShellState extends State<AdminShell> {
           } else {
             return const MyTeamScreen();
           }
+        },
+        isVisible: (role) => true,
+      ),
+      AdminNavItem(
+        key: 'regional_settings',
+        title: 'Venue Settings',
+        titleRu: 'Настройки заведения',
+        icon: CupertinoIcons.slider_horizontal_3,
+        builder: (context, venueId) {
+          if (venueId == null || venueId.isEmpty) {
+            return _buildNoVenuePlaceholder(context);
+          }
+          return VenueRegionalSettingsScreen(venueId: venueId);
         },
         isVisible: (role) => true,
       ),

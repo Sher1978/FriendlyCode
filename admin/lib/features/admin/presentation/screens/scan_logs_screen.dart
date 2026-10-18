@@ -15,6 +15,15 @@ class _ScanLogsScreenState extends State<ScanLogsScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _searchQuery = "";
   String _filterLinkType = "all"; // "all", "venue_qr", "google_maps"
+  int? _sortColumnIndex;
+  bool _sortAscending = true;
+
+  void _onSort(int columnIndex, bool ascending) {
+    setState(() {
+      _sortColumnIndex = columnIndex;
+      _sortAscending = ascending;
+    });
+  }
 
   @override
   void initState() {
@@ -336,6 +345,57 @@ class _ScanLogsScreenState extends State<ScanLogsScreen> {
 
     final DateFormat formatter = DateFormat('dd.MM.yyyy HH:mm:ss');
 
+    final sortedDocs = List<QueryDocumentSnapshot>.from(docs);
+    if (_sortColumnIndex != null) {
+      sortedDocs.sort((a, b) {
+        final dataA = a.data() as Map<String, dynamic>;
+        final dataB = b.data() as Map<String, dynamic>;
+        int cmp = 0;
+        switch (_sortColumnIndex) {
+          case 0: // ПОЛЬЗОВАТЕЛЬ
+            final nameA = (dataA['userName'] ?? dataA['userEmail'] ?? '').toString().toLowerCase();
+            final nameB = (dataB['userName'] ?? dataB['userEmail'] ?? '').toString().toLowerCase();
+            cmp = nameA.compareTo(nameB);
+            break;
+          case 1: // ЗАВЕДЕНИЕ
+            final venueA = (dataA['venueName'] ?? '').toString().toLowerCase();
+            final venueB = (dataB['venueName'] ?? '').toString().toLowerCase();
+            cmp = venueA.compareTo(venueB);
+            break;
+          case 2: // ВИД ССЫЛКИ
+            final isMapsA = dataA['fromGoogleMaps'] == true ? 1 : 0;
+            final isMapsB = dataB['fromGoogleMaps'] == true ? 1 : 0;
+            cmp = isMapsA.compareTo(isMapsB);
+            break;
+          case 3: // ВРЕМЯ СКАНИРОВАНИЯ
+            final tsA = dataA['timestamp'];
+            final tsB = dataB['timestamp'];
+            if (tsA is Timestamp && tsB is Timestamp) {
+              cmp = tsA.compareTo(tsB);
+            } else {
+              cmp = (tsA?.toString() ?? '').compareTo(tsB?.toString() ?? '');
+            }
+            break;
+          case 4: // ПОСЛЕДНИЙ ВИЗИТ
+            final lvA = (dataA['lastSeen'] ?? '').toString();
+            final lvB = (dataB['lastSeen'] ?? '').toString();
+            cmp = lvA.compareTo(lvB);
+            break;
+          case 5: // СКИДКА
+            final dscA = (dataA['appliedDiscount'] as num? ?? 0).toDouble();
+            final dscB = (dataB['appliedDiscount'] as num? ?? 0).toDouble();
+            cmp = dscA.compareTo(dscB);
+            break;
+          case 6: // ДЕПОЗИТ
+            final depA = (dataA['depositBalance'] as num? ?? 0).toDouble();
+            final depB = (dataB['depositBalance'] as num? ?? 0).toDouble();
+            cmp = depA.compareTo(depB);
+            break;
+        }
+        return _sortAscending ? cmp : -cmp;
+      });
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -347,21 +407,23 @@ class _ScanLogsScreenState extends State<ScanLogsScreen> {
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: DataTable(
+            sortColumnIndex: _sortColumnIndex,
+            sortAscending: _sortAscending,
             headingRowColor: WidgetStateProperty.all(Colors.white.withOpacity(0.04)),
             dataRowMaxHeight: 72,
             horizontalMargin: 24,
             columnSpacing: 28,
-            columns: const [
-              DataColumn(label: Text("ПОЛЬЗОВАТЕЛЬ", style: _headerStyle)),
-              DataColumn(label: Text("ЗАВЕДЕНИЕ", style: _headerStyle)),
-              DataColumn(label: Text("ВИД ССЫЛКИ", style: _headerStyle)),
-              DataColumn(label: Text("ВРЕМЯ СКАНИРОВАНИЯ", style: _headerStyle)),
-              DataColumn(label: Text("ПОСЛЕДНИЙ ВИЗИТ", style: _headerStyle)),
-              DataColumn(label: Text("СКИДКА", style: _headerStyle)),
-              DataColumn(label: Text("ДЕПОЗИТ", style: _headerStyle)),
-              DataColumn(label: Text("СЫРЫЕ ДАННЫЕ", style: _headerStyle)),
+            columns: [
+              DataColumn(label: const Text("ПОЛЬЗОВАТЕЛЬ", style: _headerStyle), onSort: _onSort),
+              DataColumn(label: const Text("ЗАВЕДЕНИЕ", style: _headerStyle), onSort: _onSort),
+              DataColumn(label: const Text("ВИД ССЫЛКИ", style: _headerStyle), onSort: _onSort),
+              DataColumn(label: const Text("ВРЕМЯ СКАНИРОВАНИЯ", style: _headerStyle), onSort: _onSort),
+              DataColumn(label: const Text("ПОСЛЕДНИЙ ВИЗИТ", style: _headerStyle), onSort: _onSort),
+              DataColumn(label: const Text("СКИДКА", style: _headerStyle), onSort: _onSort),
+              DataColumn(label: const Text("ДЕПОЗИТ", style: _headerStyle), onSort: _onSort),
+              const DataColumn(label: Text("СЫРЫЕ ДАННЫЕ", style: _headerStyle)),
             ],
-            rows: docs.map((doc) {
+            rows: sortedDocs.map((doc) {
               final data = doc.data() as Map<String, dynamic>;
 
               final userName = data['userName'] ?? 'Гость';

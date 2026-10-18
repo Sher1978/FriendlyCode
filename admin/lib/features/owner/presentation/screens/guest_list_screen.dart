@@ -48,6 +48,12 @@ class _GuestListScreenState extends State<GuestListScreen> {
 
   DateTime _selectedMonth = DateTime(DateTime.now().year, DateTime.now().month);
 
+  int _guestSortColumnIndex = 6;
+  bool _guestSortAscending = false;
+
+  int _scanSortColumnIndex = 0;
+  bool _scanSortAscending = false;
+
   @override
   void initState() {
     super.initState();
@@ -981,6 +987,45 @@ class _GuestListScreenState extends State<GuestListScreen> {
     Map<String, List<Map<String, dynamic>>> guestVisits,
     Map<String, Map<String, dynamic>> userProfiles,
   ) {
+    final sortedGuests = List<LeadModel>.from(guests);
+    sortedGuests.sort((a, b) {
+      int result = 0;
+      final aVisits = guestVisits[a.guestId] ?? [];
+      final bVisits = guestVisits[b.guestId] ?? [];
+      final aProfile = userProfiles[a.guestId];
+      final bProfile = userProfiles[b.guestId];
+
+      switch (_guestSortColumnIndex) {
+        case 0:
+          result = a.guestName.toLowerCase().compareTo(b.guestName.toLowerCase());
+          break;
+        case 1:
+          result = a.guestContact.toLowerCase().compareTo(b.guestContact.toLowerCase());
+          break;
+        case 2:
+          result = (a.status).compareTo(b.status);
+          break;
+        case 3:
+          result = aVisits.length.compareTo(bVisits.length);
+          break;
+        case 4:
+          final aDisc = _calculateAvgDiscount(a.guestId, aVisits, aProfile);
+          final bDisc = _calculateAvgDiscount(b.guestId, bVisits, bProfile);
+          result = aDisc.compareTo(bDisc);
+          break;
+        case 5:
+          final aDep = (aProfile?['deposit_balance'] as num?)?.toDouble() ?? (aProfile?['balance'] as num?)?.toDouble() ?? 0.0;
+          final bDep = (bProfile?['deposit_balance'] as num?)?.toDouble() ?? (bProfile?['balance'] as num?)?.toDouble() ?? 0.0;
+          result = aDep.compareTo(bDep);
+          break;
+        case 6:
+        default:
+          result = a.createdAt.compareTo(b.createdAt);
+          break;
+      }
+      return _guestSortAscending ? result : -result;
+    });
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Container(
@@ -1001,64 +1046,94 @@ class _GuestListScreenState extends State<GuestListScreen> {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              headingRowColor: WidgetStateProperty.all(const Color(0xFF2C2C2E)),
-              dataRowColor: WidgetStateProperty.all(const Color(0xFF1C1C1E)),
-              border: TableBorder(
-                horizontalInside: BorderSide(color: Colors.white.withOpacity(0.06), width: 1),
-              ),
-              dataRowMinHeight: 68,
-              dataRowMaxHeight: 74,
-              columns: const [
-                DataColumn(
-                  label: Text(
-                    "ИМЯ ГОСТЯ",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  sortColumnIndex: _guestSortColumnIndex,
+                  sortAscending: _guestSortAscending,
+                  headingRowColor: WidgetStateProperty.all(const Color(0xFF2C2C2E)),
+                  dataRowColor: WidgetStateProperty.all(const Color(0xFF1C1C1E)),
+                  border: TableBorder(
+                    horizontalInside: BorderSide(color: Colors.white.withOpacity(0.06), width: 1),
                   ),
-                ),
-                DataColumn(
-                  label: Text(
-                    "КОНТАКТЫ",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    "СТАТУС",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    "ВИЗИТЫ",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    "СРЕДНЯЯ СКИДКА",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    "ДЕПОЗИТ",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    "ПОСЛЕДНИЙ ВИЗИТ",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    "ДЕЙСТВИЯ",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
-                  ),
-                ),
-              ],
-              rows: guests.map((guest) {
+                  dataRowMinHeight: 68,
+                  dataRowMaxHeight: 74,
+                  columns: [
+                    DataColumn(
+                      label: const Text(
+                        "ИМЯ ГОСТЯ",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                      onSort: (col, asc) => setState(() {
+                        _guestSortColumnIndex = col;
+                        _guestSortAscending = asc;
+                      }),
+                    ),
+                    DataColumn(
+                      label: const Text(
+                        "КОНТАКТЫ",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                      onSort: (col, asc) => setState(() {
+                        _guestSortColumnIndex = col;
+                        _guestSortAscending = asc;
+                      }),
+                    ),
+                    DataColumn(
+                      label: const Text(
+                        "СТАТУС",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                      onSort: (col, asc) => setState(() {
+                        _guestSortColumnIndex = col;
+                        _guestSortAscending = asc;
+                      }),
+                    ),
+                    DataColumn(
+                      label: const Text(
+                        "ВИЗИТЫ",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                      onSort: (col, asc) => setState(() {
+                        _guestSortColumnIndex = col;
+                        _guestSortAscending = asc;
+                      }),
+                    ),
+                    DataColumn(
+                      label: const Text(
+                        "СРЕДНЯЯ СКИДКА",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                      onSort: (col, asc) => setState(() {
+                        _guestSortColumnIndex = col;
+                        _guestSortAscending = asc;
+                      }),
+                    ),
+                    DataColumn(
+                      label: const Text(
+                        "ДЕПОЗИТ",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                      onSort: (col, asc) => setState(() {
+                        _guestSortColumnIndex = col;
+                        _guestSortAscending = asc;
+                      }),
+                    ),
+                    DataColumn(
+                      label: const Text(
+                        "ПОСЛЕДНИЙ ВИЗИТ",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                      onSort: (col, asc) => setState(() {
+                        _guestSortColumnIndex = col;
+                        _guestSortAscending = asc;
+                      }),
+                    ),
+                    const DataColumn(
+                      label: Text(
+                        "ДЕЙСТВИЯ",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                    ),
+                  ],
+                  rows: sortedGuests.map((guest) {
                 final visitList = guestVisits[guest.guestId] ?? [];
                 final totalVisits = visitList.length;
                 final uData = userProfiles[guest.guestId];
@@ -1906,6 +1981,32 @@ class _GuestListScreenState extends State<GuestListScreen> {
       return _buildMobileScanList(scans, todayStart);
     }
 
+    final sortedScans = List<ScanRecord>.from(scans);
+    sortedScans.sort((a, b) {
+      int result = 0;
+      switch (_scanSortColumnIndex) {
+        case 0:
+          result = a.timestamp.compareTo(b.timestamp);
+          break;
+        case 1:
+          result = a.guestName.toLowerCase().compareTo(b.guestName.toLowerCase());
+          break;
+        case 2:
+          result = a.guestContact.toLowerCase().compareTo(b.guestContact.toLowerCase());
+          break;
+        case 3:
+          result = a.source.toLowerCase().compareTo(b.source.toLowerCase());
+          break;
+        case 4:
+          result = a.discount.compareTo(b.discount);
+          break;
+        default:
+          result = a.timestamp.compareTo(b.timestamp);
+          break;
+      }
+      return _scanSortAscending ? result : -result;
+    });
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: Container(
@@ -1926,58 +2027,80 @@ class _GuestListScreenState extends State<GuestListScreen> {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
-              headingRowColor: WidgetStateProperty.all(const Color(0xFF2C2C2E)),
-              dataRowColor: WidgetStateProperty.all(const Color(0xFF1C1C1E)),
-              border: TableBorder(
-                horizontalInside: BorderSide(color: Colors.white.withOpacity(0.06), width: 1),
-              ),
-              dataRowMinHeight: 64,
-              dataRowMaxHeight: 70,
-              columns: const [
-                DataColumn(
-                  label: Text(
-                    "ВРЕМЯ СКАНИРОВАНИЯ",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                  sortColumnIndex: _scanSortColumnIndex,
+                  sortAscending: _scanSortAscending,
+                  headingRowColor: WidgetStateProperty.all(const Color(0xFF2C2C2E)),
+                  dataRowColor: WidgetStateProperty.all(const Color(0xFF1C1C1E)),
+                  border: TableBorder(
+                    horizontalInside: BorderSide(color: Colors.white.withOpacity(0.06), width: 1),
                   ),
-                ),
-                DataColumn(
-                  label: Text(
-                    "ГОСТЬ",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    "КОНТАКТЫ",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    "ИСТОЧНИК / QR",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    "ВЫДАННАЯ СКИДКА",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    "БАЛАНС ДЕПОЗИТА",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
-                  ),
-                ),
-                DataColumn(
-                  label: Text(
-                    "ДЕЙСТВИЯ",
-                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
-                  ),
-                ),
-              ],
-              rows: scans.map((scan) {
+                  dataRowMinHeight: 64,
+                  dataRowMaxHeight: 70,
+                  columns: [
+                    DataColumn(
+                      label: const Text(
+                        "ВРЕМЯ СКАНИРОВАНИЯ",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                      onSort: (col, asc) => setState(() {
+                        _scanSortColumnIndex = col;
+                        _scanSortAscending = asc;
+                      }),
+                    ),
+                    DataColumn(
+                      label: const Text(
+                        "ГОСТЬ",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                      onSort: (col, asc) => setState(() {
+                        _scanSortColumnIndex = col;
+                        _scanSortAscending = asc;
+                      }),
+                    ),
+                    DataColumn(
+                      label: const Text(
+                        "КОНТАКТЫ",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                      onSort: (col, asc) => setState(() {
+                        _scanSortColumnIndex = col;
+                        _scanSortAscending = asc;
+                      }),
+                    ),
+                    DataColumn(
+                      label: const Text(
+                        "ИСТОЧНИК / QR",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                      onSort: (col, asc) => setState(() {
+                        _scanSortColumnIndex = col;
+                        _scanSortAscending = asc;
+                      }),
+                    ),
+                    DataColumn(
+                      label: const Text(
+                        "ВЫДАННАЯ СКИДКА",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                      onSort: (col, asc) => setState(() {
+                        _scanSortColumnIndex = col;
+                        _scanSortAscending = asc;
+                      }),
+                    ),
+                    const DataColumn(
+                      label: Text(
+                        "БАЛАНС ДЕПОЗИТА",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                    ),
+                    const DataColumn(
+                      label: Text(
+                        "ДЕЙСТВИЯ",
+                        style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white, letterSpacing: 0.5),
+                      ),
+                    ),
+                  ],
+                  rows: sortedScans.map((scan) {
                 final isToday = scan.timestamp.isAfter(todayStart);
 
                 return DataRow(cells: [

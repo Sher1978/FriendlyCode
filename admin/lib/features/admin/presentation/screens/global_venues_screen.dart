@@ -18,6 +18,17 @@ class GlobalVenuesScreen extends StatefulWidget {
 class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
   final VenueRepository _venueRepo = VenueRepository();
   String _searchQuery = "";
+  int? _sortColumnIndex;
+  bool _sortAscending = true;
+  String? _sortKey;
+
+  void _onSort(int columnIndex, bool ascending, String sortKey) {
+    setState(() {
+      _sortColumnIndex = columnIndex;
+      _sortAscending = ascending;
+      _sortKey = sortKey;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -95,6 +106,33 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                    
                    return nameMatch || ownerMatch;
                 }).toList();
+
+                if (_sortKey != null) {
+                  filteredVenues.sort((a, b) {
+                    int cmp = 0;
+                    switch (_sortKey) {
+                      case 'name':
+                        cmp = a.name.toLowerCase().compareTo(b.name.toLowerCase());
+                        break;
+                      case 'owner':
+                        final ownerA = (a.ownerEmail ?? '').toLowerCase();
+                        final ownerB = (b.ownerEmail ?? '').toLowerCase();
+                        cmp = ownerA.compareTo(ownerB);
+                        break;
+                      case 'staff':
+                        final staffA = '${a.assignedAdminId ?? ""}_${a.assignedManagerId ?? ""}';
+                        final staffB = '${b.assignedAdminId ?? ""}_${b.assignedManagerId ?? ""}';
+                        cmp = staffA.compareTo(staffB);
+                        break;
+                      case 'status':
+                        final statusA = a.isManuallyBlocked ? 0 : (a.isExpired ? 1 : (a.isActive ? 3 : 2));
+                        final statusB = b.isManuallyBlocked ? 0 : (b.isExpired ? 1 : (b.isActive ? 3 : 2));
+                        cmp = statusA.compareTo(statusB);
+                        break;
+                    }
+                    return _sortAscending ? cmp : -cmp;
+                  });
+                }
                 
                 if (filteredVenues.isEmpty) {
                    return const Center(child: Text("No venues found matching your criteria."));
@@ -116,6 +154,8 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                             child: ConstrainedBox(
                               constraints: BoxConstraints(minWidth: constraints.maxWidth),
                               child: DataTable(
+                                sortColumnIndex: _sortColumnIndex,
+                                sortAscending: _sortAscending,
                                 headingRowColor: MaterialStateProperty.all(AppColors.background),
                                 dataRowColor: MaterialStateProperty.all(AppColors.background),
                                 headingTextStyle: const TextStyle(fontWeight: FontWeight.w900, color: AppColors.title, letterSpacing: 0.5),
@@ -125,10 +165,24 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                                   horizontalInside: BorderSide(color: AppColors.title.withOpacity(0.05), width: 1),
                                 ),
                                 columns: [
-                                  const DataColumn(label: Text("VENUE NAME")),
-                                  if (roleProvider.isSuperAdmin) const DataColumn(label: Text("OWNER")),
-                                  if (roleProvider.isSuperAdmin || roleProvider.isAdmin) const DataColumn(label: Text("ASSIGNED STAFF")),
-                                  const DataColumn(label: Text("STATUS")),
+                                  DataColumn(
+                                    label: const Text("VENUE NAME"),
+                                    onSort: (colIdx, asc) => _onSort(colIdx, asc, 'name'),
+                                  ),
+                                  if (roleProvider.isSuperAdmin)
+                                    DataColumn(
+                                      label: const Text("OWNER"),
+                                      onSort: (colIdx, asc) => _onSort(colIdx, asc, 'owner'),
+                                    ),
+                                  if (roleProvider.isSuperAdmin || roleProvider.isAdmin)
+                                    DataColumn(
+                                      label: const Text("ASSIGNED STAFF"),
+                                      onSort: (colIdx, asc) => _onSort(colIdx, asc, 'staff'),
+                                    ),
+                                  DataColumn(
+                                    label: const Text("STATUS"),
+                                    onSort: (colIdx, asc) => _onSort(colIdx, asc, 'status'),
+                                  ),
                                   const DataColumn(label: Text("ACTIONS")),
                                 ],
                                 rows: filteredVenues.map((v) => DataRow(

@@ -143,6 +143,139 @@ class LoyaltyConfig {
   }
 }
 
+class DaySchedule {
+  final bool isOpen;
+  final String openTime;  // "10:00"
+  final String closeTime; // "23:00"
+
+  const DaySchedule({
+    this.isOpen = true,
+    this.openTime = "10:00",
+    this.closeTime = "23:00",
+  });
+
+  Map<String, dynamic> toMap() => {
+    'isOpen': isOpen,
+    'openTime': openTime,
+    'closeTime': closeTime,
+  };
+
+  factory DaySchedule.fromMap(Map<String, dynamic>? map) {
+    if (map == null) return const DaySchedule();
+    return DaySchedule(
+      isOpen: map['isOpen'] as bool? ?? true,
+      openTime: (map['openTime'] as String?) ?? "10:00",
+      closeTime: (map['closeTime'] as String?) ?? "23:00",
+    );
+  }
+
+  DaySchedule copyWith({bool? isOpen, String? openTime, String? closeTime}) {
+    return DaySchedule(
+      isOpen: isOpen ?? this.isOpen,
+      openTime: openTime ?? this.openTime,
+      closeTime: closeTime ?? this.closeTime,
+    );
+  }
+}
+
+class VenueOperatingHours {
+  final DaySchedule monday;
+  final DaySchedule tuesday;
+  final DaySchedule wednesday;
+  final DaySchedule thursday;
+  final DaySchedule friday;
+  final DaySchedule saturday;
+  final DaySchedule sunday;
+
+  const VenueOperatingHours({
+    this.monday = const DaySchedule(),
+    this.tuesday = const DaySchedule(),
+    this.wednesday = const DaySchedule(),
+    this.thursday = const DaySchedule(),
+    this.friday = const DaySchedule(),
+    this.saturday = const DaySchedule(),
+    this.sunday = const DaySchedule(),
+  });
+
+  Map<String, dynamic> toMap() => {
+    'monday': monday.toMap(),
+    'tuesday': tuesday.toMap(),
+    'wednesday': wednesday.toMap(),
+    'thursday': thursday.toMap(),
+    'friday': friday.toMap(),
+    'saturday': saturday.toMap(),
+    'sunday': sunday.toMap(),
+  };
+
+  factory VenueOperatingHours.fromMap(Map<String, dynamic>? map) {
+    if (map == null) return const VenueOperatingHours();
+    return VenueOperatingHours(
+      monday: DaySchedule.fromMap(map['monday'] as Map<String, dynamic>?),
+      tuesday: DaySchedule.fromMap(map['tuesday'] as Map<String, dynamic>?),
+      wednesday: DaySchedule.fromMap(map['wednesday'] as Map<String, dynamic>?),
+      thursday: DaySchedule.fromMap(map['thursday'] as Map<String, dynamic>?),
+      friday: DaySchedule.fromMap(map['friday'] as Map<String, dynamic>?),
+      saturday: DaySchedule.fromMap(map['saturday'] as Map<String, dynamic>?),
+      sunday: DaySchedule.fromMap(map['sunday'] as Map<String, dynamic>?),
+    );
+  }
+
+  DaySchedule getForWeekday(int weekday) {
+    switch (weekday) {
+      case DateTime.monday: return monday;
+      case DateTime.tuesday: return tuesday;
+      case DateTime.wednesday: return wednesday;
+      case DateTime.thursday: return thursday;
+      case DateTime.friday: return friday;
+      case DateTime.saturday: return saturday;
+      case DateTime.sunday: return sunday;
+      default: return monday;
+    }
+  }
+
+  bool isCurrentlyOpen([DateTime? now]) {
+    final current = now ?? DateTime.now();
+    final schedule = getForWeekday(current.weekday);
+    if (!schedule.isOpen) return false;
+
+    try {
+      final openParts = schedule.openTime.split(':').map(int.parse).toList();
+      final closeParts = schedule.closeTime.split(':').map(int.parse).toList();
+      final currentMinutes = current.hour * 60 + current.minute;
+      final openMinutes = openParts[0] * 60 + openParts[1];
+      final closeMinutes = closeParts[0] * 60 + closeParts[1];
+
+      if (closeMinutes >= openMinutes) {
+        return currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
+      } else {
+        return currentMinutes >= openMinutes || currentMinutes <= closeMinutes;
+      }
+    } catch (_) {
+      return true;
+    }
+  }
+
+  VenueOperatingHours copyWith({
+    DaySchedule? monday,
+    DaySchedule? tuesday,
+    DaySchedule? wednesday,
+    DaySchedule? thursday,
+    DaySchedule? friday,
+    DaySchedule? saturday,
+    DaySchedule? sunday,
+  }) {
+    return VenueOperatingHours(
+      monday: monday ?? this.monday,
+      tuesday: tuesday ?? this.tuesday,
+      wednesday: wednesday ?? this.wednesday,
+      thursday: thursday ?? this.thursday,
+      friday: friday ?? this.friday,
+      saturday: saturday ?? this.saturday,
+      sunday: sunday ?? this.sunday,
+    );
+  }
+}
+
 class VenueModel {
   final String id;
   final String? ownerEmail; // Optional for unclaimed venues
@@ -183,6 +316,9 @@ class VenueModel {
   final VenueLogisticsConfig logisticsConfig;
   final String countryCode;
   final String currency;
+  final String phone;
+  final String currencyPosition;
+  final VenueOperatingHours operatingHours;
 
   VenueModel({
     required this.id,
@@ -221,7 +357,10 @@ class VenueModel {
     VenueLogisticsConfig? logisticsConfig,
     this.countryCode = 'VN',
     this.currency = 'VND',
-  }) : 
+    this.phone = '',
+    this.currencyPosition = 'suffix',
+    VenueOperatingHours? operatingHours,
+  }) : operatingHours = operatingHours ?? const VenueOperatingHours(), 
     tiers = tiers ?? [],
     subscription = subscription ?? VenueSubscription(),
     loyaltyConfig = loyaltyConfig ?? const LoyaltyConfig(),
@@ -274,6 +413,9 @@ class VenueModel {
       'logisticsConfig': logisticsConfig.toMap(),
       'countryCode': countryCode,
       'currency': currency,
+      'phone': phone,
+      'currencyPosition': currencyPosition,
+      'operatingHours': operatingHours.toMap(),
     };
   }
 
@@ -318,6 +460,9 @@ class VenueModel {
       logisticsConfig: VenueLogisticsConfig.fromMap(map['logisticsConfig'] as Map<String, dynamic>?),
       countryCode: map['countryCode'] ?? ((map['address'] != null && map['address'].toString().toLowerCase().contains('dubai')) ? 'AE' : 'VN'),
       currency: map['currency'] ?? (map['countryCode'] == 'AE' ? 'AED' : map['countryCode'] == 'IN' ? 'INR' : 'VND'),
+      phone: map['phone'] ?? '',
+      currencyPosition: map['currencyPosition'] ?? (map['currency'] == 'USD' || map['currency'] == 'INR' ? 'prefix' : 'suffix'),
+      operatingHours: VenueOperatingHours.fromMap(map['operatingHours'] as Map<String, dynamic>?),
     );
   }
   VenueModel copyWith({
@@ -357,6 +502,9 @@ class VenueModel {
     VenueLogisticsConfig? logisticsConfig,
     String? countryCode,
     String? currency,
+    String? phone,
+    String? currencyPosition,
+    VenueOperatingHours? operatingHours,
   }) {
     return VenueModel(
       id: id ?? this.id,
@@ -395,6 +543,9 @@ class VenueModel {
       logisticsConfig: logisticsConfig ?? this.logisticsConfig,
       countryCode: countryCode ?? this.countryCode,
       currency: currency ?? this.currency,
+      phone: phone ?? this.phone,
+      currencyPosition: currencyPosition ?? this.currencyPosition,
+      operatingHours: operatingHours ?? this.operatingHours,
     );
   }
 
@@ -451,7 +602,7 @@ class VenueStats {
       'lostGuestsCount': lostGuestsCount,
       'googleMapsNewGuestsCount': googleMapsNewGuestsCount,
       'googleMapsReturningGuestsCount': googleMapsReturningGuestsCount,
-      ...?extraData,
+      ...extraData,
     };
   }
 
