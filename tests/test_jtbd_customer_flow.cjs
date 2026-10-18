@@ -45,12 +45,12 @@ async function runJtbdCustomerFlowTests() {
   // ---------------------------------------------------------
   // JTBD 2: Compact battery & login pill in Google Maps header
   // ---------------------------------------------------------
-  console.log('\n🔍 STEP 2: Verifying Google Maps header right-side chip (battery + discount + login)...');
-  const headerChip = await page.waitForSelector('button[title="Войти для активации скидки"]', { timeout: 10000 });
+  console.log('\n🔍 STEP 2: Verifying Google Maps header right-side chip (battery + discount + login + slogan)...');
+  const headerChip = await page.waitForSelector('button[title="Заряжайте Вашу скидку покупками"]', { timeout: 10000 });
   const headerChipText = await headerChip.textContent();
   console.log(`✅ PASS: Header chip found with content: "${headerChipText.trim()}"`);
-  if (!headerChipText.includes('до') || !headerChipText.includes('Войти')) {
-    throw new Error(`❌ FAIL: Expected "до" and "Войти" in header chip, got: ${headerChipText}`);
+  if (!headerChipText.includes('до') || !headerChipText.includes('Войти') || !headerChipText.includes('Заряжайте')) {
+    throw new Error(`❌ FAIL: Expected "до", "Войти", and "Заряжайте" in header chip, got: ${headerChipText}`);
   }
 
   // Save screenshot of clean unauthenticated view
@@ -218,7 +218,7 @@ async function runJtbdCustomerFlowTests() {
   await logoutBtn.click();
   await page.waitForTimeout(600);
 
-  const restoredHeaderChip = await page.waitForSelector('button[title="Войти для активации скидки"]', { timeout: 5000 });
+  const restoredHeaderChip = await page.waitForSelector('button[title="Заряжайте Вашу скидку покупками"]', { timeout: 5000 });
   const restoredChipText = await restoredHeaderChip.textContent();
   console.log(`✅ PASS: Header cleanly reverted to preview mode: "${restoredChipText.trim()}"`);
 

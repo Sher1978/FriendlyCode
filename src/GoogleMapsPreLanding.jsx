@@ -1046,11 +1046,11 @@ const GoogleMapsPreLanding = () => {
                   setAuthTriggerReason('header');
                   setIsAuthModalOpen(true);
                 }}
-                className="flex items-center gap-1.5 bg-[#303134] hover:bg-[#3C4043] active:scale-95 border border-[#5F6368]/70 hover:border-emerald-500/70 rounded-full pl-2 pr-2.5 py-1 text-white shadow-sm transition-all"
-                title="Войти для активации скидки"
+                className="flex items-center gap-2 bg-[#303134] hover:bg-[#3C4043] active:scale-95 border border-[#5F6368]/70 hover:border-emerald-500/70 rounded-2xl px-2.5 py-1 text-white shadow-sm transition-all"
+                title="Заряжайте Вашу скидку покупками"
               >
                 {/* Mini Battery Graphic */}
-                <div className="flex items-center">
+                <div className="flex items-center shrink-0">
                   <div className="w-5 h-3 border-[1.5px] border-emerald-400 rounded-[3px] p-[1px] bg-black/60 flex items-center shadow-[0_0_6px_rgba(52,211,153,0.4)]">
                     <div 
                       className="h-full bg-emerald-400 rounded-[1px] shadow-[0_0_6px_rgba(52,211,153,0.9)]"
@@ -1060,15 +1060,20 @@ const GoogleMapsPreLanding = () => {
                   <div className="w-[2px] h-[4px] bg-emerald-400 rounded-r-[1px] -ml-[0.5px]" />
                 </div>
 
-                {/* Discount Value ДО X% */}
-                <span className="text-emerald-400 font-extrabold text-[11px] tracking-tight whitespace-nowrap">
-                  до {maxPossibleDiscount}%
-                </span>
-
-                {/* Login Button Pill */}
-                <span className="bg-[#83E1D9] text-[#003833] font-black text-[10px] px-2 py-0.5 rounded-full uppercase ml-0.5 shadow-sm whitespace-nowrap">
-                  Войти
-                </span>
+                {/* Discount Value & Slogan */}
+                <div className="flex flex-col text-left leading-none">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-emerald-400 font-extrabold text-[11px] tracking-tight whitespace-nowrap">
+                      до {maxPossibleDiscount}%
+                    </span>
+                    <span className="bg-[#83E1D9] text-[#003833] font-black text-[9px] px-1.5 py-0.5 rounded-full uppercase shadow-sm whitespace-nowrap">
+                      Войти
+                    </span>
+                  </div>
+                  <span className="text-[8.5px] text-gray-300 font-medium whitespace-nowrap pt-0.5">
+                    Заряжайте Вашу скидку покупками
+                  </span>
+                </div>
               </button>
             ) : (
               <button
@@ -1227,16 +1232,19 @@ const GoogleMapsPreLanding = () => {
             className="cursor-pointer bg-gradient-to-r from-emerald-950/80 via-teal-900/60 to-[#202124] border border-emerald-500/40 hover:border-emerald-400 rounded-2xl p-3.5 shadow-xl flex items-center justify-between gap-3 active:scale-[0.99] transition-all"
           >
             <div className="space-y-1">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="bg-emerald-500 text-black text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
                   Прямой заказ
                 </span>
                 <span className="text-emerald-400 font-extrabold text-xs">
                   Скидка ДО {maxPossibleDiscount}%
                 </span>
+                <span className="text-emerald-300 font-bold text-[11px]">
+                  • Заряжайте Вашу скидку покупками
+                </span>
               </div>
               <p className="text-[11px] text-gray-300 leading-tight">
-                Дешевле, чем в Grab и Zomato. Войдите, чтобы активировать персональную скидку и оплату депозитом!
+                Заряжайте Вашу скидку покупками! Дешевле, чем в Grab и Zomato. Войдите, чтобы активировать персональную скидку и оплату депозитом!
               </p>
             </div>
             <button 
@@ -1880,7 +1888,7 @@ const GoogleMapsPreLanding = () => {
                 <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                   <span className="text-emerald-300 font-extrabold text-xs">
-                    Прямой заказ • Скидка до {maxPossibleDiscount}%
+                    Скидка до {maxPossibleDiscount}% • Заряжайте Вашу скидку покупками
                   </span>
                 </div>
                 <h3 className="text-lg font-black text-white pt-1">
