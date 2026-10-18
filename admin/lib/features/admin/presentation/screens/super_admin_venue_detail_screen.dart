@@ -8,6 +8,9 @@ import 'package:friendly_code/features/owner/presentation/screens/deposit_tiers_
 import 'package:friendly_code/features/owner/presentation/screens/venue_staff_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/guest_list_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/marketing_blast_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/delivery_menu_manager_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/delivery_loyalty_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/delivery_logistics_payment_screen.dart';
 
 class SuperAdminVenueDetailScreen extends StatefulWidget {
   final VenueModel venue;
@@ -24,6 +27,9 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
     _TabItem(icon: CupertinoIcons.info_circle_fill,   label: 'Info'),
     _TabItem(icon: CupertinoIcons.percent,            label: 'Loyalty'),
     _TabItem(icon: CupertinoIcons.creditcard_fill,    label: 'Deposits'),
+    _TabItem(icon: CupertinoIcons.cart_fill,          label: 'Menu & Scraper'),
+    _TabItem(icon: CupertinoIcons.timer,              label: 'Delivery Loyalty'),
+    _TabItem(icon: CupertinoIcons.cube_box_fill,      label: 'Logistics & Pay'),
     _TabItem(icon: CupertinoIcons.person_2_fill,      label: 'Staff'),
     _TabItem(icon: CupertinoIcons.person_crop_circle_fill, label: 'Guests'),
     _TabItem(icon: CupertinoIcons.rocket_fill,        label: 'Marketing'),
@@ -127,10 +133,16 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
       case 2:
         return DepositTiersSetupScreen(venueId: venue.id);
       case 3:
-        return VenueStaffScreen(venueId: venue.id);
+        return DeliveryMenuManagerScreen(venueId: venue.id);
       case 4:
-        return GuestListScreen(venueId: venue.id);
+        return DeliveryLoyaltyScreen(venueId: venue.id);
       case 5:
+        return DeliveryLogisticsPaymentScreen(venueId: venue.id);
+      case 6:
+        return VenueStaffScreen(venueId: venue.id);
+      case 7:
+        return GuestListScreen(venueId: venue.id);
+      case 8:
         return MarketingBlastScreen(venueId: venue.id);
       default:
         return VenueEditorScreen(venue: venue);

@@ -1,4 +1,4 @@
-const { onDocumentUpdated, onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { onDocumentUpdated, onDocumentWritten, onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { setGlobalOptions } = require("firebase-functions/v2");
 const { logger } = require("firebase-functions");
@@ -288,7 +288,6 @@ exports.onScanConfirmed = onDocumentUpdated("scans/{scanId}", async (event) => {
     }
 });
 
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 
 /**
  * Scenario A: Instant Owner Notification (Triggered)
@@ -4000,3 +3999,92 @@ exports.testDailyReportEmail = onRequest(async (req, res) => {
     }
 });
 
+// ==========================================
+// REVOO DELIVERY: AGGREGATOR MENU SCRAPER & PUBLISHER
+// ==========================================
+const { executeScrapeJob } = require("./menuScraper");
+
+exports.scrapeMenuHttp = onRequest({ cors: true }, async (req, res) => {
+    if (req.method === 'OPTIONS') {
+        res.set('Access-Control-Allow-Origin', '*');
+        res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        return res.status(204).send('');
+    }
+
+    try {
+        const { venueId, url, autoPublish, mirrorImages } = req.body || req.query;
+        if (!venueId || !url) {
+            return res.status(400).json({ error: "Missing required parameters: venueId and url" });
+        }
+
+        logger.info(`[scrapeMenuHttp] Starting scrape for venue ${venueId} from ${url}`);
+        const result = await executeScrapeJob(venueId, url, {
+            autoPublish: !!autoPublish,
+            mirrorImages: mirrorImages !== false
+        });
+
+        return res.status(200).json(result);
+    } catch (err) {
+        logger.error("[scrapeMenuHttp] Execution failed:", err);
+        return res.status(500).json({ error: err.message || "Scraping failed" });
+    }
+});
+
+exports.publishMenuHttp = onRequest({ cors: true }, async (req, res) => {
+    if (req.method === 'OPTIONS') {
+        res.set('Access-Control-Allow-Origin', '*');
+        res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        return res.status(204).send('');
+    }
+
+    try {
+        const { venueId, items } = req.body;
+        if (!venueId || !Array.isArray(items)) {
+            return res.status(400).json({ error: "Missing required parameters: venueId and items array" });
+        }
+
+        logger.info(`[publishMenuHttp] Publishing ${items.length} items for venue ${venueId}`);
+        await db.collection("venues").doc(venueId).set({
+            gmConfig: {
+                businessType: 'horeca',
+                menuItems: items,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            }
+        }, { merge: true });
+
+        // Save a version snapshot in history
+        await db.collection("venues").doc(venueId).collection("menu_versions").add({
+            publishedAt: admin.firestore.FieldValue.serverTimestamp(),
+            itemsCount: items.length,
+            items
+        });
+
+        return res.status(200).json({ success: true, count: items.length });
+    } catch (err) {
+        logger.error("[publishMenuHttp] Publish failed:", err);
+        return res.status(500).json({ error: err.message || "Publishing failed" });
+    }
+});
+
+exports.onMenuScrapeJobCreated = onDocumentCreated("venues/{venueId}/scrape_jobs/{jobId}", async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const data = snap.data();
+    if (data.status !== 'pending') return;
+
+    const { venueId, jobId } = event.params;
+    const url = data.url;
+    if (!url) return;
+
+    logger.info(`[onMenuScrapeJobCreated] Triggered for venue ${venueId}, job ${jobId}, url: ${url}`);
+    try {
+        await executeScrapeJob(venueId, url, {
+            autoPublish: !!data.autoPublish,
+            mirrorImages: data.mirrorImages !== false
+        });
+    } catch (err) {
+        logger.error(`[onMenuScrapeJobCreated] Failed for job ${jobId}:`, err);
+    }
+});

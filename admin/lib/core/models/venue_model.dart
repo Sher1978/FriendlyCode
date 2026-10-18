@@ -178,6 +178,11 @@ class VenueModel {
   final bool isHybridEnabled;
   final String? giftxUrl;
   final GoogleMapsConfig gmConfig;
+  final DeliveryLoyaltyConfig deliveryLoyaltyConfig;
+  final VenuePaymentConfig paymentConfig;
+  final VenueLogisticsConfig logisticsConfig;
+  final String countryCode;
+  final String currency;
 
   VenueModel({
     required this.id,
@@ -211,11 +216,19 @@ class VenueModel {
     this.isHybridEnabled = false,
     this.giftxUrl,
     GoogleMapsConfig? gmConfig,
+    DeliveryLoyaltyConfig? deliveryLoyaltyConfig,
+    VenuePaymentConfig? paymentConfig,
+    VenueLogisticsConfig? logisticsConfig,
+    this.countryCode = 'VN',
+    this.currency = 'VND',
   }) : 
     tiers = tiers ?? [],
     subscription = subscription ?? VenueSubscription(),
     loyaltyConfig = loyaltyConfig ?? const LoyaltyConfig(),
     gmConfig = gmConfig ?? GoogleMapsConfig(),
+    deliveryLoyaltyConfig = deliveryLoyaltyConfig ?? DeliveryLoyaltyConfig.fromLoyalty(loyaltyConfig ?? const LoyaltyConfig()),
+    paymentConfig = paymentConfig ?? const VenuePaymentConfig(),
+    logisticsConfig = logisticsConfig ?? const VenueLogisticsConfig(),
     stats = stats ?? VenueStats(
       avgReturnHours: 0, 
       totalCheckins: 0,
@@ -256,6 +269,11 @@ class VenueModel {
       'isHybridEnabled': isHybridEnabled,
       'giftxUrl': giftxUrl,
       'gmConfig': gmConfig.toMap(),
+      'deliveryLoyaltyConfig': deliveryLoyaltyConfig.toMap(),
+      'paymentConfig': paymentConfig.toMap(),
+      'logisticsConfig': logisticsConfig.toMap(),
+      'countryCode': countryCode,
+      'currency': currency,
     };
   }
 
@@ -292,6 +310,14 @@ class VenueModel {
       isHybridEnabled: map['isHybridEnabled'] ?? false,
       giftxUrl: map['giftxUrl'],
       gmConfig: GoogleMapsConfig.fromMap(map['gmConfig'] as Map<String, dynamic>?),
+      deliveryLoyaltyConfig: DeliveryLoyaltyConfig.fromMap(
+        map['deliveryLoyaltyConfig'] as Map<String, dynamic>?,
+        fallbackLoyalty: map['loyaltyConfig'] != null ? LoyaltyConfig.fromMap(map['loyaltyConfig']) : const LoyaltyConfig(),
+      ),
+      paymentConfig: VenuePaymentConfig.fromMap(map['paymentConfig'] as Map<String, dynamic>?),
+      logisticsConfig: VenueLogisticsConfig.fromMap(map['logisticsConfig'] as Map<String, dynamic>?),
+      countryCode: map['countryCode'] ?? ((map['address'] != null && map['address'].toString().toLowerCase().contains('dubai')) ? 'AE' : 'VN'),
+      currency: map['currency'] ?? (map['countryCode'] == 'AE' ? 'AED' : map['countryCode'] == 'IN' ? 'INR' : 'VND'),
     );
   }
   VenueModel copyWith({
@@ -326,6 +352,11 @@ class VenueModel {
     bool? isHybridEnabled,
     String? giftxUrl,
     GoogleMapsConfig? gmConfig,
+    DeliveryLoyaltyConfig? deliveryLoyaltyConfig,
+    VenuePaymentConfig? paymentConfig,
+    VenueLogisticsConfig? logisticsConfig,
+    String? countryCode,
+    String? currency,
   }) {
     return VenueModel(
       id: id ?? this.id,
@@ -359,6 +390,11 @@ class VenueModel {
       isHybridEnabled: isHybridEnabled ?? this.isHybridEnabled,
       giftxUrl: giftxUrl ?? this.giftxUrl,
       gmConfig: gmConfig ?? this.gmConfig,
+      deliveryLoyaltyConfig: deliveryLoyaltyConfig ?? this.deliveryLoyaltyConfig,
+      paymentConfig: paymentConfig ?? this.paymentConfig,
+      logisticsConfig: logisticsConfig ?? this.logisticsConfig,
+      countryCode: countryCode ?? this.countryCode,
+      currency: currency ?? this.currency,
     );
   }
 
@@ -571,23 +607,83 @@ class GoogleMapsConfig {
 }
 
 class GmMenuItem {
+  final String id;
+  final String category;
   final String name;
   final String description;
   final String price;
+  final String aggregatorPrice;
+  final String currency;
   final String imageUrl;
+  final bool isPublished;
+  final bool isAvailable;
 
-  GmMenuItem({this.name = '', this.description = '', this.price = '', this.imageUrl = ''});
+  GmMenuItem({
+    this.id = '',
+    this.category = 'General',
+    this.name = '',
+    this.description = '',
+    this.price = '',
+    this.aggregatorPrice = '',
+    this.currency = 'VND',
+    this.imageUrl = '',
+    this.isPublished = true,
+    this.isAvailable = true,
+  });
   
   factory GmMenuItem.fromMap(Map<String, dynamic> map) {
     return GmMenuItem(
+      id: map['id'] ?? '',
+      category: map['category'] ?? 'General',
       name: map['name'] ?? '',
       description: map['description'] ?? '',
       price: map['price'] ?? '',
+      aggregatorPrice: map['aggregatorPrice'] ?? '',
+      currency: map['currency'] ?? 'VND',
       imageUrl: map['imageUrl'] ?? '',
+      isPublished: map['isPublished'] ?? true,
+      isAvailable: map['isAvailable'] ?? true,
     );
   }
   
-  Map<String, dynamic> toMap() => {'name': name, 'description': description, 'price': price, 'imageUrl': imageUrl};
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'category': category,
+    'name': name,
+    'description': description,
+    'price': price,
+    'aggregatorPrice': aggregatorPrice,
+    'currency': currency,
+    'imageUrl': imageUrl,
+    'isPublished': isPublished,
+    'isAvailable': isAvailable,
+  };
+
+  GmMenuItem copyWith({
+    String? id,
+    String? category,
+    String? name,
+    String? description,
+    String? price,
+    String? aggregatorPrice,
+    String? currency,
+    String? imageUrl,
+    bool? isPublished,
+    bool? isAvailable,
+  }) {
+    return GmMenuItem(
+      id: id ?? this.id,
+      category: category ?? this.category,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      price: price ?? this.price,
+      aggregatorPrice: aggregatorPrice ?? this.aggregatorPrice,
+      currency: currency ?? this.currency,
+      imageUrl: imageUrl ?? this.imageUrl,
+      isPublished: isPublished ?? this.isPublished,
+      isAvailable: isAvailable ?? this.isAvailable,
+    );
+  }
 }
 
 class GmServiceItem {
@@ -610,4 +706,247 @@ class GmServiceItem {
   }
 
   Map<String, dynamic> toMap() => {'category': category, 'name': name, 'description': description, 'price': price, 'duration': duration};
+}
+
+class HappyHourRule {
+  final String id;
+  final String title;
+  final bool isActive;
+  final List<int> daysOfWeek;
+  final String startTime;
+  final String endTime;
+  final int discountPercent;
+  final bool freeDelivery;
+
+  const HappyHourRule({
+    required this.id,
+    this.title = 'Happy Hours',
+    this.isActive = true,
+    this.daysOfWeek = const [1, 2, 3, 4, 5],
+    this.startTime = '14:00',
+    this.endTime = '17:00',
+    this.discountPercent = 20,
+    this.freeDelivery = false,
+  });
+
+  factory HappyHourRule.fromMap(Map<String, dynamic> map) => HappyHourRule(
+    id: map['id'] ?? '',
+    title: map['title'] ?? 'Happy Hours',
+    isActive: map['isActive'] ?? true,
+    daysOfWeek: (map['daysOfWeek'] as List<dynamic>?)?.map((e) => e as int).toList() ?? const [1, 2, 3, 4, 5],
+    startTime: map['startTime'] ?? '14:00',
+    endTime: map['endTime'] ?? '17:00',
+    discountPercent: map['discountPercent'] ?? 20,
+    freeDelivery: map['freeDelivery'] ?? false,
+  );
+
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'title': title,
+    'isActive': isActive,
+    'daysOfWeek': daysOfWeek,
+    'startTime': startTime,
+    'endTime': endTime,
+    'discountPercent': discountPercent,
+    'freeDelivery': freeDelivery,
+  };
+}
+
+class DeliveryLoyaltyConfig {
+  final bool useCustomDeliveryTiers;
+  final int percBase;
+  final int percMedium;
+  final int mediumDays;
+  final int percVip;
+  final int vipWindowDays;
+  final int percDeposit;
+  final double depositThreshold;
+  final double freeDeliveryThreshold;
+  final int pickupBonusPercent;
+  final List<HappyHourRule> happyHours;
+
+  const DeliveryLoyaltyConfig({
+    this.useCustomDeliveryTiers = false,
+    this.percBase = 10,
+    this.percMedium = 15,
+    this.mediumDays = 7,
+    this.percVip = 20,
+    this.vipWindowDays = 1,
+    this.percDeposit = 25,
+    this.depositThreshold = 1000000.0,
+    this.freeDeliveryThreshold = 250000.0,
+    this.pickupBonusPercent = 5,
+    this.happyHours = const [],
+  });
+
+  factory DeliveryLoyaltyConfig.fromLoyalty(LoyaltyConfig loyalty) {
+    final mediumStage = loyalty.decayStages.isNotEmpty ? loyalty.decayStages[0] : const LoyaltyDecayStage(days: 7, discount: 15);
+    return DeliveryLoyaltyConfig(
+      useCustomDeliveryTiers: false,
+      percBase: loyalty.percBase,
+      percMedium: mediumStage.discount,
+      mediumDays: mediumStage.days,
+      percVip: loyalty.percVip,
+      vipWindowDays: loyalty.vipWindowDays,
+      percDeposit: loyalty.percDeposit,
+      depositThreshold: loyalty.depositThreshold,
+      freeDeliveryThreshold: 250000.0,
+      pickupBonusPercent: 5,
+      happyHours: const [],
+    );
+  }
+
+  factory DeliveryLoyaltyConfig.fromMap(Map<String, dynamic>? map, {LoyaltyConfig? fallbackLoyalty}) {
+    if (map == null) {
+      return DeliveryLoyaltyConfig.fromLoyalty(fallbackLoyalty ?? const LoyaltyConfig());
+    }
+    final loyalty = fallbackLoyalty ?? const LoyaltyConfig();
+    final mediumStage = loyalty.decayStages.isNotEmpty ? loyalty.decayStages[0] : const LoyaltyDecayStage(days: 7, discount: 15);
+
+    return DeliveryLoyaltyConfig(
+      useCustomDeliveryTiers: map['useCustomDeliveryTiers'] ?? false,
+      percBase: map['percBase'] ?? loyalty.percBase,
+      percMedium: map['percMedium'] ?? mediumStage.discount,
+      mediumDays: map['mediumDays'] ?? mediumStage.days,
+      percVip: map['percVip'] ?? loyalty.percVip,
+      vipWindowDays: map['vipWindowDays'] ?? loyalty.vipWindowDays,
+      percDeposit: map['percDeposit'] ?? loyalty.percDeposit,
+      depositThreshold: (map['depositThreshold'] ?? loyalty.depositThreshold).toDouble(),
+      freeDeliveryThreshold: (map['freeDeliveryThreshold'] ?? 250000.0).toDouble(),
+      pickupBonusPercent: map['pickupBonusPercent'] ?? 5,
+      happyHours: (map['happyHours'] as List<dynamic>?)?.map((e) => HappyHourRule.fromMap(e as Map<String, dynamic>)).toList() ?? const [],
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    'useCustomDeliveryTiers': useCustomDeliveryTiers,
+    'percBase': percBase,
+    'percMedium': percMedium,
+    'mediumDays': mediumDays,
+    'percVip': percVip,
+    'vipWindowDays': vipWindowDays,
+    'percDeposit': percDeposit,
+    'depositThreshold': depositThreshold,
+    'freeDeliveryThreshold': freeDeliveryThreshold,
+    'pickupBonusPercent': pickupBonusPercent,
+    'happyHours': happyHours.map((h) => h.toMap()).toList(),
+  };
+
+  DeliveryLoyaltyConfig copyWith({
+    bool? useCustomDeliveryTiers,
+    int? percBase,
+    int? percMedium,
+    int? mediumDays,
+    int? percVip,
+    int? vipWindowDays,
+    int? percDeposit,
+    double? depositThreshold,
+    double? freeDeliveryThreshold,
+    int? pickupBonusPercent,
+    List<HappyHourRule>? happyHours,
+  }) {
+    return DeliveryLoyaltyConfig(
+      useCustomDeliveryTiers: useCustomDeliveryTiers ?? this.useCustomDeliveryTiers,
+      percBase: percBase ?? this.percBase,
+      percMedium: percMedium ?? this.percMedium,
+      mediumDays: mediumDays ?? this.mediumDays,
+      percVip: percVip ?? this.percVip,
+      vipWindowDays: vipWindowDays ?? this.vipWindowDays,
+      percDeposit: percDeposit ?? this.percDeposit,
+      depositThreshold: depositThreshold ?? this.depositThreshold,
+      freeDeliveryThreshold: freeDeliveryThreshold ?? this.freeDeliveryThreshold,
+      pickupBonusPercent: pickupBonusPercent ?? this.pickupBonusPercent,
+      happyHours: happyHours ?? this.happyHours,
+    );
+  }
+}
+
+class VenuePaymentConfig {
+  final bool cashOnDelivery;
+  final bool cardTerminalOnDelivery;
+  final bool payFromDeposit;
+  final String vietQrBankBin;
+  final String vietQrAccountNumber;
+  final String vietQrAccountName;
+  final String stripeAccountId;
+  final String ziinaPaymentUrl;
+  final String razorpayKeyId;
+  final String upiId;
+
+  const VenuePaymentConfig({
+    this.cashOnDelivery = true,
+    this.cardTerminalOnDelivery = false,
+    this.payFromDeposit = true,
+    this.vietQrBankBin = '',
+    this.vietQrAccountNumber = '',
+    this.vietQrAccountName = '',
+    this.stripeAccountId = '',
+    this.ziinaPaymentUrl = '',
+    this.razorpayKeyId = '',
+    this.upiId = '',
+  });
+
+  factory VenuePaymentConfig.fromMap(Map<String, dynamic>? map) {
+    if (map == null) return const VenuePaymentConfig();
+    return VenuePaymentConfig(
+      cashOnDelivery: map['cashOnDelivery'] ?? true,
+      cardTerminalOnDelivery: map['cardTerminalOnDelivery'] ?? false,
+      payFromDeposit: map['payFromDeposit'] ?? true,
+      vietQrBankBin: map['vietQrBankBin'] ?? '',
+      vietQrAccountNumber: map['vietQrAccountNumber'] ?? '',
+      vietQrAccountName: map['vietQrAccountName'] ?? '',
+      stripeAccountId: map['stripeAccountId'] ?? '',
+      ziinaPaymentUrl: map['ziinaPaymentUrl'] ?? '',
+      razorpayKeyId: map['razorpayKeyId'] ?? '',
+      upiId: map['upiId'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    'cashOnDelivery': cashOnDelivery,
+    'cardTerminalOnDelivery': cardTerminalOnDelivery,
+    'payFromDeposit': payFromDeposit,
+    'vietQrBankBin': vietQrBankBin,
+    'vietQrAccountNumber': vietQrAccountNumber,
+    'vietQrAccountName': vietQrAccountName,
+    'stripeAccountId': stripeAccountId,
+    'ziinaPaymentUrl': ziinaPaymentUrl,
+    'razorpayKeyId': razorpayKeyId,
+    'upiId': upiId,
+  };
+}
+
+class VenueLogisticsConfig {
+  final String deliveryMode;
+  final double inHouseRadiusKm;
+  final double inHouseBaseFee;
+  final String preferred3plProvider;
+  final String telegramDispatchChatId;
+
+  const VenueLogisticsConfig({
+    this.deliveryMode = 'in_house',
+    this.inHouseRadiusKm = 5.0,
+    this.inHouseBaseFee = 25000.0,
+    this.preferred3plProvider = 'lalamove',
+    this.telegramDispatchChatId = '',
+  });
+
+  factory VenueLogisticsConfig.fromMap(Map<String, dynamic>? map) {
+    if (map == null) return const VenueLogisticsConfig();
+    return VenueLogisticsConfig(
+      deliveryMode: map['deliveryMode'] ?? 'in_house',
+      inHouseRadiusKm: (map['inHouseRadiusKm'] ?? 5.0).toDouble(),
+      inHouseBaseFee: (map['inHouseBaseFee'] ?? 25000.0).toDouble(),
+      preferred3plProvider: map['preferred3plProvider'] ?? 'lalamove',
+      telegramDispatchChatId: map['telegramDispatchChatId'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toMap() => {
+    'deliveryMode': deliveryMode,
+    'inHouseRadiusKm': inHouseRadiusKm,
+    'inHouseBaseFee': inHouseBaseFee,
+    'preferred3plProvider': preferred3plProvider,
+    'telegramDispatchChatId': telegramDispatchChatId,
+  };
 }

@@ -22,6 +22,9 @@ import 'package:friendly_code/features/owner/presentation/screens/deposit_analyt
 import 'package:friendly_code/features/owner/presentation/screens/giftx_setup_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/google_maps_integration_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/google_maps_config_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/delivery_menu_manager_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/delivery_loyalty_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/delivery_logistics_payment_screen.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:friendly_code/core/services/visit_service.dart';
 import 'package:friendly_code/core/models/visit_model.dart';
@@ -1099,6 +1102,36 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                     icon: CupertinoIcons.printer_fill,
                     iconColor: AppColors.premiumGold,
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => PosStickerScreen(venue: venue))),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // ─── Direct Delivery & Food Apps (Перелив из агрегаторов) ──────
+              IOSSettingsGroup(
+                title: "Direct Delivery & Food Apps",
+                children: [
+                  IOSSettingsRow(
+                    title: "Меню доставки и Импорт",
+                    subtitle: "Парсинг из GrabFood, Zomato, Glovo и управление ценами",
+                    icon: CupertinoIcons.cart_fill,
+                    iconColor: AppColors.accentOrange,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DeliveryMenuManagerScreen(venueId: venue.id))),
+                  ),
+                  IOSSettingsRow(
+                    title: "Скидки доставки и Happy Hours",
+                    subtitle: "3 регулярных тира, депозитный тир и счастливые часы",
+                    icon: CupertinoIcons.timer,
+                    iconColor: Colors.amber,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DeliveryLoyaltyScreen(venueId: venue.id))),
+                  ),
+                  IOSSettingsRow(
+                    title: "Оплата и Служба доставки",
+                    subtitle: "VietQR, Stripe, UPI и настройки курьеров",
+                    icon: CupertinoIcons.cube_box_fill,
+                    iconColor: CupertinoColors.activeGreen,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DeliveryLogisticsPaymentScreen(venueId: venue.id))),
                   ),
                 ],
               ),
