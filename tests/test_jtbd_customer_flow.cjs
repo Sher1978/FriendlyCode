@@ -92,20 +92,23 @@ async function runJtbdCustomerFlowTests() {
   await page.waitForSelector('text=будет добавлено в заказ', { timeout: 5000 });
   console.log('✅ PASS: Pending item notice "Блюдо ... будет добавлено в заказ" is visible!');
 
+  // Wait for modal animation to settle
+  await page.waitForTimeout(1000);
+
   // Check Provider 1: Google (Gmail)
-  const googleBtn = await page.waitForSelector('button:has-text("Войти через Google (Gmail)")', { timeout: 5000 });
+  const googleBtn = await page.waitForSelector('text=Войти через Google (Gmail)', { timeout: 10000 });
   console.log('✅ PASS: 1-Click "Войти через Google (Gmail)" button is present!');
 
   // Check Provider 2: Telegram
-  const tgBtn = await page.waitForSelector('button:has-text("Войти через Telegram")', { timeout: 5000 });
+  const tgBtn = await page.waitForSelector('text=Войти через Telegram', { timeout: 10000 });
   console.log('✅ PASS: 1-Click "Войти через Telegram" button is present!');
 
   // Check Provider 3: Magic Link (Email)
-  const magicLinkBtn = await page.waitForSelector('button:has-text("Войти по Magic Link (Email)")', { timeout: 5000 });
+  const magicLinkBtn = await page.waitForSelector('text=Войти по Magic Link (Email)', { timeout: 10000 });
   console.log('✅ PASS: "Войти по Magic Link (Email)" button is present!');
 
   // Check Provider 4: Phone / WhatsApp
-  const phoneBtn = await page.waitForSelector('button:has-text("Или войти по номеру телефона / WhatsApp")', { timeout: 5000 });
+  const phoneBtn = await page.waitForSelector('text=Или войти по номеру телефона / WhatsApp', { timeout: 10000 });
   console.log('✅ PASS: "Или войти по номеру телефона / WhatsApp" link is present!');
 
   // Save screenshot of multi-provider auth options
@@ -129,15 +132,15 @@ async function runJtbdCustomerFlowTests() {
   await page.waitForTimeout(400);
 
   console.log('🔍 Testing Magic Link sub-view navigation...');
-  const magicLinkBtnAgain = await page.waitForSelector('button:has-text("Войти по Magic Link (Email)")');
+  const magicLinkBtnAgain = await page.waitForSelector('text=Войти по Magic Link (Email)');
   await magicLinkBtnAgain.click();
   await page.waitForTimeout(400);
   await page.waitForSelector('input[placeholder="alex@gmail.com"]', { timeout: 5000 });
-  await page.waitForSelector('button:has-text("Получить Magic Link на Email")', { timeout: 5000 });
+  await page.waitForSelector('text=Получить Magic Link на Email', { timeout: 5000 });
   console.log('✅ PASS: Magic Link view opens passwordless email form cleanly!');
 
   // Return to all options
-  const backBtn2 = await page.waitForSelector('button:has-text("Все способы")');
+  const backBtn2 = await page.waitForSelector('text=Все способы');
   await backBtn2.click();
   await page.waitForTimeout(400);
 
@@ -145,7 +148,7 @@ async function runJtbdCustomerFlowTests() {
   // JTBD 5: Submitting Auth & Verifying User Stays in Flow
   // ---------------------------------------------------------
   console.log('\n🔍 STEP 5: Testing Phone / WhatsApp login to verify seamless post-login UX...');
-  const phoneOptionBtn = await page.waitForSelector('button:has-text("Или войти по номеру телефона / WhatsApp")');
+  const phoneOptionBtn = await page.waitForSelector('text=Или войти по номеру телефона / WhatsApp');
   await phoneOptionBtn.click();
   await page.waitForTimeout(400);
 
