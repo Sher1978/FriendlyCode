@@ -1014,7 +1014,7 @@ const NewQRPage = () => {
             type: 'regular',
             badge: t('badge_regular', { tier: tierName, defaultValue: `🔄 Regular (${tierName})` }),
             title: t('title_regular', { tier: tierName, defaultValue: `Regular Loyalty (${tierName})` }),
-            subtitle: t('subtitle_regular', 'Каждый визит заряжает батарею. Повторите визит в течение 7 дней, чтобы скидка не разрядилась!'),
+            subtitle: t('subtitle_regular', 'Визит завтра (до 48ч) заряжает батарею на максимум! Регулярные визиты сохраняют скидку.'),
             color: batCfg.fillColor || '#00FF41',
             bgClass: 'from-[#00FF41]/20 via-[#00FF41]/5 to-black/40',
             borderClass: 'border-[#00FF41]/30',
@@ -1510,7 +1510,7 @@ const NewQRPage = () => {
                                 {t('offer_return_tomorrow_title', { percent: maxDiscount, defaultValue: `Зарядите батарею до максимума ${maxDiscount}% завтра!` })}
                             </div>
                             <p className="text-[11px] font-medium text-white/70 leading-relaxed mb-4">
-                                {t('offer_return_tomorrow_sub', 'Каждый визит и заказ заряжает вашу батарею. Приходите завтра или закажите доставку, чтобы получить максимальную скидку!')}
+                                {t('offer_return_tomorrow_sub', 'Приходите завтра (до 48ч) или закажите доставку — батарея зарядится до максимального Тира 3! Регулярные визиты сохраняют полный заряд.')}
                             </p>
 
                             {/* 2-Column Tomorrow Discount & Timer Display */}
@@ -1567,7 +1567,7 @@ const NewQRPage = () => {
                             </div>
 
                             <p className="text-[11px] font-medium text-white/40 text-center px-4 leading-relaxed tracking-wider py-2">
-                                {t('timeline_motivation', 'Каждое посещение или онлайн-заказ заряжает батарейку. Не дайте скидке разрядиться — сохраняйте максимум!')}
+                                {t('timeline_motivation', 'Визит завтра заряжает батарею до максимума. Регулярные визиты сохраняют скидку, а при долгих паузах заряд тает!')}
                             </p>
                         </>
                     )}

@@ -340,7 +340,7 @@ const GuestDashboard = () => {
                                     className="h-full bg-[#00FF41] shadow-[0_0_15px_rgba(0,255,65,0.5)]"
                                 />
                             </div>
-                            <p className="text-[9px] text-white/40 font-medium">Каждый заказ или визит заряжает батарею. Повторяйте заказ раз в 7 дней, чтобы скидка не растаяла!</p>
+                            <p className="text-[9px] text-white/40 font-medium">Заказ завтра (до 48ч) заряжает батарею на максимум! Регулярные визиты сохраняют скидку, а при паузах заряд тает.</p>
                         </div>
                     </div>
                     {/* Decorative Elements */}

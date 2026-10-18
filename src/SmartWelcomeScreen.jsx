@@ -21,9 +21,9 @@ const SmartWelcomeScreen = () => {
     const { t } = useTranslation();
     
     const steps = [
-        t('sws_step_1', 'Сделайте заказ в зале или оформите доставку.'),
-        t('sws_step_2', 'Покажите экран официанту или подтвердите заказ.'),
-        t('sws_step_3', 'Батарея зарядится до максимума на следующие визиты!')
+        t('sws_step_1', 'Сделайте заказ сегодня.'),
+        t('sws_step_2', 'Вернитесь завтра (до 48ч) в заведение или онлайн.'),
+        t('sws_step_3', 'Получите максимальную скидку (Тир 3)!')
     ];
     const [currentStep, setCurrentStep] = useState(0);
     const [animatedPercent, setAnimatedPercent] = useState(0);
@@ -173,7 +173,7 @@ const SmartWelcomeScreen = () => {
                     className="bg-[#1C1C1E]/80 backdrop-blur-xl rounded-[28px] p-6 border border-white/10 shadow-2xl w-full max-w-sm mb-6"
                 >
                     <p className="text-sm text-white/80 font-medium leading-relaxed mb-4">
-                        {t('sws_intro_desc_1', 'Ваша скидка — это живая батарея: она заряжается каждым визитом и заказом! В честь знакомства мы дарим вам ')}
+                        {t('sws_intro_desc_1', 'Ваша скидка — это живая батарея: 1-й визит активирует скидку, а визит завтра (до 48ч) заряжает её до максимума! В честь знакомства мы дарим вам ')}
                         <span className="text-[#00FF41] font-bold">{t('sws_max_level', 'ПОЛНЫЙ 100% ЗАРЯД')}</span> 
                         {t('sws_intro_desc_2', ' прямо сейчас (действует 24 часа ⚡)')}
                     </p>
@@ -224,7 +224,7 @@ const SmartWelcomeScreen = () => {
                     transition={{ delay: 0.6 }}
                     className="text-[10px] text-white/40 font-medium mt-4 max-w-[280px]"
                 >
-                    {t('sws_warning', '⏳ Не дайте батарее разрядиться: повторный визит или онлайн-заказ в течение 7 дней сохраняет максимальную скидку!')}
+                    {t('sws_warning', '⏳ Не дайте батарее разрядиться: повторный визит завтра (до 48ч) сохраняет максимальный заряд!')}
                 </motion.p>
             </div>
         </div>

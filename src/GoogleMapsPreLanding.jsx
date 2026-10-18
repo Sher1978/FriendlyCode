@@ -1251,7 +1251,7 @@ const GoogleMapsPreLanding = () => {
                 </span>
               </div>
               <p className="text-[11px] text-gray-300 leading-tight">
-                Заряжайте её покупками: 1-й заказ — 5%, 2-й — 10%, 3-й — до {maxPossibleDiscount}%. Повторяйте заказ раз в 7 дней, чтобы скидка не растаяла!
+                Первый заказ активирует скидку, а заказ завтра (до 48ч) заряжает батарею сразу до максимума ({maxPossibleDiscount}%)! Регулярные заказы сохраняют максимальный заряд.
               </p>
             </div>
             <button 
@@ -1854,7 +1854,7 @@ const GoogleMapsPreLanding = () => {
                   <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-2.5 text-[11px] text-emerald-300 flex items-center gap-2 mt-2">
                     <span className="text-base shrink-0">🔋</span>
                     <span className="leading-tight">
-                      <strong>Этот заказ зарядит вашу батарею на 7 дней!</strong> При следующем заказе скидка сохранится на максимуме.
+                      <strong>Этот заказ заряжает батарею:</strong> сделайте следующий заказ завтра (до 48ч) и получите максимальную скидку до {maxPossibleDiscount}%!
                     </span>
                   </div>
                 </div>
@@ -1920,13 +1920,13 @@ const GoogleMapsPreLanding = () => {
                 <div className="flex items-start gap-2.5">
                   <span className="text-base shrink-0">🔋</span>
                   <span className="text-gray-300 text-[11.5px] leading-snug">
-                    <strong className="text-emerald-400">Как заряжать:</strong> С каждым заказом скидка растет: 1-й — 5%, 2-й — 10%, 3-й — до {maxPossibleDiscount}%.
+                    <strong className="text-emerald-400">Как зарядить на максимум:</strong> Первый заказ дает базовую скидку, а повторный заказ завтра (до 48ч) заряжает батарею сразу до максимума ({maxPossibleDiscount}%)!
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <span className="text-base shrink-0">⚡</span>
                   <span className="text-gray-300 text-[11.5px] leading-snug">
-                    <strong className="text-amber-300">Не дайте разрядиться:</strong> Повторный заказ или визит в течение 7 дней удерживает батарею на 100% заряда.
+                    <strong className="text-amber-300">Как сохранить заряд:</strong> Регулярные заказы удерживают максимальную скидку. Если долго не заказывать — заряд батареи начинает таять.
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">
@@ -2276,7 +2276,7 @@ const GoogleMapsPreLanding = () => {
                   {depositBalance > 0 ? (
                     <span>💰 <strong className="text-amber-300">Депозит активен:</strong> максимальный 100% заряд батареи закреплен навсегда!</span>
                   ) : (
-                    <span>⚡ <strong className="text-emerald-400">Правило батареи:</strong> Повторяйте заказ или визит раз в 7 дней, чтобы сохранять максимальную скидку. Без заказов заряд начнет таять.</span>
+                    <span>⚡ <strong className="text-emerald-400">Правило батареи:</strong> Заказ завтра (до 48ч) заряжает батарею на максимум. Регулярные заказы сохраняют 100% заряд, а при долгих паузах скидка начинает таять.</span>
                   )}
                 </div>
                 {depositBalance > 0 && (
@@ -2340,10 +2340,10 @@ const GoogleMapsPreLanding = () => {
               {/* Battery Charge Success Soundbite */}
               <div className="bg-emerald-950/50 border border-emerald-500/40 rounded-2xl p-3 text-xs text-emerald-300 space-y-1">
                 <div className="font-black text-white flex items-center justify-center gap-1.5">
-                  <span>🔋</span> Батарея скидки заряжена на 100%!
+                  <span>🔋</span> Батарея заряжается покупками!
                 </div>
                 <p className="text-[11px] text-gray-300 leading-tight">
-                  Полный заряд действует 7 дней. Повторите заказ до истечения срока, чтобы скидка не растаяла!
+                  Повторите заказ завтра (до 48ч) — и ваша скидка вырастет до максимального Тира 3! Регулярные заказы сохраняют максимальную скидку.
                 </p>
               </div>
 
