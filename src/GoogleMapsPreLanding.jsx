@@ -1,19 +1,31 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { db, auth } from './firebase';
+import { db, auth, googleProvider } from './firebase';
 import { doc, getDoc, query, collection, where, getDocs, setDoc, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { 
+  signInAnonymously, 
+  onAuthStateChanged,
+  signInWithPopup, 
+  signInWithRedirect, 
+  getRedirectResult, 
+  sendSignInLinkToEmail, 
+  isSignInWithEmailLink, 
+  signInWithEmailLink,
+  signOut 
+} from 'firebase/auth';
+import { findAndMergeUserByEmail } from './logic/userDeduplication';
 import { logVenueClick } from './logic/analytics';
 import { RewardCalculator } from './logic/RewardCalculator';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faInstagram, faTiktok, faYoutube, faTelegram, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
-import { faMapLocationDot } from '@fortawesome/free-solid-svg-icons';
+import { faInstagram, faTiktok, faYoutube, faTelegram, faWhatsapp, faGoogle } from '@fortawesome/free-brands-svg-icons';
+import { faMapLocationDot, faEnvelope, faPaperPlane, faPhone, faArrowLeft, faCheckCircle, faSpinner } from '@fortawesome/free-solid-svg-icons';
 
 // Helpers for balance & currency
 const safeStorage = {
   getItem: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } },
-  setItem: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { console.warn('Storage blocked'); } }
+  setItem: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { console.warn('Storage blocked'); } },
+  removeItem: (k) => { try { localStorage.removeItem(k); } catch (e) {} }
 };
 
 const parseBalance = (val) => {
@@ -95,11 +107,21 @@ const GoogleMapsPreLanding = () => {
   const [userProfile, setUserProfile] = useState(null);
   const [guestName, setGuestName] = useState(() => safeStorage.getItem('guestName') || '');
   const [guestPhone, setGuestPhone] = useState(() => safeStorage.getItem('guestPhone') || '');
+  const [guestEmail, setGuestEmail] = useState(() => safeStorage.getItem('guestEmail') || '');
+  const [guestTelegram, setGuestTelegram] = useState(() => safeStorage.getItem('guestTelegram') || '');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [pendingCartItem, setPendingCartItem] = useState(null);
   const [authTriggerReason, setAuthTriggerReason] = useState('manual');
   const [depositBalance, setDepositBalance] = useState(0);
+
+  // Multi-Provider Auth Sub-state
+  const [authMethod, setAuthMethod] = useState('options'); // 'options' | 'telegram' | 'magic_link' | 'phone'
+  const [magicEmail, setMagicEmail] = useState('');
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [telegramInput, setTelegramInput] = useState('');
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState('');
 
   // Discount Calculation State
   const [personalDiscount, setPersonalDiscount] = useState(5);
@@ -155,6 +177,87 @@ const GoogleMapsPreLanding = () => {
     fetchVenue();
   }, [venueId]);
 
+  // Check Magic Link on Mount & Redirect Result
+  useEffect(() => {
+    const handleAuthRedirectAndLink = async () => {
+      try {
+        // 1. Check Magic Link
+        if (isSignInWithEmailLink(auth, window.location.href)) {
+          let email = safeStorage.getItem('emailForSignIn');
+          if (!email) {
+            email = window.prompt('Пожалуйста, подтвердите ваш Email для завершения входа:');
+          }
+          if (email) {
+            const res = await signInWithEmailLink(auth, email, window.location.href);
+            if (res?.user) {
+              const u = res.user;
+              const displayName = u.displayName || email.split('@')[0];
+              setGuestName(displayName);
+              setGuestEmail(email);
+              safeStorage.setItem('guestName', displayName);
+              safeStorage.setItem('guestEmail', email);
+
+              await findAndMergeUserByEmail(db, email, u.uid, {
+                displayName,
+                venueId
+              });
+
+              // Restore pending cart item
+              const savedPending = safeStorage.getItem('pendingCartItem');
+              if (savedPending) {
+                try {
+                  const item = JSON.parse(savedPending);
+                  const id = item.id || item.name;
+                  setCart(prev => ({ ...prev, [id]: { item, count: 1 } }));
+                  safeStorage.removeItem('pendingCartItem');
+                } catch (e) {}
+              }
+
+              // Clean address bar so email link token doesn't linger
+              const cleanUrl = window.location.pathname + `?id=${venueId}&utm_source=google_maps`;
+              window.history.replaceState({}, document.title, cleanUrl);
+            }
+          }
+          return;
+        }
+
+        // 2. Check Google Redirect Result
+        const redirectRes = await getRedirectResult(auth);
+        if (redirectRes?.user) {
+          const u = redirectRes.user;
+          const displayName = u.displayName || u.email?.split('@')[0] || 'Google Guest';
+          const email = u.email || '';
+
+          setGuestName(displayName);
+          safeStorage.setItem('guestName', displayName);
+          if (email) {
+            setGuestEmail(email);
+            safeStorage.setItem('guestEmail', email);
+          }
+
+          await findAndMergeUserByEmail(db, email, u.uid, {
+            displayName,
+            venueId
+          });
+
+          const savedPending = safeStorage.getItem('pendingCartItem');
+          if (savedPending) {
+            try {
+              const item = JSON.parse(savedPending);
+              const id = item.id || item.name;
+              setCart(prev => ({ ...prev, [id]: { item, count: 1 } }));
+              safeStorage.removeItem('pendingCartItem');
+            } catch (e) {}
+          }
+        }
+      } catch (err) {
+        console.warn("Auth redirect / email link check error:", err);
+      }
+    };
+
+    handleAuthRedirectAndLink();
+  }, [venueId]);
+
   // Auth State Listener & Deposit Snapshot
   useEffect(() => {
     let unsubUserDoc = null;
@@ -167,13 +270,22 @@ const GoogleMapsPreLanding = () => {
           if (snap.exists()) {
             const data = snap.data();
             setUserProfile(data);
-            if (data.name && !guestName) {
-              setGuestName(data.name);
-              safeStorage.setItem('guestName', data.name);
+            const resolvedName = data.displayName || data.name || currentUser.displayName;
+            if (resolvedName && !guestName) {
+              setGuestName(resolvedName);
+              safeStorage.setItem('guestName', resolvedName);
             }
             if (data.phone && !guestPhone) {
               setGuestPhone(data.phone);
               safeStorage.setItem('guestPhone', data.phone);
+            }
+            if (data.email && !guestEmail) {
+              setGuestEmail(data.email);
+              safeStorage.setItem('guestEmail', data.email);
+            }
+            if (data.telegram && !guestTelegram) {
+              setGuestTelegram(data.telegram);
+              safeStorage.setItem('guestTelegram', data.telegram);
             }
 
             // Extract deposit balance for this venue
@@ -197,7 +309,7 @@ const GoogleMapsPreLanding = () => {
       unsubAuth();
       if (unsubUserDoc) unsubUserDoc();
     };
-  }, [venueId, guestName, guestPhone]);
+  }, [venueId, guestName, guestPhone, guestEmail, guestTelegram]);
 
   // Effective Delivery Loyalty Configuration & Dynamic Discounts
   const deliveryLoyaltyConfig = venue?.deliveryLoyaltyConfig || {};
@@ -270,7 +382,39 @@ const GoogleMapsPreLanding = () => {
   }, [venue, deliveryLoyaltyConfig, activeHappyHour]);
 
   // Calculate Effective User Discount (Personal + Happy Hour + Pickup Bonus)
-  const isUserIdentified = Boolean(user && (guestName || guestPhone || userProfile?.name || userProfile?.phone));
+  const effectiveEmail = guestEmail || user?.email || userProfile?.email || '';
+  const effectiveTelegram = guestTelegram || userProfile?.telegram || '';
+  const effectiveDisplayName = 
+    guestName || 
+    user?.displayName || 
+    userProfile?.displayName || 
+    userProfile?.name || 
+    (effectiveEmail ? effectiveEmail.split('@')[0] : '') || 
+    effectiveTelegram || 
+    'Гость';
+
+  const effectiveContact = 
+    guestPhone || 
+    userProfile?.phone || 
+    effectiveEmail || 
+    effectiveTelegram || 
+    '';
+
+  const isUserIdentified = Boolean(
+    user && (
+      guestName || 
+      guestPhone || 
+      effectiveEmail || 
+      effectiveTelegram ||
+      user.displayName || 
+      user.email || 
+      userProfile?.name || 
+      userProfile?.displayName || 
+      userProfile?.phone || 
+      userProfile?.email ||
+      userProfile?.telegram
+    )
+  );
   const happyHourBonus = activeHappyHour?.discountBonus ? Number(activeHappyHour.discountBonus) : 0;
   const pickupBonus = (deliveryType === 'pickup' && deliveryLoyaltyConfig?.pickupBonusDiscount) 
     ? Number(deliveryLoyaltyConfig.pickupBonusDiscount) 
@@ -425,14 +569,213 @@ const GoogleMapsPreLanding = () => {
     : 0;
   const finalOrderTotal = Math.max(0, discountedSubtotal + deliveryFee - depositDeduction);
 
-  // Quick Auth / Login handler
-  const handleQuickLogin = async (e) => {
+  const isRevoo = typeof window !== 'undefined' && (window.location.hostname.includes('revoo') || safeStorage.getItem('brandOverride') === 'revoo');
+  const botName = isRevoo ? 'revoogiftx_bot' : 'FriendIycode_bot';
+
+  // Helper: Post-Auth State Fulfillment
+  const finalizeAuthSuccess = (name, email = '', phone = '', telegram = '') => {
+    if (name) {
+      setGuestName(name);
+      safeStorage.setItem('guestName', name);
+    }
+    if (email) {
+      setGuestEmail(email);
+      safeStorage.setItem('guestEmail', email);
+    }
+    if (phone) {
+      setGuestPhone(phone);
+      safeStorage.setItem('guestPhone', phone);
+    }
+    if (telegram) {
+      setGuestTelegram(telegram);
+      safeStorage.setItem('guestTelegram', telegram);
+    }
+
+    // Auto-add pending cart item if user clicked dish before login
+    if (pendingCartItem) {
+      const id = pendingCartItem.id || pendingCartItem.name;
+      setCart(prev => {
+        const existing = prev[id];
+        const count = (existing?.count || 0) + 1;
+        return { ...prev, [id]: { item: pendingCartItem, count } };
+      });
+      setPendingCartItem(null);
+      safeStorage.removeItem('pendingCartItem');
+    }
+
+    setIsAuthModalOpen(false);
+    setAuthMethod('options');
+    setAuthError('');
+  };
+
+  // 1. Google (Gmail) Sign-In
+  const handleGoogleSignIn = async () => {
+    setIsAuthLoading(true);
+    setAuthError('');
+    try {
+      googleProvider.setCustomParameters({ prompt: 'select_account' });
+      let result = null;
+      try {
+        result = await signInWithPopup(auth, googleProvider);
+      } catch (popupError) {
+        console.warn("signInWithPopup blocked or failed, checking redirect fallback:", popupError);
+        if (popupError.code === 'auth/popup-closed-by-user' || popupError.code === 'auth/cancelled-popup-request') {
+          setIsAuthLoading(false);
+          return;
+        }
+        if (pendingCartItem) {
+          safeStorage.setItem('pendingCartItem', JSON.stringify(pendingCartItem));
+        }
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      }
+
+      if (result?.user) {
+        const u = result.user;
+        const displayName = u.displayName || u.email?.split('@')[0] || 'Google Guest';
+        const email = u.email || '';
+
+        try {
+          await findAndMergeUserByEmail(db, email, u.uid, {
+            displayName,
+            venueId
+          });
+        } catch (mergeErr) {
+          console.warn("findAndMergeUserByEmail warning:", mergeErr);
+        }
+
+        finalizeAuthSuccess(displayName, email);
+      }
+    } catch (err) {
+      console.error("Google Auth error:", err);
+      setAuthError(err.message || 'Ошибка входа через Google');
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  // 2. Telegram Auth
+  const handleTelegramClick = () => {
+    setAuthError('');
+    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+      handleTelegramWebAppAuth();
+    } else {
+      setAuthMethod('telegram');
+    }
+  };
+
+  const handleTelegramWebAppAuth = async () => {
+    setIsAuthLoading(true);
+    setAuthError('');
+    try {
+      const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      if (!tgUser) return;
+      const tgName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(' ') || tgUser.username || 'Telegram Guest';
+      const tgHandle = tgUser.username ? `@${tgUser.username}` : '';
+      const tgEmail = tgUser.username ? `${tgUser.username.toLowerCase()}@telegram.user` : `tg_${tgUser.id}@telegram.user`;
+
+      let currentUid = user?.uid;
+      if (!currentUid) {
+        try {
+          const anonRes = await signInAnonymously(auth);
+          currentUid = anonRes.user.uid;
+          setUser(anonRes.user);
+        } catch (e) {
+          currentUid = `tg_${tgUser.id}`;
+        }
+      }
+
+      await findAndMergeUserByEmail(db, tgEmail, currentUid, {
+        displayName: tgName,
+        telegram: tgHandle,
+        venueId
+      });
+
+      finalizeAuthSuccess(tgName, tgEmail, '', tgHandle);
+    } catch (err) {
+      console.error("Telegram WebApp Auth error:", err);
+      setAuthError(err.message || 'Ошибка Telegram WebApp');
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleTelegramManualAuth = async (e) => {
     if (e) e.preventDefault();
-    if (!guestPhone.trim() && !guestName.trim()) {
-      alert("Пожалуйста, введите телефон или имя");
+    const handle = (telegramInput || '').trim();
+    if (!handle) {
+      setAuthError('Укажите ваш @username в Telegram');
+      return;
+    }
+    const cleanHandle = handle.startsWith('@') ? handle : `@${handle}`;
+    const syntheticEmail = `${cleanHandle.replace('@', '').toLowerCase()}@telegram.user`;
+    const displayName = cleanHandle;
+
+    setIsAuthLoading(true);
+    setAuthError('');
+    try {
+      let currentUid = user?.uid;
+      if (!currentUid) {
+        const anonRes = await signInAnonymously(auth);
+        currentUid = anonRes.user.uid;
+        setUser(anonRes.user);
+      }
+
+      await findAndMergeUserByEmail(db, syntheticEmail, currentUid, {
+        displayName,
+        telegram: cleanHandle,
+        venueId
+      });
+
+      finalizeAuthSuccess(displayName, syntheticEmail, '', cleanHandle);
+    } catch (err) {
+      console.error("Telegram manual auth error:", err);
+      setAuthError(err.message || 'Ошибка авторизации');
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  // 3. Email Magic Link
+  const handleSendMagicLink = async (e) => {
+    if (e) e.preventDefault();
+    const email = (magicEmail || '').trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      setAuthError('Пожалуйста, укажите корректный Email');
       return;
     }
 
+    setIsAuthLoading(true);
+    setAuthError('');
+    try {
+      const actionCodeSettings = {
+        url: window.location.href,
+        handleCodeInApp: true
+      };
+      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      safeStorage.setItem('emailForSignIn', email);
+      if (pendingCartItem) {
+        safeStorage.setItem('pendingCartItem', JSON.stringify(pendingCartItem));
+      }
+      setMagicLinkSent(true);
+    } catch (err) {
+      console.error("Send Magic Link error:", err);
+      setAuthError(err.message || 'Не удалось отправить ссылку на email');
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  // 4. Quick Phone / WhatsApp handler
+  const handleQuickLogin = async (e) => {
+    if (e) e.preventDefault();
+    if (!guestPhone.trim() && !guestName.trim()) {
+      setAuthError("Пожалуйста, введите телефон или имя");
+      return;
+    }
+
+    setIsAuthLoading(true);
+    setAuthError('');
     try {
       let currentUid = user?.uid;
       if (!currentUid) {
@@ -441,48 +784,43 @@ const GoogleMapsPreLanding = () => {
         setUser(cred.user);
       }
 
+      const cleanName = guestName.trim() || 'Гость';
+      const cleanPhone = guestPhone.trim() || '';
+
       const userData = {
-        name: guestName.trim() || 'Гость',
-        phone: guestPhone.trim() || '',
+        name: cleanName,
+        phone: cleanPhone,
         updatedAt: serverTimestamp(),
         lastVisitVenueId: venueId
       };
 
       await setDoc(doc(db, 'users', currentUid), userData, { merge: true });
-      safeStorage.setItem('guestName', guestName.trim());
-      safeStorage.setItem('guestPhone', guestPhone.trim());
-
-      // If user clicked on a dish before login, automatically add it now
-      if (pendingCartItem) {
-        const id = pendingCartItem.id || pendingCartItem.name;
-        setCart(prev => {
-          const existing = prev[id];
-          const count = (existing?.count || 0) + 1;
-          return { ...prev, [id]: { item: pendingCartItem, count } };
-        });
-        setPendingCartItem(null);
-      }
-
-      setIsAuthModalOpen(false);
+      finalizeAuthSuccess(cleanName, '', cleanPhone);
     } catch (err) {
       console.warn("Login fallback note:", err);
-      safeStorage.setItem('guestName', guestName.trim());
-      safeStorage.setItem('guestPhone', guestPhone.trim());
-      if (pendingCartItem) {
-        const id = pendingCartItem.id || pendingCartItem.name;
-        setCart(prev => ({ ...prev, [id]: { item: pendingCartItem, count: 1 } }));
-        setPendingCartItem(null);
-      }
-      setIsAuthModalOpen(false);
+      finalizeAuthSuccess(guestName.trim() || 'Гость', '', guestPhone.trim());
+    } finally {
+      setIsAuthLoading(false);
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+    } catch (e) {
+      console.warn("Sign out note:", e);
+    }
     safeStorage.setItem('guestName', '');
     safeStorage.setItem('guestPhone', '');
+    safeStorage.setItem('guestEmail', '');
+    safeStorage.setItem('guestTelegram', '');
     setGuestName('');
     setGuestPhone('');
+    setGuestEmail('');
+    setGuestTelegram('');
+    setUser(null);
     setUserProfile(null);
+    setDepositBalance(0);
     setCart({});
     setIsProfileModalOpen(false);
   };
@@ -491,7 +829,7 @@ const GoogleMapsPreLanding = () => {
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
     if (cartCount === 0) return;
-    if (!guestName || !guestPhone) {
+    if (!isUserIdentified) {
       setIsAuthModalOpen(true);
       return;
     }
@@ -519,8 +857,10 @@ const GoogleMapsPreLanding = () => {
         venueName: venue?.name || 'Revoo Venue',
         customer: {
           uid: user?.uid || 'guest',
-          name: guestName,
-          phone: guestPhone,
+          name: effectiveDisplayName,
+          phone: guestPhone || '',
+          email: effectiveEmail || '',
+          telegram: effectiveTelegram || '',
           address: deliveryType === 'delivery' ? deliveryAddress : 'Самовывоз',
           comment: orderComment
         },
@@ -758,7 +1098,7 @@ const GoogleMapsPreLanding = () => {
 
                 {/* User name / badge */}
                 <span className="text-gray-200 font-semibold text-[11px] truncate max-w-[65px] sm:max-w-[90px]">
-                  {guestName || 'Гость'}
+                  {effectiveDisplayName}
                 </span>
               </button>
             )}
@@ -921,7 +1261,7 @@ const GoogleMapsPreLanding = () => {
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                 <span className="text-white text-xs font-bold truncate max-w-[150px]">
-                  {guestName || 'Гость'}
+                  {effectiveDisplayName}
                 </span>
                 <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black px-2 py-0.5 rounded-full">
                   -{currentDiscountRate}%
@@ -1520,7 +1860,7 @@ const GoogleMapsPreLanding = () => {
         )}
       </AnimatePresence>
 
-      {/* Quick Phone / Login Modal (with Service & Dynamic Discount info) */}
+      {/* Quick Phone / Multi-Provider Login Modal */}
       <AnimatePresence>
         {isAuthModalOpen && (
           <motion.div 
@@ -1584,53 +1924,276 @@ const GoogleMapsPreLanding = () => {
                 </div>
               )}
 
-              {/* Auth Form */}
-              <form onSubmit={handleQuickLogin} className="space-y-3 pt-1">
-                <div>
-                  <label className="text-[11px] font-bold text-gray-300 uppercase block mb-1">Ваше имя</label>
-                  <input 
-                    type="text" 
-                    value={guestName} 
-                    onChange={(e) => setGuestName(e.target.value)}
-                    placeholder="Александр" 
-                    className="w-full bg-[#2a2c30] border border-[#3C4043] focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
-                    required
-                  />
+              {/* Auth Error Banner */}
+              {authError && (
+                <div className="bg-red-950/50 border border-red-500/40 rounded-xl px-3 py-2 text-xs text-red-300 text-center">
+                  {authError}
                 </div>
+              )}
 
-                <div>
-                  <label className="text-[11px] font-bold text-gray-300 uppercase block mb-1">Номер телефона / WhatsApp</label>
-                  <input 
-                    type="tel" 
-                    value={guestPhone} 
-                    onChange={(e) => setGuestPhone(e.target.value)}
-                    placeholder="+84 90 123 4567" 
-                    className="w-full bg-[#2a2c30] border border-[#3C4043] focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
-                    required
-                  />
-                </div>
-
-                <div className="pt-2 space-y-2">
+              {/* View 1: Main Provider Options */}
+              {authMethod === 'options' && (
+                <div className="space-y-2.5 pt-1">
+                  {/* Google (Gmail) Sign-In Button */}
                   <button
-                    type="submit"
-                    className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-black font-black text-xs shadow-lg active:scale-98 transition-all flex items-center justify-center gap-1.5"
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={isAuthLoading}
+                    className="w-full py-3 px-4 rounded-xl bg-white hover:bg-gray-100 active:scale-98 text-[#3c4043] font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2.5"
                   >
-                    <span>Войти и заказать со скидкой</span>
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                    {isAuthLoading ? (
+                      <FontAwesomeIcon icon={faSpinner} className="animate-spin text-sm" />
+                    ) : (
+                      <FontAwesomeIcon icon={faGoogle} className="text-base text-[#EA4335]" />
+                    )}
+                    <span>Войти через Google (Gmail)</span>
                   </button>
 
+                  {/* Telegram Sign-In Button */}
+                  <button
+                    type="button"
+                    onClick={handleTelegramClick}
+                    disabled={isAuthLoading}
+                    className="w-full py-3 px-4 rounded-xl bg-[#2AABEE] hover:bg-[#229ED9] active:scale-98 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2.5"
+                  >
+                    <FontAwesomeIcon icon={faTelegram} className="text-base" />
+                    <span>Войти через Telegram</span>
+                  </button>
+
+                  {/* Magic Link (Email) Button */}
                   <button
                     type="button"
                     onClick={() => {
-                      setPendingCartItem(null);
-                      setIsAuthModalOpen(false);
+                      setAuthError('');
+                      setAuthMethod('magic_link');
                     }}
-                    className="w-full py-2.5 rounded-xl text-gray-400 hover:text-white font-medium text-xs transition-colors"
+                    className="w-full py-2.5 px-4 rounded-xl bg-[#2a2c30] hover:bg-[#34373c] border border-[#3C4043] active:scale-98 text-gray-200 font-semibold text-xs transition-all flex items-center justify-center gap-2"
                   >
-                    Продолжить просмотр меню
+                    <FontAwesomeIcon icon={faEnvelope} className="text-sm text-emerald-400" />
+                    <span>Войти по Magic Link (Email)</span>
+                  </button>
+
+                  {/* Phone / WhatsApp Alternative */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthError('');
+                      setAuthMethod('phone');
+                    }}
+                    className="w-full py-2 text-center text-[11px] text-gray-400 hover:text-emerald-300 font-medium transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <FontAwesomeIcon icon={faPhone} className="text-[10px]" />
+                    <span>Или войти по номеру телефона / WhatsApp →</span>
                   </button>
                 </div>
-              </form>
+              )}
+
+              {/* View 2: Telegram Deep Link & Handle View */}
+              {authMethod === 'telegram' && (
+                <div className="space-y-3 pt-1">
+                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setAuthMethod('options')}
+                      className="text-xs text-gray-400 hover:text-white flex items-center gap-1.5"
+                    >
+                      <FontAwesomeIcon icon={faArrowLeft} />
+                      <span>Все способы</span>
+                    </button>
+                    <span className="text-xs font-bold text-[#2AABEE] flex items-center gap-1.5">
+                      <FontAwesomeIcon icon={faTelegram} /> Telegram
+                    </span>
+                  </div>
+
+                  <a
+                    href={`https://t.me/${botName}?start=delivery_${venueId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 px-4 rounded-xl bg-[#2AABEE]/20 hover:bg-[#2AABEE]/30 border border-[#2AABEE]/50 text-[#2AABEE] font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm text-center"
+                  >
+                    <FontAwesomeIcon icon={faPaperPlane} />
+                    <span>Открыть бот @{botName}</span>
+                  </a>
+
+                  <div className="relative flex py-1 items-center">
+                    <div className="flex-grow border-t border-white/10"></div>
+                    <span className="flex-shrink mx-2 text-[10px] text-gray-400 uppercase font-bold">или укажите юзернейм</span>
+                    <div className="flex-grow border-t border-white/10"></div>
+                  </div>
+
+                  <form onSubmit={handleTelegramManualAuth} className="space-y-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-gray-300 uppercase block mb-1">
+                        Ваш Telegram @username
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-gray-400 text-xs">@</span>
+                        <input
+                          type="text"
+                          value={telegramInput.replace(/^@/, '')}
+                          onChange={(e) => setTelegramInput(e.target.value)}
+                          placeholder="username"
+                          className="w-full bg-[#2a2c30] border border-[#3C4043] focus:border-[#2AABEE] rounded-xl pl-7 pr-3 py-2.5 text-xs text-white outline-none"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isAuthLoading}
+                      className="w-full py-2.5 rounded-xl bg-[#2AABEE] hover:bg-[#229ED9] text-white font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
+                    >
+                      {isAuthLoading ? (
+                        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-sm" />
+                      ) : (
+                        <span>Подтвердить и продолжить</span>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* View 3: Magic Link (Passwordless Email) */}
+              {authMethod === 'magic_link' && (
+                <div className="space-y-3 pt-1">
+                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthMethod('options');
+                        setMagicLinkSent(false);
+                      }}
+                      className="text-xs text-gray-400 hover:text-white flex items-center gap-1.5"
+                    >
+                      <FontAwesomeIcon icon={faArrowLeft} />
+                      <span>Все способы</span>
+                    </button>
+                    <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                      <FontAwesomeIcon icon={faEnvelope} /> Magic Link
+                    </span>
+                  </div>
+
+                  {magicLinkSent ? (
+                    <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-4 text-center space-y-2">
+                      <FontAwesomeIcon icon={faCheckCircle} className="text-3xl text-emerald-400" />
+                      <h4 className="text-xs font-bold text-white">Ссылка отправлена!</h4>
+                      <p className="text-[11px] text-gray-300 leading-relaxed">
+                        Мы отправили ссылку для входа на <strong>{magicEmail}</strong>. Откройте почту и перейдите по ссылке — вы сразу войдете со своей скидкой.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setMagicLinkSent(false)}
+                        className="text-[11px] text-emerald-400 hover:underline pt-1 block mx-auto font-medium"
+                      >
+                        Отправить на другой Email
+                      </button>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSendMagicLink} className="space-y-3 pt-1">
+                      <div>
+                        <label className="text-[11px] font-bold text-gray-300 uppercase block mb-1">
+                          Ваш Email
+                        </label>
+                        <input
+                          type="email"
+                          value={magicEmail}
+                          onChange={(e) => setMagicEmail(e.target.value)}
+                          placeholder="alex@gmail.com"
+                          className="w-full bg-[#2a2c30] border border-[#3C4043] focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                          required
+                        />
+                      </div>
+                      <p className="text-[11px] text-gray-400 leading-relaxed">
+                        Вход без пароля: перейдите по ссылке в письме и скидка мгновенно активируется.
+                      </p>
+                      <button
+                        type="submit"
+                        disabled={isAuthLoading}
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-black font-black text-xs shadow-md transition-all flex items-center justify-center gap-1.5"
+                      >
+                        {isAuthLoading ? (
+                          <FontAwesomeIcon icon={faSpinner} className="animate-spin text-sm" />
+                        ) : (
+                          <span>Получить Magic Link на Email</span>
+                        )}
+                      </button>
+                    </form>
+                  )}
+                </div>
+              )}
+
+              {/* View 4: Phone / WhatsApp Form */}
+              {authMethod === 'phone' && (
+                <div className="space-y-3 pt-1">
+                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setAuthMethod('options')}
+                      className="text-xs text-gray-400 hover:text-white flex items-center gap-1.5"
+                    >
+                      <FontAwesomeIcon icon={faArrowLeft} />
+                      <span>Все способы</span>
+                    </button>
+                    <span className="text-xs font-bold text-gray-300 flex items-center gap-1.5">
+                      <FontAwesomeIcon icon={faPhone} /> Телефон / WhatsApp
+                    </span>
+                  </div>
+
+                  <form onSubmit={handleQuickLogin} className="space-y-3">
+                    <div>
+                      <label className="text-[11px] font-bold text-gray-300 uppercase block mb-1">Ваше имя</label>
+                      <input 
+                        type="text" 
+                        value={guestName} 
+                        onChange={(e) => setGuestName(e.target.value)}
+                        placeholder="Александр" 
+                        className="w-full bg-[#2a2c30] border border-[#3C4043] focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-gray-300 uppercase block mb-1">Номер телефона / WhatsApp</label>
+                      <input 
+                        type="tel" 
+                        value={guestPhone} 
+                        onChange={(e) => setGuestPhone(e.target.value)}
+                        placeholder="+84 90 123 4567" 
+                        className="w-full bg-[#2a2c30] border border-[#3C4043] focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                        required
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isAuthLoading}
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-black font-black text-xs shadow-lg active:scale-98 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      {isAuthLoading ? (
+                        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-sm" />
+                      ) : (
+                        <span>Войти и заказать со скидкой</span>
+                      )}
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* Dismiss / Continue Browsing */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingCartItem(null);
+                    setIsAuthModalOpen(false);
+                    setAuthMethod('options');
+                  }}
+                  className="w-full py-2 rounded-xl text-gray-400 hover:text-white font-medium text-xs transition-colors"
+                >
+                  Продолжить просмотр меню
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -1654,11 +2217,11 @@ const GoogleMapsPreLanding = () => {
               <div className="flex items-center justify-between pb-3 border-b border-white/10">
                 <div className="flex items-center gap-2.5">
                   <div className="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 font-black text-sm">
-                    {(guestName || 'G')[0].toUpperCase()}
+                    {(effectiveDisplayName || 'G')[0].toUpperCase()}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-white">{guestName || 'Гость'}</h3>
-                    <p className="text-xs text-gray-400">{guestPhone || 'Телефон не указан'}</p>
+                    <h3 className="text-sm font-bold text-white truncate max-w-[170px]">{effectiveDisplayName}</h3>
+                    <p className="text-xs text-gray-400 truncate max-w-[170px]">{effectiveContact || 'Профиль активен'}</p>
                   </div>
                 </div>
                 <button 
@@ -1699,7 +2262,7 @@ const GoogleMapsPreLanding = () => {
                   onClick={handleLogout}
                   className="flex-1 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-red-400 font-bold text-xs transition-colors"
                 >
-                  Сменить номер
+                  Выйти из профиля
                 </button>
                 <button
                   type="button"
