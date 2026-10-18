@@ -6,7 +6,6 @@ import { doc, getDoc, query, collection, where, getDocs, setDoc, addDoc, serverT
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { logVenueClick } from './logic/analytics';
 import { RewardCalculator } from './logic/RewardCalculator';
-import PngBattery from './PngBattery';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInstagram, faTiktok, faYoutube, faTelegram, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
 import { faMapLocationDot } from '@fortawesome/free-solid-svg-icons';
@@ -97,6 +96,9 @@ const GoogleMapsPreLanding = () => {
   const [guestName, setGuestName] = useState(() => safeStorage.getItem('guestName') || '');
   const [guestPhone, setGuestPhone] = useState(() => safeStorage.getItem('guestPhone') || '');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [pendingCartItem, setPendingCartItem] = useState(null);
+  const [authTriggerReason, setAuthTriggerReason] = useState('manual');
   const [depositBalance, setDepositBalance] = useState(0);
 
   // Discount Calculation State
@@ -128,28 +130,6 @@ const GoogleMapsPreLanding = () => {
   const [pdfNumPages, setPdfNumPages] = useState(0);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfThumbUrl, setPdfThumbUrl] = useState(null);
-
-  // Battery Animation
-  const [animatedCapacity, setAnimatedCapacity] = useState(10);
-  useEffect(() => {
-    const duration = 2000;
-    const fps = 30;
-    const totalFrames = (duration / 1000) * fps;
-    let currentFrame = 0;
-    
-    const interval = setInterval(() => {
-      currentFrame++;
-      const progress = currentFrame / totalFrames;
-      if (currentFrame >= totalFrames) {
-        setAnimatedCapacity(100);
-        clearInterval(interval);
-      } else {
-        const currentVal = 10 + (90 * progress);
-        setAnimatedCapacity(Math.min(100, Math.floor(currentVal)));
-      }
-    }, 1000 / fps);
-    return () => clearInterval(interval);
-  }, []);
 
   // Fetch Venue
   useEffect(() => {
@@ -370,6 +350,12 @@ const GoogleMapsPreLanding = () => {
 
   // Cart operations
   const addToCart = (item) => {
+    if (!isUserIdentified) {
+      setPendingCartItem(item);
+      setAuthTriggerReason('cart');
+      setIsAuthModalOpen(true);
+      return;
+    }
     const id = item.id || item.name;
     setCart(prev => {
       const existing = prev[id];
@@ -442,7 +428,7 @@ const GoogleMapsPreLanding = () => {
   // Quick Auth / Login handler
   const handleQuickLogin = async (e) => {
     if (e) e.preventDefault();
-    if (!guestPhone && !guestName) {
+    if (!guestPhone.trim() && !guestName.trim()) {
       alert("Пожалуйста, введите телефон или имя");
       return;
     }
@@ -452,23 +438,53 @@ const GoogleMapsPreLanding = () => {
       if (!currentUid) {
         const cred = await signInAnonymously(auth);
         currentUid = cred.user.uid;
+        setUser(cred.user);
       }
 
       const userData = {
-        name: guestName || 'Гость',
-        phone: guestPhone || '',
+        name: guestName.trim() || 'Гость',
+        phone: guestPhone.trim() || '',
         updatedAt: serverTimestamp(),
         lastVisitVenueId: venueId
       };
 
       await setDoc(doc(db, 'users', currentUid), userData, { merge: true });
-      safeStorage.setItem('guestName', guestName);
-      safeStorage.setItem('guestPhone', guestPhone);
+      safeStorage.setItem('guestName', guestName.trim());
+      safeStorage.setItem('guestPhone', guestPhone.trim());
+
+      // If user clicked on a dish before login, automatically add it now
+      if (pendingCartItem) {
+        const id = pendingCartItem.id || pendingCartItem.name;
+        setCart(prev => {
+          const existing = prev[id];
+          const count = (existing?.count || 0) + 1;
+          return { ...prev, [id]: { item: pendingCartItem, count } };
+        });
+        setPendingCartItem(null);
+      }
+
       setIsAuthModalOpen(false);
     } catch (err) {
-      console.error("Login error:", err);
-      alert("Ошибка входа: " + err.message);
+      console.warn("Login fallback note:", err);
+      safeStorage.setItem('guestName', guestName.trim());
+      safeStorage.setItem('guestPhone', guestPhone.trim());
+      if (pendingCartItem) {
+        const id = pendingCartItem.id || pendingCartItem.name;
+        setCart(prev => ({ ...prev, [id]: { item: pendingCartItem, count: 1 } }));
+        setPendingCartItem(null);
+      }
+      setIsAuthModalOpen(false);
     }
+  };
+
+  const handleLogout = () => {
+    safeStorage.setItem('guestName', '');
+    safeStorage.setItem('guestPhone', '');
+    setGuestName('');
+    setGuestPhone('');
+    setUserProfile(null);
+    setCart({});
+    setIsProfileModalOpen(false);
   };
 
   // Submit Direct Delivery Order
@@ -639,19 +655,6 @@ const GoogleMapsPreLanding = () => {
     return () => { isMounted = false; };
   }, [gmConfig.menuPdfUrl]);
 
-  const handleActivate = () => {
-    let targetParams = `/?utm_source=google_maps&v=${venueId}&activated=true`;
-    if (venue?.name) {
-      targetParams += `&name=${encodeURIComponent(venue.name)}`;
-    }
-    if (venue?.googleMapsUrl) {
-      targetParams += `&gmap=${encodeURIComponent(venue.googleMapsUrl)}`;
-    } else if (venue?.latitude && venue?.longitude) {
-      targetParams += `&lat=${venue.latitude}&lng=${venue.longitude}`;
-    }
-    window.location.href = targetParams;
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-[#131314] flex items-center justify-center">
@@ -670,27 +673,96 @@ const GoogleMapsPreLanding = () => {
     : null;
 
   return (
-    <div className="min-h-screen bg-[#131314] font-sans text-white pb-36 select-none">
+    <div className="min-h-screen bg-[#131314] font-sans text-white pb-28 select-none">
       
       {/* Top Header - Dark Google Maps Header */}
       <div className="bg-[#131314] sticky top-0 z-30 shadow-md">
-        <div 
-          className="flex items-center px-4 py-3 cursor-pointer bg-[#202124] border-b border-[#3C4043] active:bg-[#3C4043] transition-colors"
-          onClick={() => {
-            if (window.history.length > 1) {
-              window.history.back();
-            } else {
-              window.location.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue?.name || 'restaurant')}`;
-            }
-          }}
-        >
-          <svg className="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-          </svg>
-          <div className="ml-4 flex-grow text-[17px] truncate font-medium text-white">{venue?.name || 'Заведение'}</div>
-          <svg className="w-6 h-6 text-gray-300 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-          </svg>
+        <div className="flex items-center justify-between px-3.5 py-2.5 bg-[#202124] border-b border-[#3C4043]">
+          {/* Left: Back Arrow + Venue Name */}
+          <div 
+            className="flex items-center min-w-0 mr-2 cursor-pointer active:opacity-75 transition-opacity"
+            onClick={() => {
+              if (window.history.length > 1) {
+                window.history.back();
+              } else {
+                window.location.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(venue?.name || 'restaurant')}`;
+              }
+            }}
+          >
+            <svg className="w-5 h-5 text-gray-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            <div className="ml-2.5 text-[15px] sm:text-[16px] truncate font-medium text-white">{venue?.name || 'Заведение'}</div>
+          </div>
+
+          {/* Right: Compact Battery, Discount & Login in Google Maps Style */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {!isUserIdentified ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPendingCartItem(null);
+                  setAuthTriggerReason('header');
+                  setIsAuthModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 bg-[#303134] hover:bg-[#3C4043] active:scale-95 border border-[#5F6368]/70 hover:border-emerald-500/70 rounded-full pl-2 pr-2.5 py-1 text-white shadow-sm transition-all"
+                title="Войти для активации скидки"
+              >
+                {/* Mini Battery Graphic */}
+                <div className="flex items-center">
+                  <div className="w-5 h-3 border-[1.5px] border-emerald-400 rounded-[3px] p-[1px] bg-black/60 flex items-center shadow-[0_0_6px_rgba(52,211,153,0.4)]">
+                    <div 
+                      className="h-full bg-emerald-400 rounded-[1px] shadow-[0_0_6px_rgba(52,211,153,0.9)]"
+                      style={{ width: '85%' }}
+                    />
+                  </div>
+                  <div className="w-[2px] h-[4px] bg-emerald-400 rounded-r-[1px] -ml-[0.5px]" />
+                </div>
+
+                {/* Discount Value ДО X% */}
+                <span className="text-emerald-400 font-extrabold text-[11px] tracking-tight whitespace-nowrap">
+                  до {maxPossibleDiscount}%
+                </span>
+
+                {/* Login Button Pill */}
+                <span className="bg-[#83E1D9] text-[#003833] font-black text-[10px] px-2 py-0.5 rounded-full uppercase ml-0.5 shadow-sm whitespace-nowrap">
+                  Войти
+                </span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsProfileModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 bg-[#303134] hover:bg-[#3C4043] active:scale-95 border border-emerald-500/50 rounded-full pl-2 pr-2.5 py-1 text-white shadow-sm transition-all"
+                title="Ваш профиль и скидка"
+              >
+                {/* Mini Battery Graphic with active charge level */}
+                <div className="flex items-center">
+                  <div className="w-5 h-3 border-[1.5px] border-emerald-400 rounded-[3px] p-[1px] bg-black/60 flex items-center shadow-[0_0_6px_rgba(52,211,153,0.4)]">
+                    <div 
+                      className="h-full bg-emerald-400 rounded-[1px] shadow-[0_0_8px_rgba(52,211,153,0.9)]"
+                      style={{ width: `${Math.min(100, Math.max(30, (currentDiscountRate / maxPossibleDiscount) * 100))}%` }}
+                    />
+                  </div>
+                  <div className="w-[2px] h-[4px] bg-emerald-400 rounded-r-[1px] -ml-[0.5px]" />
+                </div>
+
+                {/* Current discount */}
+                <span className="text-emerald-300 font-black text-[11px] whitespace-nowrap">
+                  -{currentDiscountRate}%
+                </span>
+
+                {/* User name / badge */}
+                <span className="text-gray-200 font-semibold text-[11px] truncate max-w-[65px] sm:max-w-[90px]">
+                  {guestName || 'Гость'}
+                </span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Venue Info Header */}
@@ -806,7 +878,14 @@ const GoogleMapsPreLanding = () => {
       {/* Dynamic Discount & Customer Loyalty Bar */}
       <div className="px-4 pt-3 pb-2">
         {!isUserIdentified ? (
-          <div className="bg-gradient-to-r from-emerald-950/80 via-teal-900/60 to-[#202124] border border-emerald-500/40 rounded-2xl p-3.5 shadow-xl flex items-center justify-between gap-3">
+          <div 
+            onClick={() => {
+              setPendingCartItem(null);
+              setAuthTriggerReason('banner');
+              setIsAuthModalOpen(true);
+            }}
+            className="cursor-pointer bg-gradient-to-r from-emerald-950/80 via-teal-900/60 to-[#202124] border border-emerald-500/40 hover:border-emerald-400 rounded-2xl p-3.5 shadow-xl flex items-center justify-between gap-3 active:scale-[0.99] transition-all"
+          >
             <div className="space-y-1">
               <div className="flex items-center gap-1.5">
                 <span className="bg-emerald-500 text-black text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
@@ -821,14 +900,23 @@ const GoogleMapsPreLanding = () => {
               </p>
             </div>
             <button 
-              onClick={() => setIsAuthModalOpen(true)}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setPendingCartItem(null);
+                setAuthTriggerReason('banner_button');
+                setIsAuthModalOpen(true);
+              }}
               className="shrink-0 bg-emerald-400 hover:bg-emerald-300 text-black font-black text-xs px-3.5 py-2 rounded-xl shadow-md active:scale-95 transition-all"
             >
               Войти
             </button>
           </div>
         ) : (
-          <div className="bg-gradient-to-r from-neutral-900 to-[#202124] border border-emerald-500/30 rounded-2xl p-3.5 shadow-lg flex items-center justify-between gap-2">
+          <div 
+            onClick={() => setIsProfileModalOpen(true)}
+            className="cursor-pointer bg-gradient-to-r from-neutral-900 to-[#202124] border border-emerald-500/30 hover:border-emerald-500/60 rounded-2xl p-3.5 shadow-lg flex items-center justify-between gap-2 active:scale-[0.99] transition-all"
+          >
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
@@ -853,10 +941,14 @@ const GoogleMapsPreLanding = () => {
               </div>
             </div>
             <button 
-              onClick={() => setIsAuthModalOpen(true)}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsProfileModalOpen(true);
+              }}
               className="text-[11px] text-gray-400 hover:text-white underline px-2 py-1"
             >
-              Изменить
+              Профиль
             </button>
           </div>
         )}
@@ -1428,30 +1520,72 @@ const GoogleMapsPreLanding = () => {
         )}
       </AnimatePresence>
 
-      {/* Quick Phone / Login Modal */}
+      {/* Quick Phone / Login Modal (with Service & Dynamic Discount info) */}
       <AnimatePresence>
         {isAuthModalOpen && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
           >
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.92, opacity: 0, y: 12 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0, y: 12 }}
               className="w-full max-w-sm bg-[#1e2023] border border-[#3C4043] rounded-3xl p-6 shadow-2xl space-y-4"
             >
-              <div className="text-center space-y-1">
-                <span className="text-3xl">🔑</span>
-                <h3 className="text-lg font-bold text-white">Вход для гостей</h3>
-                <p className="text-xs text-gray-400 leading-relaxed">
-                  Введите номер телефона для расчета вашей персональной скидки и учета депозита
+              {/* Header with visual badge */}
+              <div className="text-center space-y-1.5">
+                <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span className="text-emerald-300 font-extrabold text-xs">
+                    Прямой заказ • Скидка до {maxPossibleDiscount}%
+                  </span>
+                </div>
+                <h3 className="text-lg font-black text-white pt-1">
+                  Заказ онлайн напрямую
+                </h3>
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  Без наценок агрегаторов (Grab, Glovo, Zomato). Ваша персональная скидка растет с каждым заказом!
                 </p>
               </div>
 
-              <form onSubmit={handleQuickLogin} className="space-y-3">
+              {/* Service & Discount Highlights */}
+              <div className="bg-[#26282c] border border-white/5 rounded-2xl p-3.5 space-y-2 text-xs">
+                <div className="flex items-start gap-2.5">
+                  <span className="text-base shrink-0">✨</span>
+                  <span className="text-gray-300 text-[11.5px] leading-snug">
+                    <strong className="text-white">Честные цены:</strong> Напрямую от заведения, дешевле агрегаторов до 20–30%.
+                  </span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-base shrink-0">🔋</span>
+                  <span className="text-gray-300 text-[11.5px] leading-snug">
+                    <strong className="text-emerald-400">Динамическая скидка:</strong> Растет до {maxPossibleDiscount}% при регулярных заказах.
+                  </span>
+                </div>
+                {venue?.hasDepositSystem && (
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-base shrink-0">💳</span>
+                    <span className="text-gray-300 text-[11.5px] leading-snug">
+                      <strong className="text-amber-300">Депозит:</strong> Оплачивайте доставку средствами своего баланса.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {pendingCartItem && (
+                <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl px-3 py-2 text-[11.5px] text-emerald-300 flex items-center gap-2">
+                  <span>🛒</span>
+                  <span className="truncate">
+                    Блюдо <strong>"{pendingCartItem.name}"</strong> будет добавлено в заказ!
+                  </span>
+                </div>
+              )}
+
+              {/* Auth Form */}
+              <form onSubmit={handleQuickLogin} className="space-y-3 pt-1">
                 <div>
                   <label className="text-[11px] font-bold text-gray-300 uppercase block mb-1">Ваше имя</label>
                   <input 
@@ -1465,7 +1599,7 @@ const GoogleMapsPreLanding = () => {
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-bold text-gray-300 uppercase block mb-1">Номер телефона</label>
+                  <label className="text-[11px] font-bold text-gray-300 uppercase block mb-1">Номер телефона / WhatsApp</label>
                   <input 
                     type="tel" 
                     value={guestPhone} 
@@ -1476,22 +1610,105 @@ const GoogleMapsPreLanding = () => {
                   />
                 </div>
 
-                <div className="pt-2 flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsAuthModalOpen(false)}
-                    className="flex-1 py-3 rounded-xl bg-neutral-800 text-gray-300 font-bold text-xs"
-                  >
-                    Отмена
-                  </button>
+                <div className="pt-2 space-y-2">
                   <button
                     type="submit"
-                    className="flex-1 py-3 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-black font-black text-xs shadow-lg active:scale-95 transition-all"
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-400 hover:from-emerald-300 hover:to-teal-300 text-black font-black text-xs shadow-lg active:scale-98 transition-all flex items-center justify-center gap-1.5"
                   >
-                    Применить
+                    <span>Войти и заказать со скидкой</span>
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPendingCartItem(null);
+                      setIsAuthModalOpen(false);
+                    }}
+                    className="w-full py-2.5 rounded-xl text-gray-400 hover:text-white font-medium text-xs transition-colors"
+                  >
+                    Продолжить просмотр меню
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* User Profile & Loyalty Status Modal */}
+      <AnimatePresence>
+        {isProfileModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.92, opacity: 0, y: 12 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0, y: 12 }}
+              className="w-full max-w-sm bg-[#1e2023] border border-[#3C4043] rounded-3xl p-6 shadow-2xl space-y-4"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300 font-black text-sm">
+                    {(guestName || 'G')[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">{guestName || 'Гость'}</h3>
+                    <p className="text-xs text-gray-400">{guestPhone || 'Телефон не указан'}</p>
+                  </div>
+                </div>
+                <button 
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(false)}
+                  className="w-8 h-8 rounded-full bg-neutral-800 text-gray-400 hover:text-white flex items-center justify-center text-sm"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Loyalty Battery & Perks */}
+              <div className="bg-[#26282c] border border-white/5 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-300 font-medium">Ваша скидка онлайн:</span>
+                  <span className="text-emerald-400 font-black text-base">-{currentDiscountRate}%</span>
+                </div>
+                {depositBalance > 0 && (
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                    <span className="text-xs text-amber-300 font-medium">💰 Баланс депозита:</span>
+                    <span className="text-amber-300 font-extrabold text-sm">{formatPrice(depositBalance, venueCurrency)}</span>
+                  </div>
+                )}
+                {activeHappyHour && (
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5 text-orange-300 text-xs">
+                    <span>⚡ {activeHappyHour.name}:</span>
+                    <span className="font-bold">+{activeHappyHour.discountBonus}%</span>
+                  </div>
+                )}
+                <div className="pt-2 border-t border-white/5 text-[11px] text-gray-400 leading-snug">
+                  Скидка автоматически применяется ко всем блюдам онлайн-меню при оформлении заказа.
+                </div>
+              </div>
+
+              <div className="pt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex-1 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-red-400 font-bold text-xs transition-colors"
+                >
+                  Сменить номер
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsProfileModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-[#83E1D9] text-[#003833] font-black text-xs shadow-md transition-all"
+                >
+                  В меню
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -1601,35 +1818,6 @@ const GoogleMapsPreLanding = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Sticky Bottom Offer Battery */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 pointer-events-none">
-        <div className="bg-gradient-to-t from-[#131314] via-[#131314] to-transparent pt-10 pb-8 px-4 pointer-events-auto flex justify-center">
-          <motion.div 
-            onClick={handleActivate}
-            animate={{ scale: [1, 1.03, 1] }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-            whileTap={{ scale: 0.95 }}
-            className="w-full max-w-[270px] relative cursor-pointer group"
-          >
-            <div className="absolute inset-0 z-30 pointer-events-auto" />
-            <div className="pointer-events-none">
-              <PngBattery capacity={animatedCapacity} showGlow={true} disableInternalAnim={true} />
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-              <span className="text-black font-black text-[15px] uppercase tracking-wide drop-shadow-[0_2px_10px_rgba(255,255,255,0.6)]">
-                {isUserIdentified 
-                  ? `ВАША СКИДКА ${currentDiscountRate}%` 
-                  : `ВАМ СКИДКА ДО ${maxPossibleDiscount}%`}
-              </span>
-            </div>
-            <div 
-              className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 rounded-full z-10 pointer-events-none" 
-              style={{ maskImage: 'radial-gradient(ellipse at center, white 50%, transparent 70%)' }} 
-            />
-          </motion.div>
-        </div>
-      </div>
 
     </div>
   );
