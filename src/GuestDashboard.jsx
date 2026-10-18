@@ -340,7 +340,7 @@ const GuestDashboard = () => {
                                     className="h-full bg-[#00FF41] shadow-[0_0_15px_rgba(0,255,65,0.5)]"
                                 />
                             </div>
-                            <p className="text-[9px] text-white/20 italic font-bold">Next milestone unlocks Elite status badge.</p>
+                            <p className="text-[9px] text-white/40 font-medium">Каждый заказ или визит заряжает батарею. Повторяйте заказ раз в 7 дней, чтобы скидка не растаяла!</p>
                         </div>
                     </div>
                     {/* Decorative Elements */}
@@ -350,7 +350,7 @@ const GuestDashboard = () => {
                 {/* Active Statuses Section */}
                 <motion.section variants={itemVariants} className="space-y-4">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/40 px-2">Active Roles</h3>
+                        <h3 className="text-xs font-black uppercase tracking-[0.3em] text-white/40 px-2">Заряженные батареи</h3>
                         <div className="h-px flex-1 bg-white/5 ml-4" />
                     </div>
 
@@ -371,13 +371,13 @@ const GuestDashboard = () => {
                                         </div>
                                         <div>
                                             <p className="text-xs text-white/40 uppercase tracking-widest font-black mb-0.5">{status.venueName}</p>
-                                            <p className="text-sm font-bold tracking-tight">Verified Membership</p>
+                                            <p className="text-sm font-bold tracking-tight text-emerald-400">🔋 Батарея заряжена</p>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-[10px] text-white/20 uppercase tracking-widest font-bold">Expires in</p>
+                                        <p className="text-[10px] text-white/20 uppercase tracking-widest font-bold">Действует</p>
                                         <p className="text-[10px] text-[#00FF41] font-black uppercase tracking-widest">
-                                            {Math.ceil((status.expiry - new Date()) / (1000 * 60 * 60 * 24))} Days
+                                            {Math.ceil((status.expiry - new Date()) / (1000 * 60 * 60 * 24))} дн.
                                         </p>
                                     </div>
                                 </div>
@@ -385,8 +385,8 @@ const GuestDashboard = () => {
                         ) : (
                             <div className="p-10 text-center opacity-30 border-2 border-dashed border-white/5 rounded-[32px]">
                                 <FontAwesomeIcon icon={faClock} className="text-2xl mb-4" />
-                                <p className="text-xs font-bold uppercase tracking-widest">No active sessions</p>
-                                <p className="text-[10px] mt-2">Visit a venue to activate your loyalty status.</p>
+                                <p className="text-xs font-bold uppercase tracking-widest">Нет активных зарядов</p>
+                                <p className="text-[10px] mt-2">Закажите онлайн или посетите заведение, чтобы зарядить батарею!</p>
                             </div>
                         )}
                     </div>

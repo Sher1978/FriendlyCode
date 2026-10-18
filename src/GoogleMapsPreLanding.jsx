@@ -1078,15 +1078,16 @@ const GoogleMapsPreLanding = () => {
             ) : (
               <button
                 type="button"
+                data-testid="profile-chip"
                 onClick={(e) => {
                   e.stopPropagation();
                   setIsProfileModalOpen(true);
                 }}
-                className="flex items-center gap-1.5 bg-[#303134] hover:bg-[#3C4043] active:scale-95 border border-emerald-500/50 rounded-full pl-2 pr-2.5 py-1 text-white shadow-sm transition-all"
+                className="flex items-center gap-2 bg-[#303134] hover:bg-[#3C4043] active:scale-95 border border-emerald-500/50 rounded-2xl px-2.5 py-1 text-white shadow-sm transition-all"
                 title="Ваш профиль и скидка"
               >
                 {/* Mini Battery Graphic with active charge level */}
-                <div className="flex items-center">
+                <div className="flex items-center shrink-0">
                   <div className="w-5 h-3 border-[1.5px] border-emerald-400 rounded-[3px] p-[1px] bg-black/60 flex items-center shadow-[0_0_6px_rgba(52,211,153,0.4)]">
                     <div 
                       className="h-full bg-emerald-400 rounded-[1px] shadow-[0_0_8px_rgba(52,211,153,0.9)]"
@@ -1096,15 +1097,19 @@ const GoogleMapsPreLanding = () => {
                   <div className="w-[2px] h-[4px] bg-emerald-400 rounded-r-[1px] -ml-[0.5px]" />
                 </div>
 
-                {/* Current discount */}
-                <span className="text-emerald-300 font-black text-[11px] whitespace-nowrap">
-                  -{currentDiscountRate}%
-                </span>
-
-                {/* User name / badge */}
-                <span className="text-gray-200 font-semibold text-[11px] truncate max-w-[65px] sm:max-w-[90px]">
-                  {effectiveDisplayName}
-                </span>
+                <div className="flex flex-col text-left leading-none">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-emerald-300 font-black text-[11px] whitespace-nowrap">
+                      -{currentDiscountRate}%
+                    </span>
+                    <span className="text-gray-200 font-semibold text-[10px] truncate max-w-[70px] sm:max-w-[95px]">
+                      {effectiveDisplayName}
+                    </span>
+                  </div>
+                  <span className="text-[8.5px] text-emerald-400 font-medium whitespace-nowrap pt-0.5">
+                    Батарея заряжена
+                  </span>
+                </div>
               </button>
             )}
           </div>
@@ -1240,11 +1245,11 @@ const GoogleMapsPreLanding = () => {
                   Скидка ДО {maxPossibleDiscount}%
                 </span>
                 <span className="text-emerald-300 font-bold text-[11px]">
-                  • Заряжайте Вашу скидку покупками
+                  • Ваша скидка — это батарея!
                 </span>
               </div>
               <p className="text-[11px] text-gray-300 leading-tight">
-                Заряжайте Вашу скидку покупками! Дешевле, чем в Grab и Zomato. Войдите, чтобы активировать персональную скидку и оплату депозитом!
+                Заряжайте её покупками: 1-й заказ — 5%, 2-й — 10%, 3-й — до {maxPossibleDiscount}%. Повторяйте заказ раз в 7 дней, чтобы скидка не растаяла!
               </p>
             </div>
             <button 
@@ -1257,7 +1262,7 @@ const GoogleMapsPreLanding = () => {
               }}
               className="shrink-0 bg-emerald-400 hover:bg-emerald-300 text-black font-black text-xs px-3.5 py-2 rounded-xl shadow-md active:scale-95 transition-all"
             >
-              Войти
+              Зарядить
             </button>
           </div>
         ) : (
@@ -1274,19 +1279,20 @@ const GoogleMapsPreLanding = () => {
                 <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-black px-2 py-0.5 rounded-full">
                   -{currentDiscountRate}%
                 </span>
+                <span className="text-emerald-400 text-[10px] font-bold">
+                  🔋 Батарея заряжена
+                </span>
               </div>
-              <div className="flex items-center gap-3 text-[11px] text-gray-300">
-                {depositBalance > 0 && (
-                  <span className="text-amber-300 font-semibold">
-                    💰 Депозит: {formatPrice(depositBalance, venueCurrency)}
-                  </span>
-                )}
-                {activeHappyHour && (
-                  <span className="text-orange-400 font-bold flex items-center gap-1">
-                    ⚡ {activeHappyHour.name} (+{activeHappyHour.discountBonus}%)
-                  </span>
-                )}
-              </div>
+              <p className="text-[11px] text-gray-300 leading-tight">
+                {depositBalance > 0 
+                  ? `💰 Депозит: ${formatPrice(depositBalance, venueCurrency)} — вечный 100% заряд батареи!` 
+                  : 'Повторный заказ в течение 7 дней сохраняет полный заряд и максимальную скидку!'}
+              </p>
+              {activeHappyHour && (
+                <div className="text-orange-400 font-bold text-[11px] flex items-center gap-1">
+                  ⚡ {activeHappyHour.name} (+{activeHappyHour.discountBonus}%)
+                </div>
+              )}
             </div>
             <button 
               type="button"
@@ -1841,6 +1847,14 @@ const GoogleMapsPreLanding = () => {
                     <span>К ОПЛАТЕ:</span>
                     <span className="text-emerald-400">{formatPrice(finalOrderTotal, venueCurrency)}</span>
                   </div>
+
+                  {/* Battery Charge Incentive Soundbite */}
+                  <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-2.5 text-[11px] text-emerald-300 flex items-center gap-2 mt-2">
+                    <span className="text-base shrink-0">🔋</span>
+                    <span className="leading-tight">
+                      <strong>Этот заказ зарядит вашу батарею на 7 дней!</strong> При следующем заказе скидка сохранится на максимуме.
+                    </span>
+                  </div>
                 </div>
 
               </div>
@@ -1895,29 +1909,35 @@ const GoogleMapsPreLanding = () => {
                   Заказ онлайн напрямую
                 </h3>
                 <p className="text-xs text-gray-300 leading-relaxed">
-                  Без наценок агрегаторов (Grab, Glovo, Zomato). Ваша персональная скидка растет с каждым заказом!
+                  Без наценок агрегаторов (Grab, Glovo, Zomato). Ваша скидка — это батарея: заряжайте её визитами и заказами!
                 </p>
               </div>
 
               {/* Service & Discount Highlights */}
-              <div className="bg-[#26282c] border border-white/5 rounded-2xl p-3.5 space-y-2 text-xs">
-                <div className="flex items-start gap-2.5">
-                  <span className="text-base shrink-0">✨</span>
-                  <span className="text-gray-300 text-[11.5px] leading-snug">
-                    <strong className="text-white">Честные цены:</strong> Напрямую от заведения, дешевле агрегаторов до 20–30%.
-                  </span>
-                </div>
+              <div className="bg-[#26282c] border border-white/5 rounded-2xl p-3.5 space-y-2.5 text-xs">
                 <div className="flex items-start gap-2.5">
                   <span className="text-base shrink-0">🔋</span>
                   <span className="text-gray-300 text-[11.5px] leading-snug">
-                    <strong className="text-emerald-400">Динамическая скидка:</strong> Растет до {maxPossibleDiscount}% при регулярных заказах.
+                    <strong className="text-emerald-400">Как заряжать:</strong> С каждым заказом скидка растет: 1-й — 5%, 2-й — 10%, 3-й — до {maxPossibleDiscount}%.
+                  </span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-base shrink-0">⚡</span>
+                  <span className="text-gray-300 text-[11.5px] leading-snug">
+                    <strong className="text-amber-300">Не дайте разрядиться:</strong> Повторный заказ или визит в течение 7 дней удерживает батарею на 100% заряда.
+                  </span>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <span className="text-base shrink-0">✨</span>
+                  <span className="text-gray-300 text-[11.5px] leading-snug">
+                    <strong className="text-white">Честные цены:</strong> Напрямую от заведения — дешевле агрегаторов (Grab, Glovo, Zomato) на 20–30%.
                   </span>
                 </div>
                 {venue?.hasDepositSystem && (
                   <div className="flex items-start gap-2.5">
-                    <span className="text-base shrink-0">💳</span>
+                    <span className="text-base shrink-0">💰</span>
                     <span className="text-gray-300 text-[11.5px] leading-snug">
-                      <strong className="text-amber-300">Депозит:</strong> Оплачивайте доставку средствами своего баланса.
+                      <strong className="text-amber-400">Депозит = Вечный заряд:</strong> Баланс депозита навсегда закрепляет максимальную скидку — батарея не сядет никогда.
                     </span>
                   </div>
                 )}
@@ -2244,8 +2264,18 @@ const GoogleMapsPreLanding = () => {
               {/* Loyalty Battery & Perks */}
               <div className="bg-[#26282c] border border-white/5 rounded-2xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-300 font-medium">Ваша скидка онлайн:</span>
+                  <div className="flex items-center gap-1.5">
+                    <span>🔋</span>
+                    <span className="text-xs text-gray-300 font-medium">Ваша скидка онлайн:</span>
+                  </div>
                   <span className="text-emerald-400 font-black text-base">-{currentDiscountRate}%</span>
+                </div>
+                <div className="bg-black/40 rounded-xl p-2.5 border border-white/5 text-[11px] text-gray-300 leading-snug">
+                  {depositBalance > 0 ? (
+                    <span>💰 <strong className="text-amber-300">Депозит активен:</strong> максимальный 100% заряд батареи закреплен навсегда!</span>
+                  ) : (
+                    <span>⚡ <strong className="text-emerald-400">Правило батареи:</strong> Повторяйте заказ или визит раз в 7 дней, чтобы сохранять максимальную скидку. Без заказов заряд начнет таять.</span>
+                  )}
                 </div>
                 {depositBalance > 0 && (
                   <div className="flex items-center justify-between pt-2 border-t border-white/5">
@@ -2304,6 +2334,17 @@ const GoogleMapsPreLanding = () => {
                 ✓
               </div>
               <h3 className="text-xl font-bold text-white">Заказ #{completedOrder.orderId} принят!</h3>
+              
+              {/* Battery Charge Success Soundbite */}
+              <div className="bg-emerald-950/50 border border-emerald-500/40 rounded-2xl p-3 text-xs text-emerald-300 space-y-1">
+                <div className="font-black text-white flex items-center justify-center gap-1.5">
+                  <span>🔋</span> Батарея скидки заряжена на 100%!
+                </div>
+                <p className="text-[11px] text-gray-300 leading-tight">
+                  Полный заряд действует 7 дней. Повторите заказ до истечения срока, чтобы скидка не растаяла!
+                </p>
+              </div>
+
               <p className="text-xs text-gray-300 leading-relaxed">
                 Ресторан уже начал приготовление вашего заказа. Наш курьер свяжется с вами по номеру {completedOrder.customer?.phone}.
               </p>

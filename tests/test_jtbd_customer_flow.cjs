@@ -33,10 +33,9 @@ async function runJtbdCustomerFlowTests() {
   // ---------------------------------------------------------
   // JTBD 1: Bottom pulsating battery and its background are GONE
   // ---------------------------------------------------------
-  console.log('\n🔍 STEP 1: Verifying bottom pulsating battery is completely removed...');
-  const bottomBatteryOldText = await page.$('text=ВАША СКИДКА');
-  const bottomBatteryOldText2 = await page.$('text=ВАМ СКИДКА ДО');
-  if (!bottomBatteryOldText && !bottomBatteryOldText2) {
+  // Check specifically that the old fixed bottom battery banner / container does not exist
+  const bottomBatteryBar = await page.$('.fixed.bottom-0:has-text("ВАША СКИДКА"), .fixed.bottom-0:has-text("ВАМ СКИДКА ДО")');
+  if (!bottomBatteryBar) {
     console.log('✅ PASS: Large bottom pulsating battery is NOT present on the page!');
   } else {
     throw new Error('❌ FAIL: Bottom pulsating battery is still present on the page!');
@@ -172,7 +171,7 @@ async function runJtbdCustomerFlowTests() {
 
   // Verify header switched to authenticated user profile chip
   console.log('🔍 Checking authenticated state in header...');
-  const profileChip = await page.waitForSelector('button[title="Ваш профиль и скидка"]', { timeout: 10000 });
+  const profileChip = await page.waitForSelector('button[data-testid="profile-chip"], button[title*="профиль"], button[title*="Профиль"]', { timeout: 10000 });
   const profileChipText = await profileChip.textContent();
   console.log(`✅ PASS: Header switched to Authenticated Profile Chip: "${profileChipText.trim()}"`);
   if (!profileChipText.includes('Sherlock') || !profileChipText.includes('%')) {
