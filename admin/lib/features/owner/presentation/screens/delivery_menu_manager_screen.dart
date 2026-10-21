@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:http/http.dart' as http;
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 
@@ -177,28 +175,6 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
         _showToast("Ошибка парсинга: $errMsg");
       }
     });
-
-    // 3. Parallel ping to start parsing immediately via same-origin rewrite
-    try {
-      final origin = Uri.base.hasAuthority ? Uri.base.origin : 'https://friendlycode.fun';
-      final uri = Uri.parse('$origin/api/scrape-menu');
-      http.post(
-        uri,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'venueId': widget.venueId,
-          'url': url,
-          'jobId': jobId,
-          'mirrorImages': false,
-        }),
-      ).then((res) {
-        debugPrint("[DeliveryMenuManager] /api/scrape-menu response status: ${res.statusCode}");
-      }).catchError((httpErr) {
-        debugPrint("[DeliveryMenuManager] Direct ping note: $httpErr (Firestore background worker executes)");
-      });
-    } catch (e) {
-      debugPrint("[DeliveryMenuManager] Direct ping error: $e");
-    }
   }
 
   void _confirmDeleteAggregatorUrl() {

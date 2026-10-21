@@ -50,11 +50,12 @@ jobs:
       - name: Deploy Cloud Functions
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_BOT_LAB_21910 }}' > gcp-key.json
-          export GOOGLE_APPLICATION_CREDENTIALS=gcp-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS="$GITHUB_WORKSPACE/gcp-key.json"
+          cp gcp-key.json functions/gcp-key.json
           npm --prefix functions install
           OUTPUT=$(npx --yes firebase-tools deploy --only functions:scrapeMenuCallable,functions:onMenuScrapeJobCreated,functions:scrapeMenuHttp,functions:scheduledAggregatorSync --project bot-lab-21910 --non-interactive 2>&1) && EXIT_CODE=0 || EXIT_CODE=$?
           echo "$OUTPUT"
-          rm -f gcp-key.json
+          rm -f gcp-key.json functions/gcp-key.json
           if [ $EXIT_CODE -ne 0 ]; then
             echo "⚠️ Functions deployment warning: $OUTPUT"
           fi
@@ -62,7 +63,7 @@ jobs:
       - name: Deploy to Firebase Hosting
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_BOT_LAB_21910 }}' > gcp-key.json
-          export GOOGLE_APPLICATION_CREDENTIALS=gcp-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS="$GITHUB_WORKSPACE/gcp-key.json"
           OUTPUT=$(npx --yes firebase-tools deploy --only hosting --project bot-lab-21910 --non-interactive 2>&1) && EXIT_CODE=0 || EXIT_CODE=$?
           rm -f gcp-key.json
           echo "$OUTPUT"
