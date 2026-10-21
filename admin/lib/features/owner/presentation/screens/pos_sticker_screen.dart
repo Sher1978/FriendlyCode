@@ -20,8 +20,16 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
   final GlobalKey _globalKey = GlobalKey();
   bool _isSaving = false;
   bool _useVenueQr = true; // Default to venue-specific QR
+  bool _isGrabBagQr = false; // Scenario 2: QR for Grab/Glovo delivery bag (immediate Tier 3 max discount)
   String _selectedLanguage = 'ru'; // 'ru' or 'en'
   String _selectedDesign = 'v3'; // 'v3', 'hybrid', or 'classic'
+
+  String _resolveQrUrl(String baseVenuePath, String fallbackLanding) {
+    if (_isGrabBagQr) {
+      return 'https://www.revoo.win/?utm_source=grab_bag&promo=max_tier&id=${widget.venue.id}';
+    }
+    return _useVenueQr ? baseVenuePath : fallbackLanding;
+  }
 
   @override
   void initState() {
@@ -46,7 +54,7 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData != null) {
         final buffer = byteData.buffer.asUint8List();
-        final qrType = _useVenueQr ? "venue" : "landing";
+        final qrType = _isGrabBagQr ? "grab_bag_tier3" : (_useVenueQr ? "venue" : "landing");
         final designName = _selectedDesign.toUpperCase();
         final fileName =
             "REVOO_Flyer_${widget.venue.name.replaceAll(' ', '_')}_${designName}_${_selectedLanguage}_$qrType.png";
@@ -214,6 +222,36 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 14),
+                    const Divider(color: Colors.white10, height: 1),
+                    const SizedBox(height: 14),
+                    // Scenario 2: Grab Bag QR Switch
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "🛍️ QR для пакета Grab / Доставки (Сценарий 2)",
+                                style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                "Сканирование = заказ сегодня → Сразу открывает МАКСИМАЛЬНУЮ скидку (Тир 3)!",
+                                style: TextStyle(color: Colors.white70, fontSize: 11),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: _isGrabBagQr,
+                          activeTrackColor: Colors.greenAccent,
+                          onChanged: (val) => setState(() => _isGrabBagQr = val),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -274,9 +312,10 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
     const double width = 360;
     const double height = 678; // Proportional to high-res V3 poster image
 
-    final qrData = _useVenueQr
-        ? 'https://www.revoo.win/hybrid-v2?id=${widget.venue.id}'
-        : 'https://www.revoo.win/hybrid-v2';
+    final qrData = _resolveQrUrl(
+      'https://www.revoo.win/hybrid-v2?id=${widget.venue.id}',
+      'https://www.revoo.win/hybrid-v2',
+    );
 
     return Container(
       width: width,
@@ -383,9 +422,10 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
     const double width = 360;
     const double height = 538; // Proportional to original 686x1024
 
-    final qrData = _useVenueQr
-        ? 'https://www.revoo.win/qr?id=${widget.venue.id}'
-        : 'https://www.revoo.win';
+    final qrData = _resolveQrUrl(
+      'https://www.revoo.win/qr?id=${widget.venue.id}',
+      'https://www.revoo.win',
+    );
 
     return Container(
       width: width,
@@ -509,9 +549,10 @@ class _PosStickerScreenState extends State<PosStickerScreen> {
         ? 'assets/images/pos_sticker_ru.png'
         : 'assets/images/pos_sticker_en.png';
 
-    final qrData = _useVenueQr
-        ? 'https://www.revoo.win/qr?id=${widget.venue.id}'
-        : 'https://www.revoo.win';
+    final qrData = _resolveQrUrl(
+      'https://www.revoo.win/qr?id=${widget.venue.id}',
+      'https://www.revoo.win',
+    );
 
     return Container(
       width: width,

@@ -63,6 +63,27 @@ export const findAndMergeUserByEmail = async (db, emailInput, authUid = null, op
             };
 
             await setDoc(doc(db, 'users', targetUid), newUserData, { merge: true });
+
+            // Migrate any anonymous browser visits to this newly identified user
+            try {
+                const anonUids = new Set();
+                if (typeof localStorage !== 'undefined') {
+                    const savedAnon = localStorage.getItem('revoo_anon_uid');
+                    const savedSess = localStorage.getItem('revoo_browser_session_uid');
+                    if (savedAnon && savedAnon !== targetUid) anonUids.add(savedAnon);
+                    if (savedSess && savedSess !== targetUid) anonUids.add(savedSess);
+                }
+                for (const anonId of anonUids) {
+                    const qAnonVisits = query(collection(db, 'visits'), where('uid', '==', anonId));
+                    const anonSnap = await getDocs(qAnonVisits);
+                    for (const vDoc of anonSnap.docs) {
+                        await updateDoc(doc(db, 'visits', vDoc.id), { uid: targetUid, userId: targetUid, guestEmail: cleanEmail });
+                    }
+                }
+            } catch (anonErr) {
+                console.warn("[userDeduplication] Anonymous visit migration note:", anonErr);
+            }
+
             return { uid: targetUid, isMerged: false, userProfile: newUserData };
         }
 
@@ -164,42 +185,48 @@ export const findAndMergeUserByEmail = async (db, emailInput, authUid = null, op
         // Save Primary Doc
         await setDoc(doc(db, 'users', primaryUid), updatedProfile, { merge: true });
 
-        // If secondary docs exist, reassign references and delete secondary user docs
-        if (secondaryDocs.length > 0) {
-            console.log(`[userDeduplication] Merging ${secondaryDocs.length} secondary user docs into primaryUid ${primaryUid}`);
-            for (const sec of secondaryDocs) {
-                const secUid = sec.id;
+        // Collect all secondary UIDs + any anonymous browser session UIDs to reassign their visits
+        const uidsToReassign = new Set(secondaryDocs.map(s => s.id));
+        if (authUid && authUid !== primaryUid) uidsToReassign.add(authUid);
+        try {
+            if (typeof localStorage !== 'undefined') {
+                const savedAnon = localStorage.getItem('revoo_anon_uid');
+                const savedSess = localStorage.getItem('revoo_browser_session_uid');
+                if (savedAnon && savedAnon !== primaryUid) uidsToReassign.add(savedAnon);
+                if (savedSess && savedSess !== primaryUid) uidsToReassign.add(savedSess);
+            }
+        } catch (e) {}
+
+        if (uidsToReassign.size > 0) {
+            for (const secUid of uidsToReassign) {
                 try {
-                    // Update visits
                     const qVisits1 = query(collection(db, 'visits'), where('uid', '==', secUid));
                     const visitsSnap1 = await getDocs(qVisits1);
-                    visitsSnap1.docs.forEach(async (vDoc) => {
+                    for (const vDoc of visitsSnap1.docs) {
                         await updateDoc(doc(db, 'visits', vDoc.id), { uid: primaryUid, userId: primaryUid, guestEmail: cleanEmail });
-                    });
+                    }
 
                     const qVisits2 = query(collection(db, 'visits'), where('userId', '==', secUid));
                     const visitsSnap2 = await getDocs(qVisits2);
-                    visitsSnap2.docs.forEach(async (vDoc) => {
+                    for (const vDoc of visitsSnap2.docs) {
                         await updateDoc(doc(db, 'visits', vDoc.id), { uid: primaryUid, userId: primaryUid, guestEmail: cleanEmail });
-                    });
+                    }
 
-                    // Update leads
                     const qLeads = query(collection(db, 'leads'), where('uid', '==', secUid));
                     const leadsSnap = await getDocs(qLeads);
-                    leadsSnap.docs.forEach(async (lDoc) => {
+                    for (const lDoc of leadsSnap.docs) {
                         await updateDoc(doc(db, 'leads', lDoc.id), { uid: primaryUid, email: cleanEmail });
-                    });
+                    }
 
-                    // Update deposit transactions
                     const qTx = query(collection(db, 'deposit_transactions'), where('userId', '==', secUid));
                     const txSnap = await getDocs(qTx);
-                    txSnap.docs.forEach(async (tDoc) => {
+                    for (const tDoc of txSnap.docs) {
                         await updateDoc(doc(db, 'deposit_transactions', tDoc.id), { userId: primaryUid, guestEmail: cleanEmail });
-                    });
+                    }
 
-                    // Delete duplicate user document
-                    await deleteDoc(doc(db, 'users', secUid));
-                    console.log(`[userDeduplication] Deleted duplicate user doc ${secUid}`);
+                    if (secondaryDocs.some(s => s.id === secUid)) {
+                        await deleteDoc(doc(db, 'users', secUid));
+                    }
                 } catch (secErr) {
                     console.error(`[userDeduplication] Error reassigning data for ${secUid}:`, secErr);
                 }

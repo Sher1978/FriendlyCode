@@ -17,6 +17,7 @@ import {
 import { findAndMergeUserByEmail } from './logic/userDeduplication';
 import { logVenueClick } from './logic/analytics';
 import { RewardCalculator } from './logic/RewardCalculator';
+import { ServiceStorefront } from './modules/services';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInstagram, faTiktok, faYoutube, faTelegram, faWhatsapp, faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { faMapLocationDot, faEnvelope, faPaperPlane, faPhone, faArrowLeft, faCheckCircle, faSpinner } from '@fortawesome/free-solid-svg-icons';
@@ -77,13 +78,21 @@ function checkActiveHappyHour(happyHours = [], timezone = 'Asia/Ho_Chi_Minh') {
       const days = rule.daysOfWeek || [1, 2, 3, 4, 5, 6, 7];
       if (!days.includes(currentDay)) continue;
 
-      const [startH, startM] = (rule.startHour || '00:00').split(':').map(Number);
-      const [endH, endM] = (rule.endHour || '23:59').split(':').map(Number);
+      const startRaw = rule.startHour || rule.startTime || '00:00';
+      const endRaw = rule.endHour || rule.endTime || '23:59';
+      const [startH, startM] = startRaw.split(':').map(Number);
+      const [endH, endM] = endRaw.split(':').map(Number);
       const startDec = (startH || 0) + (startM || 0) / 60;
       const endDec = (endH || 24) + (endM || 0) / 60;
 
       if (currentDecimalHour >= startDec && currentDecimalHour <= endDec) {
-        return rule;
+        return {
+          ...rule,
+          name: rule.name || rule.title || 'Happy Hours',
+          startHour: startRaw,
+          endHour: endRaw,
+          discountBonus: Number(rule.discountBonus ?? rule.discountPercent ?? 0)
+        };
       }
     }
   } catch (e) {
@@ -123,10 +132,12 @@ const GoogleMapsPreLanding = () => {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
 
-  // Discount Calculation State
+  // Discount Calculation & Visit History State
   const [personalDiscount, setPersonalDiscount] = useState(5);
   const [activeHappyHour, setActiveHappyHour] = useState(null);
   const [userTierStatus, setUserTierStatus] = useState('new');
+  const [userVisits, setUserVisits] = useState([]);
+  const [isGrabBagScenario, setIsGrabBagScenario] = useState(false);
 
   // Menu, Filtering & Delivery Mode State
   const [activeCategory, setActiveCategory] = useState('all');
@@ -258,13 +269,17 @@ const GoogleMapsPreLanding = () => {
     handleAuthRedirectAndLink();
   }, [venueId]);
 
-  // Auth State Listener & Deposit Snapshot
+  // Auth State Listener & Deposit Snapshot (Ensures browser session UID for anonymous users too)
   useEffect(() => {
     let unsubUserDoc = null;
+    RewardCalculator.getBrowserSessionUid();
 
     const unsubAuth = onAuthStateChanged(auth, async (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        if (currentUser.isAnonymous) {
+          RewardCalculator.saveAnonymousUid(currentUser.uid);
+        }
         // Subscribe to user doc for live deposit balance & discount tier
         unsubUserDoc = onSnapshot(doc(db, 'users', currentUser.uid), (snap) => {
           if (snap.exists()) {
@@ -292,6 +307,8 @@ const GoogleMapsPreLanding = () => {
             let bal = 0;
             if (data.deposit_balances && venueId && data.deposit_balances[venueId] !== undefined) {
               bal = parseBalance(data.deposit_balances[venueId]);
+            } else if (data.deposits && venueId && data.deposits[venueId] !== undefined) {
+              bal = parseBalance(data.deposits[venueId]);
             } else if (data.deposit_balance !== undefined && Number(data.deposit_balance) > 0) {
               bal = parseBalance(data.deposit_balance);
             }
@@ -326,62 +343,7 @@ const GoogleMapsPreLanding = () => {
     return () => clearInterval(interval);
   }, [deliveryLoyaltyConfig, venueTimezone]);
 
-  // Compute Active Loyalty Discount using RewardCalculator
-  useEffect(() => {
-    if (!venue) return;
-
-    // Check if venue has custom delivery tiers or uses offline loyaltyConfig
-    let activeConfig = venue.loyaltyConfig || venue.tiers;
-    if (deliveryLoyaltyConfig.useCustomDeliveryTiers) {
-      activeConfig = {
-        percBase: Number(deliveryLoyaltyConfig.percBase ?? 5),
-        percDecay1: Number(deliveryLoyaltyConfig.percMedium ?? 15),
-        percVip: Number(deliveryLoyaltyConfig.percVip ?? 20),
-        percDeposit: Number(deliveryLoyaltyConfig.percDeposit ?? 25),
-        vipWindowDays: Number(deliveryLoyaltyConfig.vipWindowDays ?? 1),
-        tier1DecayDays: Number(deliveryLoyaltyConfig.mediumDays ?? 7),
-      };
-    }
-
-    const now = new Date();
-    const hasLockedDeposit = (userProfile?.hasLockedDiscount || false) && depositBalance > 0;
-
-    const calcResult = RewardCalculator.calculate(
-      null, // In pre-landing/delivery initial view, calculate based on user or fallback
-      now,
-      activeConfig,
-      venueTimezone,
-      false,
-      hasLockedDeposit,
-      deliveryLoyaltyConfig.percBase || 5,
-      depositBalance
-    );
-
-    setPersonalDiscount(calcResult.discount);
-    setUserTierStatus(calcResult.status);
-  }, [venue, deliveryLoyaltyConfig, userProfile, depositBalance, venueTimezone]);
-
-  // Calculate Max Pre-Login Discount
-  const maxPossibleDiscount = useMemo(() => {
-    let max = 20;
-    if (deliveryLoyaltyConfig.useCustomDeliveryTiers) {
-      max = Number(deliveryLoyaltyConfig.percVip ?? 20);
-    } else if (venue) {
-      const config = venue.loyaltyConfig || venue.tiers;
-      if (Array.isArray(config)) {
-        const percs = config.map(c => Number(c.percentage || c.percent || 0)).filter(p => p > 0);
-        if (percs.length > 0) max = Math.max(...percs);
-      } else if (config && config.percVip) {
-        max = Number(config.percVip);
-      }
-    }
-    if (activeHappyHour?.discountBonus) {
-      max += Number(activeHappyHour.discountBonus);
-    }
-    return max;
-  }, [venue, deliveryLoyaltyConfig, activeHappyHour]);
-
-  // Calculate Effective User Discount (Personal + Happy Hour + Pickup Bonus)
+  // Calculate Effective User Identity
   const effectiveEmail = guestEmail || user?.email || userProfile?.email || '';
   const effectiveTelegram = guestTelegram || userProfile?.telegram || '';
   const effectiveDisplayName = 
@@ -415,14 +377,151 @@ const GoogleMapsPreLanding = () => {
       userProfile?.telegram
     )
   );
+
+  // Fetch Visit & Order History (Works for both Logged-in and Anonymous Browser Sessions)
+  // Also handles Scenario 2 (Grab Bag QR Scan -> equated to today's order -> immediate Tier 3)
+  useEffect(() => {
+    if (!venueId) return;
+    let isMounted = true;
+
+    const loadVisitHistory = async () => {
+      const todayStr = RewardCalculator.getVenueDateString(new Date(), venueTimezone);
+      const isGrabBag = RewardCalculator.checkGrabBagScenario(venueId, todayStr, location.search);
+      if (isMounted) setIsGrabBagScenario(isGrabBag);
+
+      // If client scanned the Grab Bag QR code, equate it to an order today in Firestore visits (once per day)
+      if (isGrabBag && venueId !== 'demo') {
+        const grabLogKey = `grab_bag_logged_${venueId}_${todayStr}`;
+        if (!safeStorage.getItem(grabLogKey)) {
+          safeStorage.setItem(grabLogKey, 'true');
+          const sessionUid = user?.uid || safeStorage.getItem('effectiveUid') || RewardCalculator.getBrowserSessionUid();
+          addDoc(collection(db, 'visits'), {
+            uid: sessionUid,
+            userId: sessionUid,
+            guestName: effectiveDisplayName || 'Grab Guest',
+            guestEmail: (effectiveEmail || 'guest').toLowerCase(),
+            venueId,
+            discount: 20,
+            timestamp: serverTimestamp(),
+            status: 'vip',
+            source: 'grab_bag_qr',
+            isAggregatorBagScan: true,
+            acquisition_source: 'grab_bag'
+          }).catch(e => console.warn("Grab bag visit log note:", e));
+        }
+      }
+
+      try {
+        const candidateUids = Array.from(new Set([
+          user?.uid,
+          safeStorage.getItem('effectiveUid'),
+          RewardCalculator.getAnonymousUid(),
+          RewardCalculator.getBrowserSessionUid()
+        ].filter(Boolean)));
+
+        const queries = [];
+        for (const cUid of candidateUids) {
+          queries.push(getDocs(query(collection(db, 'visits'), where('venueId', '==', venueId), where('uid', '==', cUid))));
+        }
+        if (effectiveEmail && effectiveEmail.includes('@')) {
+          queries.push(getDocs(query(collection(db, 'visits'), where('venueId', '==', venueId), where('guestEmail', '==', effectiveEmail.toLowerCase()))));
+        }
+
+        const snaps = await Promise.all(queries);
+        const docsMap = new Map();
+        snaps.forEach(s => s.docs.forEach(d => docsMap.set(d.id, d.data())));
+        if (isMounted) {
+          setUserVisits(Array.from(docsMap.values()));
+        }
+      } catch (err) {
+        console.warn("Visit history fetch note:", err);
+      }
+    };
+
+    loadVisitHistory();
+    return () => { isMounted = false; };
+  }, [venueId, user?.uid, effectiveEmail, venueTimezone, location.search]);
+
+  // Compute Active Loyalty Discount using RewardCalculator (Calendar Date + Deposit + Grab Bag Scenario 2)
+  const activeLoyaltyConfig = useMemo(() => {
+    if (!venue) return {};
+    let cfg = venue.loyaltyConfig || venue.tiers || {};
+    if (deliveryLoyaltyConfig.useCustomDeliveryTiers) {
+      cfg = {
+        percBase: Number(deliveryLoyaltyConfig.percBase ?? 5),
+        percMedium: Number(deliveryLoyaltyConfig.percMedium ?? 15),
+        percDecay1: Number(deliveryLoyaltyConfig.percMedium ?? 15),
+        percVip: Number(deliveryLoyaltyConfig.percVip ?? 20),
+        percDeposit: Number(deliveryLoyaltyConfig.percDeposit ?? 25),
+        vipWindowDays: Number(deliveryLoyaltyConfig.vipWindowDays ?? 1),
+        mediumDays: Number(deliveryLoyaltyConfig.mediumDays ?? 7),
+        tier1DecayDays: Number(deliveryLoyaltyConfig.mediumDays ?? 7),
+      };
+    }
+    return cfg;
+  }, [venue, deliveryLoyaltyConfig]);
+
+  const normalizedTiers = useMemo(() => {
+    return RewardCalculator.normalizeConfig(activeLoyaltyConfig, Number(deliveryLoyaltyConfig.percBase || 5));
+  }, [activeLoyaltyConfig, deliveryLoyaltyConfig.percBase]);
+
+  const baseTierDiscount = normalizedTiers.percBase;
+  const [hasVisitedToday, setHasVisitedToday] = useState(false);
+  const todayStr = useMemo(() => RewardCalculator.getVenueDateString(new Date(), venueTimezone), [venueTimezone]);
+  const browserSessionUid = useMemo(() => RewardCalculator.getBrowserSessionUid(), []);
+
+  useEffect(() => {
+    if (!venue) return;
+
+    const now = new Date();
+    const { isDayActive, lastVisitDateStr, isGrabBagActive } = RewardCalculator.resolveVisitHistory(
+      userVisits,
+      venueId,
+      now,
+      venueTimezone,
+      location.search
+    );
+
+    setIsGrabBagScenario(isGrabBagActive);
+    setHasVisitedToday(isDayActive);
+
+    const calcResult = RewardCalculator.calculate(
+      lastVisitDateStr,
+      now,
+      activeLoyaltyConfig,
+      venueTimezone,
+      isDayActive,
+      depositBalance > 0,
+      baseTierDiscount,
+      depositBalance,
+      isGrabBagActive
+    );
+
+    setPersonalDiscount(calcResult.discount);
+    setUserTierStatus(calcResult.status);
+  }, [venue, venueId, userVisits, activeLoyaltyConfig, baseTierDiscount, depositBalance, venueTimezone, location.search]);
+
+  // Calculate Max Regular Discount (Tier 3) + Happy Hour Bonus
+  const maxPossibleDiscount = useMemo(() => {
+    let max = normalizedTiers.percVip || 20;
+    if (activeHappyHour?.discountBonus) {
+      max += Number(activeHappyHour.discountBonus);
+    }
+    return max;
+  }, [normalizedTiers, activeHappyHour]);
+
   const happyHourBonus = activeHappyHour?.discountBonus ? Number(activeHappyHour.discountBonus) : 0;
-  const pickupBonus = (deliveryType === 'pickup' && deliveryLoyaltyConfig?.pickupBonusDiscount) 
-    ? Number(deliveryLoyaltyConfig.pickupBonusDiscount) 
+  const rawPickupBonus = deliveryLoyaltyConfig?.pickupBonusPercent ?? deliveryLoyaltyConfig?.pickupBonusDiscount ?? 0;
+  const pickupBonus = (deliveryType === 'pickup' && Number(rawPickupBonus) > 0) 
+    ? Number(rawPickupBonus) 
     : 0;
 
+  // In Scenario 2 (Grab Bag QR), even before login the customer sees their active Tier 3 discount;
+  // Once identified (or in Scenario 2), currentDiscountRate applies personalDiscount + bonuses.
   const currentDiscountRate = isUserIdentified 
     ? (personalDiscount + happyHourBonus + pickupBonus)
-    : 0; // Guest without login sees preview prices
+    : (isGrabBagScenario ? (normalizedTiers.percVip + happyHourBonus + pickupBonus) : 0);
+
 
   // Raw gmConfig
   const gmConfig = venue?.gmConfig || {
@@ -888,6 +987,31 @@ const GoogleMapsPreLanding = () => {
       } catch (saveErr) {
         console.warn("Firestore order save note (proceeding with local order state):", saveErr);
       }
+
+      // Record today's calendar date visit in localStorage and Firestore 'visits' for dynamic discount calculation tomorrow
+      RewardCalculator.recordLocalVisitDate(venueId, todayStr, isGrabBagScenario);
+      try {
+        await addDoc(collection(db, 'visits'), {
+          venueId,
+          uid: user?.uid || browserSessionUid,
+          userId: user?.uid || browserSessionUid,
+          anonUid: RewardCalculator.getAnonymousUid() || browserSessionUid,
+          browserSessionUid,
+          guestEmail: (effectiveEmail || '').toLowerCase(),
+          userEmail: (effectiveEmail || '').toLowerCase(),
+          guestName: effectiveDisplayName || 'Guest',
+          guestPhone: guestPhone || '',
+          visitDateStr: todayStr,
+          timestamp: serverTimestamp(),
+          type: 'online_order',
+          source: isGrabBagScenario ? 'grab_bag_online_order' : 'google_maps_online_order',
+          discountEarned: currentDiscountRate,
+          orderId,
+        });
+      } catch (visitErr) {
+        console.warn("Firestore online_order visit log note:", visitErr);
+      }
+      setUserVisits(prev => [{ visitDateStr: todayStr, timestamp: new Date() }, ...prev]);
       
       // Clear cart & show completed state
       setCart({});
@@ -1005,6 +1129,12 @@ const GoogleMapsPreLanding = () => {
     );
   }
 
+  // If venue is a service business (Barbershop, Clinic, Spa), render the dedicated Revoo Services Storefront
+  const isServices = venue?.businessType === 'services' || gmConfig?.businessType === 'services';
+  if (isServices) {
+    return <ServiceStorefront venue={venue} />;
+  }
+
   // VietQR URL builder
   const paymentConfig = venue?.paymentConfig || {};
   const bankBin = paymentConfig.bankBin || "970422";
@@ -1056,7 +1186,7 @@ const GoogleMapsPreLanding = () => {
                   <div className="w-5 h-3 border-[1.5px] border-emerald-400 rounded-[3px] p-[1px] bg-black/60 flex items-center shadow-[0_0_6px_rgba(52,211,153,0.4)]">
                     <div 
                       className="h-full bg-emerald-400 rounded-[1px] shadow-[0_0_6px_rgba(52,211,153,0.9)]"
-                      style={{ width: '85%' }}
+                      style={{ width: isGrabBagScenario ? '100%' : '85%' }}
                     />
                   </div>
                   <div className="w-[2px] h-[4px] bg-emerald-400 rounded-r-[1px] -ml-[0.5px]" />
@@ -1066,14 +1196,14 @@ const GoogleMapsPreLanding = () => {
                 <div className="flex flex-col text-left leading-none">
                   <div className="flex items-center gap-1.5">
                     <span className="text-emerald-400 font-extrabold text-[11px] tracking-tight whitespace-nowrap">
-                      до {maxPossibleDiscount}%
+                      {isGrabBagScenario ? `-${maxPossibleDiscount}%` : `до ${maxPossibleDiscount}%`}
                     </span>
                     <span className="bg-[#83E1D9] text-[#003833] font-black text-[9px] px-1.5 py-0.5 rounded-full uppercase shadow-sm whitespace-nowrap">
                       Войти
                     </span>
                   </div>
                   <span className="text-[8.5px] text-gray-300 font-medium whitespace-nowrap pt-0.5">
-                    Заряжайте Вашу скидку покупками
+                    {isGrabBagScenario ? 'QR из Grab: скидка уже максимальная!' : 'Заряжайте Вашу скидку покупками'}
                   </span>
                 </div>
               </button>
@@ -1109,7 +1239,11 @@ const GoogleMapsPreLanding = () => {
                     </span>
                   </div>
                   <span className="text-[8.5px] text-emerald-400 font-medium whitespace-nowrap pt-0.5">
-                    Батарея заряжена
+                    {isGrabBagScenario
+                      ? `QR из Grab: скидка ${maxPossibleDiscount}% активна`
+                      : hasVisitedToday || userTierStatus === 'vip' || depositBalance > 0
+                        ? 'Батарея заряжена'
+                        : `Сегодня ${baseTierDiscount}% • Завтра до ${maxPossibleDiscount}%`}
                   </span>
                 </div>
               </button>
@@ -1227,7 +1361,7 @@ const GoogleMapsPreLanding = () => {
         </div>
       </div>
 
-      {/* Dynamic Discount & Customer Loyalty Bar */}
+      {/* Dynamic Discount & Customer Loyalty Bar (Scenario 1: Google Maps vs Scenario 2: Grab Bag QR) */}
       <div className="px-4 pt-3 pb-2">
         {!isUserIdentified ? (
           <div 
@@ -1241,17 +1375,19 @@ const GoogleMapsPreLanding = () => {
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="bg-emerald-500 text-black text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  Прямой заказ
+                  {isGrabBagScenario ? '🛍️ QR из пакета Grab' : 'Прямой заказ'}
                 </span>
                 <span className="text-emerald-400 font-extrabold text-xs">
-                  Скидка ДО {maxPossibleDiscount}%
+                  {isGrabBagScenario ? `Скидка УЖЕ ${maxPossibleDiscount}%` : `Скидка ДО ${maxPossibleDiscount}%`}
                 </span>
                 <span className="text-emerald-300 font-bold text-[11px]">
                   • Заряжайте Вашу скидку покупками!
                 </span>
               </div>
               <p className="text-[11px] text-gray-300 leading-tight">
-                Заказ сегодня открывает максимальную скидку (Тир 3) на следующий заказ! Повторите заказ завтра, чтобы не потерять её.
+                {isGrabBagScenario
+                  ? `Закажите завтра у нас напрямую (или прямо сейчас) — ваша скидка уже максимальная (${maxPossibleDiscount}%)! Мы приравняли сканирование QR в Grab к заказу у нас.`
+                  : `Привет! Сегодня ваша скидка — минимальная (${baseTierDiscount}%), а завтра после заказа станет максимальной (${maxPossibleDiscount}%)! Не пропускайте!`}
               </p>
             </div>
             <button 
@@ -1273,7 +1409,7 @@ const GoogleMapsPreLanding = () => {
             className="cursor-pointer bg-gradient-to-r from-neutral-900 to-[#202124] border border-emerald-500/30 hover:border-emerald-500/60 rounded-2xl p-3.5 shadow-lg flex items-center justify-between gap-2 active:scale-[0.99] transition-all"
           >
             <div className="space-y-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
                 <span className="text-white text-xs font-bold truncate max-w-[150px]">
                   {effectiveDisplayName}
@@ -1282,13 +1418,21 @@ const GoogleMapsPreLanding = () => {
                   -{currentDiscountRate}%
                 </span>
                 <span className="text-emerald-400 text-[10px] font-bold">
-                  🔋 Батарея заряжена
+                  {isGrabBagScenario
+                    ? `🛍️ QR из Grab: скидка ${maxPossibleDiscount}% активна`
+                    : hasVisitedToday || userTierStatus === 'vip' || depositBalance > 0
+                      ? '🔋 Батарея заряжена'
+                      : `⚡ Сегодня -${currentDiscountRate}% → Завтра -${maxPossibleDiscount}%`}
                 </span>
               </div>
               <p className="text-[11px] text-gray-300 leading-tight">
                 {depositBalance > 0 
-                  ? `💰 Депозит: ${formatPrice(depositBalance, venueCurrency)} — вечный 100% заряд батареи!` 
-                  : 'Спасибо за заказ сегодня! Ваша скидка на следующий заказ — максимальная (Тир 3)! Повторите заказ завтра, чтобы не потерять её!'}
+                  ? `💰 Депозит: ${formatPrice(depositBalance, venueCurrency)} — ваша депозитная скидка (-${currentDiscountRate}%) активна!` 
+                  : isGrabBagScenario
+                    ? `Закажите завтра у нас напрямую (или прямо сейчас) — ваша скидка уже максимальная (${maxPossibleDiscount}%)!`
+                    : hasVisitedToday || userTierStatus === 'vip'
+                      ? `Спасибо за заказ сегодня! Ваша скидка на следующий заказ — ${maxPossibleDiscount}%! Повторите заказ завтра, чтобы не потерять её!`
+                      : `Привет! Сегодня ваша скидка — минимальная (${baseTierDiscount}%), а завтра после заказа станет максимальной (${maxPossibleDiscount}%)! Не пропускайте!`}
               </p>
               {activeHappyHour && (
                 <div className="text-orange-400 font-bold text-[11px] flex items-center gap-1">
@@ -1854,7 +1998,7 @@ const GoogleMapsPreLanding = () => {
                   <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-xl p-2.5 text-[11px] text-emerald-300 flex items-center gap-2 mt-2">
                     <span className="text-base shrink-0">🔋</span>
                     <span className="leading-tight">
-                      <strong>Спасибо за заказ сегодня!</strong> Ваша скидка на следующий заказ — максимальная (Тир 3)! Повторите заказ завтра, чтобы не потерять её!
+                      <strong>Спасибо за заказ сегодня!</strong> Ваша скидка на следующий заказ — {maxPossibleDiscount}%! Повторите заказ завтра, чтобы не потерять её!
                     </span>
                   </div>
                 </div>
@@ -1904,29 +2048,42 @@ const GoogleMapsPreLanding = () => {
                 <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 rounded-full">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                   <span className="text-emerald-300 font-extrabold text-xs">
-                    Скидка до {maxPossibleDiscount}% • Заряжайте Вашу скидку покупками
+                    {isGrabBagScenario
+                      ? `🛍️ QR из Grab: скидка УЖЕ ${maxPossibleDiscount}%`
+                      : `Скидка до ${maxPossibleDiscount}% • Заряжайте Вашу скидку покупками`}
                   </span>
                 </div>
                 <h3 className="text-lg font-black text-white pt-1">
                   Заказ онлайн напрямую
                 </h3>
                 <p className="text-xs text-gray-300 leading-relaxed">
-                  Без наценок агрегаторов (Grab, Glovo, Zomato). Ваша скидка — это батарея: заряжайте её визитами и заказами!
+                  {isGrabBagScenario
+                    ? `Закажите завтра у нас напрямую (или прямо сейчас) — ваша скидка уже максимальная (${maxPossibleDiscount}%)!`
+                    : `Привет! Сегодня ваша скидка — минимальная (${baseTierDiscount}%), а завтра после заказа станет максимальной (${maxPossibleDiscount}%)! Не пропускайте!`}
                 </p>
               </div>
 
               {/* Service & Discount Highlights */}
               <div className="bg-[#26282c] border border-white/5 rounded-2xl p-3.5 space-y-2.5 text-xs">
-                <div className="flex items-start gap-2.5">
-                  <span className="text-base shrink-0">🔋</span>
-                  <span className="text-gray-300 text-[11.5px] leading-snug">
-                    <strong className="text-emerald-400">Скидка на следующий заказ:</strong> Заказ сегодня активирует для вас максимальную скидку (Тир 3) на следующий заказ!
-                  </span>
-                </div>
+                {isGrabBagScenario ? (
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-base shrink-0">🛍️</span>
+                    <span className="text-gray-300 text-[11.5px] leading-snug">
+                      <strong className="text-emerald-400">QR из Grab засчитан как заказ:</strong> Мы приравняли сканирование QR-кода в пакете Grab к заказу у нас. У вас сразу открыта максимальная скидка ({maxPossibleDiscount}%) сегодня и завтра!
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-2.5">
+                    <span className="text-base shrink-0">🔋</span>
+                    <span className="text-gray-300 text-[11.5px] leading-snug">
+                      <strong className="text-emerald-400">Скидка на следующий заказ:</strong> Сегодня стартовая скидка {baseTierDiscount}%, а заказ сегодня открывает максимальную скидку ({maxPossibleDiscount}%) на завтра!
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-start gap-2.5">
                   <span className="text-base shrink-0">⚡</span>
                   <span className="text-gray-300 text-[11.5px] leading-snug">
-                    <strong className="text-amber-300">Не дайте скидке сгореть:</strong> Повторите заказ завтра, чтобы не потерять её! Если пропустить день, заряд батареи начнет таять.
+                    <strong className="text-amber-300">Не дайте скидке растаять:</strong> Повторите заказ завтра, чтобы не потерять максимальный заряд! Если пропустить день, скидка начнет таять.
                   </span>
                 </div>
                 <div className="flex items-start gap-2.5">
@@ -1939,7 +2096,7 @@ const GoogleMapsPreLanding = () => {
                   <div className="flex items-start gap-2.5">
                     <span className="text-base shrink-0">💰</span>
                     <span className="text-gray-300 text-[11.5px] leading-snug">
-                      <strong className="text-amber-400">Депозит = Вечный заряд:</strong> Баланс депозита навсегда закрепляет максимальную скидку — батарея не сядет никогда.
+                      <strong className="text-amber-400">Депозит = Вечный заряд:</strong> Баланс депозита закрепляет депозитную скидку, пока на счете есть средства.
                     </span>
                   </div>
                 )}
@@ -2276,7 +2433,7 @@ const GoogleMapsPreLanding = () => {
                   {depositBalance > 0 ? (
                     <span>💰 <strong className="text-amber-300">Депозит активен:</strong> максимальный 100% заряд батареи закреплен навсегда!</span>
                   ) : (
-                    <span>⚡ <strong className="text-emerald-400">Правило батареи:</strong> Заказ сегодня активирует максимальную скидку (Тир 3) на следующий заказ. Повторите заказ завтра, чтобы не потерять её!</span>
+                    <span>⚡ <strong className="text-emerald-400">Правило батареи:</strong> Заказ сегодня активирует максимальную скидку {maxPossibleDiscount}% на следующий заказ. Повторите заказ завтра, чтобы не потерять её!</span>
                   )}
                 </div>
                 {depositBalance > 0 && (
@@ -2343,7 +2500,7 @@ const GoogleMapsPreLanding = () => {
                   <span>🔋</span> Батарея заряжена на максимум!
                 </div>
                 <p className="text-[11px] text-gray-300 leading-tight">
-                  Спасибо за заказ сегодня! Ваша скидка на следующий заказ — максимальная (Тир 3)! Повторите заказ завтра, чтобы не потерять её!
+                  Спасибо за заказ сегодня! Ваша скидка на следующий заказ — {maxPossibleDiscount}%! Повторите заказ завтра, чтобы не потерять её!
                 </p>
               </div>
 

@@ -25,6 +25,10 @@ import 'package:friendly_code/features/owner/presentation/screens/google_maps_co
 import 'package:friendly_code/features/owner/presentation/screens/delivery_menu_manager_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/delivery_loyalty_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/delivery_logistics_payment_screen.dart';
+import 'package:friendly_code/features/services/presentation/screens/services_catalog_screen.dart';
+import 'package:friendly_code/features/services/presentation/screens/staff_management_screen.dart';
+import 'package:friendly_code/features/services/presentation/screens/yield_rules_screen.dart';
+import 'package:friendly_code/features/services/presentation/screens/ai_concierge_config_screen.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:friendly_code/core/services/visit_service.dart';
 import 'package:friendly_code/core/models/visit_model.dart';
@@ -1108,33 +1112,70 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
 
               const SizedBox(height: 24),
 
-              // ─── Direct Delivery & Food Apps (Перелив из агрегаторов) ──────
-              IOSSettingsGroup(
-                title: "Direct Delivery & Food Apps",
-                children: [
-                  IOSSettingsRow(
-                    title: "Меню доставки и Импорт",
-                    subtitle: "Парсинг из GrabFood, Zomato, Glovo и управление ценами",
-                    icon: CupertinoIcons.cart_fill,
-                    iconColor: AppColors.accentOrange,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DeliveryMenuManagerScreen(venueId: venue.id))),
-                  ),
-                  IOSSettingsRow(
-                    title: "Скидки доставки и Happy Hours",
-                    subtitle: "3 регулярных тира, депозитный тир и счастливые часы",
-                    icon: CupertinoIcons.timer,
-                    iconColor: Colors.amber,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DeliveryLoyaltyScreen(venueId: venue.id))),
-                  ),
-                  IOSSettingsRow(
-                    title: "Оплата и Служба доставки",
-                    subtitle: "VietQR, Stripe, UPI и настройки курьеров",
-                    icon: CupertinoIcons.cube_box_fill,
-                    iconColor: CupertinoColors.activeGreen,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DeliveryLogisticsPaymentScreen(venueId: venue.id))),
-                  ),
-                ],
-              ),
+              // ─── Revoo Services & AI Concierge (for Services) OR Direct Delivery (for HoReCa) ──────
+              if (venue.gmConfig.businessType == 'services') ...[
+                IOSSettingsGroup(
+                  title: "Revoo Services & AI Concierge",
+                  children: [
+                    IOSSettingsRow(
+                      title: "Каталог услуг",
+                      subtitle: "Управление услугами, длительностью и ценами",
+                      icon: CupertinoIcons.scissors,
+                      iconColor: CupertinoColors.activeGreen,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ServicesCatalogScreen(venueId: venue.id))),
+                    ),
+                    IOSSettingsRow(
+                      title: "Мастера и расписание",
+                      subtitle: "Специалисты, часы работы смен и рабочие дни",
+                      icon: CupertinoIcons.person_2_fill,
+                      iconColor: CupertinoColors.activeBlue,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StaffManagementScreen(venueId: venue.id))),
+                    ),
+                    IOSSettingsRow(
+                      title: "Скидки на слоты (Yield Rules)",
+                      subtitle: "Динамические скидки (% и фикс) на свободные часы",
+                      icon: CupertinoIcons.flame_fill,
+                      iconColor: AppColors.accentOrange,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => YieldRulesScreen(venueId: venue.id))),
+                    ),
+                    IOSSettingsRow(
+                      title: "AI-Консьерж & Цифровой паспорт",
+                      subtitle: "База знаний, парковка, правила и статус WhatsApp",
+                      icon: CupertinoIcons.chat_bubble_2_fill,
+                      iconColor: AppColors.premiumGold,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => AiConciergeConfigScreen(venueId: venue.id))),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                // ─── Direct Delivery & Food Apps (Перелив из агрегаторов) ──────
+                IOSSettingsGroup(
+                  title: "Direct Delivery & Food Apps",
+                  children: [
+                    IOSSettingsRow(
+                      title: "Меню доставки и Импорт",
+                      subtitle: "Парсинг из GrabFood, Zomato, Glovo и управление ценами",
+                      icon: CupertinoIcons.cart_fill,
+                      iconColor: AppColors.accentOrange,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DeliveryMenuManagerScreen(venueId: venue.id))),
+                    ),
+                    IOSSettingsRow(
+                      title: "Скидки доставки и Happy Hours",
+                      subtitle: "3 регулярных тира, депозитный тир и счастливые часы",
+                      icon: CupertinoIcons.timer,
+                      iconColor: Colors.amber,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DeliveryLoyaltyScreen(venueId: venue.id))),
+                    ),
+                    IOSSettingsRow(
+                      title: "Оплата и Служба доставки",
+                      subtitle: "VietQR, Stripe, UPI и настройки курьеров",
+                      icon: CupertinoIcons.cube_box_fill,
+                      iconColor: CupertinoColors.activeGreen,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DeliveryLogisticsPaymentScreen(venueId: venue.id))),
+                    ),
+                  ],
+                ),
+              ],
 
               const SizedBox(height: 24),
 

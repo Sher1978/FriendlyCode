@@ -317,6 +317,8 @@ class VenueModel {
   final String countryCode;
   final String currency;
   final String phone;
+  final String? placeId;
+  final String? googleReviewUrl;
   final String currencyPosition;
   final VenueOperatingHours operatingHours;
 
@@ -358,6 +360,8 @@ class VenueModel {
     this.countryCode = 'VN',
     this.currency = 'VND',
     this.phone = '',
+    this.placeId,
+    this.googleReviewUrl,
     this.currencyPosition = 'suffix',
     VenueOperatingHours? operatingHours,
   }) : operatingHours = operatingHours ?? const VenueOperatingHours(), 
@@ -414,6 +418,8 @@ class VenueModel {
       'countryCode': countryCode,
       'currency': currency,
       'phone': phone,
+      'placeId': placeId,
+      'googleReviewUrl': googleReviewUrl,
       'currencyPosition': currencyPosition,
       'operatingHours': operatingHours.toMap(),
     };
@@ -461,6 +467,8 @@ class VenueModel {
       countryCode: map['countryCode'] ?? ((map['address'] != null && map['address'].toString().toLowerCase().contains('dubai')) ? 'AE' : 'VN'),
       currency: map['currency'] ?? (map['countryCode'] == 'AE' ? 'AED' : map['countryCode'] == 'IN' ? 'INR' : 'VND'),
       phone: map['phone'] ?? '',
+      placeId: map['placeId'],
+      googleReviewUrl: map['googleReviewUrl'],
       currencyPosition: map['currencyPosition'] ?? (map['currency'] == 'USD' || map['currency'] == 'INR' ? 'prefix' : 'suffix'),
       operatingHours: VenueOperatingHours.fromMap(map['operatingHours'] as Map<String, dynamic>?),
     );
@@ -503,6 +511,8 @@ class VenueModel {
     String? countryCode,
     String? currency,
     String? phone,
+    String? placeId,
+    String? googleReviewUrl,
     String? currencyPosition,
     VenueOperatingHours? operatingHours,
   }) {
@@ -544,6 +554,8 @@ class VenueModel {
       countryCode: countryCode ?? this.countryCode,
       currency: currency ?? this.currency,
       phone: phone ?? this.phone,
+      placeId: placeId ?? this.placeId,
+      googleReviewUrl: googleReviewUrl ?? this.googleReviewUrl,
       currencyPosition: currencyPosition ?? this.currencyPosition,
       operatingHours: operatingHours ?? this.operatingHours,
     );

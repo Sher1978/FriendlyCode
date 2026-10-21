@@ -22,7 +22,7 @@ const SmartWelcomeScreen = () => {
     
     const steps = [
         t('sws_step_1', 'Сделайте заказ сегодня.'),
-        t('sws_step_2', 'Ваша скидка на следующий заказ — максимальная (Тир 3)!'),
+        t('sws_step_2', 'Ваша скидка на следующий заказ — максимальная!'),
         t('sws_step_3', 'Повторите заказ завтра, чтобы не потерять её!')
     ];
     const [currentStep, setCurrentStep] = useState(0);
@@ -173,7 +173,7 @@ const SmartWelcomeScreen = () => {
                     className="bg-[#1C1C1E]/80 backdrop-blur-xl rounded-[28px] p-6 border border-white/10 shadow-2xl w-full max-w-sm mb-6"
                 >
                     <p className="text-sm text-white/80 font-medium leading-relaxed mb-4">
-                        {t('sws_intro_desc_1', 'Ваша скидка — это живая батарея: заказ сегодня дает максимальную скидку (Тир 3) на следующий заказ! В честь знакомства мы дарим вам ')}
+                        {t('sws_intro_desc_1', 'Ваша скидка — это живая батарея: заказ сегодня дает максимальную скидку на следующий заказ! В честь знакомства мы дарим вам ')}
                         <span className="text-[#00FF41] font-bold">{t('sws_max_level', 'ПОЛНЫЙ 100% ЗАРЯД')}</span> 
                         {t('sws_intro_desc_2', ' прямо сейчас (действует 24 часа ⚡)')}
                     </p>

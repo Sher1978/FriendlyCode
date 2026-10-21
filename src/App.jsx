@@ -188,6 +188,21 @@ const AppOverlay = ({ children }) => {
     const winPath = (typeof window !== 'undefined' ? window.location.pathname : '').toLowerCase();
     const searchParams = new URLSearchParams(location?.search || (typeof window !== 'undefined' ? window.location.search : ''));
 
+    const utmSource = (searchParams.get('utm_source') || '').toLowerCase();
+    const promoParam = (searchParams.get('promo') || '').toLowerCase();
+    const isDirectDeliveryEntry =
+        utmSource === 'google_maps' ||
+        utmSource === 'grab_bag' ||
+        utmSource === 'aggregator_qr' ||
+        utmSource === 'grab' ||
+        utmSource === 'glovo' ||
+        promoParam === 'max_tier' ||
+        promoParam === 'grab_bag' ||
+        promoParam === 'grab' ||
+        searchParams.get('bag_qr') === '1' ||
+        pathname.includes('grab') ||
+        pathname.includes('delivery');
+
     const isExcluded = 
         pathname.includes('outreach') || winPath.includes('outreach') ||
         pathname.includes('revo') || winPath.includes('revo') ||
@@ -198,7 +213,7 @@ const AppOverlay = ({ children }) => {
         pathname.includes('legacy') || winPath.includes('legacy') ||
         pathname.includes('gbp') || winPath.includes('gbp') ||
         pathname.includes('grant') || winPath.includes('grant') ||
-        searchParams.get('utm_source') === 'google_maps';
+        isDirectDeliveryEntry;
 
     if (isExcluded) return children;
 
@@ -228,11 +243,25 @@ const SuspenseFallback = () => {
     const pathname = (location?.pathname || (typeof window !== 'undefined' ? window.location.pathname : '')).toLowerCase();
     const winPath = (typeof window !== 'undefined' ? window.location.pathname : '').toLowerCase();
     const searchParams = new URLSearchParams(location?.search || (typeof window !== 'undefined' ? window.location.search : ''));
+    const utmSource = (searchParams.get('utm_source') || '').toLowerCase();
+    const promoParam = (searchParams.get('promo') || '').toLowerCase();
+    const isDirectDeliveryEntry =
+        utmSource === 'google_maps' ||
+        utmSource === 'grab_bag' ||
+        utmSource === 'aggregator_qr' ||
+        utmSource === 'grab' ||
+        utmSource === 'glovo' ||
+        promoParam === 'max_tier' ||
+        promoParam === 'grab_bag' ||
+        promoParam === 'grab' ||
+        searchParams.get('bag_qr') === '1' ||
+        pathname.includes('grab') ||
+        pathname.includes('delivery');
 
-    if (searchParams.get('utm_source') === 'google_maps' && searchParams.get('activated') !== 'true') {
+    if (isDirectDeliveryEntry && searchParams.get('activated') !== 'true') {
         return (
-            <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <div className="min-h-screen bg-[#131314] flex items-center justify-center">
+                <div className="w-8 h-8 border-4 border-[#00FF41] border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
     }
@@ -284,7 +313,20 @@ function App() {
           {/* Multi-Brand Landing Logic — Stories as main entry unless deposit is active */}
           <Route path="/" element={(() => {
             const searchParams = new URLSearchParams(window.location.search);
-            if (searchParams.get('utm_source') === 'google_maps') {
+            const utmSource = (searchParams.get('utm_source') || '').toLowerCase();
+            const promoParam = (searchParams.get('promo') || '').toLowerCase();
+            const isDirectDeliveryEntry =
+                utmSource === 'google_maps' ||
+                utmSource === 'grab_bag' ||
+                utmSource === 'aggregator_qr' ||
+                utmSource === 'grab' ||
+                utmSource === 'glovo' ||
+                promoParam === 'max_tier' ||
+                promoParam === 'grab_bag' ||
+                promoParam === 'grab' ||
+                searchParams.get('bag_qr') === '1';
+
+            if (isDirectDeliveryEntry) {
                 if (searchParams.get('activated') === 'true') {
                     return <SmartWelcomeScreen />;
                 }
@@ -303,21 +345,9 @@ function App() {
 
             // [STORIES PREVIEW DISABLED BY USER REQUEST - GO DIRECTLY TO TestQRPage]
             return <TestQRPage />;
-            /*
-            return (
-              <RevooStories onComplete={() => {
-                try {
-                  localStorage.setItem('onboardingCompleted', 'true');
-                } catch (e) {
-                  console.warn(e);
-                }
-                const searchParams = new URLSearchParams(window.location.search);
-                const venueId = searchParams.get('qr_venue_id') || 'demo';
-                window.location.replace(`/test?id=${venueId}`);
-              }} />
-            );
-            */
           })()} />
+          <Route path="/grab" element={<GoogleMapsPreLanding />} />
+          <Route path="/delivery" element={<GoogleMapsPreLanding />} />
           <Route path="/business" element={<RevooB2BV2 />} />
           <Route path="/business-v3" element={<RevoAlternativeLanding />} />
           <Route path="/outreach" element={<RevoAlternativeLanding />} />

@@ -30,16 +30,29 @@
     *   One-click `[CONFIRM & ACTIVATE]`.
     *   Instant Notification to Venue Staff (Email, Telegram, Browser).
 
-## 4. DYNAMIC DISCOUNT LOGIC (CALENDAR DAYS)
-*   **Base (New/Cold):** 5%
-*   **Max (VIP):** 20%
-*   **Timeframe Mechanics:** Decay operates via strict Calendar Days difference (`Current Date` vs `Last Visit Date`) based on the selected venue Timezone.
-*   **Daily Logins:** Multiple scans in the same calendar day count as one visit.
-*   **Decay Tiers (Configurable):**
-    *   Max VIP: Achieved via consecutive visiting (e.g. 1 Day interval).
-    *   Stage 1: e.g. 15% 
-    *   Stage 2: e.g. 10%
-*   **Reset:** Back to 5% automatically when the maximum permitted decay interval is exceeded.
+## 4. DYNAMIC DISCOUNT LOGIC & TWO ACQUISITION SCENARIOS (CALENDAR DAYS)
+*   **Calendar-Day Mechanics (`YYYY-MM-DD`):**
+    *   All visits and orders are tracked strictly by **Calendar Date** (`YYYY-MM-DD`) in the venue's configured timezone (`venueTimezone`). Exact timestamps within the day do not affect tier decay.
+    *   Works identically for **logged-in users** (`uid` / `email`) and **anonymous users** (persistent browser session ID `revoo_browser_session_uid` + local visit date cache `revoo_visit_dates_{venueId}`, which automatically merges into the user's account upon login/registration).
+    *   Multiple scans or orders on the same calendar day count as a single day's visit; regular tier calculation compares **Today's Date** against the **Last Visit Date prior to today** (`diffDays = Today - LastVisitDate`).
+*   **Regular Dynamic Discount Tiers (3 Tiers, Configurable per Venue):**
+    *   **Tier 1 — Base / Minimum (`percBase`, e.g., 5%):** First visit (no prior visit history) OR when `diffDays > mediumDays` (discount has melted due to inactivity).
+    *   **Tier 3 — Max Regular / VIP (`percVip`, e.g., 20%):** Next-day return (`1 <= diffDays <= vipWindowDays`, default `1` calendar day — "visit tomorrow to keep max discount").
+    *   **Tier 2 — Intermediate (`percMedium`, e.g., 10–15%):** Return within `vipWindowDays < diffDays <= mediumDays`.
+*   **Deposit Discount Tier (`percDeposit`, e.g., 25%):**
+    *   Configured separately in venue settings.
+    *   Active whenever the guest's `depositBalance > 0`. Staff manually tops up and deducts from the deposit balance.
+    *   Once `depositBalance` reaches `0`, the guest either tops up their deposit again or automatically returns to the regular dynamic discount tiers (Tier 1 / Tier 2 / Tier 3).
+*   **Two Scenarios of Discount Accrual (Direct Delivery & QR Funnel):**
+    *   **IMPORTANT UI RULE:** Using the technical term *"Тир"* / *"Tier"* in any guest-facing message is strictly forbidden. Always substitute the actual discount percentage variables from the venue settings (`{percBase}%`, `{percVip}%`).
+    *   **Scenario 1 — Google Maps / Organic Entry (`?utm_source=google_maps&id={venueId}` or standard table QR):**
+        *   A new guest arriving from Google Maps gets the **Minimum Discount (`percBase`, e.g., 5%) today**.
+        *   **Core Message (FOMO):** *"Привет! Сегодня ваша скидка — минимальная ({percBase}%), а завтра после заказа станет максимальной ({percVip}%)! Не пропускайте!"*
+    *   **Scenario 2 — Grab / Glovo / Aggregator Delivery Bag QR (`?utm_source=grab_bag&promo=max_tier&id={venueId}`):**
+        *   Placed on a physical QR flyer inside a Grab/Glovo/Zomato delivery bag to convert aggregator customers into direct ordering.
+        *   **Scanning this QR code is equated to having already placed an order today.**
+        *   The guest skips the minimum discount and **immediately receives the Maximum Regular Discount (`percVip`, e.g., 20%)** both **right now** (if they want to order immediately) and **tomorrow**!
+        *   **Core Message:** *"Спасибо за заказ! Закажите завтра у нас напрямую (или прямо сейчас) — ваша скидка уже максимальная ({percVip}%)!"*
 
 ## 5. RBAC & ADMIN HIERARCHY (FLUTTER)
 The system supports four distinct operational roles within the Admin Panel:

@@ -408,74 +408,89 @@ const TestQRPage = () => {
 
                     const rawEmail = userData?.email || safeStorage.getItem('guestEmail') || '';
                     const email = rawEmail.toLowerCase();
+                    if (user?.isAnonymous) {
+                        RewardCalculator.saveAnonymousUid(user.uid);
+                    }
+                    const browserSessionUid = RewardCalculator.getBrowserSessionUid();
+                    const anonUid = RewardCalculator.getAnonymousUid();
+
+                    // Compute deposit balance synchronously from userData so RewardCalculator has it immediately
+                    let syncDepositBalance = Number(depositBalance || 0);
+                    if (userData) {
+                        const vId = activeVenueId || venueId;
+                        if (userData.deposit_balances && vId && userData.deposit_balances[vId] !== undefined) {
+                            syncDepositBalance = Number(userData.deposit_balances[vId] || 0);
+                        } else if (userData.deposit_balances && venueId && userData.deposit_balances[venueId] !== undefined) {
+                            syncDepositBalance = Number(userData.deposit_balances[venueId] || 0);
+                        } else if (userData.deposits && vId && userData.deposits[vId] !== undefined) {
+                            const val = userData.deposits[vId];
+                            syncDepositBalance = Number(typeof val === 'object' ? (val.balance || 0) : val);
+                        } else if (userData.deposit_balance !== undefined && Number(userData.deposit_balance) > 0) {
+                            syncDepositBalance = Number(userData.deposit_balance);
+                        }
+                    }
+
                     let calculatedDiscount = 5;
                     let result = null;
-                    const tz = venueData.timezone || 'Asia/Dubai';
+                    const tz = venueData.timezone || 'Asia/Ho_Chi_Minh';
                     const todayStr = RewardCalculator.getVenueDateString(now, tz);
+                    const isGrabBagScenario = RewardCalculator.checkGrabBagScenario(venueId, todayStr, location.search);
                     let debugInfo = { email: email || 'No Email', uid: user.uid, venueId, todayDate: todayStr, lastVisitDisplay: 'Никогда', daysAgoStr: 'Никогда', history: 'Нет', isDayActive: false, discountToday: 5, diffDays: 'N/A' };
 
                     let visitDocs = [];
                     try {
-                        const uidsToTry = [user?.uid, targetUid].filter(Boolean);
+                        const uidsToTry = [...new Set([user?.uid, targetUid, anonUid, browserSessionUid].filter(Boolean))];
                         for (const currentUid of uidsToTry) {
-                            if (visitDocs.length > 0) break;
                             const qUidVisits = query(collection(db, 'visits'), where('uid', '==', currentUid), where('venueId', '==', venueId));
                             const querySnapUid = await getDocs(qUidVisits);
                             if (!querySnapUid.empty) {
-                                visitDocs = querySnapUid.docs;
+                                visitDocs.push(...querySnapUid.docs);
                             }
                         }
-                        if (visitDocs.length === 0 && email) {
+                        if (email) {
                             const qEmailVisits = query(collection(db, 'visits'), where('guestEmail', '==', email), where('venueId', '==', venueId));
                             const querySnapEmail = await getDocs(qEmailVisits);
                             if (!querySnapEmail.empty) {
-                                visitDocs = querySnapEmail.docs;
+                                visitDocs.push(...querySnapEmail.docs);
                             }
-                        }
-                        if (visitDocs.length > 0) {
-                            visitDocs.sort((a, b) => {
-                                const tA = a.data().timestamp?.seconds || (a.data().timestamp?.toDate ? Math.floor(a.data().timestamp.toDate().getTime() / 1000) : 0);
-                                const tB = b.data().timestamp?.seconds || (b.data().timestamp?.toDate ? Math.floor(b.data().timestamp.toDate().getTime() / 1000) : 0);
-                                return tB - tA;
-                            });
                         }
                     } catch (errVisits) {
                         console.warn("Visits query error:", errVisits);
                     }
 
+                    const resolvedHistory = RewardCalculator.resolveVisitHistory(
+                        visitDocs,
+                        venueId,
+                        now,
+                        tz,
+                        location.search
+                    );
+                    const { lastVisitDateStr, hasVisitedToday: isDayActive, allDatesDesc, isGrabBagActive } = resolvedHistory;
+
+                    result = RewardCalculator.calculate(
+                        lastVisitDateStr,
+                        now,
+                        venueData.loyaltyConfig,
+                        tz,
+                        isDayActive,
+                        syncDepositBalance > 0,
+                        venueData.baseDiscount || 5,
+                        syncDepositBalance,
+                        isGrabBagActive
+                    );
+                    calculatedDiscount = result.discount;
+
                     if (visitDocs.length > 0) {
-                        const uniqueDays = [];
-                        visitDocs.forEach(docSnap => {
-                            const timestamp = docSnap.data().timestamp;
-                            if (!timestamp) return;
-                            const dateObj = timestamp.toDate();
-                            const dateStr = RewardCalculator.getVenueDateString(dateObj, tz);
-                            if (!uniqueDays.find(d => d.dateStr === dateStr)) uniqueDays.push({ dateStr, date: dateObj });
-                        });
-
-                        let lastVisitDateStr = null;
-                        let isDayActive = false;
-
-                        if (uniqueDays.length > 0 && uniqueDays[0].dateStr === todayStr) {
-                            isDayActive = true;
-                            if (uniqueDays.length > 1) lastVisitDateStr = uniqueDays[1].dateStr;
-                        } else if (uniqueDays.length > 0) {
-                            lastVisitDateStr = uniqueDays[0].dateStr;
-                        }
-
-                        result = RewardCalculator.calculate(lastVisitDateStr, now, venueData.loyaltyConfig, tz, isDayActive, (userProfile?.hasLockedDiscount || false) && Number(depositBalance) > 0, venueData.baseDiscount || 5, depositBalance);
-                        calculatedDiscount = result.discount;
-
                         const todayVisitsDocs = visitDocs.filter(d => {
-                          const dt = d.data().timestamp?.toDate();
+                          const data = typeof d.data === 'function' ? d.data() : d;
+                          if (data.visitDateStr === todayStr) return true;
+                          const dt = data.timestamp?.toDate ? data.timestamp.toDate() : null;
                           return dt && RewardCalculator.getVenueDateString(dt, tz) === todayStr;
                         });
                         
-                        const firstVisitToday = todayVisitsDocs.length > 0 ? todayVisitsDocs[todayVisitsDocs.length - 1].data().timestamp?.toDate() : null;
-                        const prevDayVisit = visitDocs.find(d => {
-                          const dt = d.data().timestamp?.toDate();
-                          return dt && RewardCalculator.getVenueDateString(dt, tz) !== todayStr;
-                        })?.data().timestamp?.toDate();
+                        const firstVisitToday = todayVisitsDocs.length > 0 && todayVisitsDocs[todayVisitsDocs.length - 1].data().timestamp?.toDate
+                            ? todayVisitsDocs[todayVisitsDocs.length - 1].data().timestamp.toDate()
+                            : null;
 
                         if (firstVisitToday) {
                             const getActiveWindowHours = (cfg, perc) => {
@@ -497,55 +512,22 @@ const TestQRPage = () => {
                             const secondsLeft = Math.max(0, Math.floor((windowEndTime - now.getTime()) / 1000));
                             setLiveSecondsLeft(secondsLeft);
                         }
-
-                        const debugDays = uniqueDays.map(d => d.dateStr);
-                        debugInfo = { 
-                            ...debugInfo, 
-                            todayDate: todayStr,
-                            lastVisitDisplay: lastVisitDateStr || 'Никогда', 
-                            isDayActive,
-                            history: debugDays.length ? debugDays.join(', ') : 'Нет', 
-                            discountToday: calculatedDiscount, 
-                            diffDays: result.diffDays ?? 'N/A' 
-                        };
-
-                        if (result.status === 'cooldown') setCooldown({ hoursPassed: result.hoursPassed, required: venueData.loyaltyConfig?.safetyCooldownHours || 12 });
-                    } else {
-                        result = RewardCalculator.calculate(null, now, venueData.loyaltyConfig, tz, false, (userProfile?.hasLockedDiscount || false) && Number(depositBalance) > 0, venueData.baseDiscount || 5, depositBalance);
-                        calculatedDiscount = result.discount;
-                        debugInfo.diffDays = result.diffDays ?? 'N/A';
                     }
 
-                    // Helper to get VIP Max Visit Tier ONLY (never deposit)
-                    const getMaxVipVisitDiscount = (cfg, tiers) => {
-                        if (cfg && typeof cfg === 'object') {
-                            if (Array.isArray(cfg)) {
-                                const percs = cfg.map(t => Number(t.percentage || t.percent || 0)).filter(p => p > 0);
-                                if (percs.length > 0) return Math.max(...percs);
-                            } else {
-                                if (cfg.percVip && Number(cfg.percVip) > 0) return Number(cfg.percVip);
-                                if (Array.isArray(cfg.decayStages) && cfg.decayStages.length > 0) {
-                                    const percs = cfg.decayStages.map(s => Number(s.discount || 0)).filter(p => p > 0);
-                                    if (percs.length > 0) return Math.max(...percs, Number(cfg.percBase || 3));
-                                }
-                                if (cfg.percBase) return Number(cfg.percBase);
-                            }
-                        }
-                        if (Array.isArray(tiers) && tiers.length > 0) {
-                            const percs = tiers.map(t => Number(t.percentage || t.percent || 0)).filter(p => p > 0);
-                            if (percs.length > 0) return Math.max(...percs);
-                        }
-                        return 7;
+                    debugInfo = { 
+                        ...debugInfo, 
+                        todayDate: todayStr,
+                        lastVisitDisplay: lastVisitDateStr || 'Никогда', 
+                        isDayActive,
+                        history: allDatesDesc.length ? allDatesDesc.join(', ') : 'Нет', 
+                        discountToday: calculatedDiscount, 
+                        diffDays: result.diffDays ?? 'N/A' 
                     };
 
-                    // Override discount ONLY if Google Maps promotion is active AND no active deposit
-                    if (isGoogleMaps && Number(depositBalance) <= 0) {
-                        calculatedDiscount = getMaxVipVisitDiscount(venueData.loyaltyConfig, venueData.tiers);
-                        result = result || {};
-                        result.status = 'google_maps_bonus';
-                    }
-
                     if (venueId && venueId !== 'demo' && user) {
+                        // Record today's calendar visit date in localStorage for anonymous/logged-in persistence
+                        RewardCalculator.recordLocalVisitDate(venueId, todayStr, isGrabBagActive);
+
                         const autoLogKey = `auto_logged_${venueId}_${todayStr}_${user.uid}`;
                         if (!safeSessionStorage.getItem(autoLogKey)) {
                             safeSessionStorage.setItem(autoLogKey, 'true');
@@ -556,22 +538,25 @@ const TestQRPage = () => {
                                 discount: calculatedDiscount,
                                 uid: user.uid,
                                 userId: user.uid,
+                                anonUid: anonUid || user.uid,
+                                browserSessionUid,
+                                visitDateStr: todayStr,
                                 timestamp: serverTimestamp(),
-                                source: isGoogleMaps ? 'google_maps_auto' : 'qr_scan_auto'
+                                source: isGrabBagActive ? 'grab_bag_qr' : (isGoogleMaps ? 'google_maps_auto' : 'qr_scan_auto')
                             }).catch(err => console.warn("Auto visit log error:", err));
                         }
 
                         // Audit Log for SuperAdmin Registrations/Scans Journal
-                        const scanLogKey = `scan_logged_${venueId}_${user.uid}_${todayStr}_${isGoogleMaps ? 'gm' : 'qr'}`;
+                        const scanLogKey = `scan_logged_${venueId}_${user.uid}_${todayStr}_${isGrabBagActive ? 'grab' : (isGoogleMaps ? 'gm' : 'qr')}`;
                         if (!safeSessionStorage.getItem(scanLogKey)) {
                             safeSessionStorage.setItem(scanLogKey, 'true');
                             
-                            const hasDep = Number(depositBalance) > 0;
+                            const hasDep = Number(syncDepositBalance) > 0;
                             let dTypeLabel = 'Тир 1 (Базовая)';
                             if (hasDep) {
                                 dTypeLabel = `Депозит (${calculatedDiscount}%)`;
-                            } else if (isGoogleMaps) {
-                                dTypeLabel = `Google Maps Bonus (${calculatedDiscount}%)`;
+                            } else if (isGrabBagActive) {
+                                dTypeLabel = `QR из пакета Grab — Тир 3 (${calculatedDiscount}%)`;
                             } else if (result?.status === 'vip' || calculatedDiscount === venueData?.loyaltyConfig?.percVip) {
                                 dTypeLabel = `Тир 3 (VIP ${calculatedDiscount}%)`;
                             } else if (result?.status === 'decay1' || result?.status === 'decay2') {
@@ -580,8 +565,8 @@ const TestQRPage = () => {
                                 dTypeLabel = `Тир 1 (Базовая ${calculatedDiscount}%)`;
                             }
 
-                            const linkTypeStr = isGoogleMaps ? 'google_maps' : (searchParams.get('source') || searchParams.get('utm_source') || 'qr_venue');
-                            const linkTypeLabelStr = isGoogleMaps ? 'куар гугл мапс' : (searchParams.get('source') === 'nfc' ? 'NFC метка' : 'куар заведения');
+                            const linkTypeStr = isGrabBagActive ? 'grab_bag' : (isGoogleMaps ? 'google_maps' : (searchParams.get('source') || searchParams.get('utm_source') || 'qr_venue'));
+                            const linkTypeLabelStr = isGrabBagActive ? 'QR в пакете Grab (Тир 3)' : (isGoogleMaps ? 'куар гугл мапс' : (searchParams.get('source') === 'nfc' ? 'NFC метка' : 'куар заведения'));
 
                             addDoc(collection(db, 'scans_log'), {
                                 userName: guestName || userData?.displayName || userData?.name || 'Гость',
@@ -595,7 +580,7 @@ const TestQRPage = () => {
                                 lastVisitDate: debugInfo?.lastVisitDisplay || 'Никогда',
                                 discount: calculatedDiscount,
                                 discountType: dTypeLabel,
-                                depositBalance: depositBalance || 0,
+                                depositBalance: syncDepositBalance || 0,
                                 rawParams: window.location.search || location.search || '',
                                 createdAtIso: new Date().toISOString()
                             }).catch(err => console.warn("Scan log save error:", err));
@@ -606,7 +591,7 @@ const TestQRPage = () => {
                     setLastVisitDebug(debugInfo);
                     setDiscount(calculatedDiscount);
                     const secondsLeft = result?.secondsUntilDecay || 0;
-                    setPredictionState({ percent: calculatedDiscount, secondsLeft, label: result?.status || 'new', isBase: calculatedDiscount <= 5, isMax: calculatedDiscount >= 20 });
+                    setPredictionState({ percent: calculatedDiscount, secondsLeft, label: result?.status || 'new', isBase: calculatedDiscount <= (venueData?.loyaltyConfig?.percBase || 5), isMax: calculatedDiscount >= (venueData?.loyaltyConfig?.percVip || 20) });
                     setLiveSecondsLeft(secondsLeft);
                     discountReadyRef.current = true;
                     if (depositReadyRef.current && !isDataReadyRef.current) {
@@ -826,7 +811,7 @@ const TestQRPage = () => {
     const hasGoogleReviewConfigured = Boolean(venueData?.googleReviewLink || venueData?.googleMapsUrl);
     const hasCompletedReview = userProfile?.googleReviews?.[activeVenueId] === 'completed' || safeStorage.getItem('googleReviewClaimed') === 'true' || safeStorage.getItem(`googleReviewClaimed_${activeVenueId}`) === 'true';
     
-    const isDepositActive = ((isUserLoggedIn && depositBalance > 0) || hasDepositQuery) && (!hasGoogleReviewConfigured || hasCompletedReview);
+    const isDepositActive = (depositBalance > 0) || hasDepositQuery;
 
     // [STORIES PREVIEW DISABLED BY USER REQUEST - KEEP CODE BUT BYPASS DISPLAY]
     // if (isDataReady && !storiesCompleted && !isDepositActive) {
@@ -892,20 +877,20 @@ const TestQRPage = () => {
     const maxDiscount = getMaxDiscountFromConfig(loyaltyConfig);
 
     const getDepositDiscountFromVenue = () => {
-        if (depositTiers && depositTiers.length > 0) {
-            const maxTier = Math.max(...depositTiers.map(t => Number(t.discountPercentage || t.percentage || t.discount || 0)).filter(p => p > 0));
-            if (maxTier > 0) return maxTier;
-        }
         if (venueData) {
             const depPerc = Number(
+                venueData.loyaltyConfig?.percDeposit ??
                 venueData.depositConfig?.bonusPercent ??
                 venueData.depositConfig?.percent ??
                 venueData.depositBonusPercent ??
                 venueData.depositDiscount ??
-                venueData.loyaltyConfig?.percDeposit ??
                 0
             );
             if (depPerc > 0) return depPerc;
+        }
+        if (depositTiers && depositTiers.length > 0) {
+            const maxTier = Math.max(...depositTiers.map(t => Number(t.discountPercentage || t.percentage || t.discount || 0)).filter(p => p > 0));
+            if (maxTier > 0) return maxTier;
         }
         return maxDiscount;
     };
@@ -940,7 +925,7 @@ const TestQRPage = () => {
     }
 
     const displayDiscount = isDepositActive 
-        ? (activeTier?.discountPercentage || discount) 
+        ? (depositDiscount || activeTier?.discountPercentage || discount) 
         : (isReviewDiscountActive ? maxDiscount : discount);
 
     const currentDiscount = displayDiscount;
@@ -1290,7 +1275,7 @@ const TestQRPage = () => {
                                 <span className="text-xs font-bold uppercase tracking-wider text-white/50">Revoo Wallet</span>
                             </div>
                             <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-full px-3 py-1">
-                                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Tier {currentDiscountTier} Active</span>
+                                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">-{displayDiscount}%</span>
                             </div>
                         </div>
                         

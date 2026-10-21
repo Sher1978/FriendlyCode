@@ -3,15 +3,13 @@ import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/services/venue_service.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
-import 'package:friendly_code/features/owner/presentation/screens/giftx_setup_screen.dart';
-import 'package:friendly_code/features/owner/presentation/screens/google_maps_config_screen.dart';
 import 'package:provider/provider.dart';
-import 'package:friendly_code/l10n/app_localizations.dart';
 
 class VenueEditorScreen extends StatefulWidget {
   final VenueModel? venue;
@@ -31,12 +29,18 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
   late TextEditingController _addressCtrl;
   late TextEditingController _descCtrl;
   late TextEditingController _googleMapsUrlCtrl;
+  late TextEditingController _phoneCtrl;
+  late TextEditingController _placeIdCtrl;
+  late TextEditingController _googleReviewUrlCtrl;
+  late TextEditingController _currencyCtrl;
 
-  String _selectedLanguage = 'en';
+  String _businessType = 'services';
+  bool _seedStarterPack = true;
+  String _selectedLanguage = 'ru';
   bool _isSaving = false;
   bool _hasCaptiveWifi = false;
   bool _isHybridEnabled = false;
-  StreamSubscription? _venueSyncSub; // Real-time sync with header toggle
+  StreamSubscription? _venueSyncSub;
   late TextEditingController _wifiSsidCtrl;
   late TextEditingController _latCtrl;
   late TextEditingController _lngCtrl;
@@ -64,18 +68,27 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     }
 
     _ownerEmailCtrl = TextEditingController(text: ownerEmail);
-    _categoryCtrl = TextEditingController(text: widget.venue?.category ?? 'General');
+    _businessType = widget.venue?.gmConfig.businessType ?? 'services';
+    _categoryCtrl = TextEditingController(
+      text: widget.venue?.category ?? (_businessType == 'services' ? 'Барбершоп' : 'Ресторан')
+    );
     _addressCtrl = TextEditingController(text: widget.venue?.address ?? '');
     _descCtrl = TextEditingController(text: widget.venue?.description ?? '');
     _googleMapsUrlCtrl = TextEditingController(text: widget.venue?.googleMapsUrl ?? '');
+    _phoneCtrl = TextEditingController(text: widget.venue?.phone ?? '');
+    _placeIdCtrl = TextEditingController(text: widget.venue?.placeId ?? '');
+    _googleReviewUrlCtrl = TextEditingController(text: widget.venue?.googleReviewUrl ?? '');
+    _currencyCtrl = TextEditingController(text: widget.venue?.currency ?? '₽');
+    _seedStarterPack = widget.venue == null;
+
     _wifiSsidCtrl = TextEditingController(text: widget.venue?.wifiSsid ?? '');
     _hasCaptiveWifi = widget.venue?.hasCaptiveWifi ?? false;
     _isHybridEnabled = widget.venue?.isHybridEnabled ?? false;
     _giftxUrlCtrl = TextEditingController(text: widget.venue?.giftxUrl ?? '');
-    _selectedLanguage = widget.venue?.defaultLanguage ?? 'en';
+    _selectedLanguage = widget.venue?.defaultLanguage ?? 'ru';
     _latCtrl = TextEditingController(text: widget.venue?.latitude?.toString() ?? '');
     _lngCtrl = TextEditingController(text: widget.venue?.longitude?.toString() ?? '');
-    _wifiSpeedCtrl = TextEditingController(text: widget.venue?.wifiSpeedMbps?.toString() ?? '100');
+    _wifiSpeedCtrl = TextEditingController(text: widget.venue?.wifiSpeedMbps.toString() ?? '100');
 
     _isActive = widget.venue?.isActive ?? true;
     _isManuallyBlocked = widget.venue?.isManuallyBlocked ?? false;
@@ -102,8 +115,15 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
       }
     });
 
-    // ── Real-time sync: keep isHybridEnabled in sync with Firestore ──
-    // If the header button toggles it, this screen reflects the change immediately.
+    // Auto-generate Google Review URL from placeId
+    _placeIdCtrl.addListener(() {
+      final pid = _placeIdCtrl.text.trim();
+      if (pid.isNotEmpty && (_googleReviewUrlCtrl.text.isEmpty || _googleReviewUrlCtrl.text.contains('writereview'))) {
+        _googleReviewUrlCtrl.text = 'https://search.google.com/local/writereview?placeid=$pid';
+      }
+    });
+
+    // Real-time sync for existing venues
     final venueId = widget.venue?.id;
     if (venueId != null && venueId.isNotEmpty) {
       _venueSyncSub = FirebaseFirestore.instance
@@ -116,11 +136,9 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         if (data == null) return;
         final remoteHybrid = data['isHybridEnabled'] as bool? ?? false;
         final remoteGiftxUrl = data['giftxUrl'] as String? ?? '';
-        // Only update if changed externally (avoid overriding user's unsaved input)
         if (remoteHybrid != _isHybridEnabled) {
           setState(() => _isHybridEnabled = remoteHybrid);
         }
-        // Sync giftxUrl only if field is empty (user hasn't typed anything)
         if (_giftxUrlCtrl.text.isEmpty && remoteGiftxUrl.isNotEmpty) {
           _giftxUrlCtrl.text = remoteGiftxUrl;
         }
@@ -136,6 +154,10 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     _addressCtrl.dispose();
     _descCtrl.dispose();
     _googleMapsUrlCtrl.dispose();
+    _phoneCtrl.dispose();
+    _placeIdCtrl.dispose();
+    _googleReviewUrlCtrl.dispose();
+    _currencyCtrl.dispose();
     _wifiSsidCtrl.dispose();
     _latCtrl.dispose();
     _lngCtrl.dispose();
@@ -161,12 +183,16 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         isActive: false,
         createdAt: DateTime.now(),
       )).copyWith(
-        name: _nameCtrl.text,
-        ownerEmail: _ownerEmailCtrl.text,
-        category: _categoryCtrl.text,
-        address: _addressCtrl.text,
-        description: _descCtrl.text,
-        googleMapsUrl: _googleMapsUrlCtrl.text,
+        name: _nameCtrl.text.trim(),
+        ownerEmail: _ownerEmailCtrl.text.trim(),
+        category: _categoryCtrl.text.trim(),
+        address: _addressCtrl.text.trim(),
+        description: _descCtrl.text.trim(),
+        googleMapsUrl: _googleMapsUrlCtrl.text.trim(),
+        phone: _phoneCtrl.text.trim(),
+        placeId: _placeIdCtrl.text.trim().isNotEmpty ? _placeIdCtrl.text.trim() : null,
+        googleReviewUrl: _googleReviewUrlCtrl.text.trim().isNotEmpty ? _googleReviewUrlCtrl.text.trim() : null,
+        currency: _currencyCtrl.text.trim(),
         hasCaptiveWifi: _hasCaptiveWifi,
         wifiSsid: _wifiSsidCtrl.text,
         latitude: double.tryParse(_latCtrl.text),
@@ -177,6 +203,10 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         giftxUrl: _giftxUrlCtrl.text.trim(),
         isActive: _isActive,
         isManuallyBlocked: _isManuallyBlocked,
+        gmConfig: (widget.venue?.gmConfig ?? GoogleMapsConfig()).copyWith(
+          businessType: _businessType,
+          phone: _phoneCtrl.text.trim(),
+        ),
         subscription: VenueSubscription(
           plan: widget.venue?.subscription.plan ?? 'free',
           isPaid: _isPaid,
@@ -185,25 +215,116 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         ),
       );
 
-      if (widget.venue == null) {
-        await _venuesService.createVenue(updatedVenue);
+      String savedVenueId = widget.venue?.id ?? '';
+      if (widget.venue == null || widget.venue!.id.isEmpty) {
+        savedVenueId = await _venuesService.createVenue(updatedVenue);
       } else {
         await _venuesService.updateVenue(updatedVenue);
       }
 
+      // Seed starter pack if checked for new Services venue
+      if (_seedStarterPack && (widget.venue == null || widget.venue!.id.isEmpty) && _businessType == 'services') {
+        await _venuesService.seedServicesStarterPack(
+          savedVenueId,
+          category: _categoryCtrl.text.trim(),
+          currency: _currencyCtrl.text.trim(),
+        );
+      }
+
       if (mounted) {
-        showCupertinoDialog(
+        final origin = Uri.base.origin;
+        final pwaUrl = "$origin/?v=$savedVenueId&source=google_maps";
+
+        showDialog(
           context: context,
-          builder: (ctx) => CupertinoAlertDialog(
-            title: const Text("Success"),
-            content: const Text("Venue details saved successfully."),
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: const BorderSide(color: AppColors.accentTeal, width: 1.5),
+            ),
+            title: Row(
+              children: [
+                const Icon(CupertinoIcons.checkmark_seal_fill, color: AppColors.accentTeal, size: 28),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.venue == null ? "Заведение успешно запущено! 🚀" : "Настройки сохранены",
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                  ),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 520,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _businessType == 'services'
+                        ? "Профиль: Revoo Services & AI-Консьерж\n${_seedStarterPack && widget.venue == null ? '⚡ Стартовый пакет мастеров, услуг, правил скидок и профиль AI загружен.' : ''}"
+                        : "Профиль: HoReCa & Меню доставки",
+                    style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 13, height: 1.4),
+                  ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.macosDivider),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(CupertinoIcons.link, color: AppColors.accentTeal, size: 14),
+                            SizedBox(width: 6),
+                            Text(
+                              "Ссылка на PWA-витрину Google Maps:",
+                              style: TextStyle(color: AppColors.tertiary, fontSize: 11, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        SelectableText(
+                          pwaUrl,
+                          style: const TextStyle(color: AppColors.accentTeal, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
             actions: [
-              CupertinoDialogAction(
-                child: const Text("OK"), 
+              TextButton.icon(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: pwaUrl));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Ссылка на витрину скопирована в буфер обмена!"),
+                      backgroundColor: AppColors.accentTeal,
+                    ),
+                  );
+                },
+                icon: const Icon(CupertinoIcons.doc_on_clipboard, size: 16),
+                label: const Text("Копировать ссылку"),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accentTeal,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
                 onPressed: () {
                   Navigator.pop(ctx);
                   Navigator.pop(context);
-                }
+                },
+                child: const Text("Готово"),
               ),
             ],
           ),
@@ -242,424 +363,195 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.venue == null ? "Register Venue" : "Edit Venue",
+                    widget.venue == null ? "Регистрация заведения" : "Редактирование заведения",
                     style: const TextStyle(
                       color: AppColors.macosTextPrimary,
-                      fontSize: 34,
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
                       letterSpacing: -1.0,
                     ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    "Provide basic information about your establishment.",
-                    style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 16),
+                    "Заполните первичные данные карточки партнера и запустите заведение.",
+                    style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 15),
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 36),
 
+                  // ── 1. BUSINESS PROFILE SELECTION ──
                   _buildGlassSection(
-                    title: "IDENTITY",
+                    title: "ПРОФИЛЬ БИЗНЕСА (BUSINESS PROFILE)",
                     children: [
-                      _buildCupertinoField("Venue Name", _nameCtrl, placeholder: "e.g. Skyline Lounge"),
-                      _buildCupertinoField("Owner Email", _ownerEmailCtrl, placeholder: "owner@example.com"),
-                      _buildCupertinoField("Category", _categoryCtrl, placeholder: "e.g. Bar, Cafe, Restaurant"),
-                    ],
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  _buildGlassSection(
-                    title: "PORTAL DEFAULT LANGUAGE / ЯЗЫК ПО УМОЛЧАНИЮ",
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            "Default language for guest portal & C2C landing pages",
-                            style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 13, fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 10),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.macosDivider),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
-                                value: _selectedLanguage,
-                                dropdownColor: AppColors.macosSurfaceBg,
-                                style: const TextStyle(color: Colors.white, fontSize: 14),
-                                icon: const Icon(CupertinoIcons.chevron_down, color: AppColors.macosTextSecondary, size: 14),
-                                onChanged: (val) {
-                                  if (val != null) setState(() => _selectedLanguage = val);
-                                },
-                                items: const [
-                                  DropdownMenuItem(value: 'en', child: Text("English")),
-                                  DropdownMenuItem(value: 'ru', child: Text("Русский")),
-                                  DropdownMenuItem(value: 'vi', child: Text("Tiếng Việt")),
-                                  DropdownMenuItem(value: 'ar', child: Text("العربية")),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  _buildGlassSection(
-                    title: "LOCATION & DETAILS",
-                    children: [
-                      _buildCupertinoField("Physical Address", _addressCtrl, placeholder: "Street, City, Country"),
-                      _buildCupertinoField("Google Maps Link", _googleMapsUrlCtrl, placeholder: "https://maps.google.com/..."),
                       Row(
                         children: [
                           Expanded(
-                            child: _buildCupertinoField("Latitude (Широта)", _latCtrl, placeholder: "e.g. 12.238791"),
+                            child: _buildProfileCard(
+                              title: "Revoo Services",
+                              subtitle: "Барбершопы, салоны красоты, СПА, клиники, детейлинг. Запись к мастерам, AI-Консьерж 24/7 и Yield-скидки.",
+                              icon: CupertinoIcons.sparkles,
+                              isSelected: _businessType == 'services',
+                              onTap: () => setState(() {
+                                _businessType = 'services';
+                                if (_categoryCtrl.text.isEmpty || _categoryCtrl.text == 'Ресторан') {
+                                  _categoryCtrl.text = 'Барбершоп';
+                                }
+                              }),
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
-                            child: _buildCupertinoField("Longitude (Долгота)", _lngCtrl, placeholder: "e.g. 109.196749"),
+                            child: _buildProfileCard(
+                              title: "HoReCa & Еда",
+                              subtitle: "Рестораны, бары, кофейни. Меню блюд, прямая доставка, QR-столики и оплата VietQR.",
+                              icon: CupertinoIcons.cart_fill,
+                              isSelected: _businessType == 'horeca',
+                              onTap: () => setState(() {
+                                _businessType = 'horeca';
+                                if (_categoryCtrl.text == 'Барбершоп') {
+                                  _categoryCtrl.text = 'Ресторан';
+                                }
+                              }),
+                            ),
                           ),
                         ],
                       ),
-                      _buildCupertinoField("Description", _descCtrl, placeholder: "Briefly describe your venue", maxLines: 3),
                     ],
                   ),
 
                   const SizedBox(height: 32),
 
+                  // ── 2. IDENTITY ──
                   _buildGlassSection(
-                    title: "НАСТРОЙКИ CAPTIVE WI-FI И КАРТЫ ПИНОВ",
+                    title: "ОСНОВНАЯ ИНФОРМАЦИЯ (IDENTITY)",
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      _buildCupertinoField("Название заведения", _nameCtrl, placeholder: "e.g. Top Gun Barbershop"),
+                      _buildCupertinoField("Email владельца", _ownerEmailCtrl, placeholder: "owner@example.com"),
+                      
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Expanded(
-                            child: Text(
-                              "Активировать модуль Captive Wi-Fi (Revo Box)",
-                              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                          const Text("Категория", style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 8),
+                          _buildCategoryPills(),
+                          CupertinoTextField(
+                            controller: _categoryCtrl,
+                            placeholder: "e.g. Барбершоп, Салон красоты, СПА",
+                            placeholderStyle: TextStyle(color: Colors.white.withValues(alpha: 0.2), fontSize: 14),
+                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.macosDivider),
                             ),
                           ),
-                          CupertinoSwitch(
-                            value: _hasCaptiveWifi,
-                            activeColor: AppColors.accentOrange,
-                            onChanged: (bool val) {
-                              setState(() {
-                                _hasCaptiveWifi = val;
-                              });
-                            },
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 2,
+                            child: _buildCupertinoField(
+                              "Телефон / WhatsApp управляющего",
+                              _phoneCtrl,
+                              placeholder: "+7 999 123-45-67",
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 1,
+                            child: _buildCupertinoField("Валюта", _currencyCtrl, placeholder: "₽ или \$"),
                           ),
                         ],
                       ),
-                      if (_hasCaptiveWifi) ...[
-                        const SizedBox(height: 20),
-                        _buildCupertinoField(
-                          "Скорость сети Wi-Fi (Мбит/с)",
-                          _wifiSpeedCtrl,
-                          placeholder: "100",
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.accentTeal.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.accentTeal.withValues(alpha: 0.2)),
                         ),
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.white.withOpacity(0.1)),
-                          ),
-                          child: const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "⚡ Автоматическая настройка точки:",
-                                style: TextStyle(color: AppColors.accentOrange, fontSize: 12, fontWeight: FontWeight.bold),
+                        child: const Row(
+                          children: [
+                            Icon(CupertinoIcons.info_circle_fill, color: AppColors.accentTeal, size: 16),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "На этот номер AI-Консьерж присылает уведомления и принимает команды управляющего по смене расписания и цен.",
+                                style: TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
                               ),
-                              SizedBox(height: 6),
-                              Text(
-                                "• Локация и пин на карте извлекаются автоматически из ссылки Google Maps.\n"
-                                "• Размер скидки при подключении генерируется автоматически из лояльности заведения.",
-                                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  _buildGlassSection(
-                    title: "НАСТРОЙКИ ГИБРИДНОЙ СТРАНИЦЫ (REVOO + GIFTX)",
-                    children: [
-                      InkWell(
-                        onTap: () async {
-                          final v = widget.venue ?? VenueModel(
-                            id: '',
-                            name: _nameCtrl.text,
-                            ownerId: AuthService().currentUser?.uid ?? '',
-                            ownerEmail: _ownerEmailCtrl.text,
-                            address: _addressCtrl.text,
-                            description: _descCtrl.text,
-                            category: _categoryCtrl.text,
-                            isActive: true,
-                            createdAt: DateTime.now(),
-                            isHybridEnabled: _isHybridEnabled,
-                            giftxUrl: _giftxUrlCtrl.text,
-                          );
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => GiftxSetupScreen(venue: v),
                             ),
-                          );
-                          if (v.id.isNotEmpty) {
-                            final snap = await FirebaseFirestore.instance
-                                .collection('venues')
-                                .doc(v.id)
-                                .get();
-                            if (snap.exists && mounted) {
-                              final d = snap.data();
-                              setState(() {
-                                _isHybridEnabled = d?['isHybridEnabled'] ?? false;
-                                _giftxUrlCtrl.text = d?['giftxUrl'] ?? '';
-                              });
-                            }
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          "Активировать гибридный выбор перед сканированием",
-                                          style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-                                        ),
-                                        SizedBox(width: 6),
-                                        Icon(CupertinoIcons.chevron_right, color: AppColors.accentYellow, size: 16),
-                                      ],
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      "Нажмите, чтобы настроить ссылку на страницу GiftX и режим гибрида",
-                                      style: TextStyle(color: AppColors.accentYellow, fontSize: 12, fontWeight: FontWeight.w600),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              CupertinoSwitch(
-                                value: _isHybridEnabled,
-                                activeColor: AppColors.accentYellow,
-                                onChanged: (bool val) async {
-                                  final v = widget.venue ?? VenueModel(
-                                    id: '',
-                                    name: _nameCtrl.text,
-                                    ownerId: AuthService().currentUser?.uid ?? '',
-                                    ownerEmail: _ownerEmailCtrl.text,
-                                    address: _addressCtrl.text,
-                                    description: _descCtrl.text,
-                                    category: _categoryCtrl.text,
-                                    isActive: true,
-                                    createdAt: DateTime.now(),
-                                    isHybridEnabled: _isHybridEnabled,
-                                    giftxUrl: _giftxUrlCtrl.text,
-                                  );
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => GiftxSetupScreen(venue: v),
-                                    ),
-                                  );
-                                  if (v.id.isNotEmpty) {
-                                    final snap = await FirebaseFirestore.instance
-                                        .collection('venues')
-                                        .doc(v.id)
-                                        .get();
-                                    if (snap.exists && mounted) {
-                                      final d = snap.data();
-                                      setState(() {
-                                        _isHybridEnabled = d?['isHybridEnabled'] ?? false;
-                                        _giftxUrlCtrl.text = d?['giftxUrl'] ?? '';
-                                      });
-                                    }
-                                  }
-                                },
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (_isHybridEnabled) ...[
-                        const SizedBox(height: 20),
-                        _buildCupertinoField(
-                          "Прямая ссылка GiftX для данного заведения",
-                          _giftxUrlCtrl,
-                          placeholder: "https://giftx.app/v/your_venue_id",
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.white.withOpacity(0.1)),
-                          ),
-                          child: const Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "🎁 Логика работы страницы выбора:",
-                                style: TextStyle(color: AppColors.accentYellow, fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                              SizedBox(height: 6),
-                              Text(
-                                "• Единый гибридный QR-код ведет гостя на страницу презентации обеих систем.\n"
-                                "• Нажатие на кнопку REVOO ведет гостя на вашу страницу лояльности.\n"
-                                "• Нажатие на кнопку GiftX перенаправляет гостя по указанной выше прямой ссылке GiftX.",
-                                style: TextStyle(color: Colors.white70, fontSize: 12, height: 1.4),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  _buildGlassSection(
-                    title: "ПРЕД-СТРАНИЦА GOOGLE КАРТ (PRE-LANDING)",
-                    children: [
-                      InkWell(
-                        onTap: () async {
-                          final v = widget.venue ?? VenueModel(
-                            id: '',
-                            name: _nameCtrl.text,
-                            ownerId: AuthService().currentUser?.uid ?? '',
-                            ownerEmail: _ownerEmailCtrl.text,
-                            address: _addressCtrl.text,
-                            description: _descCtrl.text,
-                            category: _categoryCtrl.text,
-                            isActive: true,
-                            createdAt: DateTime.now(),
-                          );
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => GoogleMapsConfigScreen(venue: v),
-                            ),
-                          );
-                        },
-                        borderRadius: BorderRadius.circular(12),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 4),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          "Настроить пред-страницу для Google Карт",
-                                          style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-                                        ),
-                                        SizedBox(width: 6),
-                                        Icon(CupertinoIcons.chevron_right, color: AppColors.accentOrange, size: 16),
-                                      ],
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      "Меню, услуги, товар дня и настройки отображения",
-                                      style: TextStyle(color: AppColors.accentOrange, fontSize: 12, fontWeight: FontWeight.w600),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                          ],
                         ),
                       ),
                     ],
                   ),
 
-                  if (Provider.of<RoleProvider>(context, listen: false).isSuperAdmin) ...[
+                  const SizedBox(height: 32),
+
+                  // ── 3. LOCATION & GOOGLE MAPS ──
+                  _buildGlassSection(
+                    title: "ЛОКАЦИЯ И ПРИВЯЗКА К GOOGLE MAPS",
+                    children: [
+                      _buildCupertinoField("Физический адрес", _addressCtrl, placeholder: "ул. Ленина, д. 15, Москва"),
+                      _buildCupertinoField("Ссылка на Google Карты (Google Maps Link)", _googleMapsUrlCtrl, placeholder: "https://maps.google.com/?cid=..."),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildCupertinoField("Google Place ID", _placeIdCtrl, placeholder: "ChIJN1t_tDeuEmsRUsoyG83frY4"),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildCupertinoField("Прямая ссылка для отзывов Google", _googleReviewUrlCtrl, placeholder: "https://search.google.com/local/writereview?..."),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildCupertinoField("Широта (Latitude)", _latCtrl, placeholder: "e.g. 55.7558"),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: _buildCupertinoField("Долгота (Longitude)", _lngCtrl, placeholder: "e.g. 37.6173"),
+                          ),
+                        ],
+                      ),
+                      _buildCupertinoField("Краткое описание", _descCtrl, placeholder: "Премиальный барбершоп в центре города...", maxLines: 2),
+                    ],
+                  ),
+
+                  // ── 4. QUICK-START STARTER PACK FOR SERVICES ──
+                  if (_businessType == 'services' && widget.venue == null) ...[
                     const SizedBox(height: 32),
                     _buildGlassSection(
-                      title: "SUPERADMIN: SUBSCRIPTION & STATUS",
+                      title: "СТАРТОВЫЙ ПАКЕТ REVOO SERVICES (QUICK START)",
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text("Active Status (Visible to Guests)", style: TextStyle(color: Colors.white, fontSize: 14)),
-                            CupertinoSwitch(
-                              value: _isActive,
-                              activeColor: AppColors.accentOrange,
-                              onChanged: (val) => setState(() => _isActive = val),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text("Manually Blocked (Suspended)", style: TextStyle(color: Colors.white, fontSize: 14)),
-                            CupertinoSwitch(
-                              value: _isManuallyBlocked,
-                              activeColor: Colors.red,
-                              onChanged: (val) => setState(() => _isManuallyBlocked = val),
-                            ),
-                          ],
-                        ),
-                        const Divider(color: AppColors.macosDivider, height: 32),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text("Subscription Paid", style: TextStyle(color: Colors.white, fontSize: 14)),
-                            CupertinoSwitch(
-                              value: _isPaid,
-                              activeColor: AppColors.accentOrange,
-                              onChanged: (val) => setState(() => _isPaid = val),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text("Subscription Expiry Date", style: TextStyle(color: Colors.white, fontSize: 14)),
-                            CupertinoButton(
-                              padding: EdgeInsets.zero,
-                              onPressed: () async {
-                                final date = await showDatePicker(
-                                  context: context,
-                                  initialDate: _subscriptionExpiry ?? DateTime.now(),
-                                  firstDate: DateTime(2020),
-                                  lastDate: DateTime(2100),
-                                );
-                                if (date != null) {
-                                  setState(() => _subscriptionExpiry = date);
-                                }
-                              },
-                              child: Text(
-                                _subscriptionExpiry != null
-                                    ? "${_subscriptionExpiry!.toLocal()}".split(' ')[0]
-                                    : "Select Date",
-                                style: const TextStyle(color: AppColors.accentOrange),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Загрузить готовый стартовый пакет данных",
+                                    style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    "Автоматически создаст 3 услуги (стрижка, борода, комплекс), 1 топ-мастера, 2 правила Yield-скидок и базу знаний AI FAQ. Карточка будет сразу готова к тестам!",
+                                    style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 12),
+                                  ),
+                                ],
                               ),
+                            ),
+                            CupertinoSwitch(
+                              value: _seedStarterPack,
+                              activeColor: AppColors.accentTeal,
+                              onChanged: (val) => setState(() => _seedStarterPack = val),
                             ),
                           ],
                         ),
@@ -667,14 +559,101 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                     ),
                   ],
 
+                  const SizedBox(height: 32),
+
+                  // ── 5. LANGUAGE ──
+                  _buildGlassSection(
+                    title: "ЯЗЫК ПО УМОЛЧАНИЮ",
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.macosDivider),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedLanguage,
+                            dropdownColor: AppColors.macosSurfaceBg,
+                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                            icon: const Icon(CupertinoIcons.chevron_down, color: AppColors.macosTextSecondary, size: 14),
+                            onChanged: (val) {
+                              if (val != null) setState(() => _selectedLanguage = val);
+                            },
+                            items: const [
+                              DropdownMenuItem(value: 'ru', child: Text("Русский")),
+                              DropdownMenuItem(value: 'en', child: Text("English")),
+                              DropdownMenuItem(value: 'vi', child: Text("Tiếng Việt")),
+                              DropdownMenuItem(value: 'ar', child: Text("العربية")),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // ── 6. SUPERADMIN CONTROLS ──
+                  const SizedBox(height: 32),
+                  _buildGlassSection(
+                    title: "СТАТУС И ПОДПИСКА (SUPERADMIN)",
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Активно (видимо гостям)", style: TextStyle(color: Colors.white, fontSize: 14)),
+                          CupertinoSwitch(
+                            value: _isActive,
+                            activeColor: AppColors.accentTeal,
+                            onChanged: (val) => setState(() => _isActive = val),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Блокировка заведения", style: TextStyle(color: Colors.white, fontSize: 14)),
+                          CupertinoSwitch(
+                            value: _isManuallyBlocked,
+                            activeColor: Colors.red,
+                            onChanged: (val) => setState(() => _isManuallyBlocked = val),
+                          ),
+                        ],
+                      ),
+                      const Divider(color: AppColors.macosDivider, height: 32),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Оплачено (Paid Subscription)", style: TextStyle(color: Colors.white, fontSize: 14)),
+                          CupertinoSwitch(
+                            value: _isPaid,
+                            activeColor: AppColors.accentTeal,
+                            onChanged: (val) => setState(() => _isPaid = val),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+
                   const SizedBox(height: 48),
 
                   SizedBox(
                     width: double.infinity,
-                    child: CupertinoButton.filled(
+                    height: 54,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accentTeal,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 4,
+                      ),
                       onPressed: _save,
-                      borderRadius: BorderRadius.circular(10),
-                      child: const Text("SUBMIT DETAILS", style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: Text(
+                        widget.venue == null ? "🚀 ЗАПУСТИТЬ ЗАВЕДЕНИЕ" : "СОХРАНИТЬ ИЗМЕНЕНИЯ",
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, letterSpacing: 0.5),
+                      ),
                     ),
                   ),
                 ],
@@ -682,6 +661,95 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildProfileCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.accentTeal.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppColors.accentTeal : AppColors.macosDivider,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: isSelected ? AppColors.accentTeal : Colors.white70, size: 24),
+                const SizedBox(width: 10),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.white70,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const Spacer(),
+                if (isSelected)
+                  const Icon(CupertinoIcons.checkmark_circle_fill, color: AppColors.accentTeal, size: 20),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 12, height: 1.3),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryPills() {
+    final suggestions = _businessType == 'services'
+        ? ['Барбершоп', 'Салон красоты', 'СПА & Массаж', 'Косметология', 'Детейлинг']
+        : ['Ресторан', 'Кафе', 'Бар', 'Кофейня', 'Пиццерия'];
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: suggestions.map((cat) {
+          final isCurrent = _categoryCtrl.text.trim().toLowerCase() == cat.toLowerCase();
+          return GestureDetector(
+            onTap: () => setState(() => _categoryCtrl.text = cat),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isCurrent ? AppColors.accentTeal.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isCurrent ? AppColors.accentTeal : AppColors.macosDivider,
+                ),
+              ),
+              child: Text(
+                cat,
+                style: TextStyle(
+                  color: isCurrent ? AppColors.accentTeal : Colors.white70,
+                  fontSize: 12,
+                  fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -694,7 +762,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
           padding: const EdgeInsets.only(left: 12, bottom: 12),
           child: Text(
             title,
-            style: const TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
+            style: const TextStyle(color: AppColors.accentTeal, fontWeight: FontWeight.w800, fontSize: 11, letterSpacing: 1.2),
           ),
         ),
         ClipRRect(
@@ -727,12 +795,12 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
           CupertinoTextField(
             controller: controller,
             placeholder: placeholder,
-            placeholderStyle: TextStyle(color: Colors.white.withOpacity(0.2), fontSize: 14),
+            placeholderStyle: TextStyle(color: Colors.white.withValues(alpha: 0.2), fontSize: 14),
             style: const TextStyle(color: Colors.white, fontSize: 14),
             padding: const EdgeInsets.all(16),
             maxLines: maxLines,
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AppColors.macosDivider),
             ),

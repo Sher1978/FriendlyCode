@@ -4102,3 +4102,90 @@ exports.onMenuScrapeJobCreated = onDocumentCreated("venues/{venueId}/scrape_jobs
         logger.error(`[onMenuScrapeJobCreated] Failed for job ${jobId}:`, err);
     }
 });
+
+
+// ==========================================
+// REVOO SERVICES & AI CONCIERGE ENDPOINTS
+// ==========================================
+const { handleWebhookVerification, handleIncomingWhatsAppMessage } = require("./services/webhooks/whatsappCloudWebhook");
+const { OnboardingInterviewManager } = require("./services/ai/onboardingInterview");
+const { GeminiConciergeAgent } = require("./services/ai/geminiAgent");
+
+const interviewManager = new OnboardingInterviewManager();
+const conciergeAgent = new GeminiConciergeAgent();
+
+// 1. WhatsApp Cloud API Webhook
+exports.whatsappWebhook = onRequest(async (req, res) => {
+    if (req.method === "GET") {
+        return handleWebhookVerification(req, res);
+    }
+    return handleIncomingWhatsAppMessage(req, res);
+});
+
+// 2. Owner AI Onboarding Interview Endpoint
+exports.onboardingInterviewHttp = onRequest({ cors: true }, async (req, res) => {
+    try {
+        if (req.method === "GET") {
+            const venueId = req.query.venueId;
+            if (!venueId) return res.status(400).json({ error: "venueId is required" });
+            const result = await interviewManager.getOrStartInterview(venueId);
+            return res.status(200).json(result);
+        }
+        if (req.method === "POST") {
+            const { venueId, answer } = req.body;
+            if (!venueId || answer === undefined) {
+                return res.status(400).json({ error: "venueId and answer are required" });
+            }
+            const result = await interviewManager.submitAnswer(venueId, answer);
+            return res.status(200).json(result);
+        }
+        return res.status(405).send("Method Not Allowed");
+    } catch (err) {
+        logger.error("[onboardingInterviewHttp] Error:", err);
+        return res.status(500).json({ error: err.message || "Interview failed" });
+    }
+});
+
+// 3. Web Concierge Guest Chat Endpoint
+exports.conciergeChatHttp = onRequest({ cors: true }, async (req, res) => {
+    try {
+        const { venueId, message, senderPhone, chatHistory } = req.body;
+        if (!venueId || !message) {
+            return res.status(400).json({ error: "venueId and message are required" });
+        }
+        const reply = await conciergeAgent.processGuestMessage({
+            venueId,
+            userMessage: message,
+            senderPhone: senderPhone || "",
+            chatHistory: chatHistory || []
+        });
+        return res.status(200).json({ reply });
+    } catch (err) {
+        logger.error("[conciergeChatHttp] Error:", err);
+        return res.status(500).json({ error: err.message || "Concierge chat failed" });
+    }
+});
+
+
+// 4. Review Flywheel Google Maps Endpoint
+const { ReviewFlywheelManager } = require("./services/reviewFlywheel");
+const reviewFlywheelManager = new ReviewFlywheelManager();
+
+exports.reviewFeedbackHttp = onRequest({ cors: true }, async (req, res) => {
+    try {
+        const { venueId, clientPhone, rating, comment } = req.body;
+        if (!venueId || !clientPhone || rating === undefined) {
+            return res.status(400).json({ error: "venueId, clientPhone, and rating are required" });
+        }
+        const result = await reviewFlywheelManager.handleGuestRating({
+            venueId,
+            clientPhone,
+            rating: Number(rating),
+            comment: comment || ""
+        });
+        return res.status(200).json(result);
+    } catch (err) {
+        logger.error("[reviewFeedbackHttp] Error:", err);
+        return res.status(500).json({ error: err.message || "Feedback processing failed" });
+    }
+});

@@ -132,9 +132,38 @@ service cloud.firestore {
     match /venues/{venueId}/scrape_jobs/{jobId} {
       allow read, write: if isAuthenticated();
     }
+
+    // 15. Bookings Collection (Revoo Services)
+    match /bookings/{bookingId} {
+      allow create: if true;
+      allow read, update: if isAuthenticated();
+      allow delete: if isSuperAdmin() || (isAuthenticated() && resource != null && ownsVenue(resource.data.venueId));
+    }
+
+    // 16. Services Subcollections & AI Knowledge Base
+    match /venues/{venueId}/services/{serviceId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || ownsVenue(venueId) || isAssignedToVenue(venueId);
+    }
+
+    match /venues/{venueId}/staff/{staffId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || ownsVenue(venueId) || isAssignedToVenue(venueId);
+    }
+
+    match /venues/{venueId}/yield_rules/{ruleId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || ownsVenue(venueId) || isAssignedToVenue(venueId);
+    }
+
+    match /venues/{venueId}/ai_knowledge/{docId} {
+      allow read: if true;
+      allow write: if isSuperAdmin() || ownsVenue(venueId) || isAssignedToVenue(venueId);
+    }
+
+    match /venues/{venueId}/change_logs/{logId} {
+      allow read, create: if isAuthenticated();
+      allow update, delete: if isSuperAdmin();
+    }
   }
 }
-
-
-
-

@@ -50,17 +50,27 @@
 *   **Component:** `NotificationBadge` (Bell icon) in the header.
 *   **Logic:** Real-time stream from `notifications` collection. Marks as `read: true` on interaction.
 
-## 4. BUSINESS LOGIC: TIME-DECAY 2.0 (CALENDAR DAYS)
-*   **Timezone Enforcement:** All visit dates are calculated and matched strictly against the venue's configured timezone (e.g., `Asia/Dubai`). The primary identifier is a structured DateString (`YYYY-MM-DD`).
-*   **Single Daily Visit:** If a guest scans the QR code multiple times within the same *calendar day* (based on the venue timezone), only the first scan is recorded. Subsequent scans update the UI but do not alter the database timestamp.
-*   **Active Streak (VIP):** `vipWindowDays` (default 1 Day). Maintains a 20% discount if visited strictly on consecutive calendar days.
-*   **Decay Stages (Configurable via Admin):**
-    *   Stage 1: `tier1DecayDays` -> 15%
-    *   Stage 2: `tier2DecayDays` -> 10%
-    *   Stage 3: Base -> 5%
+## 4. BUSINESS LOGIC: TIME-DECAY 2.0 & TWO ACQUISITION SCENARIOS (CALENDAR DAYS)
+*   **Timezone & Calendar Date Enforcement:** All visit dates are normalized to `YYYY-MM-DD` in the venue's configured timezone (e.g., `Asia/Ho_Chi_Minh`, `Asia/Dubai`) via `RewardCalculator.getVenueDateString()`.
+*   **Unified Visit History (`RewardCalculator.resolveVisitHistory`):**
+    *   Merges Firestore `visits` documents (queried by `uid`, `anonUid`, `browserSessionUid`, and `email`) with browser `localStorage` dates (`revoo_visit_dates_{venueId}`).
+    *   When an anonymous user logs in or registers (`findAndMergeUserByEmail`), all historical visits recorded under `revoo_anon_uid` or `revoo_browser_session_uid` are migrated to their authenticated profile.
+    *   `lastVisitDateStr` is strictly the most recent visit date **prior to today** (`d !== todayStr`). Multiple scans/orders on the same calendar day do not overwrite the prior visit date used to compute today's discount tier.
+*   **Priority of Discount Calculation (`RewardCalculator.calculate`):**
+    1.  **Deposit Tier (`status: 'deposit'`):** If `Number(depositBalance) > 0`, returns `percDeposit` (constant maximum deposit discount). Staff manually deducts from the deposit balance in the Admin Panel; when `depositBalance == 0`, the user automatically returns to regular dynamic tiers.
+    2.  **Scenario 2 — Grab / Aggregator Bag QR Override (`status: 'vip', isGrabBagVip: true`):**
+        *   **QR URL Format:** `https://www.revoo.win/?utm_source=grab_bag&promo=max_tier&id={venueId}`
+        *   Scanning the QR code from a Grab/Glovo/Zomato delivery bag is treated as **an order already completed today**: it records today's date (`YYYY-MM-DD`) in `localStorage` (`revoo_grab_bag_date_{venueId}`) and Firestore `visits` (`type: 'grab_bag_qr'`), and immediately unlocks **Maximum Regular Discount (Tier 3 / `percVip`)** both **today (right now)** and **tomorrow** (`diffDays === 1`).
+    3.  **Scenario 1 — Google Maps / Organic Entry & Regular Dynamic Tiers:**
+        *   **URL Format:** `https://www.revoo.win/?utm_source=google_maps&id={venueId}` (or `/qr?id={venueId}`).
+        *   **Day 1 (No past visits prior to today):** Minimum Discount (**Tier 1 / `percBase`**). After ordering/visiting today, tomorrow's discount becomes **Tier 3 (`percVip`)**.
+        *   **Subsequent Visits (`diffDays = Today - LastVisitDate`):**
+            *   `1 <= diffDays <= vipWindowDays` (default 1 day / "tomorrow"): **Tier 3 (`percVip`)**.
+            *   `vipWindowDays < diffDays <= mediumDays`: **Tier 2 (`percMedium`)**.
+            *   `diffDays > mediumDays`: **Tier 1 (`percBase`)**.
 *   **Debug & Verification:** 
-    * 5x Taps on the Guest Name in the QR page opens the Debug Overlay showing the last 5 exact visit dates.
-    * Staff receives an instant Email/Telegram notification upon successful activation validation.
+    *   5x Taps on the Guest Name in the QR page opens the Debug Overlay showing the last 5 exact visit dates.
+    *   Staff receives an instant Email/Telegram notification upon successful activation validation.
 
 ## 5. DATABASE SCHEMA
 **Collection: `users`**

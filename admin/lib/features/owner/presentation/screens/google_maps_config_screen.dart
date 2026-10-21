@@ -5,8 +5,8 @@ import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/services/venue_service.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/core/widgets/image_upload_widget.dart';
-import 'package:friendly_code/core/widgets/image_upload_widget.dart';
 import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import 'dart:ui';
 
 class GoogleMapsConfigScreen extends StatefulWidget {
@@ -205,10 +205,10 @@ class _GoogleMapsConfigScreenState extends State<GoogleMapsConfigScreen> {
                     ),
                     const SizedBox(height: 32),
                     _buildGlassSection(
-                      title: "ССЫЛКА ДЛЯ GOOGLE КАРТ",
+                      title: "СЦЕНАРИЙ 1: ССЫЛКА ДЛЯ GOOGLE КАРТ (СЕГОДНЯ ТИР 1 → ЗАВТРА ТИР 3)",
                       children: [
                         const Text(
-                          "Скопируйте эту ссылку и добавьте в профиль Google Business. Все переходы по ней будут вести на пре-лендинг.",
+                          "Скопируйте эту ссылку и добавьте в профиль Google Business. Клиенту, перешедшему из Google Карт, мы говорим: «Привет! Сегодня скидка минимальная (Тир 1), а завтра после заказа станет максимальной (Тир 3)! Не пропускай!»",
                           style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 13),
                         ),
                         const SizedBox(height: 16),
@@ -236,9 +236,82 @@ class _GoogleMapsConfigScreenState extends State<GoogleMapsConfigScreen> {
                               borderRadius: BorderRadius.circular(8),
                               onPressed: () {
                                 Clipboard.setData(ClipboardData(text: "https://www.revoo.win/?utm_source=google_maps&id=${widget.venue.id}"));
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ссылка скопирована!"), backgroundColor: Colors.green));
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ссылка Сценария 1 (Google Карты) скопирована!"), backgroundColor: Colors.green));
                               },
                               child: const Icon(CupertinoIcons.doc_on_doc, color: Colors.white, size: 20),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+                    _buildGlassSection(
+                      title: "СЦЕНАРИЙ 2: QR-КОД В ПАКЕТ ДОСТАВКИ GRAB / GLOVO (СРАЗУ МАКСИМАЛЬНАЯ СКИДКА ТИР 3)",
+                      children: [
+                        const Text(
+                          "Разместите этот специальный QR-код на флаере внутри пакета доставки Grab, Glovo или ShopeeFood. Сканирование этого QR-кода приравнивается к сегодняшнему заказу у вас! Клиенту сразу открывается МАКСИМАЛЬНАЯ скидка (Тир 3) на заказ прямо сейчас и на завтра: «Закажи завтра у нас напрямую — твоя скидка уже максимальная!»",
+                          style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 13),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: QrImageView(
+                                data: "https://www.revoo.win/?utm_source=grab_bag&promo=max_tier&id=${widget.venue.id}",
+                                version: QrVersions.auto,
+                                size: 110,
+                                backgroundColor: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "Ссылка для QR в пакете Grab / агрегаторов:",
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.25),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.greenAccent.withOpacity(0.4)),
+                                    ),
+                                    child: Text(
+                                      "https://www.revoo.win/?utm_source=grab_bag&promo=max_tier&id=${widget.venue.id}",
+                                      style: const TextStyle(color: Colors.greenAccent, fontSize: 13),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  CupertinoButton(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                    color: Colors.green.shade600,
+                                    borderRadius: BorderRadius.circular(8),
+                                    onPressed: () {
+                                      Clipboard.setData(ClipboardData(text: "https://www.revoo.win/?utm_source=grab_bag&promo=max_tier&id=${widget.venue.id}"));
+                                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ссылка Сценария 2 (QR в пакет Grab) скопирована!"), backgroundColor: Colors.green));
+                                    },
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(CupertinoIcons.qrcode, color: Colors.white, size: 18),
+                                        SizedBox(width: 8),
+                                        Text("Скопировать ссылку для QR Grab", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),

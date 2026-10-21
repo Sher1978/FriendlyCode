@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/data/venue_repository.dart';
@@ -188,18 +189,49 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                                 rows: filteredVenues.map((v) => DataRow(
                                   cells: [
                                     DataCell(
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          CircleAvatar(
-                                            radius: 18, 
-                                            backgroundColor: AppColors.accentOrange.withOpacity(0.1),
-                                            child: Text(v.name.isNotEmpty ? v.name[0].toUpperCase() : '?', style: const TextStyle(color: AppColors.accentOrange, fontWeight: FontWeight.bold)),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Text(v.name, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.title)),
-                                        ],
-                                      ),
+                                      Builder(builder: (context) {
+                                        final isServices = v.gmConfig.businessType == 'services';
+                                        return Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 18, 
+                                              backgroundColor: (isServices ? AppColors.accentTeal : AppColors.accentOrange).withValues(alpha: 0.15),
+                                              child: Text(
+                                                v.name.isNotEmpty ? v.name[0].toUpperCase() : '?', 
+                                                style: TextStyle(
+                                                  color: isServices ? AppColors.accentTeal : AppColors.accentOrange, 
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Text(v.name, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.title)),
+                                                const SizedBox(height: 2),
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                                  decoration: BoxDecoration(
+                                                    color: (isServices ? AppColors.accentTeal : AppColors.accentOrange).withValues(alpha: 0.15),
+                                                    borderRadius: BorderRadius.circular(4),
+                                                  ),
+                                                  child: Text(
+                                                    isServices ? 'SERVICES' : 'HORECA',
+                                                    style: TextStyle(
+                                                      color: isServices ? AppColors.accentTeal : AppColors.accentOrange,
+                                                      fontSize: 9,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        );
+                                      }),
                                     ),
                                     if (roleProvider.isSuperAdmin)
                                       DataCell(Text(v.ownerEmail ?? 'Unclaimed', style: const TextStyle(color: AppColors.body))),
@@ -252,6 +284,22 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.link, color: AppColors.accentTeal, size: 20),
+                                            tooltip: 'Скопировать ссылку на витрину',
+                                            onPressed: () {
+                                              final origin = Uri.base.origin;
+                                              final url = "$origin/?v=${v.id}&source=google_maps";
+                                              Clipboard.setData(ClipboardData(text: url));
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text("Ссылка на витрину заведения ${v.name} скопирована!"),
+                                                  backgroundColor: AppColors.accentTeal,
+                                                  duration: const Duration(seconds: 2),
+                                                ),
+                                              );
+                                            },
+                                          ),
                                           IconButton(
                                             icon: const Icon(Icons.edit_outlined, color: AppColors.body),
                                             tooltip: 'Manage venue',

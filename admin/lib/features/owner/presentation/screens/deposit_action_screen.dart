@@ -431,6 +431,7 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
         'deposit_balance': newBalance,
         'deposit_venue_id': _venueId,
         'deposit_balances.$_venueId': newBalance,
+        'hasLockedDiscount': newBalance > 0,
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
@@ -446,6 +447,7 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
           'deposit_balance': newBalance,
           'deposit_venue_id': _venueId,
           'deposit_balances': {_venueId: newBalance},
+          'hasLockedDiscount': newBalance > 0,
           'updatedAt': FieldValue.serverTimestamp(),
         }, SetOptions(merge: true));
       });
@@ -468,7 +470,10 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      setState(() => _currentBalance = newBalance);
+      setState(() {
+        _currentBalance = newBalance;
+        _hasLockedDiscount = newBalance > 0;
+      });
       _amountCtrl.clear();
 
       if (mounted) {
@@ -553,7 +558,7 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
         'deposit_balance': newBalance,
         'deposit_venue_id': _venueId,
         'deposit_balances.$_venueId': newBalance,
-        'hasLockedDiscount': _hasLockedDiscount,
+        'hasLockedDiscount': newBalance > 0,
         'displayName': _userName,
         'email': _userEmail,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -571,7 +576,7 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
           'deposit_balance': newBalance,
           'deposit_venue_id': _venueId,
           'deposit_balances': {_venueId: newBalance},
-          'hasLockedDiscount': _hasLockedDiscount,
+          'hasLockedDiscount': newBalance > 0,
           'displayName': _userName,
           'email': _userEmail,
           'updatedAt': FieldValue.serverTimestamp(),

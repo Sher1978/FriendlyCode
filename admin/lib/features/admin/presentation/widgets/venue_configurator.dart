@@ -177,7 +177,7 @@ class _VenueConfiguratorState extends State<VenueConfigurator> with SingleTicker
   }
   
   void _save() {
-      // Create updated LoyaltyConfig
+      // Create updated LoyaltyConfig preserving percDeposit and depositThreshold
       _decayStages.sort((a, b) => a.days.compareTo(b.days));
       final updatedLoyalty = LoyaltyConfig(
         vipWindowDays: int.tryParse(_vipWindowCtrl.text) ?? 2,
@@ -185,6 +185,8 @@ class _VenueConfiguratorState extends State<VenueConfigurator> with SingleTicker
         resetIntervalDays: int.tryParse(_resetIntervalCtrl.text) ?? 30,
         percBase: int.tryParse(_percBaseCtrl.text) ?? 5,
         percVip: int.tryParse(_percVipCtrl.text) ?? 20,
+        percDeposit: widget.venue.loyaltyConfig.percDeposit,
+        depositThreshold: widget.venue.loyaltyConfig.depositThreshold,
         decayStages: _decayStages,
       );
 

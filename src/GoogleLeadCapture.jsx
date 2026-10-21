@@ -216,78 +216,67 @@ const GoogleLeadCapture = () => {
                         safeStorage.setItem('effectiveUid', effectiveUid);
                     }
 
-                    // Check Fraud limits for Google Maps Bonus
-                    let canClaimGoogleBonus = false;
-                    
-                    if (isGoogleBonus) {
-                        const lastClaimedStr = mergeRes.userProfile?.googleMapsDiscountAt;
-                        const lastClaimed = lastClaimedStr ? new Date(lastClaimedStr).getTime() : 0;
-                        const now = Date.now();
-                        const timeDiff = now - lastClaimed;
-
-                        if (!lastClaimed || timeDiff > 30 * 24 * 60 * 60 * 1000) {
-                            canClaimGoogleBonus = true;
-                            const newTimestamp = new Date().toISOString();
-                            try {
-                                await updateDoc(doc(db, 'users', effectiveUid), {
-                                    googleMapsDiscountAt: newTimestamp
-                                });
-                            } catch (e) {
-                                console.warn("Failed to update googleMapsDiscountAt:", e);
-                            }
-                        } else if (timeDiff <= 24 * 60 * 60 * 1000) {
-                            // Still within 24 hours of activation
-                            canClaimGoogleBonus = true;
-                        }
-                    }
-
-                    // Recalculate discount
+                    // Recalculate discount using calendar-day visit history + Scenario 2 Grab Bag QR check
                     try {
                         console.log("Searching for venue config:", venueId);
                         const vDoc = await getDoc(doc(db, 'venues', venueId));
                         if (vDoc.exists()) {
                             const venueData = vDoc.data();
+                            const tz = venueData.timezone || 'Asia/Ho_Chi_Minh';
+                            const now = new Date();
+                            const todayStr = RewardCalculator.getVenueDateString(now, tz);
+
                             console.log("Venue config found. Checking visit history for:", lowerEmail);
-                            const qVisits = query(
+                            const visitDocs = [];
+                            const qEmailVisits = query(
                                 collection(db, 'visits'),
                                 where('guestEmail', '==', lowerEmail),
-                                where('venueId', '==', venueId),
-                                orderBy('timestamp', 'desc'),
-                                limit(1)
+                                where('venueId', '==', venueId)
                             );
-                            const visitsSnap = await getDocs(qVisits);
-                            if (!visitsSnap.empty) {
-                                const lastVisitDate = visitsSnap.docs[0].data().timestamp.toDate();
-                                const now = new Date();
-                                const calcResult = RewardCalculator.calculate(lastVisitDate, now, venueData.loyaltyConfig || venueData.tiers, venueData.timezone || 'Asia/Dubai');
-                                finalDiscount = calcResult.discount;
-                                console.log("Loyalty discount calculated:", finalDiscount);
-                            } else {
-                                const config = venueData.loyaltyConfig || venueData.tiers;
-                                let baseD = finalDiscount; // Default to initial fallback if something goes wrong
-                                if (Array.isArray(config)) {
-                                    const percs = config.map(c => Number(c.percentage || c.percent || 0)).filter(p => p > 0);
-                                    if (percs.length > 0) baseD = Math.min(...percs);
-                                } else if (config && config.percBase) {
-                                    baseD = Number(config.percBase);
-                                }
-                                finalDiscount = baseD;
-                                console.log("Base discount assigned to new user:", finalDiscount);
+                            const emailSnap = await getDocs(qEmailVisits);
+                            if (!emailSnap.empty) visitDocs.push(...emailSnap.docs);
+
+                            if (effectiveUid) {
+                                const qUidVisits = query(
+                                    collection(db, 'visits'),
+                                    where('uid', '==', effectiveUid),
+                                    where('venueId', '==', venueId)
+                                );
+                                const uidSnap = await getDocs(qUidVisits);
+                                if (!uidSnap.empty) visitDocs.push(...uidSnap.docs);
                             }
-                            
-                            // Override with Max Discount if Google Maps promotion
-                            if (canClaimGoogleBonus) {
-                                const config = venueData.loyaltyConfig || venueData.tiers;
-                                let maxD = 20;
-                                if (Array.isArray(config)) {
-                                    const percs = config.map(c => Number(c.percentage || c.percent || 0)).filter(p => p > 0);
-                                    if (percs.length > 0) maxD = Math.max(...percs);
-                                } else if (config && config.percVip) {
-                                    maxD = Number(config.percVip);
-                                }
-                                finalDiscount = maxD;
-                                console.log("Max discount assigned for Google Maps promotion:", finalDiscount);
-                            }
+
+                            const resolvedHistory = RewardCalculator.resolveVisitHistory(
+                                visitDocs,
+                                venueId,
+                                now,
+                                tz,
+                                location.search
+                            );
+
+                            const prof = mergeRes.userProfile || {};
+                            const userDepBal = Number(
+                                prof.deposit_balances?.[venueId] ??
+                                prof.deposits?.[venueId]?.balance ??
+                                prof.deposits?.[venueId] ??
+                                prof.deposit_balance ??
+                                0
+                            );
+
+                            const calcResult = RewardCalculator.calculate(
+                                resolvedHistory.lastVisitDateStr,
+                                now,
+                                venueData.loyaltyConfig || venueData.tiers,
+                                tz,
+                                resolvedHistory.hasVisitedToday,
+                                userDepBal > 0,
+                                venueData.baseDiscount || 5,
+                                userDepBal,
+                                resolvedHistory.isGrabBagActive
+                            );
+                            finalDiscount = calcResult.discount;
+                            RewardCalculator.recordLocalVisitDate(venueId, todayStr, resolvedHistory.isGrabBagActive);
+                            console.log("Loyalty discount calculated:", finalDiscount, calcResult.status);
                         }
                     } catch (err) {
                         console.error("Discount calc error:", err);

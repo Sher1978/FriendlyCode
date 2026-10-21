@@ -1,8 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/theme/colors.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 class DeliveryLoyaltyScreen extends StatefulWidget {
   final String venueId;
@@ -208,8 +210,111 @@ class _DeliveryLoyaltyScreenState extends State<DeliveryLoyaltyScreen> {
 
             const SizedBox(height: 32),
             _buildDeliveryPerksCard(),
+
+            const SizedBox(height: 32),
+            _buildScenariosQrCard(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildScenariosQrCard() {
+    final grabBagUrl = "https://www.revoo.win/?utm_source=grab_bag&promo=max_tier&id=${widget.venueId}";
+    final googleMapsUrl = "https://www.revoo.win/?utm_source=google_maps&id=${widget.venueId}";
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.macosSurfaceBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.greenAccent.withOpacity(0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(CupertinoIcons.qrcode_viewfinder, color: Colors.greenAccent, size: 22),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  "ДВА СЦЕНАРИЯ НАЧИСЛЕНИЯ СКИДКИ (ПЕРЕВОД КЛИЕНТОВ ИЗ GRAB / GLOVO)",
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            "• Сценарий 1 (Переход через Google Карты): Клиент получает сегодня минимальную скидку (Тир 1), а на следующий день после заказа — максимальную (Тир 3).\n"
+            "• Сценарий 2 (Сканирование QR-кода в пакете с едой из Grab / Glovo): Сканирование QR в пакете агрегатора приравнивается к сегодняшнему заказу у вас! У клиента нет минимальной скидки сегодня — он СРАЗУ получает максимальную скидку (Тир 3) на заказ прямо сейчас и завтра!",
+            style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 13, height: 1.5),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: QrImageView(
+                  data: grabBagUrl,
+                  version: QrVersions.auto,
+                  size: 115,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "QR и ссылка Сценария 2 (В пакет с едой из Grab → Сразу Тир 3):",
+                      style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                    const SizedBox(height: 6),
+                    SelectableText(
+                      grabBagUrl,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 8,
+                      children: [
+                        CupertinoButton(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          color: Colors.green.shade600,
+                          borderRadius: BorderRadius.circular(8),
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: grabBagUrl));
+                            _showToast("Ссылка для QR в пакет Grab (Сценарий 2) скопирована!");
+                          },
+                          child: const Text("Скопировать ссылку Grab QR (Тир 3)", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
+                        CupertinoButton(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          color: AppColors.accentOrange,
+                          borderRadius: BorderRadius.circular(8),
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: googleMapsUrl));
+                            _showToast("Ссылка для Google Карт (Сценарий 1) скопирована!");
+                          },
+                          child: const Text("Скопировать ссылку Google Карт (Тир 1 → Тир 3)", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

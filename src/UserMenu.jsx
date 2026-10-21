@@ -639,7 +639,7 @@ const UserMenu = ({ user, trigger, isGuestView, venueColor = '#00FF41' }) => {
                                                         </div>
                                                     </div>
                                                     <div className="p-5 rounded-2xl bg-black/40 border border-white/5 flex flex-col justify-center">
-                                                        <p className="text-[10px] text-white/30 uppercase tracking-widest font-black mb-1">Tier Level</p>
+                                                        <p className="text-[10px] text-white/30 uppercase tracking-widest font-black mb-1">Status</p>
                                                         <p className="text-sm font-black text-white uppercase tracking-tighter">
                                                             {status.discount >= 20 ? 'REVOO ELITE' : 'ACTIVE MEMBER'}
                                                         </p>
