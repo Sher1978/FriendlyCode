@@ -1,17 +1,14 @@
 {
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "ignore": [
-        "node_modules",
-        ".git",
-        "firebase-debug.log",
-        "firestore-debug.log",
-        "ui-debug.log"
-      ]
-    }
-  ],
+  "functions": {
+    "source": "functions",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "firebase-debug.log",
+      "firestore-debug.log",
+      "ui-debug.log"
+    ]
+  },
   "hosting": {
     "public": "dist",
     "ignore": [
@@ -38,6 +35,13 @@
     ],
     "rewrites": [
       {
+        "source": "/api/scrape-menu",
+        "function": {
+          "functionId": "scrapeMenuHttp",
+          "region": "asia-south1"
+        }
+      },
+      {
         "source": "/deposit",
         "destination": "/admin/index.html"
       },
@@ -62,13 +66,19 @@
       {
         "source": "/index.html",
         "headers": [
-          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
         ]
       },
       {
         "source": "/admin/index.html",
         "headers": [
-          { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
         ]
       }
     ],

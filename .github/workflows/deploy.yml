@@ -52,8 +52,12 @@ jobs:
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_BOT_LAB_21910 }}' > gcp-key.json
           export GOOGLE_APPLICATION_CREDENTIALS=gcp-key.json
           npm --prefix functions install
-          npx --yes firebase-tools deploy --only functions:scrapeMenuCallable,functions:onMenuScrapeJobCreated,functions:scrapeMenuHttp,functions:scheduledAggregatorSync --project bot-lab-21910 --non-interactive || echo "⚠️ Functions deployment warning"
+          OUTPUT=$(npx --yes firebase-tools deploy --only functions:scrapeMenuCallable,functions:onMenuScrapeJobCreated,functions:scrapeMenuHttp,functions:scheduledAggregatorSync --project bot-lab-21910 --non-interactive 2>&1) && EXIT_CODE=0 || EXIT_CODE=$?
+          echo "$OUTPUT"
           rm -f gcp-key.json
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "⚠️ Functions deployment warning: $OUTPUT"
+          fi
 
       - name: Deploy to Firebase Hosting
         run: |

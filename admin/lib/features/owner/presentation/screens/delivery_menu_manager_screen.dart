@@ -178,9 +178,10 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
       }
     });
 
-    // 3. Parallel HTTP trigger to start parsing immediately
+    // 3. Parallel ping to start parsing immediately via same-origin rewrite
     try {
-      final uri = Uri.parse('https://asia-south1-bot-lab-21910.cloudfunctions.net/scrapeMenuHttp');
+      final origin = Uri.base.hasAuthority ? Uri.base.origin : 'https://friendlycode.fun';
+      final uri = Uri.parse('$origin/api/scrape-menu');
       http.post(
         uri,
         headers: {'Content-Type': 'application/json'},
@@ -191,9 +192,9 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
           'mirrorImages': false,
         }),
       ).then((res) {
-        debugPrint("[DeliveryMenuManager] scrapeMenuHttp response status: ${res.statusCode}");
+        debugPrint("[DeliveryMenuManager] /api/scrape-menu response status: ${res.statusCode}");
       }).catchError((httpErr) {
-        debugPrint("[DeliveryMenuManager] scrapeMenuHttp fetch ping note: $httpErr (Firestore background worker executes)");
+        debugPrint("[DeliveryMenuManager] Direct ping note: $httpErr (Firestore background worker executes)");
       });
     } catch (e) {
       debugPrint("[DeliveryMenuManager] Direct ping error: $e");
