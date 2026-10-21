@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/core/services/direct_menu_scraper_service.dart';
 
 class DeliveryMenuManagerScreen extends StatefulWidget {
   final String venueId;
@@ -44,11 +45,30 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
       _isScraping = true;
     });
 
+    // 1. Direct browser extraction via Jina + Gemini 2.5 Flash (resolves r.grab.com, zero Firestore permission dependency)
+    try {
+      _showToast("Парсинг запущен: извлечение меню через Gemini AI...");
+      final items = await DirectMenuScraperService.scrapeMenu(url);
+
+      if (!mounted) return;
+      setState(() {
+        _stagedItems = items;
+        _selectedStagedIndices.clear();
+        for (int i = 0; i < _stagedItems.length; i++) {
+          _selectedStagedIndices.add(i);
+        }
+        _isScraping = false;
+      });
+      _showToast("Готово! Загружено ${items.length} блюд в зону модерации");
+      return;
+    } catch (directErr) {
+      debugPrint("[DeliveryMenuManager] DirectMenuScraperService error: $directErr");
+    }
+
     final jobId = "job_${DateTime.now().millisecondsSinceEpoch}";
 
-    // 1. Primary Strategy: Direct Cloud Function execution (bypasses Firestore client rules & resolves redirects)
+    // 2. Cloud Function callable fallback
     try {
-      _showToast("Парсинг запущен через Apify & Gemini AI...");
       final callable = FirebaseFunctions.instanceFor(region: 'asia-south1')
           .httpsCallable('scrapeMenuCallable');
 
@@ -77,7 +97,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
       debugPrint("[DeliveryMenuManager] Direct callable error: $callableErr. Falling back to Firestore job...");
     }
 
-    // 2. Secondary Fallback: Firestore scrape_jobs document
+    // 3. Firestore scrape_jobs document fallback
     try {
       await FirebaseFirestore.instance
           .collection('venues')
