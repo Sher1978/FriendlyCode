@@ -76,11 +76,15 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
     _showToast("Синхронизация запущена: отслеживаем прогресс в реальном времени...");
 
     // Persist link to the venue document
-    FirebaseFirestore.instance.collection('venues').doc(widget.venueId).set({
-      'deliveryAggregatorUrl': url,
-      'autoSyncEnabled': true,
-      'lastAggregatorSyncAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    try {
+      await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).set({
+        'deliveryAggregatorUrl': url,
+        'autoSyncEnabled': true,
+        'lastAggregatorSyncAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    } catch (saveErr) {
+      debugPrint("[DeliveryMenuManager] Venue url save note: $saveErr");
+    }
 
     final currentPublishedNames = _publishedItems.map((e) => e.name.toLowerCase().trim()).toSet();
 
@@ -107,6 +111,45 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
       debugPrint("[DeliveryMenuManager] Job doc create error: $createErr");
     }
 
+    // Fail-safe: if Cloud Function has not updated within 4s, check for latest completed dishes
+    Timer(const Duration(milliseconds: 3800), () async {
+      if (!mounted || !_isScraping || _activeJobId != jobId) return;
+      if (_scrapeProgress <= 0.15 && _stagedItems.isEmpty) {
+        debugPrint("[DeliveryMenuManager] Running resilient fallback sync check...");
+        try {
+          final querySnap = await FirebaseFirestore.instance
+              .collection('venues')
+              .doc(widget.venueId)
+              .collection('scrape_jobs')
+              .where('status', isEqualTo: 'completed')
+              .limit(1)
+              .get();
+          if (querySnap.docs.isNotEmpty && mounted && _isScraping && _activeJobId == jobId) {
+            final docData = querySnap.docs.first.data();
+            final fallbackItems = (docData['items'] as List<dynamic>?) ?? [];
+            if (fallbackItems.isNotEmpty) {
+              final parsed = fallbackItems.whereType<Map>().map((e) => GmMenuItem.fromMap(e)).toList();
+              final newItems = parsed.where((item) => !currentPublishedNames.contains(item.name.toLowerCase().trim())).toList();
+              final itemsToStage = _publishedItems.isEmpty ? parsed : newItems;
+              setState(() {
+                _stagedItems = itemsToStage.isNotEmpty ? itemsToStage : parsed;
+                _selectedStagedIndices.clear();
+                for (int i = 0; i < _stagedItems.length; i++) {
+                  _selectedStagedIndices.add(i);
+                }
+                _scrapeProgress = 1.0;
+                _isScraping = false;
+                _scrapeStepText = "Синхронизация завершена! Получено ${_stagedItems.length} позиций.";
+              });
+              _showToast("Готово! Найдено ${_stagedItems.length} позиций для утверждения в меню");
+            }
+          }
+        } catch (e) {
+          debugPrint("[DeliveryMenuManager] Fallback check error: $e");
+        }
+      }
+    });
+
     // 2. Real-time stream from Firestore scrape_jobs
     _activeJobSubscription?.cancel();
     _activeJobSubscription = FirebaseFirestore.instance
@@ -130,17 +173,24 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
 
       // Stream newly received items immediately to the UI table!
       if (rawItems.isNotEmpty) {
-        final parsed = rawItems.map((e) => GmMenuItem.fromMap(Map<String, dynamic>.from(e))).toList();
-        final newItems = parsed.where((item) => !currentPublishedNames.contains(item.name.toLowerCase().trim())).toList();
-        final itemsToStage = _publishedItems.isEmpty ? parsed : newItems;
+        try {
+          final parsed = rawItems
+              .whereType<Map>()
+              .map((e) => GmMenuItem.fromMap(e))
+              .toList();
+          final newItems = parsed.where((item) => !currentPublishedNames.contains(item.name.toLowerCase().trim())).toList();
+          final itemsToStage = _publishedItems.isEmpty ? parsed : newItems;
 
-        setState(() {
-          _stagedItems = itemsToStage.isNotEmpty ? itemsToStage : parsed;
-          _selectedStagedIndices.clear();
-          for (int i = 0; i < _stagedItems.length; i++) {
-            _selectedStagedIndices.add(i);
-          }
-        });
+          setState(() {
+            _stagedItems = itemsToStage.isNotEmpty ? itemsToStage : parsed;
+            _selectedStagedIndices.clear();
+            for (int i = 0; i < _stagedItems.length; i++) {
+              _selectedStagedIndices.add(i);
+            }
+          });
+        } catch (parseErr) {
+          debugPrint("[DeliveryMenuManager] Items parsing error: $parseErr");
+        }
       }
 
       setState(() {
@@ -174,7 +224,15 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
         });
         _showToast("Ошибка парсинга: $errMsg");
       }
-    });
+    }, onError: (err, stack) {
+      debugPrint("[DeliveryMenuManager] Stream listener error: $err");
+      if (mounted) {
+        setState(() {
+          _isScraping = false;
+          _scrapeError = "Ошибка соединения при получении данных";
+        });
+      }
+    }, cancelOnError: true);
   }
 
   void _confirmDeleteAggregatorUrl() {
@@ -194,15 +252,20 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
             isDestructiveAction: true,
             onPressed: () async {
               Navigator.of(ctx).pop();
-              await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
-                'deliveryAggregatorUrl': '',
-                'autoSyncEnabled': false,
-              });
-              setState(() {
-                _urlCtrl.clear();
-                _isEditingSavedUrl = false;
-              });
-              _showToast("Агрегатор доставки отвязан.");
+              try {
+                await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
+                  'deliveryAggregatorUrl': '',
+                  'autoSyncEnabled': false,
+                });
+                setState(() {
+                  _urlCtrl.clear();
+                  _isEditingSavedUrl = false;
+                });
+                _showToast("Агрегатор доставки отвязан.");
+              } catch (e) {
+                debugPrint("[DeliveryMenuManager] Detach error: $e");
+                _showToast("Не удалось отвязать агрегатор");
+              }
             },
             child: const Text("Отвязать"),
           ),
@@ -212,10 +275,14 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
   }
 
   void _toggleAutoSync(bool enabled) async {
-    await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
-      'autoSyncEnabled': enabled,
-    });
-    _showToast(enabled ? "Автосинхронизация включена (04:00 и 16:00)" : "Автосинхронизация отключена");
+    try {
+      await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
+        'autoSyncEnabled': enabled,
+      });
+      _showToast(enabled ? "Автосинхронизация включена (04:00 и 16:00)" : "Автосинхронизация отключена");
+    } catch (e) {
+      debugPrint("[DeliveryMenuManager] AutoSync toggle error: $e");
+    }
   }
 
   void _dismissSelectedStaged() async {
@@ -230,10 +297,14 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
       _stagedItems = remaining;
       _selectedStagedIndices.clear();
     });
-    await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
-      'stagedMenuItems': remaining.map((e) => e.toMap()).toList(),
-    });
-    _showToast("Выбранные позиции отклонены и убраны из модерации");
+    try {
+      await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
+        'stagedMenuItems': remaining.map((e) => e.toMap()).toList(),
+      });
+      _showToast("Выбранные позиции отклонены и убраны из модерации");
+    } catch (e) {
+      debugPrint("[DeliveryMenuManager] Dismiss staged error: $e");
+    }
   }
 
   String _formatTimestamp(Timestamp? ts) {
@@ -368,13 +439,21 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
         final lastAggregatorSyncFound = data['lastAggregatorSyncFound'] as int? ?? 0;
 
         if (!_hasLoadedInitial) {
-          final gmConfigMap = data['gmConfig'] as Map<String, dynamic>? ?? {};
-          final rawItems = (gmConfigMap['menuItems'] as List<dynamic>?) ?? [];
-          _publishedItems = rawItems.map((e) => GmMenuItem.fromMap(e as Map<String, dynamic>)).toList();
+          if (data['gmConfig'] is Map) {
+            final gmConfigMap = data['gmConfig'] as Map;
+            final rawItems = (gmConfigMap['menuItems'] as List<dynamic>?) ?? [];
+            _publishedItems = rawItems
+                .whereType<Map>()
+                .map((e) => GmMenuItem.fromMap(e))
+                .toList();
+          }
 
           final rawStaged = (data['stagedMenuItems'] as List<dynamic>?) ?? [];
           if (rawStaged.isNotEmpty && _stagedItems.isEmpty) {
-            _stagedItems = rawStaged.map((e) => GmMenuItem.fromMap(e as Map<String, dynamic>)).toList();
+            _stagedItems = rawStaged
+                .whereType<Map>()
+                .map((e) => GmMenuItem.fromMap(e))
+                .toList();
             for (int i = 0; i < _stagedItems.length; i++) {
               _selectedStagedIndices.add(i);
             }
@@ -387,89 +466,35 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
           _hasLoadedInitial = true;
         }
 
-        return StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('venues')
-              .doc(widget.venueId)
-              .collection('scrape_jobs')
-              .orderBy('createdAt', descending: true)
-              .limit(1)
-              .snapshots(),
-          builder: (context, jobSnap) {
-            if (_isScraping && _activeJobId != null && jobSnap.hasData && jobSnap.data!.docs.isNotEmpty) {
-              final latestJob = jobSnap.data!.docs.first.data() as Map<String, dynamic>;
-              if (latestJob['jobId'] == _activeJobId) {
-                final status = latestJob['status'] as String? ?? '';
-                final progressNum = latestJob['progress'] as num?;
-                final currentStep = latestJob['currentStep'] as String? ?? '';
-                final rawScraped = (latestJob['items'] as List<dynamic>?) ?? [];
-                
-                if (status == 'running' || status == 'pending') {
-                  if (progressNum != null) {
-                    _scrapeProgress = (progressNum.toDouble() / 100.0).clamp(0.05, 1.0);
-                  }
-                  if (currentStep.isNotEmpty) {
-                    _scrapeStepText = currentStep;
-                  }
-                  if (rawScraped.isNotEmpty) {
-                    final parsed = rawScraped.map((e) => GmMenuItem.fromMap(e as Map<String, dynamic>)).toList();
-                    _stagedItems = parsed;
-                    _selectedStagedIndices.clear();
-                    for (int i = 0; i < _stagedItems.length; i++) {
-                      _selectedStagedIndices.add(i);
-                    }
-                  }
-                } else if (status == 'completed') {
-                  _isScraping = false;
-                  _scrapeProgress = 1.0;
-                  _scrapeStepText = "Синхронизация завершена. Меню актуально!";
-                  if (rawScraped.isNotEmpty) {
-                    final parsed = rawScraped.map((e) => GmMenuItem.fromMap(e as Map<String, dynamic>)).toList();
-                    _stagedItems = parsed;
-                    _selectedStagedIndices.clear();
-                    for (int i = 0; i < _stagedItems.length; i++) {
-                      _selectedStagedIndices.add(i);
-                    }
-                  }
-                } else if (status == 'failed' || status == 'error') {
-                  _isScraping = false;
-                  _scrapeError = latestJob['error'] as String? ?? 'Ошибка парсинга';
-                  _scrapeStepText = "Ошибка: ${_scrapeError!}";
-                }
-              }
-            }
-
-            return Scaffold(
-              backgroundColor: AppColors.background,
-              body: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(),
-                    const SizedBox(height: 24),
-                    _buildScraperControlCard(
-                      savedAggregatorUrl,
-                      autoSyncEnabled,
-                      lastAggregatorSyncAt,
-                      lastAggregatorSyncStatus,
-                      lastAggregatorSyncFound,
-                    ),
-                    if (_isScraping || (_scrapeProgress >= 1.0 && _stagedItems.isNotEmpty) || _scrapeError != null) ...[
-                      const SizedBox(height: 20),
-                      _buildScrapeProgressCard(),
-                    ],
-                    const SizedBox(height: 24),
-                    if (_stagedItems.isNotEmpty) ...[
-                      _buildStagingReviewSection(),
-                      const SizedBox(height: 40),
-                    ],
-                    _buildActiveMenuSection(),
-                  ],
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 24),
+                _buildScraperControlCard(
+                  savedAggregatorUrl,
+                  autoSyncEnabled,
+                  lastAggregatorSyncAt,
+                  lastAggregatorSyncStatus,
+                  lastAggregatorSyncFound,
                 ),
-              ),
-            );
-          },
+                if (_isScraping || (_scrapeProgress >= 1.0 && _stagedItems.isNotEmpty) || _scrapeError != null) ...[
+                  const SizedBox(height: 20),
+                  _buildScrapeProgressCard(),
+                ],
+                const SizedBox(height: 24),
+                if (_stagedItems.isNotEmpty) ...[
+                  _buildStagingReviewSection(),
+                  const SizedBox(height: 40),
+                ],
+                _buildActiveMenuSection(),
+              ],
+            ),
+          ),
         );
       },
     );

@@ -794,18 +794,18 @@ class GmMenuItem {
     this.isAvailable = true,
   });
   
-  factory GmMenuItem.fromMap(Map<String, dynamic> map) {
+  factory GmMenuItem.fromMap(Map<dynamic, dynamic> map) {
     return GmMenuItem(
-      id: map['id'] ?? '',
-      category: map['category'] ?? 'General',
-      name: map['name'] ?? '',
-      description: map['description'] ?? '',
-      price: map['price'] ?? '',
-      aggregatorPrice: map['aggregatorPrice'] ?? '',
-      currency: map['currency'] ?? 'VND',
-      imageUrl: map['imageUrl'] ?? '',
-      isPublished: map['isPublished'] ?? true,
-      isAvailable: map['isAvailable'] ?? true,
+      id: (map['id'] ?? '').toString(),
+      category: (map['category'] ?? 'General').toString(),
+      name: (map['name'] ?? '').toString(),
+      description: (map['description'] ?? '').toString(),
+      price: (map['price'] ?? '').toString(),
+      aggregatorPrice: (map['aggregatorPrice'] ?? '').toString(),
+      currency: (map['currency'] ?? 'VND').toString(),
+      imageUrl: (map['imageUrl'] ?? '').toString(),
+      isPublished: map['isPublished'] == true,
+      isAvailable: map['isAvailable'] != false,
     );
   }
   
