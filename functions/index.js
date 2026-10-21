@@ -4209,3 +4209,92 @@ exports.reviewFeedbackHttp = onRequest({ cors: true }, async (req, res) => {
         return res.status(500).json({ error: err.message || "Feedback processing failed" });
     }
 });
+
+
+// ==========================================
+// REVOO DELIVERY: SCHEDULED AGGREGATOR SYNC
+// ==========================================
+/**
+ * Automatically scrapes menus from saved deliveryAggregatorUrl for all enabled venues,
+ * finds new dishes or price changes, puts them into stagedMenuItems for admin review,
+ * and notifies the administrator via Telegram.
+ * Runs 2 times daily (04:00 and 16:00 Vietnam/Indochina time).
+ */
+exports.scheduledAggregatorSync = onSchedule({
+    schedule: "0 4,16 * * *",
+    timeZone: "Asia/Ho_Chi_Minh",
+    region: "asia-south1"
+}, async (event) => {
+    logger.info("[scheduledAggregatorSync] Starting scheduled aggregator menu sync...");
+    try {
+        const venuesSnap = await db.collection("venues").get();
+        for (const venueDoc of venuesSnap.docs) {
+            const venueData = venueDoc.data();
+            const venueId = venueDoc.id;
+            const url = venueData.deliveryAggregatorUrl;
+            const autoSync = venueData.autoSyncEnabled !== false;
+
+            if (!url || !autoSync) continue;
+
+            logger.info(`[scheduledAggregatorSync] Syncing venue ${venueData.name || venueId} from ${url}`);
+            try {
+                const result = await executeScrapeJob(venueId, url, {
+                    autoPublish: false,
+                    mirrorImages: false
+                });
+
+                const scrapedItems = result.items || [];
+                const currentPublished = (venueData.gmConfig?.menuItems || []);
+                const currentPublishedNames = new Set(currentPublished.map(i => (i.name || "").toLowerCase().trim()));
+
+                // Filter for new items not yet in published menu
+                const newItems = scrapedItems.filter(item => !currentPublishedNames.has((item.name || "").toLowerCase().trim()));
+
+                // Save new items to stagedMenuItems
+                await venueDoc.ref.set({
+                    stagedMenuItems: newItems,
+                    lastAggregatorSyncAt: admin.firestore.FieldValue.serverTimestamp(),
+                    lastAggregatorSyncStatus: "success",
+                    lastAggregatorSyncFound: newItems.length
+                }, { merge: true });
+
+                // If new items found, notify Administrator
+                if (newItems.length > 0) {
+                    const venueName = venueData.name || "Cafe Svoi";
+                    const tgMsg = `🔔 <b>[Revoo Delivery Auto-Sync]</b>\n\n` +
+                        `Для заведения <b>${venueName}</b> обнаружено <b>${newItems.length} новых позиций</b> в GrabFood!\n\n` +
+                        `📋 <i>Примеры:</i>\n` +
+                        newItems.slice(0, 3).map(it => `• ${it.name} (${it.price || it.aggregatorPrice})`).join("\n") +
+                        `\n\n👉 <i>Перейдите в панель управления, чтобы проверить ценообразование и утвердить меню.</i>`;
+
+                    if (SUPER_ADMIN_CHAT_ID) {
+                        await sendTelegramMessage(SUPER_ADMIN_CHAT_ID, tgMsg).catch(e => logger.warn("Telegram alert error:", e));
+                    }
+                    if (venueData.telegramGroupId) {
+                        await sendTelegramMessage(venueData.telegramGroupId, tgMsg).catch(e => logger.warn("Venue Telegram alert error:", e));
+                    }
+
+                    // Also create In-App notification
+                    await db.collection("notifications").add({
+                        type: "menu_sync",
+                        venueId,
+                        title: `Новые блюда из GrabFood: ${venueName}`,
+                        body: `Найдено ${newItems.length} новых позиций на модерации.`,
+                        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                        isRead: false
+                    });
+                }
+            } catch (venueErr) {
+                logger.error(`[scheduledAggregatorSync] Failed for venue ${venueId}:`, venueErr);
+                await venueDoc.ref.set({
+                    lastAggregatorSyncAt: admin.firestore.FieldValue.serverTimestamp(),
+                    lastAggregatorSyncStatus: "error",
+                    lastAggregatorSyncError: venueErr.message || String(venueErr)
+                }, { merge: true });
+            }
+        }
+        logger.info("[scheduledAggregatorSync] Completed scheduled sync run.");
+    } catch (err) {
+        logger.error("[scheduledAggregatorSync] Top-level error:", err);
+    }
+});

@@ -15,7 +15,9 @@ class DeliveryMenuManagerScreen extends StatefulWidget {
 
 class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
   final TextEditingController _urlCtrl = TextEditingController();
+  final TextEditingController _editUrlCtrl = TextEditingController();
   bool _isScraping = false;
+  bool _isEditingSavedUrl = false;
 
   // Staging items from scrapers
   List<GmMenuItem> _stagedItems = [];
@@ -30,11 +32,12 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
   @override
   void dispose() {
     _urlCtrl.dispose();
+    _editUrlCtrl.dispose();
     super.dispose();
   }
 
-  void _triggerScrape() async {
-    final url = _urlCtrl.text.trim();
+  void _triggerScrape([String? customUrl]) async {
+    final url = (customUrl ?? _urlCtrl.text).trim();
     if (url.isEmpty) {
       _showToast("Введите ссылку на ресторан в Grab, Zomato, Glovo или сайт");
       return;
@@ -44,7 +47,16 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
       _isScraping = true;
     });
 
-    _showToast("Парсинг запущен через Cloud Functions & Gemini AI...");
+    _showToast("Синхронизация запущена: проверяем актуальное меню...");
+
+    // Persist link to the venue document
+    FirebaseFirestore.instance.collection('venues').doc(widget.venueId).set({
+      'deliveryAggregatorUrl': url,
+      'autoSyncEnabled': true,
+      'lastAggregatorSyncAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+
+    final currentPublishedNames = _publishedItems.map((e) => e.name.toLowerCase().trim()).toSet();
 
     // 1. Primary Strategy: Serverless Cloud Function (zero CORS, resolves redirects & Grab mobile links)
     try {
@@ -63,15 +75,32 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
       final parsed = rawItems.map((e) => GmMenuItem.fromMap(Map<String, dynamic>.from(e))).toList();
 
       if (parsed.isNotEmpty) {
+        // If venue already has published items, filter for new items not yet in published menu
+        final newItems = parsed.where((item) => !currentPublishedNames.contains(item.name.toLowerCase().trim())).toList();
+        final itemsToStage = _publishedItems.isEmpty ? parsed : newItems;
+
         setState(() {
-          _stagedItems = parsed;
+          _stagedItems = itemsToStage.isNotEmpty ? itemsToStage : parsed;
           _selectedStagedIndices.clear();
           for (int i = 0; i < _stagedItems.length; i++) {
             _selectedStagedIndices.add(i);
           }
           _isScraping = false;
+          _isEditingSavedUrl = false;
         });
-        _showToast("Готово! Загружено ${parsed.length} блюд в зону модерации");
+
+        // Save staged items to Firestore so they persist across page refreshes
+        await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).set({
+          'stagedMenuItems': _stagedItems.map((e) => e.toMap()).toList(),
+          'lastAggregatorSyncStatus': 'success',
+          'lastAggregatorSyncFound': itemsToStage.length,
+        }, SetOptions(merge: true));
+
+        if (itemsToStage.isEmpty && _publishedItems.isNotEmpty) {
+          _showToast("Все блюда уже присутствуют в меню. Новых позиций в агрегаторе не найдено.");
+        } else {
+          _showToast("Готово! Найдено ${itemsToStage.length} позиций для утверждения в меню");
+        }
         return;
       }
     } catch (callableErr) {
@@ -110,15 +139,31 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
         if (status == 'completed') {
           final itemsRaw = data['items'] as List<dynamic>? ?? [];
           final parsed = itemsRaw.map((e) => GmMenuItem.fromMap(Map<String, dynamic>.from(e))).toList();
+          
+          final newItems = parsed.where((item) => !currentPublishedNames.contains(item.name.toLowerCase().trim())).toList();
+          final itemsToStage = _publishedItems.isEmpty ? parsed : newItems;
+
           setState(() {
-            _stagedItems = parsed;
+            _stagedItems = itemsToStage.isNotEmpty ? itemsToStage : parsed;
             _selectedStagedIndices.clear();
             for (int i = 0; i < _stagedItems.length; i++) {
               _selectedStagedIndices.add(i);
             }
             _isScraping = false;
+            _isEditingSavedUrl = false;
           });
-          _showToast("Готово! Загружено ${parsed.length} блюд в зону модерации");
+
+          FirebaseFirestore.instance.collection('venues').doc(widget.venueId).set({
+            'stagedMenuItems': _stagedItems.map((e) => e.toMap()).toList(),
+            'lastAggregatorSyncStatus': 'success',
+            'lastAggregatorSyncFound': itemsToStage.length,
+          }, SetOptions(merge: true));
+
+          if (itemsToStage.isEmpty && _publishedItems.isNotEmpty) {
+            _showToast("Все блюда уже присутствуют в меню. Новых позиций не найдено.");
+          } else {
+            _showToast("Готово! Найдено ${itemsToStage.length} позиций для утверждения в меню");
+          }
         } else if (status == 'error' || status == 'failed') {
           setState(() => _isScraping = false);
           _showToast("Ошибка парсинга: ${data['error'] ?? 'Неизвестная ошибка'}");
@@ -130,6 +175,75 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
         _showToast("Ошибка запуска: $e");
       }
     }
+  }
+
+  void _confirmDeleteAggregatorUrl() {
+    showCupertinoDialog(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text("Отвязать агрегатор доставки?"),
+        content: const Text(
+          "Автоматическая синхронизация меню 2 раза в день будет отключена. Ранее опубликованное меню останется без изменений.",
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text("Отмена"),
+            onPressed: () => Navigator.of(ctx).pop(),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
+                'deliveryAggregatorUrl': '',
+                'autoSyncEnabled': false,
+              });
+              setState(() {
+                _urlCtrl.clear();
+                _isEditingSavedUrl = false;
+              });
+              _showToast("Агрегатор доставки отвязан.");
+            },
+            child: const Text("Отвязать"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _toggleAutoSync(bool enabled) async {
+    await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
+      'autoSyncEnabled': enabled,
+    });
+    _showToast(enabled ? "Автосинхронизация включена (04:00 и 16:00)" : "Автосинхронизация отключена");
+  }
+
+  void _dismissSelectedStaged() async {
+    if (_selectedStagedIndices.isEmpty) return;
+    final remaining = <GmMenuItem>[];
+    for (int i = 0; i < _stagedItems.length; i++) {
+      if (!_selectedStagedIndices.contains(i)) {
+        remaining.add(_stagedItems[i]);
+      }
+    }
+    setState(() {
+      _stagedItems = remaining;
+      _selectedStagedIndices.clear();
+    });
+    await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
+      'stagedMenuItems': remaining.map((e) => e.toMap()).toList(),
+    });
+    _showToast("Выбранные позиции отклонены и убраны из модерации");
+  }
+
+  String _formatTimestamp(Timestamp? ts) {
+    if (ts == null) return "Ожидает первой синхронизации";
+    final dt = ts.toDate();
+    final day = dt.day.toString().padLeft(2, '0');
+    final month = dt.month.toString().padLeft(2, '0');
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return "$day.$month в $hour:$minute";
   }
 
   void _applyMassPriceDiscount(double discountFraction) {
@@ -168,23 +282,26 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
     try {
       // Merge with published items
       final combined = [..._publishedItems, ...itemsToPublish];
+      final remainingStaged = _stagedItems.where((item) => !itemsToPublish.contains(item)).toList();
+
       await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).set({
         'gmConfig': {
           'businessType': 'horeca',
           'menuItems': combined.map((e) => e.toMap()).toList(),
           'updatedAt': FieldValue.serverTimestamp(),
-        }
+        },
+        'stagedMenuItems': remainingStaged.map((e) => e.toMap()).toList(),
       }, SetOptions(merge: true));
 
       setState(() {
         _publishedItems = combined;
         // Remove published from staging
-        _stagedItems = _stagedItems.where((item) => !itemsToPublish.contains(item)).toList();
+        _stagedItems = remainingStaged;
         _selectedStagedIndices.clear();
         _isSaving = false;
       });
 
-      _showToast("Успешно опубликовано ${itemsToPublish.length} блюд в Revoo Delivery!");
+      _showToast("Успешно утверждено и опубликовано ${itemsToPublish.length} блюд в Revoo Delivery!");
     } catch (e) {
       setState(() => _isSaving = false);
       _showToast("Ошибка публикации: $e");
@@ -244,10 +361,29 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
         }
 
         final data = snapshot.data!.data() as Map<String, dynamic>? ?? {};
+        final savedAggregatorUrl = (data['deliveryAggregatorUrl'] as String? ?? '').trim();
+        final autoSyncEnabled = data['autoSyncEnabled'] as bool? ?? true;
+        final lastAggregatorSyncAt = data['lastAggregatorSyncAt'] as Timestamp?;
+        final lastAggregatorSyncStatus = data['lastAggregatorSyncStatus'] as String? ?? '';
+        final lastAggregatorSyncFound = data['lastAggregatorSyncFound'] as int? ?? 0;
+
         if (!_hasLoadedInitial) {
           final gmConfigMap = data['gmConfig'] as Map<String, dynamic>? ?? {};
           final rawItems = (gmConfigMap['menuItems'] as List<dynamic>?) ?? [];
           _publishedItems = rawItems.map((e) => GmMenuItem.fromMap(e as Map<String, dynamic>)).toList();
+
+          final rawStaged = (data['stagedMenuItems'] as List<dynamic>?) ?? [];
+          if (rawStaged.isNotEmpty && _stagedItems.isEmpty) {
+            _stagedItems = rawStaged.map((e) => GmMenuItem.fromMap(e as Map<String, dynamic>)).toList();
+            for (int i = 0; i < _stagedItems.length; i++) {
+              _selectedStagedIndices.add(i);
+            }
+          }
+
+          if (savedAggregatorUrl.isNotEmpty && _urlCtrl.text.isEmpty) {
+            _urlCtrl.text = savedAggregatorUrl;
+          }
+
           _hasLoadedInitial = true;
         }
 
@@ -286,7 +422,13 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                   children: [
                     _buildHeader(),
                     const SizedBox(height: 24),
-                    _buildScraperControlCard(),
+                    _buildScraperControlCard(
+                      savedAggregatorUrl,
+                      autoSyncEnabled,
+                      lastAggregatorSyncAt,
+                      lastAggregatorSyncStatus,
+                      lastAggregatorSyncFound,
+                    ),
                     const SizedBox(height: 32),
                     if (_stagedItems.isNotEmpty) ...[
                       _buildStagingReviewSection(),
@@ -346,80 +488,326 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
     );
   }
 
-  Widget _buildScraperControlCard() {
+  Widget _buildScraperControlCard(
+    String savedUrl,
+    bool autoSyncEnabled,
+    Timestamp? lastSyncAt,
+    String lastSyncStatus,
+    int lastSyncFound,
+  ) {
+    final hasSavedUrl = savedUrl.isNotEmpty;
+    final isEditing = _isEditingSavedUrl || !hasSavedUrl;
+
+    String platformName = "Агрегатор доставки";
+    Color platformColor = AppColors.accentOrange;
+    IconData platformIcon = CupertinoIcons.bag_fill;
+
+    final lowerUrl = savedUrl.toLowerCase();
+    if (lowerUrl.contains("grab")) {
+      platformName = "GrabFood";
+      platformColor = CupertinoColors.activeGreen;
+      platformIcon = CupertinoIcons.bolt_fill;
+    } else if (lowerUrl.contains("zomato")) {
+      platformName = "Zomato";
+      platformColor = Colors.redAccent;
+      platformIcon = CupertinoIcons.flame_fill;
+    } else if (lowerUrl.contains("glovo")) {
+      platformName = "Glovo";
+      platformColor = Colors.amber;
+      platformIcon = CupertinoIcons.cart_fill;
+    }
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.macosSurfaceBg,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.macosDivider),
+        border: Border.all(
+          color: hasSavedUrl && !isEditing
+              ? platformColor.withOpacity(0.35)
+              : AppColors.macosDivider,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // 1. Header
           Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.accentOrange.withOpacity(0.15),
+                  color: (hasSavedUrl ? platformColor : AppColors.accentOrange).withOpacity(0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(CupertinoIcons.cloud_download_fill, color: AppColors.accentOrange, size: 20),
+                child: Icon(
+                  hasSavedUrl ? platformIcon : CupertinoIcons.cloud_download_fill,
+                  color: hasSavedUrl ? platformColor : AppColors.accentOrange,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text("Импорт из агрегаторов еды", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
-                    Text("Поддерживаются: GrabFood (VN/TH), Zomato (AE/IN), Glovo, Talabat, сайты заведений", style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 11)),
+                    Row(
+                      children: [
+                        Text(
+                          hasSavedUrl
+                              ? "$platformName • Источник меню"
+                              : "Импорт и автосинхронизация меню",
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                        if (hasSavedUrl && !isEditing) ...[
+                          const SizedBox(width: 10),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: (autoSyncEnabled ? CupertinoColors.activeGreen : Colors.grey).withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: (autoSyncEnabled ? CupertinoColors.activeGreen : Colors.grey).withOpacity(0.4),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  autoSyncEnabled ? CupertinoIcons.repeat : CupertinoIcons.pause,
+                                  size: 11,
+                                  color: autoSyncEnabled ? CupertinoColors.activeGreen : Colors.white70,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  autoSyncEnabled ? "Автосинхронизация 2 раза/сут" : "Автосинхронизация на паузе",
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: autoSyncEnabled ? CupertinoColors.activeGreen : Colors.white70,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      hasSavedUrl
+                          ? "Меню автоматически сверяется в 04:00 и 16:00. Новые блюда направляются на модерацию."
+                          : "Поддерживаются: GrabFood (VN/TH), Zomato (AE/IN), Glovo, Talabat, сайты заведений",
+                      style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 11),
+                    ),
                   ],
                 ),
               ),
             ],
           ),
+
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: CupertinoTextField(
-                  controller: _urlCtrl,
-                  placeholder: "https://food.grab.com/vn/en/restaurant/... или https://www.zomato.com/dubai/...",
-                  placeholderStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13),
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.4),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white.withOpacity(0.15)),
+
+          // 2. Body: Either Connected View or Edit/Input View
+          if (hasSavedUrl && !isEditing) ...[
+            // Connected Link Box
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.35),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withOpacity(0.08)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(CupertinoIcons.link, size: 14, color: AppColors.macosTextSecondary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      savedUrl,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Controls & Timestamps
+            Wrap(
+              spacing: 12,
+              runSpacing: 10,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                // Last sync info
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(CupertinoIcons.clock, size: 13, color: AppColors.macosTextSecondary),
+                    const SizedBox(width: 6),
+                    Text(
+                      "Сверка: ${_formatTimestamp(lastSyncAt)}",
+                      style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 12),
+                    ),
+                    if (lastSyncFound > 0) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          "+$lastSyncFound новых",
+                          style: const TextStyle(color: Colors.amber, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+
+                // AutoSync toggle
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text("Автообновление: ", style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 12)),
+                    Transform.scale(
+                      scale: 0.75,
+                      child: CupertinoSwitch(
+                        value: autoSyncEnabled,
+                        activeColor: CupertinoColors.activeGreen,
+                        onChanged: _toggleAutoSync,
+                      ),
+                    ),
+                  ],
+                ),
+
+                // Action buttons: Sync Now, Edit, Delete
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  onPressed: () {
+                    setState(() {
+                      _isEditingSavedUrl = true;
+                      _urlCtrl.text = savedUrl;
+                    });
+                  },
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.pencil, size: 14, color: Colors.white70),
+                      SizedBox(width: 6),
+                      Text("Изменить", style: TextStyle(color: Colors.white, fontSize: 12)),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                color: CupertinoColors.activeGreen,
-                borderRadius: BorderRadius.circular(8),
-                onPressed: _isScraping ? null : _triggerScrape,
-                child: _isScraping
-                    ? const Row(
-                        children: [
-                          CupertinoActivityIndicator(color: Colors.white),
-                          SizedBox(width: 8),
-                          Text("Парсинг...", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
-                        ],
-                      )
-                    : const Row(
-                        children: [
-                          Icon(CupertinoIcons.bolt_fill, size: 16, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text("Спарсить меню", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
-                        ],
-                      ),
-              ),
-            ],
-          ),
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  color: Colors.red.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  onPressed: _confirmDeleteAggregatorUrl,
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.trash, size: 14, color: Colors.redAccent),
+                      SizedBox(width: 6),
+                      Text("Отвязать", style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  color: CupertinoColors.activeGreen,
+                  borderRadius: BorderRadius.circular(8),
+                  onPressed: _isScraping ? null : () => _triggerScrape(savedUrl),
+                  child: _isScraping
+                      ? const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CupertinoActivityIndicator(color: Colors.white),
+                            SizedBox(width: 6),
+                            Text("Синхронизация...", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                          ],
+                        )
+                      : const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(CupertinoIcons.arrow_2_circlepath, size: 14, color: Colors.white),
+                            SizedBox(width: 6),
+                            Text("Синхронизировать сейчас", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // Input/Edit Mode
+            Row(
+              children: [
+                Expanded(
+                  child: CupertinoTextField(
+                    controller: _urlCtrl,
+                    placeholder: "Вставьте ссылку на ресторан в GrabFood, Zomato, Glovo или сайт...",
+                    placeholderStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13),
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.4),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white.withOpacity(0.15)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                if (hasSavedUrl) ...[
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    onPressed: () => setState(() => _isEditingSavedUrl = false),
+                    child: const Text("Отмена", style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  color: CupertinoColors.activeGreen,
+                  borderRadius: BorderRadius.circular(8),
+                  onPressed: _isScraping ? null : () => _triggerScrape(_urlCtrl.text),
+                  child: _isScraping
+                      ? const Row(
+                          children: [
+                            CupertinoActivityIndicator(color: Colors.white),
+                            SizedBox(width: 8),
+                            Text("Синхронизация...", style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                          ],
+                        )
+                      : Row(
+                          children: [
+                            const Icon(CupertinoIcons.bolt_fill, size: 16, color: Colors.white),
+                            const SizedBox(width: 8),
+                            Text(
+                              hasSavedUrl ? "Сохранить и спарсить" : "Подключить и спарсить",
+                              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+          ],
+
           if (_isScraping) ...[
             const SizedBox(height: 14),
             Row(
@@ -431,7 +819,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  "Apify Actor подключен. Gemini AI извлекает категории, цены и фото...",
+                  "Сверка актуального меню через Gemini AI: извлекаем категории, цены и описания...",
                   style: TextStyle(color: AppColors.accentOrange.withOpacity(0.9), fontSize: 12),
                 ),
               ],
@@ -481,11 +869,19 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
               Row(
                 children: [
                   CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    color: Colors.red.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    onPressed: _selectedStagedIndices.isEmpty ? null : _dismissSelectedStaged,
+                    child: const Text("Отклонить", style: TextStyle(color: Colors.redAccent, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: 8),
+                  CupertinoButton(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     color: Colors.white.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                     onPressed: _publishAllStaged,
-                    child: const Text("⚡ Опубликовать ВСЁ в 1 клик", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    child: const Text("⚡ Опубликовать ВСЁ", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(width: 10),
                   CupertinoButton(
@@ -493,7 +889,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                     color: AppColors.accentOrange,
                     borderRadius: BorderRadius.circular(8),
                     onPressed: _selectedStagedIndices.isEmpty ? null : _publishSelectedItems,
-                    child: Text("Опубликовать выбранные (${_selectedStagedIndices.length})", style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                    child: Text("Опубликовать (${_selectedStagedIndices.length})", style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
