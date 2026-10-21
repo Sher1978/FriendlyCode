@@ -1227,7 +1227,6 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: isChecked ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(10),
@@ -1235,69 +1234,145 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                     color: isChecked ? AppColors.accentOrange.withOpacity(0.5) : Colors.white.withOpacity(0.08),
                   ),
                 ),
-                child: Row(
-                  children: [
-                    CupertinoCheckbox(
-                      value: isChecked,
-                      activeColor: AppColors.accentOrange,
-                      onChanged: (val) {
-                        setState(() {
-                          if (val == true) {
-                            _selectedStagedIndices.add(realIdx);
-                          } else {
-                            _selectedStagedIndices.remove(realIdx);
-                          }
-                        });
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    _buildItemThumbnail(item.imageUrl, size: 52),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      flex: 4,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                          if (item.description.isNotEmpty)
-                            Text(item.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 11)),
-                          Text("Категория: ${item.category}", style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text("В агрегаторе: ${item.aggregatorPrice}", style: const TextStyle(color: Colors.grey, fontSize: 11, decoration: TextDecoration.lineThrough)),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text("Revo: ", style: TextStyle(color: CupertinoColors.activeGreen, fontSize: 11, fontWeight: FontWeight.bold)),
-                              SizedBox(
-                                width: 85,
-                                child: CupertinoTextField(
-                                  controller: TextEditingController(text: item.price),
-                                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.4),
-                                    borderRadius: BorderRadius.circular(4),
-                                    border: Border.all(color: Colors.white24),
+                child: Material(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        CupertinoCheckbox(
+                          value: isChecked,
+                          activeColor: AppColors.accentOrange,
+                          onChanged: (val) {
+                            setState(() {
+                              if (val == true) {
+                                _selectedStagedIndices.add(realIdx);
+                              } else {
+                                _selectedStagedIndices.remove(realIdx);
+                              }
+                            });
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        // Thumbnail with tap to view card/photo
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () => _openProductDetailDialog(item, isStaged: true, index: realIdx),
+                            child: Tooltip(
+                              message: "Нажмите для просмотра фото и деталей",
+                              child: Stack(
+                                children: [
+                                  _buildItemThumbnail(item.imageUrl, size: 54),
+                                  Positioned(
+                                    bottom: 2,
+                                    right: 2,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.7),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Icon(CupertinoIcons.zoom_in, size: 10, color: Colors.white70),
+                                    ),
                                   ),
-                                  onChanged: (newPrice) {
-                                    _stagedItems[realIdx] = item.copyWith(price: newPrice);
-                                  },
-                                ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        // Clickable title, description, and category
+                        Expanded(
+                          flex: 4,
+                          child: InkWell(
+                            onTap: () => _openProductDetailDialog(item, isStaged: true, index: realIdx),
+                            borderRadius: BorderRadius.circular(6),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          item.name,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      const Icon(CupertinoIcons.pencil, size: 12, color: AppColors.accentOrange),
+                                    ],
+                                  ),
+                                  if (item.description.isNotEmpty) ...[
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      item.description,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 11),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 2),
+                                  Text("Категория: ${item.category}", style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text("В агрегаторе: ${item.aggregatorPrice}", style: const TextStyle(color: Colors.grey, fontSize: 11, decoration: TextDecoration.lineThrough)),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text("Revo: ", style: TextStyle(color: CupertinoColors.activeGreen, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  SizedBox(
+                                    width: 85,
+                                    child: CupertinoTextField(
+                                      controller: TextEditingController(text: item.price),
+                                      style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.4),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.white24),
+                                      ),
+                                      onChanged: (newPrice) {
+                                        _stagedItems[realIdx] = item.copyWith(price: newPrice);
+                                      },
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 8),
+                        Tooltip(
+                          message: "Открыть карточку блюда",
+                          child: CupertinoButton(
+                            padding: const EdgeInsets.all(6),
+                            minSize: 32,
+                            color: Colors.white.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(6),
+                            onPressed: () => _openProductDetailDialog(item, isStaged: true, index: realIdx),
+                            child: const Icon(CupertinoIcons.square_pencil, color: Colors.white70, size: 16),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               );
             }),
@@ -1346,15 +1421,17 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                 color: Colors.white.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
                 onPressed: () {
+                  final newItem = GmMenuItem(
+                    id: "item_${DateTime.now().millisecondsSinceEpoch}",
+                    name: "Новое блюдо",
+                    category: "General",
+                    price: "0",
+                    isPublished: true,
+                  );
                   setState(() {
-                    _publishedItems.add(GmMenuItem(
-                      id: "item_${DateTime.now().millisecondsSinceEpoch}",
-                      name: "Новое блюдо",
-                      category: "General",
-                      price: "0",
-                      isPublished: true,
-                    ));
+                    _publishedItems.add(newItem);
                   });
+                  _openProductDetailDialog(newItem, isStaged: false, index: _publishedItems.length - 1);
                 },
                 child: const Row(
                   children: [
@@ -1386,56 +1463,281 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                 final item = _publishedItems[idx];
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.04),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.white.withOpacity(0.08)),
                   ),
-                  child: Row(
-                    children: [
-                      _buildItemThumbnail(item.imageUrl, size: 48),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(item.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                            Text("${item.category} • ${item.price}", style: const TextStyle(color: CupertinoColors.activeGreen, fontSize: 12, fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ),
-                      Row(
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
                         children: [
-                          // In stock toggle
-                          Text(item.isAvailable ? "В наличии" : "Стоп-лист", style: TextStyle(color: item.isAvailable ? Colors.green : Colors.red, fontSize: 11)),
-                          CupertinoSwitch(
-                            value: item.isAvailable,
-                            activeColor: CupertinoColors.activeGreen,
-                            onChanged: (val) {
-                              setState(() {
-                                _publishedItems[idx] = item.copyWith(isAvailable: val);
-                              });
-                            },
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () => _openProductDetailDialog(item, isStaged: false, index: idx),
+                              child: Tooltip(
+                                message: "Нажмите для просмотра фото и деталей",
+                                child: Stack(
+                                  children: [
+                                    _buildItemThumbnail(item.imageUrl, size: 52),
+                                    Positioned(
+                                      bottom: 2,
+                                      right: 2,
+                                      child: Container(
+                                        padding: const EdgeInsets.all(2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.7),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Icon(CupertinoIcons.zoom_in, size: 10, color: Colors.white70),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            icon: const Icon(CupertinoIcons.delete, color: Colors.redAccent, size: 18),
-                            onPressed: () {
-                              setState(() {
-                                _publishedItems.removeAt(idx);
-                              });
-                            },
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => _openProductDetailDialog(item, isStaged: false, index: idx),
+                              borderRadius: BorderRadius.circular(6),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            item.name,
+                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        const Icon(CupertinoIcons.pencil, size: 12, color: AppColors.accentOrange),
+                                      ],
+                                    ),
+                                    if (item.description.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        item.description,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 11),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      "${item.category} • ${item.price} ${item.currency}",
+                                      style: const TextStyle(color: CupertinoColors.activeGreen, fontSize: 12, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              // In stock toggle
+                              Text(item.isAvailable ? "В наличии" : "Стоп-лист", style: TextStyle(color: item.isAvailable ? Colors.green : Colors.red, fontSize: 11)),
+                              CupertinoSwitch(
+                                value: item.isAvailable,
+                                activeColor: CupertinoColors.activeGreen,
+                                onChanged: (val) {
+                                  setState(() {
+                                    _publishedItems[idx] = item.copyWith(isAvailable: val);
+                                  });
+                                  _savePublishedMenu();
+                                },
+                              ),
+                              const SizedBox(width: 6),
+                              Tooltip(
+                                message: "Редактировать карточку",
+                                child: CupertinoButton(
+                                  padding: const EdgeInsets.all(6),
+                                  minSize: 32,
+                                  color: Colors.white.withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(6),
+                                  onPressed: () => _openProductDetailDialog(item, isStaged: false, index: idx),
+                                  child: const Icon(CupertinoIcons.square_pencil, color: Colors.white70, size: 16),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                icon: const Icon(CupertinoIcons.delete, color: Colors.redAccent, size: 18),
+                                onPressed: () {
+                                  setState(() {
+                                    _publishedItems.removeAt(idx);
+                                  });
+                                  _savePublishedMenu();
+                                },
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
                 );
               }),
             ),
         ],
       ),
+    );
+  }
+
+  void _showFullScreenImage(String rawUrl) {
+    final safeUrl = _toCorsSafeImageUrl(rawUrl);
+    if (safeUrl.isEmpty) return;
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(24),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            InteractiveViewer(
+              panEnabled: true,
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  safeUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Container(
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text("Не удалось загрузить изображение", style: TextStyle(color: Colors.white70)),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 10,
+              right: 10,
+              child: CupertinoButton(
+                padding: const EdgeInsets.all(8),
+                color: Colors.black54,
+                borderRadius: BorderRadius.circular(30),
+                child: const Icon(CupertinoIcons.clear, color: Colors.white, size: 20),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openProductDetailDialog(GmMenuItem item, {required bool isStaged, required int index}) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return _ProductDetailDialog(
+          item: item,
+          isStaged: isStaged,
+          onSave: (updatedItem) async {
+            if (isStaged) {
+              setState(() {
+                final realIdx = _stagedItems.indexWhere((e) => e.id == item.id);
+                if (realIdx != -1) {
+                  _stagedItems[realIdx] = updatedItem;
+                } else if (index < _stagedItems.length) {
+                  _stagedItems[index] = updatedItem;
+                }
+              });
+              try {
+                await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
+                  'stagedMenuItems': _stagedItems.map((e) => e.toMap()).toList(),
+                });
+                _showToast("Блюдо «${updatedItem.name}» обновлено в модерации");
+              } catch (e) {
+                _showToast("Сохранено локально");
+              }
+            } else {
+              setState(() {
+                final realIdx = _publishedItems.indexWhere((e) => e.id == item.id);
+                if (realIdx != -1) {
+                  _publishedItems[realIdx] = updatedItem;
+                } else if (index < _publishedItems.length) {
+                  _publishedItems[index] = updatedItem;
+                }
+              });
+              _savePublishedMenu();
+            }
+          },
+          onPublishDirectly: isStaged
+              ? (updatedItem) async {
+                  setState(() {
+                    final realIdx = _stagedItems.indexWhere((e) => e.id == item.id);
+                    if (realIdx != -1) {
+                      _stagedItems.removeAt(realIdx);
+                      _selectedStagedIndices.remove(realIdx);
+                    }
+                    _publishedItems.add(updatedItem.copyWith(isPublished: true));
+                  });
+                  try {
+                    await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).set({
+                      'gmConfig': {
+                        'businessType': 'horeca',
+                        'menuItems': _publishedItems.map((e) => e.toMap()).toList(),
+                        'updatedAt': FieldValue.serverTimestamp(),
+                      },
+                      'stagedMenuItems': _stagedItems.map((e) => e.toMap()).toList(),
+                    }, SetOptions(merge: true));
+                    _showToast("Блюдо «${updatedItem.name}» опубликовано в меню!");
+                  } catch (e) {
+                    _showToast("Ошибка публикации: $e");
+                  }
+                }
+              : null,
+          onDelete: () async {
+            if (isStaged) {
+              setState(() {
+                final realIdx = _stagedItems.indexWhere((e) => e.id == item.id);
+                if (realIdx != -1) {
+                  _stagedItems.removeAt(realIdx);
+                  _selectedStagedIndices.remove(realIdx);
+                } else if (index < _stagedItems.length) {
+                  _stagedItems.removeAt(index);
+                  _selectedStagedIndices.remove(index);
+                }
+              });
+              try {
+                await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
+                  'stagedMenuItems': _stagedItems.map((e) => e.toMap()).toList(),
+                });
+                _showToast("Блюдо удалено из модерации");
+              } catch (_) {}
+            } else {
+              setState(() {
+                final realIdx = _publishedItems.indexWhere((e) => e.id == item.id);
+                if (realIdx != -1) {
+                  _publishedItems.removeAt(realIdx);
+                } else if (index < _publishedItems.length) {
+                  _publishedItems.removeAt(index);
+                }
+              });
+              _savePublishedMenu();
+            }
+          },
+          onShowFullScreen: (imageUrl) => _showFullScreenImage(imageUrl),
+        );
+      },
     );
   }
 
@@ -1488,17 +1790,479 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
       ),
     );
   }
+}
 
-  static String _toCorsSafeImageUrl(String url) {
-    final trimmed = url.trim();
-    if (trimmed.isEmpty) return '';
-    if (trimmed.startsWith('data:') || trimmed.contains('wsrv.nl')) {
-      return trimmed;
-    }
-    // In web mode, route external images without CORS headers through Cloudflare-backed proxy
-    if (kIsWeb) {
-      return 'https://wsrv.nl/?url=${Uri.encodeComponent(trimmed)}&default=1';
-    }
+String _toCorsSafeImageUrl(String url) {
+  final trimmed = url.trim();
+  if (trimmed.isEmpty) return '';
+  if (trimmed.startsWith('data:') || trimmed.contains('wsrv.nl')) {
     return trimmed;
+  }
+  // In web mode, route external images without CORS headers through Cloudflare-backed proxy
+  if (kIsWeb) {
+    return 'https://wsrv.nl/?url=${Uri.encodeComponent(trimmed)}&default=1';
+  }
+  return trimmed;
+}
+
+class _ProductDetailDialog extends StatefulWidget {
+  final GmMenuItem item;
+  final bool isStaged;
+  final Function(GmMenuItem) onSave;
+  final Function(GmMenuItem)? onPublishDirectly;
+  final VoidCallback onDelete;
+  final Function(String) onShowFullScreen;
+
+  const _ProductDetailDialog({
+    required this.item,
+    required this.isStaged,
+    required this.onSave,
+    this.onPublishDirectly,
+    required this.onDelete,
+    required this.onShowFullScreen,
+  });
+
+  @override
+  State<_ProductDetailDialog> createState() => _ProductDetailDialogState();
+}
+
+class _ProductDetailDialogState extends State<_ProductDetailDialog> {
+  late TextEditingController _nameCtrl;
+  late TextEditingController _categoryCtrl;
+  late TextEditingController _descCtrl;
+  late TextEditingController _priceCtrl;
+  late TextEditingController _aggPriceCtrl;
+  late TextEditingController _imageUrlCtrl;
+  late bool _isAvailable;
+  late String _currentImageUrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.item.name);
+    _categoryCtrl = TextEditingController(text: widget.item.category);
+    _descCtrl = TextEditingController(text: widget.item.description);
+    _priceCtrl = TextEditingController(text: widget.item.price);
+    _aggPriceCtrl = TextEditingController(text: widget.item.aggregatorPrice);
+    _imageUrlCtrl = TextEditingController(text: widget.item.imageUrl);
+    _isAvailable = widget.item.isAvailable;
+    _currentImageUrl = widget.item.imageUrl.trim();
+
+    _imageUrlCtrl.addListener(() {
+      final newUrl = _imageUrlCtrl.text.trim();
+      if (newUrl != _currentImageUrl) {
+        setState(() {
+          _currentImageUrl = newUrl;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _categoryCtrl.dispose();
+    _descCtrl.dispose();
+    _priceCtrl.dispose();
+    _aggPriceCtrl.dispose();
+    _imageUrlCtrl.dispose();
+    super.dispose();
+  }
+
+  GmMenuItem _buildUpdatedItem() {
+    return widget.item.copyWith(
+      name: _nameCtrl.text.trim(),
+      category: _categoryCtrl.text.trim().isEmpty ? 'General' : _categoryCtrl.text.trim(),
+      description: _descCtrl.text.trim(),
+      price: _priceCtrl.text.trim(),
+      aggregatorPrice: _aggPriceCtrl.text.trim(),
+      imageUrl: _currentImageUrl,
+      isAvailable: _isAvailable,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final safeUrl = _toCorsSafeImageUrl(_currentImageUrl);
+
+    return Dialog(
+      backgroundColor: const Color(0xFF1E1E22),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.white.withOpacity(0.12)),
+      ),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 580, maxHeight: 820),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Modal Top Header
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.white.withOpacity(0.08))),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: widget.isStaged
+                          ? AppColors.accentOrange.withOpacity(0.2)
+                          : (_isAvailable ? CupertinoColors.activeGreen.withOpacity(0.2) : Colors.red.withOpacity(0.2)),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: widget.isStaged
+                            ? AppColors.accentOrange
+                            : (_isAvailable ? CupertinoColors.activeGreen : Colors.red),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Text(
+                      widget.isStaged
+                          ? "НА МОДЕРАЦИИ"
+                          : (_isAvailable ? "В МЕНЮ • АКТИВНО" : "В МЕНЮ • СТОП-ЛИСТ"),
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: widget.isStaged
+                            ? AppColors.accentOrange
+                            : (_isAvailable ? CupertinoColors.activeGreen : Colors.redAccent),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      "Карточка позиции",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  CupertinoButton(
+                    padding: EdgeInsets.zero,
+                    minSize: 28,
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Icon(CupertinoIcons.xmark_circle_fill, color: Colors.white54, size: 24),
+                  ),
+                ],
+              ),
+            ),
+
+            // Scrollable Content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Large Photo Preview
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        height: 220,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.4),
+                          border: Border.all(color: Colors.white.withOpacity(0.1)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: _currentImageUrl.isNotEmpty
+                            ? Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  Image.network(
+                                    safeUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(CupertinoIcons.photo, size: 48, color: Colors.white.withOpacity(0.3)),
+                                          const SizedBox(height: 8),
+                                          const Text(
+                                            "Не удалось загрузить фото по ссылке",
+                                            style: TextStyle(color: Colors.white54, fontSize: 12),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    loadingBuilder: (context, child, progress) {
+                                      if (progress == null) return child;
+                                      return const Center(child: CupertinoActivityIndicator(radius: 14));
+                                    },
+                                  ),
+                                  // Click to view fullscreen overlay button
+                                  Positioned(
+                                    bottom: 12,
+                                    right: 12,
+                                    child: CupertinoButton(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      color: Colors.black.withOpacity(0.75),
+                                      borderRadius: BorderRadius.circular(8),
+                                      onPressed: () => widget.onShowFullScreen(_currentImageUrl),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(CupertinoIcons.fullscreen, size: 14, color: Colors.white),
+                                          SizedBox(width: 6),
+                                          Text("Открыть на весь экран", style: TextStyle(color: Colors.white, fontSize: 12)),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(CupertinoIcons.camera, size: 48, color: Colors.white.withOpacity(0.2)),
+                                    const SizedBox(height: 8),
+                                    const Text("Фото отсутствует", style: TextStyle(color: Colors.white54, fontSize: 13)),
+                                    const SizedBox(height: 4),
+                                    const Text("Вставьте ссылку на фото ниже", style: TextStyle(color: Colors.white38, fontSize: 11)),
+                                  ],
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Image URL field
+                    _buildLabel("Ссылка на фото (URL):"),
+                    CupertinoTextField(
+                      controller: _imageUrlCtrl,
+                      placeholder: "https://... (.jpg, .png, .webp)",
+                      placeholderStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Dish Name
+                    _buildLabel("Название блюда:"),
+                    CupertinoTextField(
+                      controller: _nameCtrl,
+                      placeholder: "Например: Медовик домашний",
+                      placeholderStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13),
+                      style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Category
+                    _buildLabel("Категория меню:"),
+                    CupertinoTextField(
+                      controller: _categoryCtrl,
+                      placeholder: "Например: Десерты / Завтраки / Супы",
+                      placeholderStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Detailed Description
+                    _buildLabel("Подробное описание и состав:"),
+                    CupertinoTextField(
+                      controller: _descCtrl,
+                      placeholder: "Состав блюда, граммовка, аллергены, особенности приготовления...",
+                      placeholderStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13),
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      minLines: 3,
+                      maxLines: 5,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Pricing Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel("В агрегаторе (Grab):"),
+                              CupertinoTextField(
+                                controller: _aggPriceCtrl,
+                                placeholder: "0",
+                                placeholderStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13),
+                                style: const TextStyle(color: Colors.grey, fontSize: 13),
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildLabel("В приложении Revo:"),
+                              CupertinoTextField(
+                                controller: _priceCtrl,
+                                placeholder: "0",
+                                placeholderStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 13),
+                                style: const TextStyle(color: CupertinoColors.activeGreen, fontSize: 14, fontWeight: FontWeight.bold),
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.3),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: CupertinoColors.activeGreen.withOpacity(0.4)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+
+                    // In-stock availability toggle
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.25),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white.withOpacity(0.08)),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text("Доступность для заказа:", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _isAvailable ? "В наличии — гости могут заказывать блюдо" : "В стоп-листе — блюдо временно недоступно",
+                                  style: TextStyle(
+                                    color: _isAvailable ? CupertinoColors.activeGreen : Colors.redAccent,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          CupertinoSwitch(
+                            value: _isAvailable,
+                            activeColor: CupertinoColors.activeGreen,
+                            onChanged: (val) => setState(() => _isAvailable = val),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Modal Footer Buttons
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: Colors.white.withOpacity(0.08))),
+              ),
+              child: Row(
+                children: [
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    color: Colors.red.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    onPressed: () {
+                      widget.onDelete();
+                      Navigator.of(context).pop();
+                    },
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(CupertinoIcons.trash, color: Colors.redAccent, size: 14),
+                        SizedBox(width: 4),
+                        Text("Удалить", style: TextStyle(color: Colors.redAccent, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  if (widget.isStaged && widget.onPublishDirectly != null) ...[
+                    CupertinoButton(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      color: AppColors.accentOrange,
+                      borderRadius: BorderRadius.circular(8),
+                      onPressed: () {
+                        widget.onPublishDirectly!(_buildUpdatedItem());
+                        Navigator.of(context).pop();
+                      },
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(CupertinoIcons.checkmark_alt, size: 14, color: Colors.black),
+                          SizedBox(width: 4),
+                          Text("В боевое меню", style: TextStyle(color: Colors.black, fontSize: 12, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(8),
+                    onPressed: () {
+                      widget.onSave(_buildUpdatedItem());
+                      Navigator.of(context).pop();
+                    },
+                    child: const Text("Сохранить", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: Colors.white.withOpacity(0.7),
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
   }
 }

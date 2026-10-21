@@ -78,6 +78,36 @@ async function fetchRawMenuContent(targetUrl, apifyToken) {
   const platform = detectPlatform(resolvedUrl);
   console.log(`[MenuScraper] Fetching for ${platform} from URL: ${resolvedUrl}`);
 
+  // Approach 0: Direct Grab API Optimization: Grab has a public guest endpoint with 100% complete menu & photos
+  if (platform === 'grab') {
+    const grabMatch = resolvedUrl.match(/(5-[A-Za-z0-9]+)/);
+    if (grabMatch && grabMatch[1]) {
+      const grabId = grabMatch[1];
+      try {
+        console.log(`[MenuScraper] Direct Grab API fetch for merchant ${grabId}...`);
+        const grabApiRes = await fetch(`https://portal.grab.com/foodweb/guest/v2/merchants/${grabId}?latlng=21.0278,105.8342`, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json'
+          }
+        });
+        if (grabApiRes.ok) {
+          const grabData = await grabApiRes.json();
+          if (grabData && grabData.merchant && grabData.merchant.menu) {
+            console.log(`[MenuScraper] Direct Grab API returned ${grabData.merchant.menu.categories ? grabData.merchant.menu.categories.length : 0} categories!`);
+            return {
+              content: JSON.stringify(grabData.merchant.menu),
+              method: 'grab_direct_api',
+              platform: 'grab'
+            };
+          }
+        }
+      } catch (grabErr) {
+        console.warn(`[MenuScraper] Direct Grab API error: ${grabErr.message}`);
+      }
+    }
+  }
+
   // Approach 1: Try Jina Reader as fastest high-signal text extractor
   try {
     const jinaUrl = `https://r.jina.ai/${resolvedUrl}`;
@@ -162,6 +192,37 @@ async function fetchRawMenuContent(targetUrl, apifyToken) {
  * Parse raw text/HTML with Gemini into structured GmMenuItem array
  */
 async function parseMenuWithGemini(rawContent, platform, venueCountry = 'VN') {
+  // Direct Grab JSON parse optimization: 100% precision, all photos preserved
+  if (platform === 'grab' && rawContent.startsWith('{"categories":')) {
+    try {
+      const menu = JSON.parse(rawContent);
+      const items = [];
+      for (const cat of (menu.categories || [])) {
+        for (const it of (cat.items || [])) {
+          const rawPrice = it.priceInMinorUnit ? it.priceInMinorUnit.toString() : (it.price || '0').toString();
+          items.push({
+            id: it.ID || ('grab_' + Math.random().toString(36).slice(2, 9)),
+            category: cat.name || 'General',
+            name: it.name || '',
+            description: it.description || '',
+            aggregatorPrice: rawPrice,
+            price: rawPrice,
+            currency: it.currency || (venueCountry === 'VN' ? 'VND' : 'USD'),
+            imageUrl: (it.images && it.images[0]) || it.imgHref || '',
+            isPublished: true,
+            isAvailable: it.available !== false
+          });
+        }
+      }
+      if (items.length > 0) {
+        console.log(`[MenuScraper] Direct Grab API parser successfully extracted ${items.length} items with photos!`);
+        return items;
+      }
+    } catch (e) {
+      console.warn(`[MenuScraper] Direct Grab JSON parse fallback to Gemini: ${e.message}`);
+    }
+  }
+
   const model = getGeminiModel();
   
   const prompt = `
