@@ -4114,7 +4114,9 @@ exports.onMenuScrapeJobCreated = onDocumentCreated("venues/{venueId}/scrape_jobs
     try {
         await executeScrapeJob(venueId, url, {
             autoPublish: !!data.autoPublish,
-            mirrorImages: data.mirrorImages !== false
+            jobId: jobId,
+            autoPublish: !!data.autoPublish,
+            mirrorImages: false
         });
     } catch (err) {
         logger.error(`[onMenuScrapeJobCreated] Failed for job ${jobId}:`, err);

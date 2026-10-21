@@ -54,8 +54,8 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
       final result = await callable.call({
         'venueId': widget.venueId,
         'url': url,
-        'mirrorImages': true,
-      }).timeout(const Duration(seconds: 45));
+        'mirrorImages': false,
+      }).timeout(const Duration(seconds: 90));
 
       if (!mounted) return;
       final rawData = result.data as Map<dynamic, dynamic>? ?? {};
@@ -90,6 +90,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
         'jobId': jobId,
         'venueId': widget.venueId,
         'url': url,
+        'mirrorImages': false,
         'status': 'pending',
         'createdAt': FieldValue.serverTimestamp(),
         'itemsCount': 0,

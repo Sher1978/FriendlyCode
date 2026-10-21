@@ -262,7 +262,7 @@ async function executeScrapeJob(venueId, url, options = {}) {
   const db = getDb();
   const resolvedUrl = await resolveRedirectUrl(url);
   const platform = detectPlatform(resolvedUrl);
-  const jobId = `job_${Date.now()}`;
+  const jobId = options.jobId || `job_${Date.now()}`;
 
   const jobRef = db.collection('venues').doc(venueId).collection('scrape_jobs').doc(jobId);
   await jobRef.set({
@@ -289,10 +289,10 @@ async function executeScrapeJob(venueId, url, options = {}) {
 
     const items = await parseMenuWithGemini(content, platform, country);
 
-    // 3. Optional batch mirror images
-    if (options.mirrorImages && items.length > 0) {
+    // 3. Optional batch mirror images (skipped by default to ensure < 15s speed)
+    if (options.mirrorImages === true && items.length > 0) {
       console.log(`[MenuScraper] Mirroring images for ${items.length} items...`);
-      for (let i = 0; i < Math.min(items.length, 30); i++) {
+      for (let i = 0; i < Math.min(items.length, 10); i++) {
         if (items[i].imageUrl) {
           items[i].imageUrl = await mirrorImageToStorage(items[i].imageUrl, venueId, items[i].id);
         }
