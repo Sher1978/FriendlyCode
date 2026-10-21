@@ -25,6 +25,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
   double _scrapeProgress = 0.0;
   String _scrapeStepText = '';
   String? _scrapeError;
+  String? _activeJobId;
   StreamSubscription<DocumentSnapshot>? _activeJobSubscription;
 
   // Staging items from scrapers
@@ -45,6 +46,18 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
     super.dispose();
   }
 
+  void _cancelActiveScrape() {
+    _activeJobSubscription?.cancel();
+    setState(() {
+      _isScraping = false;
+      _activeJobId = null;
+      _scrapeProgress = 0.0;
+      _scrapeStepText = '';
+      _scrapeError = null;
+    });
+    _showToast("Синхронизация остановлена");
+  }
+
   void _triggerScrape([String? customUrl]) async {
     final url = (customUrl ?? _urlCtrl.text).trim();
     if (url.isEmpty) {
@@ -56,6 +69,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
 
     setState(() {
       _isScraping = true;
+      _activeJobId = jobId;
       _scrapeProgress = 0.10;
       _scrapeStepText = "Подключение к агрегатору доставки...";
       _scrapeError = null;
@@ -405,43 +419,46 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
               .limit(1)
               .snapshots(),
           builder: (context, jobSnap) {
-            if (jobSnap.hasData && jobSnap.data!.docs.isNotEmpty) {
+            if (_isScraping && _activeJobId != null && jobSnap.hasData && jobSnap.data!.docs.isNotEmpty) {
               final latestJob = jobSnap.data!.docs.first.data() as Map<String, dynamic>;
-              final status = latestJob['status'] as String? ?? '';
-              final progressNum = latestJob['progress'] as num?;
-              final currentStep = latestJob['currentStep'] as String? ?? '';
-              final rawScraped = (latestJob['items'] as List<dynamic>?) ?? [];
-              
-              if (status == 'running' || status == 'pending') {
-                _isScraping = true;
-                if (progressNum != null) {
-                  _scrapeProgress = (progressNum.toDouble() / 100.0).clamp(0.05, 1.0);
-                }
-                if (currentStep.isNotEmpty) {
-                  _scrapeStepText = currentStep;
-                }
-                if (rawScraped.isNotEmpty && _stagedItems.isEmpty) {
-                  _stagedItems = rawScraped.map((e) => GmMenuItem.fromMap(e as Map<String, dynamic>)).toList();
-                  _selectedStagedIndices.clear();
-                  for (int i = 0; i < _stagedItems.length; i++) {
-                    _selectedStagedIndices.add(i);
+              if (latestJob['jobId'] == _activeJobId) {
+                final status = latestJob['status'] as String? ?? '';
+                final progressNum = latestJob['progress'] as num?;
+                final currentStep = latestJob['currentStep'] as String? ?? '';
+                final rawScraped = (latestJob['items'] as List<dynamic>?) ?? [];
+                
+                if (status == 'running' || status == 'pending') {
+                  if (progressNum != null) {
+                    _scrapeProgress = (progressNum.toDouble() / 100.0).clamp(0.05, 1.0);
                   }
-                }
-              } else if (status == 'completed' && _isScraping) {
-                _isScraping = false;
-                _scrapeProgress = 1.0;
-                _scrapeStepText = "Синхронизация завершена. Меню актуально!";
-                if (rawScraped.isNotEmpty) {
-                  _stagedItems = rawScraped.map((e) => GmMenuItem.fromMap(e as Map<String, dynamic>)).toList();
-                  _selectedStagedIndices.clear();
-                  for (int i = 0; i < _stagedItems.length; i++) {
-                    _selectedStagedIndices.add(i);
+                  if (currentStep.isNotEmpty) {
+                    _scrapeStepText = currentStep;
                   }
+                  if (rawScraped.isNotEmpty) {
+                    final parsed = rawScraped.map((e) => GmMenuItem.fromMap(e as Map<String, dynamic>)).toList();
+                    _stagedItems = parsed;
+                    _selectedStagedIndices.clear();
+                    for (int i = 0; i < _stagedItems.length; i++) {
+                      _selectedStagedIndices.add(i);
+                    }
+                  }
+                } else if (status == 'completed') {
+                  _isScraping = false;
+                  _scrapeProgress = 1.0;
+                  _scrapeStepText = "Синхронизация завершена. Меню актуально!";
+                  if (rawScraped.isNotEmpty) {
+                    final parsed = rawScraped.map((e) => GmMenuItem.fromMap(e as Map<String, dynamic>)).toList();
+                    _stagedItems = parsed;
+                    _selectedStagedIndices.clear();
+                    for (int i = 0; i < _stagedItems.length; i++) {
+                      _selectedStagedIndices.add(i);
+                    }
+                  }
+                } else if (status == 'failed' || status == 'error') {
+                  _isScraping = false;
+                  _scrapeError = latestJob['error'] as String? ?? 'Ошибка парсинга';
+                  _scrapeStepText = "Ошибка: ${_scrapeError!}";
                 }
-              } else if (status == 'failed' && _isScraping) {
-                _isScraping = false;
-                _scrapeError = latestJob['error'] as String? ?? 'Ошибка парсинга';
-                _scrapeStepText = "Ошибка: ${_scrapeError!}";
               }
             }
 
@@ -461,7 +478,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                       lastAggregatorSyncStatus,
                       lastAggregatorSyncFound,
                     ),
-                    if (_isScraping || _scrapeProgress > 0.0 || _scrapeError != null) ...[
+                    if (_isScraping || (_scrapeProgress >= 1.0 && _stagedItems.isNotEmpty) || _scrapeError != null) ...[
                       const SizedBox(height: 20),
                       _buildScrapeProgressCard(),
                     ],
@@ -1011,7 +1028,16 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                   ],
                 ],
               ),
-              if (isDone)
+              if (_isScraping)
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  minSize: 0,
+                  color: Colors.white.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(6),
+                  onPressed: _cancelActiveScrape,
+                  child: const Text("✕ Отмена", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                )
+              else if (isDone || isError)
                 CupertinoButton(
                   padding: EdgeInsets.zero,
                   minSize: 0,
@@ -1019,6 +1045,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                     setState(() {
                       _scrapeProgress = 0.0;
                       _scrapeStepText = '';
+                      _scrapeError = null;
                     });
                   },
                   child: const Text("Скрыть", style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 12)),
