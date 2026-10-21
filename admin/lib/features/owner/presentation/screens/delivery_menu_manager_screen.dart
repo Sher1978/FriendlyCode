@@ -4,7 +4,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/theme/colors.dart';
-import 'package:friendly_code/core/services/direct_menu_scraper_service.dart';
 
 class DeliveryMenuManagerScreen extends StatefulWidget {
   final String venueId;
@@ -45,29 +44,9 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
       _isScraping = true;
     });
 
-    // 1. Direct browser extraction via Jina + Gemini 2.5 Flash (resolves r.grab.com, zero Firestore permission dependency)
-    try {
-      _showToast("Парсинг запущен: извлечение меню через Gemini AI...");
-      final items = await DirectMenuScraperService.scrapeMenu(url);
+    _showToast("Парсинг запущен через Cloud Functions & Gemini AI...");
 
-      if (!mounted) return;
-      setState(() {
-        _stagedItems = items;
-        _selectedStagedIndices.clear();
-        for (int i = 0; i < _stagedItems.length; i++) {
-          _selectedStagedIndices.add(i);
-        }
-        _isScraping = false;
-      });
-      _showToast("Готово! Загружено ${items.length} блюд в зону модерации");
-      return;
-    } catch (directErr) {
-      debugPrint("[DeliveryMenuManager] DirectMenuScraperService error: $directErr");
-    }
-
-    final jobId = "job_${DateTime.now().millisecondsSinceEpoch}";
-
-    // 2. Cloud Function callable fallback
+    // 1. Primary Strategy: Serverless Cloud Function (zero CORS, resolves redirects & Grab mobile links)
     try {
       final callable = FirebaseFunctions.instanceFor(region: 'asia-south1')
           .httpsCallable('scrapeMenuCallable');
@@ -76,28 +55,31 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
         'venueId': widget.venueId,
         'url': url,
         'mirrorImages': true,
-      });
+      }).timeout(const Duration(seconds: 45));
 
       if (!mounted) return;
       final rawData = result.data as Map<dynamic, dynamic>? ?? {};
       final rawItems = (rawData['items'] as List<dynamic>?) ?? [];
       final parsed = rawItems.map((e) => GmMenuItem.fromMap(Map<String, dynamic>.from(e))).toList();
 
-      setState(() {
-        _stagedItems = parsed;
-        _selectedStagedIndices.clear();
-        for (int i = 0; i < _stagedItems.length; i++) {
-          _selectedStagedIndices.add(i);
-        }
-        _isScraping = false;
-      });
-      _showToast("Готово! Загружено ${parsed.length} блюд в зону модерации");
-      return;
+      if (parsed.isNotEmpty) {
+        setState(() {
+          _stagedItems = parsed;
+          _selectedStagedIndices.clear();
+          for (int i = 0; i < _stagedItems.length; i++) {
+            _selectedStagedIndices.add(i);
+          }
+          _isScraping = false;
+        });
+        _showToast("Готово! Загружено ${parsed.length} блюд в зону модерации");
+        return;
+      }
     } catch (callableErr) {
       debugPrint("[DeliveryMenuManager] Direct callable error: $callableErr. Falling back to Firestore job...");
     }
 
-    // 3. Firestore scrape_jobs document fallback
+    // 2. Firestore scrape_jobs document fallback
+    final jobId = "job_${DateTime.now().millisecondsSinceEpoch}";
     try {
       await FirebaseFirestore.instance
           .collection('venues')
