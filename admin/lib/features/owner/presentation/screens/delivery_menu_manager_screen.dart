@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -1250,20 +1251,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                       },
                     ),
                     const SizedBox(width: 8),
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        image: (item.imageUrl.isNotEmpty)
-                            ? DecorationImage(image: NetworkImage(item.imageUrl), fit: BoxFit.cover)
-                            : null,
-                      ),
-                      child: item.imageUrl.isEmpty
-                          ? const Icon(CupertinoIcons.photo, color: Colors.white30, size: 24)
-                          : null,
-                    ),
+                    _buildItemThumbnail(item.imageUrl, size: 52),
                     const SizedBox(width: 14),
                     Expanded(
                       flex: 4,
@@ -1406,18 +1394,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          image: (item.imageUrl.isNotEmpty)
-                              ? DecorationImage(image: NetworkImage(item.imageUrl), fit: BoxFit.cover)
-                              : null,
-                        ),
-                        child: item.imageUrl.isEmpty ? const Icon(CupertinoIcons.photo, color: Colors.white24, size: 20) : null,
-                      ),
+                      _buildItemThumbnail(item.imageUrl, size: 48),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
@@ -1460,5 +1437,68 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildItemThumbnail(String rawUrl, {double size = 52}) {
+    if (rawUrl.isEmpty) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(CupertinoIcons.photo, color: Colors.white24, size: size * 0.45),
+      );
+    }
+
+    final safeUrl = _toCorsSafeImageUrl(rawUrl);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        width: size,
+        height: size,
+        color: Colors.white.withOpacity(0.06),
+        child: Image.network(
+          safeUrl,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              width: size,
+              height: size,
+              color: Colors.white.withOpacity(0.08),
+              child: Icon(CupertinoIcons.photo, color: Colors.white24, size: size * 0.45),
+            );
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              width: size,
+              height: size,
+              color: Colors.white.withOpacity(0.05),
+              child: const Center(
+                child: CupertinoActivityIndicator(radius: 8),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  static String _toCorsSafeImageUrl(String url) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return '';
+    if (trimmed.startsWith('data:') || trimmed.contains('wsrv.nl')) {
+      return trimmed;
+    }
+    // In web mode, route external images without CORS headers through Cloudflare-backed proxy
+    if (kIsWeb) {
+      return 'https://wsrv.nl/?url=${Uri.encodeComponent(trimmed)}&default=1';
+    }
+    return trimmed;
   }
 }
