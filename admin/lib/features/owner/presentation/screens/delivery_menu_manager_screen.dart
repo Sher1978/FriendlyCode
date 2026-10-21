@@ -31,6 +31,15 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
   List<GmMenuItem> _stagedItems = [];
   final Set<int> _selectedStagedIndices = {};
   String _selectedCategoryFilter = 'ALL';
+  final Map<String, TextEditingController> _priceControllers = {};
+
+  TextEditingController _getPriceController(String id, String price) {
+    final ctrl = _priceControllers.putIfAbsent(id, () => TextEditingController(text: price));
+    if (ctrl.text != price) {
+      ctrl.text = price;
+    }
+    return ctrl;
+  }
 
   // Active published menu items
   List<GmMenuItem> _publishedItems = [];
@@ -42,6 +51,9 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
     _activeJobSubscription?.cancel();
     _urlCtrl.dispose();
     _editUrlCtrl.dispose();
+    for (final c in _priceControllers.values) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -318,23 +330,64 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
     return "$day.$month в $hour:$minute";
   }
 
-  void _applyMassPriceDiscount(double discountFraction) {
+  void _applyMassPriceDiscount(double discountFraction) async {
     if (_stagedItems.isEmpty) return;
 
+    // If no checkboxes are explicitly checked, apply to all items matching current filter (or all staged)
+    final bool applyToAll = _selectedStagedIndices.isEmpty;
+    final Set<int> targetIndices = applyToAll
+        ? List.generate(_stagedItems.length, (i) => i).where((i) {
+            if (_selectedCategoryFilter == 'ALL') return true;
+            return _stagedItems[i].category == _selectedCategoryFilter;
+          }).toSet()
+        : Set<int>.from(_selectedStagedIndices);
+
+    if (targetIndices.isEmpty) {
+      _showToast("Нет позиций для применения скидки");
+      return;
+    }
+
     setState(() {
-      for (int i = 0; i < _stagedItems.length; i++) {
-        if (_selectedStagedIndices.contains(i)) {
+      for (final i in targetIndices) {
+        if (i >= 0 && i < _stagedItems.length) {
           final item = _stagedItems[i];
-          final rawAggPrice = item.aggregatorPrice.replaceAll(RegExp(r'[^\d.]'), '');
+          var rawAggPrice = item.aggregatorPrice.replaceAll(RegExp(r'[^\d.]'), '');
+          if (rawAggPrice.isEmpty) {
+            rawAggPrice = item.price.replaceAll(RegExp(r'[^\d.]'), '');
+          }
           final numPrice = double.tryParse(rawAggPrice) ?? 0.0;
           if (numPrice > 0) {
-            final discounted = (numPrice * (1.0 - discountFraction)).round();
-            _stagedItems[i] = item.copyWith(price: discounted.toString());
+            final discounted = discountFraction > 0.0
+                ? (numPrice * (1.0 - discountFraction)).round()
+                : numPrice.round();
+            final priceStr = discounted.toString();
+            _stagedItems[i] = item.copyWith(price: priceStr);
+
+            // Update cached controller text immediately so UI updates in real-time
+            if (_priceControllers.containsKey(item.id)) {
+              _priceControllers[item.id]!.text = priceStr;
+            }
           }
         }
       }
+      if (applyToAll) {
+        _selectedStagedIndices.addAll(targetIndices);
+      }
     });
-    _showToast("Цены пересчитаны со скидкой ${(discountFraction * 100).toInt()}%");
+
+    try {
+      await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
+        'stagedMenuItems': _stagedItems.map((e) => e.toMap()).toList(),
+      });
+    } catch (e) {
+      debugPrint("[DeliveryMenuManager] Persist discount error: $e");
+    }
+
+    if (discountFraction == 0.0) {
+      _showToast("Цены сброшены 1 в 1 с агрегатором (${targetIndices.length} позиций)");
+    } else {
+      _showToast("Цены пересчитаны со скидкой ${(discountFraction * 100).toInt()}% (${targetIndices.length} позиций)");
+    }
   }
 
   void _publishSelectedItems() async {
@@ -1191,6 +1244,32 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
               _buildSmallDiscountBtn("-20%", 0.20),
               const SizedBox(width: 6),
               _buildSmallDiscountBtn("1 в 1", 0.0),
+              const SizedBox(width: 12),
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                color: Colors.white.withOpacity(0.06),
+                borderRadius: BorderRadius.circular(6),
+                onPressed: () {
+                  setState(() {
+                    if (_selectedStagedIndices.length == _stagedItems.length) {
+                      _selectedStagedIndices.clear();
+                    } else {
+                      _selectedStagedIndices.clear();
+                      for (int i = 0; i < _stagedItems.length; i++) {
+                        _selectedStagedIndices.add(i);
+                      }
+                    }
+                  });
+                },
+                child: Text(
+                  _selectedStagedIndices.length == _stagedItems.length ? "Снять выбор" : "Выбрать все",
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _selectedStagedIndices.length == _stagedItems.length ? Colors.amber : Colors.white70,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -1340,7 +1419,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                                   SizedBox(
                                     width: 85,
                                     child: CupertinoTextField(
-                                      controller: TextEditingController(text: item.price),
+                                      controller: _getPriceController(item.id, item.price),
                                       style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
                                       decoration: BoxDecoration(
