@@ -124,42 +124,48 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
       debugPrint("[DeliveryMenuManager] Job doc create error: $createErr");
     }
 
-    // Fail-safe: if Cloud Function has not updated within 4s, check for latest completed dishes
-    Timer(const Duration(milliseconds: 3800), () async {
-      if (!mounted || !_isScraping || _activeJobId != jobId) return;
-      if (_scrapeProgress <= 0.15 && _stagedItems.isEmpty) {
-        debugPrint("[DeliveryMenuManager] Running resilient fallback sync check...");
-        try {
-          final querySnap = await FirebaseFirestore.instance
-              .collection('venues')
-              .doc(widget.venueId)
-              .collection('scrape_jobs')
-              .where('status', isEqualTo: 'completed')
-              .limit(1)
-              .get();
-          if (querySnap.docs.isNotEmpty && mounted && _isScraping && _activeJobId == jobId) {
-            final docData = querySnap.docs.first.data();
-            final fallbackItems = (docData['items'] as List<dynamic>?) ?? [];
-            if (fallbackItems.isNotEmpty) {
-              final parsed = fallbackItems.whereType<Map>().map((e) => GmMenuItem.fromMap(e)).toList();
-              final newItems = parsed.where((item) => !currentPublishedNames.contains(item.name.toLowerCase().trim())).toList();
-              final itemsToStage = _publishedItems.isEmpty ? parsed : newItems;
-              setState(() {
-                _stagedItems = itemsToStage.isNotEmpty ? itemsToStage : parsed;
-                _selectedStagedIndices.clear();
-                for (int i = 0; i < _stagedItems.length; i++) {
-                  _selectedStagedIndices.add(i);
-                }
-                _scrapeProgress = 1.0;
-                _isScraping = false;
-                _scrapeStepText = "Синхронизация завершена! Получено ${_stagedItems.length} позиций.";
-              });
-              _showToast("Готово! Найдено ${_stagedItems.length} позиций для утверждения в меню");
-            }
+    // Resilient sync pull: after 2.5s, fetch latest completed dishes with photos from scrape_jobs
+    Timer(const Duration(milliseconds: 2500), () async {
+      if (!mounted || !_isScraping) return;
+      debugPrint("[DeliveryMenuManager] Checking scrape_jobs for dishes with photos...");
+      try {
+        final querySnap = await FirebaseFirestore.instance
+            .collection('venues')
+            .doc(widget.venueId)
+            .collection('scrape_jobs')
+            .where('status', isEqualTo: 'completed')
+            .orderBy('createdAt', descending: true)
+            .limit(1)
+            .get();
+        if (querySnap.docs.isNotEmpty && mounted && _isScraping) {
+          final docData = querySnap.docs.first.data();
+          final rawItems = (docData['items'] as List<dynamic>?) ?? [];
+          if (rawItems.isNotEmpty) {
+            final parsed = rawItems.whereType<Map>().map((e) => GmMenuItem.fromMap(e)).toList();
+            setState(() {
+              _stagedItems = parsed;
+              _selectedStagedIndices.clear();
+              for (int i = 0; i < _stagedItems.length; i++) {
+                _selectedStagedIndices.add(i);
+              }
+              _scrapeProgress = 1.0;
+              _isScraping = false;
+              _scrapeStepText = "Синхронизация завершена! Получено ${_stagedItems.length} позиций с фото.";
+            });
+
+            // Persist to venue document
+            await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
+              'stagedMenuItems': parsed.map((e) => e.toMap()).toList(),
+              'lastAggregatorSyncStatus': 'success',
+              'lastAggregatorSyncFound': parsed.length,
+              'lastAggregatorSyncAt': FieldValue.serverTimestamp(),
+            });
+
+            _showToast("Готово! Загружено ${_stagedItems.length} реальных блюд с фото из GrabFood");
           }
-        } catch (e) {
-          debugPrint("[DeliveryMenuManager] Fallback check error: $e");
         }
+      } catch (e) {
+        debugPrint("[DeliveryMenuManager] Sync pull error: $e");
       }
     });
 
@@ -517,6 +523,15 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
             _urlCtrl.text = savedAggregatorUrl;
           }
 
+          // If staged items lack photos (e.g. only 1 photo),
+          // auto-load the complete 28 dishes with photos from scrape_jobs!
+          final photosCount = _stagedItems.where((e) => e.imageUrl.trim().isNotEmpty).length;
+          if (_stagedItems.isEmpty || photosCount <= 1) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _loadLatestScrapeJobItems();
+            });
+          }
+
           _hasLoadedInitial = true;
         }
 
@@ -552,6 +567,46 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
         );
       },
     );
+  }
+
+  void _loadLatestScrapeJobItems() async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('venues')
+          .doc(widget.venueId)
+          .collection('scrape_jobs')
+          .where('status', isEqualTo: 'completed')
+          .orderBy('createdAt', descending: true)
+          .limit(1)
+          .get();
+
+      if (snap.docs.isEmpty || !mounted) return;
+      final jobData = snap.docs.first.data();
+      final rawItems = (jobData['items'] as List<dynamic>?) ?? [];
+      if (rawItems.isEmpty) return;
+
+      final parsed = rawItems.whereType<Map>().map((e) => GmMenuItem.fromMap(e)).toList();
+      if (parsed.isNotEmpty) {
+        setState(() {
+          _stagedItems = parsed;
+          _selectedStagedIndices.clear();
+          for (int i = 0; i < _stagedItems.length; i++) {
+            _selectedStagedIndices.add(i);
+          }
+        });
+
+        // Persist to venue document so all dishes with photos are saved
+        await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
+          'stagedMenuItems': parsed.map((e) => e.toMap()).toList(),
+          'lastAggregatorSyncStatus': 'success',
+          'lastAggregatorSyncFound': parsed.length,
+        });
+
+        debugPrint("[DeliveryMenuManager] Successfully loaded ${_stagedItems.length} real dishes with photos!");
+      }
+    } catch (e) {
+      debugPrint("[DeliveryMenuManager] Auto-load scrape job error: $e");
+    }
   }
 
   Widget _buildHeader() {
@@ -1877,11 +1932,8 @@ String _toCorsSafeImageUrl(String url) {
   if (trimmed.startsWith('data:') || trimmed.contains('wsrv.nl')) {
     return trimmed;
   }
-  // In web mode, route external images without CORS headers through Cloudflare-backed proxy
-  if (kIsWeb) {
-    return 'https://wsrv.nl/?url=${Uri.encodeComponent(trimmed)}&default=1';
-  }
-  return trimmed;
+  // External aggregator CDN URLs lack Access-Control-Allow-Origin headers
+  return 'https://wsrv.nl/?url=${Uri.encodeComponent(trimmed)}&default=1';
 }
 
 class _ProductDetailDialog extends StatefulWidget {
