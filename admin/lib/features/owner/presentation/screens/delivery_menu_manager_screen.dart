@@ -1,7 +1,9 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
+import 'package:http/http.dart' as http;
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 
@@ -19,6 +21,12 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
   bool _isScraping = false;
   bool _isEditingSavedUrl = false;
 
+  // Real-time progress tracking
+  double _scrapeProgress = 0.0;
+  String _scrapeStepText = '';
+  String? _scrapeError;
+  StreamSubscription<DocumentSnapshot>? _activeJobSubscription;
+
   // Staging items from scrapers
   List<GmMenuItem> _stagedItems = [];
   final Set<int> _selectedStagedIndices = {};
@@ -31,6 +39,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
 
   @override
   void dispose() {
+    _activeJobSubscription?.cancel();
     _urlCtrl.dispose();
     _editUrlCtrl.dispose();
     super.dispose();
@@ -43,11 +52,16 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
       return;
     }
 
+    final jobId = "job_${DateTime.now().millisecondsSinceEpoch}";
+
     setState(() {
       _isScraping = true;
+      _scrapeProgress = 0.10;
+      _scrapeStepText = "Подключение к агрегатору доставки...";
+      _scrapeError = null;
     });
 
-    _showToast("Синхронизация запущена: проверяем актуальное меню...");
+    _showToast("Синхронизация запущена: отслеживаем прогресс в реальном времени...");
 
     // Persist link to the venue document
     FirebaseFirestore.instance.collection('venues').doc(widget.venueId).set({
@@ -58,57 +72,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
 
     final currentPublishedNames = _publishedItems.map((e) => e.name.toLowerCase().trim()).toSet();
 
-    // 1. Primary Strategy: Serverless Cloud Function (zero CORS, resolves redirects & Grab mobile links)
-    try {
-      final callable = FirebaseFunctions.instanceFor(region: 'asia-south1')
-          .httpsCallable('scrapeMenuCallable');
-
-      final result = await callable.call({
-        'venueId': widget.venueId,
-        'url': url,
-        'mirrorImages': false,
-      }).timeout(const Duration(seconds: 90));
-
-      if (!mounted) return;
-      final rawData = result.data as Map<dynamic, dynamic>? ?? {};
-      final rawItems = (rawData['items'] as List<dynamic>?) ?? [];
-      final parsed = rawItems.map((e) => GmMenuItem.fromMap(Map<String, dynamic>.from(e))).toList();
-
-      if (parsed.isNotEmpty) {
-        // If venue already has published items, filter for new items not yet in published menu
-        final newItems = parsed.where((item) => !currentPublishedNames.contains(item.name.toLowerCase().trim())).toList();
-        final itemsToStage = _publishedItems.isEmpty ? parsed : newItems;
-
-        setState(() {
-          _stagedItems = itemsToStage.isNotEmpty ? itemsToStage : parsed;
-          _selectedStagedIndices.clear();
-          for (int i = 0; i < _stagedItems.length; i++) {
-            _selectedStagedIndices.add(i);
-          }
-          _isScraping = false;
-          _isEditingSavedUrl = false;
-        });
-
-        // Save staged items to Firestore so they persist across page refreshes
-        await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).set({
-          'stagedMenuItems': _stagedItems.map((e) => e.toMap()).toList(),
-          'lastAggregatorSyncStatus': 'success',
-          'lastAggregatorSyncFound': itemsToStage.length,
-        }, SetOptions(merge: true));
-
-        if (itemsToStage.isEmpty && _publishedItems.isNotEmpty) {
-          _showToast("Все блюда уже присутствуют в меню. Новых позиций в агрегаторе не найдено.");
-        } else {
-          _showToast("Готово! Найдено ${itemsToStage.length} позиций для утверждения в меню");
-        }
-        return;
-      }
-    } catch (callableErr) {
-      debugPrint("[DeliveryMenuManager] Direct callable error: $callableErr. Falling back to Firestore job...");
-    }
-
-    // 2. Firestore scrape_jobs document fallback
-    final jobId = "job_${DateTime.now().millisecondsSinceEpoch}";
+    // 1. Create scrape_jobs document in Firestore
     try {
       await FirebaseFirestore.instance
           .collection('venues')
@@ -121,59 +85,104 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
         'url': url,
         'mirrorImages': false,
         'status': 'pending',
+        'progress': 10,
+        'currentStep': 'Инициализация синхронизации меню...',
         'createdAt': FieldValue.serverTimestamp(),
         'itemsCount': 0,
         'items': [],
       });
+    } catch (createErr) {
+      debugPrint("[DeliveryMenuManager] Job doc create error: $createErr");
+    }
 
-      FirebaseFirestore.instance
-          .collection('venues')
-          .doc(widget.venueId)
-          .collection('scrape_jobs')
-          .doc(jobId)
-          .snapshots()
-          .listen((snap) {
-        if (!mounted || !snap.exists) return;
-        final data = snap.data() ?? {};
-        final status = data['status'];
-        if (status == 'completed') {
-          final itemsRaw = data['items'] as List<dynamic>? ?? [];
-          final parsed = itemsRaw.map((e) => GmMenuItem.fromMap(Map<String, dynamic>.from(e))).toList();
-          
-          final newItems = parsed.where((item) => !currentPublishedNames.contains(item.name.toLowerCase().trim())).toList();
-          final itemsToStage = _publishedItems.isEmpty ? parsed : newItems;
+    // 2. Real-time stream from Firestore scrape_jobs
+    _activeJobSubscription?.cancel();
+    _activeJobSubscription = FirebaseFirestore.instance
+        .collection('venues')
+        .doc(widget.venueId)
+        .collection('scrape_jobs')
+        .doc(jobId)
+        .snapshots()
+        .listen((snap) {
+      if (!mounted || !snap.exists) return;
+      final data = snap.data() ?? {};
+      final status = data['status'] as String? ?? 'pending';
+      final progressNum = data['progress'] as num?;
+      final currentStep = data['currentStep'] as String? ?? '';
+      final rawItems = (data['items'] as List<dynamic>?) ?? [];
 
-          setState(() {
-            _stagedItems = itemsToStage.isNotEmpty ? itemsToStage : parsed;
-            _selectedStagedIndices.clear();
-            for (int i = 0; i < _stagedItems.length; i++) {
-              _selectedStagedIndices.add(i);
-            }
-            _isScraping = false;
-            _isEditingSavedUrl = false;
-          });
+      double prog = _scrapeProgress;
+      if (progressNum != null) {
+        prog = (progressNum.toDouble() / 100.0).clamp(0.05, 1.0);
+      }
 
-          FirebaseFirestore.instance.collection('venues').doc(widget.venueId).set({
-            'stagedMenuItems': _stagedItems.map((e) => e.toMap()).toList(),
-            'lastAggregatorSyncStatus': 'success',
-            'lastAggregatorSyncFound': itemsToStage.length,
-          }, SetOptions(merge: true));
+      // Stream newly received items immediately to the UI table!
+      if (rawItems.isNotEmpty) {
+        final parsed = rawItems.map((e) => GmMenuItem.fromMap(Map<String, dynamic>.from(e))).toList();
+        final newItems = parsed.where((item) => !currentPublishedNames.contains(item.name.toLowerCase().trim())).toList();
+        final itemsToStage = _publishedItems.isEmpty ? parsed : newItems;
 
-          if (itemsToStage.isEmpty && _publishedItems.isNotEmpty) {
-            _showToast("Все блюда уже присутствуют в меню. Новых позиций не найдено.");
-          } else {
-            _showToast("Готово! Найдено ${itemsToStage.length} позиций для утверждения в меню");
+        setState(() {
+          _stagedItems = itemsToStage.isNotEmpty ? itemsToStage : parsed;
+          _selectedStagedIndices.clear();
+          for (int i = 0; i < _stagedItems.length; i++) {
+            _selectedStagedIndices.add(i);
           }
-        } else if (status == 'error' || status == 'failed') {
-          setState(() => _isScraping = false);
-          _showToast("Ошибка парсинга: ${data['error'] ?? 'Неизвестная ошибка'}");
+        });
+      }
+
+      setState(() {
+        _scrapeProgress = prog;
+        if (currentStep.isNotEmpty) {
+          _scrapeStepText = currentStep;
         }
       });
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isScraping = false);
-        _showToast("Ошибка запуска: $e");
+
+      if (status == 'completed') {
+        _activeJobSubscription?.cancel();
+        setState(() {
+          _isScraping = false;
+          _isEditingSavedUrl = false;
+          _scrapeProgress = 1.0;
+          _scrapeStepText = "Синхронизация завершена! Получено ${_stagedItems.length} позиций.";
+        });
+
+        if (_stagedItems.isEmpty && _publishedItems.isNotEmpty) {
+          _showToast("Все блюда уже присутствуют в меню. Новых позиций не найдено.");
+        } else {
+          _showToast("Готово! Найдено ${_stagedItems.length} позиций для утверждения в меню");
+        }
+      } else if (status == 'failed' || status == 'error') {
+        _activeJobSubscription?.cancel();
+        final errMsg = data['error'] as String? ?? 'Не удалось загрузить меню';
+        setState(() {
+          _isScraping = false;
+          _scrapeError = errMsg;
+          _scrapeStepText = "Ошибка: $errMsg";
+        });
+        _showToast("Ошибка парсинга: $errMsg");
       }
+    });
+
+    // 3. Parallel HTTP trigger to start parsing immediately
+    try {
+      final uri = Uri.parse('https://asia-south1-bot-lab-21910.cloudfunctions.net/scrapeMenuHttp');
+      http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'venueId': widget.venueId,
+          'url': url,
+          'jobId': jobId,
+          'mirrorImages': false,
+        }),
+      ).then((res) {
+        debugPrint("[DeliveryMenuManager] scrapeMenuHttp response status: ${res.statusCode}");
+      }).catchError((httpErr) {
+        debugPrint("[DeliveryMenuManager] scrapeMenuHttp fetch ping note: $httpErr (Firestore background worker executes)");
+      });
+    } catch (e) {
+      debugPrint("[DeliveryMenuManager] Direct ping error: $e");
     }
   }
 
@@ -399,17 +408,40 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
             if (jobSnap.hasData && jobSnap.data!.docs.isNotEmpty) {
               final latestJob = jobSnap.data!.docs.first.data() as Map<String, dynamic>;
               final status = latestJob['status'] as String? ?? '';
+              final progressNum = latestJob['progress'] as num?;
+              final currentStep = latestJob['currentStep'] as String? ?? '';
+              final rawScraped = (latestJob['items'] as List<dynamic>?) ?? [];
               
-              if (status == 'completed' && _isScraping) {
+              if (status == 'running' || status == 'pending') {
+                _isScraping = true;
+                if (progressNum != null) {
+                  _scrapeProgress = (progressNum.toDouble() / 100.0).clamp(0.05, 1.0);
+                }
+                if (currentStep.isNotEmpty) {
+                  _scrapeStepText = currentStep;
+                }
+                if (rawScraped.isNotEmpty && _stagedItems.isEmpty) {
+                  _stagedItems = rawScraped.map((e) => GmMenuItem.fromMap(e as Map<String, dynamic>)).toList();
+                  _selectedStagedIndices.clear();
+                  for (int i = 0; i < _stagedItems.length; i++) {
+                    _selectedStagedIndices.add(i);
+                  }
+                }
+              } else if (status == 'completed' && _isScraping) {
                 _isScraping = false;
-                final rawScraped = (latestJob['items'] as List<dynamic>?) ?? [];
-                _stagedItems = rawScraped.map((e) => GmMenuItem.fromMap(e as Map<String, dynamic>)).toList();
-                _selectedStagedIndices.clear();
-                for (int i = 0; i < _stagedItems.length; i++) {
-                  _selectedStagedIndices.add(i);
+                _scrapeProgress = 1.0;
+                _scrapeStepText = "Синхронизация завершена. Меню актуально!";
+                if (rawScraped.isNotEmpty) {
+                  _stagedItems = rawScraped.map((e) => GmMenuItem.fromMap(e as Map<String, dynamic>)).toList();
+                  _selectedStagedIndices.clear();
+                  for (int i = 0; i < _stagedItems.length; i++) {
+                    _selectedStagedIndices.add(i);
+                  }
                 }
               } else if (status == 'failed' && _isScraping) {
                 _isScraping = false;
+                _scrapeError = latestJob['error'] as String? ?? 'Ошибка парсинга';
+                _scrapeStepText = "Ошибка: ${_scrapeError!}";
               }
             }
 
@@ -429,7 +461,11 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                       lastAggregatorSyncStatus,
                       lastAggregatorSyncFound,
                     ),
-                    const SizedBox(height: 32),
+                    if (_isScraping || _scrapeProgress > 0.0 || _scrapeError != null) ...[
+                      const SizedBox(height: 20),
+                      _buildScrapeProgressCard(),
+                    ],
+                    const SizedBox(height: 24),
                     if (_stagedItems.isNotEmpty) ...[
                       _buildStagingReviewSection(),
                       const SizedBox(height: 40),
@@ -818,11 +854,227 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                   child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accentOrange),
                 ),
                 const SizedBox(width: 10),
-                Text(
-                  "Сверка актуального меню через Gemini AI: извлекаем категории, цены и описания...",
-                  style: TextStyle(color: AppColors.accentOrange.withOpacity(0.9), fontSize: 12),
+                Expanded(
+                  child: Text(
+                    _scrapeStepText.isNotEmpty
+                        ? _scrapeStepText
+                        : "Сверка меню через Gemini AI: извлекаем категории, цены и описания...",
+                    style: TextStyle(color: AppColors.accentOrange.withOpacity(0.9), fontSize: 12),
+                  ),
                 ),
               ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScrapeProgressCard() {
+    final percentInt = (_scrapeProgress * 100).toInt();
+    final isDone = !_isScraping && _scrapeProgress >= 1.0;
+    final isError = _scrapeError != null;
+
+    Color stateColor = CupertinoColors.activeGreen;
+    if (isError) {
+      stateColor = Colors.redAccent;
+    } else if (_isScraping) {
+      stateColor = AppColors.accentOrange;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.macosSurfaceBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: stateColor.withOpacity(0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: stateColor.withOpacity(0.08),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: stateColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: _isScraping
+                    ? const CupertinoActivityIndicator(color: Colors.white)
+                    : Icon(
+                        isError ? CupertinoIcons.exclamationmark_triangle_fill : CupertinoIcons.checkmark_circle_fill,
+                        color: stateColor,
+                        size: 20,
+                      ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _isScraping
+                          ? "Синхронизация меню в реальном времени"
+                          : isError
+                              ? "Ошибка синхронизации меню"
+                              : "Меню успешно загружено",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _scrapeStepText.isNotEmpty
+                          ? _scrapeStepText
+                          : (_isScraping ? "Идет обработка данных..." : "Готово к утверждению"),
+                      style: TextStyle(
+                        color: isError ? Colors.redAccent.withOpacity(0.9) : AppColors.macosTextSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: stateColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: stateColor.withOpacity(0.4)),
+                ),
+                child: Text(
+                  "$percentInt%",
+                  style: TextStyle(
+                    color: stateColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Linear Progress Bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: _scrapeProgress.clamp(0.0, 1.0),
+              minHeight: 6,
+              backgroundColor: Colors.white.withOpacity(0.08),
+              valueColor: AlwaysStoppedAnimation<Color>(stateColor),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Live Counter & Streaming Items Indicator
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Icon(CupertinoIcons.square_stack_3d_up_fill, size: 14, color: AppColors.macosTextSecondary),
+                  const SizedBox(width: 6),
+                  Text(
+                    "Получено блюд: ${_stagedItems.length}",
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  if (_isScraping && _stagedItems.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: CupertinoColors.activeGreen.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(CupertinoIcons.arrow_down_circle_fill, size: 10, color: CupertinoColors.activeGreen),
+                          SizedBox(width: 4),
+                          Text(
+                            "Поступает онлайн",
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: CupertinoColors.activeGreen),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              if (isDone)
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  minSize: 0,
+                  onPressed: () {
+                    setState(() {
+                      _scrapeProgress = 0.0;
+                      _scrapeStepText = '';
+                    });
+                  },
+                  child: const Text("Скрыть", style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 12)),
+                ),
+            ],
+          ),
+
+          // Live dishes chip stream preview (shows items as they are scraped)
+          if (_stagedItems.isNotEmpty && _isScraping) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.25),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white.withOpacity(0.05)),
+              ),
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  ..._stagedItems.take(8).map((item) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            item.name,
+                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w500),
+                          ),
+                          if (item.price.isNotEmpty) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              "(${item.price} ${item.currency})",
+                              style: const TextStyle(color: CupertinoColors.activeGreen, fontSize: 10, fontFamily: 'monospace'),
+                            ),
+                          ],
+                        ],
+                      ),
+                    );
+                  }),
+                  if (_stagedItems.length > 8)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                      child: Text(
+                        "+ еще ${_stagedItems.length - 8}...",
+                        style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 11),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ],
         ],

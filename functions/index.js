@@ -4020,13 +4020,14 @@ const { executeScrapeJob } = require("./menuScraper");
 
 exports.scrapeMenuCallable = onCall({ cors: true }, async (request) => {
     try {
-        const { venueId, url, autoPublish, mirrorImages } = request.data || {};
+        const { venueId, url, autoPublish, mirrorImages, jobId } = request.data || {};
         if (!venueId || !url) {
             throw new HttpsError("invalid-argument", "Missing required parameters: venueId and url");
         }
 
         logger.info(`[scrapeMenuCallable] Starting scrape for venue ${venueId} from ${url}`);
         return await executeScrapeJob(venueId, url, {
+            jobId,
             autoPublish: !!autoPublish,
             mirrorImages: mirrorImages !== false
         });
@@ -4037,6 +4038,10 @@ exports.scrapeMenuCallable = onCall({ cors: true }, async (request) => {
 });
 
 exports.scrapeMenuHttp = onRequest({ cors: true }, async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
     if (req.method === 'OPTIONS') {
         res.set('Access-Control-Allow-Origin', '*');
         res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -4045,13 +4050,14 @@ exports.scrapeMenuHttp = onRequest({ cors: true }, async (req, res) => {
     }
 
     try {
-        const { venueId, url, autoPublish, mirrorImages } = req.body || req.query;
+        const { venueId, url, autoPublish, mirrorImages, jobId } = req.body || req.query || {};
         if (!venueId || !url) {
             return res.status(400).json({ error: "Missing required parameters: venueId and url" });
         }
 
         logger.info(`[scrapeMenuHttp] Starting scrape for venue ${venueId} from ${url}`);
         const result = await executeScrapeJob(venueId, url, {
+            jobId,
             autoPublish: !!autoPublish,
             mirrorImages: mirrorImages !== false
         });
@@ -4113,7 +4119,6 @@ exports.onMenuScrapeJobCreated = onDocumentCreated("venues/{venueId}/scrape_jobs
     logger.info(`[onMenuScrapeJobCreated] Triggered for venue ${venueId}, job ${jobId}, url: ${url}`);
     try {
         await executeScrapeJob(venueId, url, {
-            autoPublish: !!data.autoPublish,
             jobId: jobId,
             autoPublish: !!data.autoPublish,
             mirrorImages: false

@@ -38,6 +38,17 @@ async function resolveRedirectUrl(url) {
   if (!url) return url;
   const trimmed = url.trim();
   const lower = trimmed.toLowerCase();
+
+  // Instant Grab shortcut: extract Grab restaurant ID e.g. 5-C8CXRJNGHFDHR2
+  if (lower.includes('grab.com')) {
+    const grabMatch = trimmed.match(/(5-[A-Za-z0-9]+)/);
+    if (grabMatch && grabMatch[1]) {
+      const canonicalGrabUrl = `https://food.grab.com/vn/en/restaurant/online-delivery/${grabMatch[1]}`;
+      console.log(`[MenuScraper] Instantly mapped Grab link to: ${canonicalGrabUrl}`);
+      return canonicalGrabUrl;
+    }
+  }
+
   if (lower.includes('r.grab.com') || lower.includes('bit.ly') || lower.includes('tinyurl.com') || lower.includes('t.co')) {
     try {
       const res = await fetch(trimmed, {
@@ -260,37 +271,76 @@ async function mirrorImageToStorage(imageUrl, venueId, itemId) {
  */
 async function executeScrapeJob(venueId, url, options = {}) {
   const db = getDb();
-  const resolvedUrl = await resolveRedirectUrl(url);
-  const platform = detectPlatform(resolvedUrl);
   const jobId = options.jobId || `job_${Date.now()}`;
-
   const jobRef = db.collection('venues').doc(venueId).collection('scrape_jobs').doc(jobId);
+
+  // 1. Initial status & progress
   await jobRef.set({
     jobId,
     venueId,
-    url: resolvedUrl,
     originalUrl: url,
-    platform,
     status: 'running',
+    progress: 10,
+    currentStep: 'Определение ссылки и агрегатора...',
     startedAt: admin.firestore.FieldValue.serverTimestamp(),
     itemsCount: 0,
     items: [],
     error: null
-  });
+  }, { merge: true });
 
   try {
-    // 1. Fetch raw content
+    const resolvedUrl = await resolveRedirectUrl(url);
+    const platform = detectPlatform(resolvedUrl);
+    const platformDisplay = platform === 'grab' ? 'GrabFood' : platform === 'zomato' ? 'Zomato' : platform === 'glovo' ? 'Glovo' : platform.toUpperCase();
+
+    await jobRef.update({
+      url: resolvedUrl,
+      platform,
+      progress: 25,
+      currentStep: `Подключение к ${platformDisplay}...`
+    });
+
+    // 2. Fetch raw content
+    await jobRef.update({
+      progress: 40,
+      currentStep: `Загрузка меню из ${platformDisplay}...`
+    });
     const { content, method } = await fetchRawMenuContent(resolvedUrl, options.apifyToken);
-    
-    // 2. Parse with Gemini
+
+    // 3. Parse with Gemini
     const venueDoc = await db.collection('venues').doc(venueId).get();
     const venueData = venueDoc.exists ? venueDoc.data() : {};
     const country = venueData.countryCode || (venueData.address && venueData.address.toLowerCase().includes('dubai') ? 'AE' : 'VN');
 
+    await jobRef.update({
+      progress: 65,
+      currentStep: `Меню получено (${Math.round((content || '').length / 1024)} КБ). ИИ Gemini структурирует блюда, категории и цены...`
+    });
+
     const items = await parseMenuWithGemini(content, platform, country);
 
-    // 3. Optional batch mirror images (skipped by default to ensure < 15s speed)
+    // 4. Stream items immediately to jobRef and venue stagedMenuItems!
+    await jobRef.update({
+      progress: 85,
+      currentStep: `Найдено ${items.length} блюд. Потоковая загрузка позиций...`,
+      itemsCount: items.length,
+      items: items
+    });
+
+    // Persist stagedMenuItems to venue document so frontend and other screens see them immediately
+    await db.collection('venues').doc(venueId).set({
+      stagedMenuItems: items,
+      lastAggregatorSyncAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastAggregatorSyncStatus: 'success',
+      lastAggregatorSyncFound: items.length
+    }, { merge: true });
+
+    // 5. Optional batch mirror images
     if (options.mirrorImages === true && items.length > 0) {
+      await jobRef.update({
+        progress: 92,
+        currentStep: 'Оптимизация фотографий блюд...'
+      });
       console.log(`[MenuScraper] Mirroring images for ${items.length} items...`);
       for (let i = 0; i < Math.min(items.length, 10); i++) {
         if (items[i].imageUrl) {
@@ -299,16 +349,18 @@ async function executeScrapeJob(venueId, url, options = {}) {
       }
     }
 
-    // 4. Save to Staging Job
+    // 6. Complete
     await jobRef.update({
       status: 'completed',
+      progress: 100,
+      currentStep: `Синхронизация завершена. Успешно получено ${items.length} блюд.`,
       completedAt: admin.firestore.FieldValue.serverTimestamp(),
       itemsCount: items.length,
-      items,
+      items: items,
       fetchMethod: method
     });
 
-    // 5. If autoPublish is requested, commit directly to venue gmConfig
+    // 7. If autoPublish is requested, commit directly to venue gmConfig
     if (options.autoPublish) {
       await db.collection('venues').doc(venueId).set({
         gmConfig: {
@@ -323,6 +375,8 @@ async function executeScrapeJob(venueId, url, options = {}) {
     console.error(`[MenuScraper] Error in job ${jobId}:`, err);
     await jobRef.update({
       status: 'failed',
+      progress: 0,
+      currentStep: `Ошибка: ${err.message}`,
       failedAt: admin.firestore.FieldValue.serverTimestamp(),
       error: err.message
     });
