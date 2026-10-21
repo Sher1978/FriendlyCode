@@ -4018,6 +4018,24 @@ exports.testDailyReportEmail = onRequest(async (req, res) => {
 // ==========================================
 const { executeScrapeJob } = require("./menuScraper");
 
+exports.scrapeMenuCallable = onCall({ cors: true }, async (request) => {
+    try {
+        const { venueId, url, autoPublish, mirrorImages } = request.data || {};
+        if (!venueId || !url) {
+            throw new HttpsError("invalid-argument", "Missing required parameters: venueId and url");
+        }
+
+        logger.info(`[scrapeMenuCallable] Starting scrape for venue ${venueId} from ${url}`);
+        return await executeScrapeJob(venueId, url, {
+            autoPublish: !!autoPublish,
+            mirrorImages: mirrorImages !== false
+        });
+    } catch (err) {
+        logger.error("[scrapeMenuCallable] Execution failed:", err);
+        throw new HttpsError("internal", err.message || "Scraping failed");
+    }
+});
+
 exports.scrapeMenuHttp = onRequest({ cors: true }, async (req, res) => {
     if (req.method === 'OPTIONS') {
         res.set('Access-Control-Allow-Origin', '*');

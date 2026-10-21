@@ -32,15 +32,44 @@ function detectPlatform(url) {
 }
 
 /**
+ * Resolve mobile short links and redirects (e.g. r.grab.com -> food.grab.com)
+ */
+async function resolveRedirectUrl(url) {
+  if (!url) return url;
+  const trimmed = url.trim();
+  const lower = trimmed.toLowerCase();
+  if (lower.includes('r.grab.com') || lower.includes('bit.ly') || lower.includes('tinyurl.com') || lower.includes('t.co')) {
+    try {
+      const res = await fetch(trimmed, {
+        method: 'GET',
+        redirect: 'manual',
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+      });
+      const location = res.headers.get('location');
+      if (location) {
+        console.log(`[MenuScraper] Successfully resolved short URL: ${trimmed} -> ${location}`);
+        return location;
+      }
+    } catch (err) {
+      console.warn(`[MenuScraper] Could not resolve redirect for ${trimmed}: ${err.message}`);
+    }
+  }
+  return trimmed;
+}
+
+/**
  * Fetch raw page content using Jina Reader or Apify
  */
 async function fetchRawMenuContent(targetUrl, apifyToken) {
-  const platform = detectPlatform(targetUrl);
-  console.log(`[MenuScraper] Fetching for ${platform} from URL: ${targetUrl}`);
+  const resolvedUrl = await resolveRedirectUrl(targetUrl);
+  const platform = detectPlatform(resolvedUrl);
+  console.log(`[MenuScraper] Fetching for ${platform} from URL: ${resolvedUrl}`);
 
   // Approach 1: Try Jina Reader as fastest high-signal text extractor
   try {
-    const jinaUrl = `https://r.jina.ai/${targetUrl}`;
+    const jinaUrl = `https://r.jina.ai/${resolvedUrl}`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 20000);
     const jinaRes = await fetch(jinaUrl, {
@@ -67,8 +96,7 @@ async function fetchRawMenuContent(targetUrl, apifyToken) {
   const token = apifyToken || process.env.APIFY_API_TOKEN;
   if (token) {
     try {
-      console.log(`[MenuScraper] Attempting Apify crawler for ${targetUrl}...`);
-      // Use apify/single-page-scraper or website-content-crawler
+      console.log(`[MenuScraper] Attempting Apify crawler for ${resolvedUrl}...`);
       const actorId = "apify~website-content-crawler";
       const runUrl = `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${token}&timeout=60`;
       
@@ -76,7 +104,7 @@ async function fetchRawMenuContent(targetUrl, apifyToken) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          startUrls: [{ url: targetUrl }],
+          startUrls: [{ url: resolvedUrl }],
           maxCrawlPages: 1,
           crawlerType: "playwright:adaptive"
         })
@@ -100,7 +128,7 @@ async function fetchRawMenuContent(targetUrl, apifyToken) {
 
   // Approach 3: Direct fetch fallback
   try {
-    const directRes = await fetch(targetUrl, {
+    const directRes = await fetch(resolvedUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -231,14 +259,16 @@ async function mirrorImageToStorage(imageUrl, venueId, itemId) {
  */
 async function executeScrapeJob(venueId, url, options = {}) {
   const db = getDb();
-  const platform = detectPlatform(url);
+  const resolvedUrl = await resolveRedirectUrl(url);
+  const platform = detectPlatform(resolvedUrl);
   const jobId = `job_${Date.now()}`;
 
   const jobRef = db.collection('venues').doc(venueId).collection('scrape_jobs').doc(jobId);
   await jobRef.set({
     jobId,
     venueId,
-    url,
+    url: resolvedUrl,
+    originalUrl: url,
     platform,
     status: 'running',
     startedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -249,7 +279,7 @@ async function executeScrapeJob(venueId, url, options = {}) {
 
   try {
     // 1. Fetch raw content
-    const { content, method } = await fetchRawMenuContent(url, options.apifyToken);
+    const { content, method } = await fetchRawMenuContent(resolvedUrl, options.apifyToken);
     
     // 2. Parse with Gemini
     const venueDoc = await db.collection('venues').doc(venueId).get();

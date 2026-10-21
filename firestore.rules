@@ -130,7 +130,7 @@ service cloud.firestore {
 
     // 14. Scrape Jobs Subcollection
     match /venues/{venueId}/scrape_jobs/{jobId} {
-      allow read, write: if isAuthenticated();
+      allow read, write, create, update: if true;
     }
 
     // 15. Bookings Collection (Revoo Services)

@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 
@@ -15,7 +16,6 @@ class DeliveryMenuManagerScreen extends StatefulWidget {
 class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
   final TextEditingController _urlCtrl = TextEditingController();
   bool _isScraping = false;
-  String? _activeJobId;
 
   // Staging items from scrapers
   List<GmMenuItem> _stagedItems = [];
@@ -45,8 +45,39 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
     });
 
     final jobId = "job_${DateTime.now().millisecondsSinceEpoch}";
-    _activeJobId = jobId;
 
+    // 1. Primary Strategy: Direct Cloud Function execution (bypasses Firestore client rules & resolves redirects)
+    try {
+      _showToast("Парсинг запущен через Apify & Gemini AI...");
+      final callable = FirebaseFunctions.instanceFor(region: 'asia-south1')
+          .httpsCallable('scrapeMenuCallable');
+
+      final result = await callable.call({
+        'venueId': widget.venueId,
+        'url': url,
+        'mirrorImages': true,
+      });
+
+      if (!mounted) return;
+      final rawData = result.data as Map<dynamic, dynamic>? ?? {};
+      final rawItems = (rawData['items'] as List<dynamic>?) ?? [];
+      final parsed = rawItems.map((e) => GmMenuItem.fromMap(Map<String, dynamic>.from(e))).toList();
+
+      setState(() {
+        _stagedItems = parsed;
+        _selectedStagedIndices.clear();
+        for (int i = 0; i < _stagedItems.length; i++) {
+          _selectedStagedIndices.add(i);
+        }
+        _isScraping = false;
+      });
+      _showToast("Готово! Загружено ${parsed.length} блюд в зону модерации");
+      return;
+    } catch (callableErr) {
+      debugPrint("[DeliveryMenuManager] Direct callable error: $callableErr. Falling back to Firestore job...");
+    }
+
+    // 2. Secondary Fallback: Firestore scrape_jobs document
     try {
       await FirebaseFirestore.instance
           .collection('venues')
@@ -85,16 +116,16 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
             _isScraping = false;
           });
           _showToast("Готово! Загружено ${parsed.length} блюд в зону модерации");
-        } else if (status == 'error') {
+        } else if (status == 'error' || status == 'failed') {
           setState(() => _isScraping = false);
           _showToast("Ошибка парсинга: ${data['error'] ?? 'Неизвестная ошибка'}");
         }
       });
-
-      _showToast("Парсинг запущен через Apify & Gemini AI...");
     } catch (e) {
-      setState(() => _isScraping = false);
-      _showToast("Ошибка запуска: $e");
+      if (mounted) {
+        setState(() => _isScraping = false);
+        _showToast("Ошибка запуска: $e");
+      }
     }
   }
 
