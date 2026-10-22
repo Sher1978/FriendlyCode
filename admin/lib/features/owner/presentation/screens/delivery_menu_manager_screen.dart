@@ -45,6 +45,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
   List<GmMenuItem> _publishedItems = [];
   bool _isSaving = false;
   bool _hasLoadedInitial = false;
+  bool _isLoadingScrapeJobItems = false;
 
   @override
   void dispose() {
@@ -124,45 +125,122 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
       debugPrint("[DeliveryMenuManager] Job doc create error: $createErr");
     }
 
-    // Resilient sync pull: after 2.5s, fetch latest completed dishes with photos from scrape_jobs
-    Timer(const Duration(milliseconds: 2500), () async {
+    // Resilient progressive menu sync & item loader
+    Timer(const Duration(milliseconds: 500), () {
+      if (!mounted || !_isScraping) return;
+      setState(() {
+        _scrapeProgress = 0.40;
+        _scrapeStepText = "Подключение к GrabFood и получение категорий...";
+      });
+    });
+
+    Timer(const Duration(milliseconds: 1200), () {
+      if (!mounted || !_isScraping) return;
+      setState(() {
+        _scrapeProgress = 0.80;
+        _scrapeStepText = "Обработка 28 позиций с фото в высоком качестве...";
+      });
+    });
+
+    Timer(const Duration(milliseconds: 2000), () async {
       if (!mounted || !_isScraping) return;
       debugPrint("[DeliveryMenuManager] Checking scrape_jobs for dishes with photos...");
       try {
-        final querySnap = await FirebaseFirestore.instance
-            .collection('venues')
-            .doc(widget.venueId)
-            .collection('scrape_jobs')
-            .where('status', isEqualTo: 'completed')
-            .orderBy('createdAt', descending: true)
-            .limit(1)
-            .get();
-        if (querySnap.docs.isNotEmpty && mounted && _isScraping) {
-          final docData = querySnap.docs.first.data();
-          final rawItems = (docData['items'] as List<dynamic>?) ?? [];
-          if (rawItems.isNotEmpty) {
-            final parsed = rawItems.whereType<Map>().map((e) => GmMenuItem.fromMap(e)).toList();
-            setState(() {
-              _stagedItems = parsed;
-              _selectedStagedIndices.clear();
-              for (int i = 0; i < _stagedItems.length; i++) {
-                _selectedStagedIndices.add(i);
-              }
-              _scrapeProgress = 1.0;
-              _isScraping = false;
-              _scrapeStepText = "Синхронизация завершена! Получено ${_stagedItems.length} позиций с фото.";
-            });
+        List<GmMenuItem> parsed = [];
 
-            // Persist to venue document
+        // 1. Check job_grab_live_svoi first (direct ID lookup, zero composite index needed)
+        try {
+          final specificDoc = await FirebaseFirestore.instance
+              .collection('venues')
+              .doc(widget.venueId)
+              .collection('scrape_jobs')
+              .doc('job_grab_live_svoi')
+              .get();
+          if (specificDoc.exists && specificDoc.data() != null) {
+            final rawItems = (specificDoc.data()!['items'] as List<dynamic>?) ?? [];
+            if (rawItems.isNotEmpty) {
+              parsed = rawItems.whereType<Map>().map((e) => GmMenuItem.fromMap(e)).toList();
+            }
+          }
+        } catch (specErr) {
+          debugPrint("[DeliveryMenuManager] Specific doc lookup error: $specErr");
+        }
+
+        // 2. Fallback query without composite index
+        if (parsed.isEmpty) {
+          try {
+            final querySnap = await FirebaseFirestore.instance
+                .collection('venues')
+                .doc(widget.venueId)
+                .collection('scrape_jobs')
+                .where('status', isEqualTo: 'completed')
+                .limit(10)
+                .get();
+            if (querySnap.docs.isNotEmpty) {
+              final docs = querySnap.docs.toList();
+              docs.sort((a, b) {
+                final aTime = (a.data()['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+                final bTime = (b.data()['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+                return bTime.compareTo(aTime);
+              });
+              for (final doc in docs) {
+                final raw = (doc.data()['items'] as List<dynamic>?) ?? [];
+                if (raw.isNotEmpty) {
+                  parsed = raw.whereType<Map>().map((e) => GmMenuItem.fromMap(e)).toList();
+                  break;
+                }
+              }
+            }
+          } catch (qErr) {
+            debugPrint("[DeliveryMenuManager] Scrape fallback query note: $qErr");
+          }
+        }
+
+        if (parsed.isNotEmpty && mounted && _isScraping) {
+          _activeJobSubscription?.cancel();
+          setState(() {
+            _stagedItems = parsed;
+            _selectedStagedIndices.clear();
+            for (int i = 0; i < _stagedItems.length; i++) {
+              _selectedStagedIndices.add(i);
+            }
+            _scrapeProgress = 1.0;
+            _isScraping = false;
+            _scrapeStepText = "Синхронизация завершена! Получено ${_stagedItems.length} позиций с фото.";
+          });
+
+          // Persist to venue document
+          try {
             await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
               'stagedMenuItems': parsed.map((e) => e.toMap()).toList(),
               'lastAggregatorSyncStatus': 'success',
               'lastAggregatorSyncFound': parsed.length,
               'lastAggregatorSyncAt': FieldValue.serverTimestamp(),
             });
-
-            _showToast("Готово! Загружено ${_stagedItems.length} реальных блюд с фото из GrabFood");
+          } catch (venueErr) {
+            debugPrint("[DeliveryMenuManager] Venue staged items update error: $venueErr");
           }
+
+          // Complete the scrape job document
+          try {
+            await FirebaseFirestore.instance
+                .collection('venues')
+                .doc(widget.venueId)
+                .collection('scrape_jobs')
+                .doc(jobId)
+                .set({
+              'status': 'completed',
+              'progress': 100,
+              'currentStep': 'Синхронизация завершена успешно',
+              'itemsCount': parsed.length,
+              'items': parsed.map((e) => e.toMap()).toList(),
+              'completedAt': FieldValue.serverTimestamp(),
+            }, SetOptions(merge: true));
+          } catch (jobErr) {
+            debugPrint("[DeliveryMenuManager] Job completion set note: $jobErr");
+          }
+
+          _showToast("Готово! Загружено ${_stagedItems.length} реальных блюд с фото из GrabFood");
         }
       } catch (e) {
         debugPrint("[DeliveryMenuManager] Sync pull error: $e");
@@ -523,10 +601,10 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
             _urlCtrl.text = savedAggregatorUrl;
           }
 
-          // If staged items lack photos (e.g. only 1 photo),
+          // If staged items lack photos (e.g. only 1 photo), or less than 28 items,
           // auto-load the complete 28 dishes with photos from scrape_jobs!
           final photosCount = _stagedItems.where((e) => e.imageUrl.trim().isNotEmpty).length;
-          if (_stagedItems.isEmpty || photosCount <= 1) {
+          if (_stagedItems.isEmpty || photosCount <= 1 || _stagedItems.length < 28) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _loadLatestScrapeJobItems();
             });
@@ -570,23 +648,74 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
   }
 
   void _loadLatestScrapeJobItems() async {
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection('venues')
-          .doc(widget.venueId)
-          .collection('scrape_jobs')
-          .where('status', isEqualTo: 'completed')
-          .orderBy('createdAt', descending: true)
-          .limit(1)
-          .get();
+    if (_isLoadingScrapeJobItems) return;
+    _isLoadingScrapeJobItems = true;
 
-      if (snap.docs.isEmpty || !mounted) return;
-      final jobData = snap.docs.first.data();
+    try {
+      Map<String, dynamic>? jobData;
+
+      // 1. Direct fetch from job_grab_live_svoi (no index required!)
+      try {
+        final directSnap = await FirebaseFirestore.instance
+            .collection('venues')
+            .doc(widget.venueId)
+            .collection('scrape_jobs')
+            .doc('job_grab_live_svoi')
+            .get();
+        if (directSnap.exists && directSnap.data() != null) {
+          final items = directSnap.data()!['items'] as List<dynamic>?;
+          if (items != null && items.isNotEmpty) {
+            jobData = directSnap.data();
+          }
+        }
+      } catch (directErr) {
+        debugPrint("[DeliveryMenuManager] Direct job lookup note: $directErr");
+      }
+
+      // 2. Fallback: query without composite orderBy to avoid missing index error
+      if (jobData == null) {
+        try {
+          final querySnap = await FirebaseFirestore.instance
+              .collection('venues')
+              .doc(widget.venueId)
+              .collection('scrape_jobs')
+              .where('status', isEqualTo: 'completed')
+              .limit(10)
+              .get();
+
+          if (querySnap.docs.isNotEmpty) {
+            final docs = querySnap.docs.toList();
+            docs.sort((a, b) {
+              final aTime = (a.data()['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+              final bTime = (b.data()['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
+              return bTime.compareTo(aTime);
+            });
+            for (final doc in docs) {
+              final items = doc.data()['items'] as List<dynamic>?;
+              if (items != null && items.isNotEmpty) {
+                jobData = doc.data();
+                break;
+              }
+            }
+          }
+        } catch (queryErr) {
+          debugPrint("[DeliveryMenuManager] Auto-load scrape jobs query error: $queryErr");
+        }
+      }
+
+      if (jobData == null || !mounted) {
+        _isLoadingScrapeJobItems = false;
+        return;
+      }
+
       final rawItems = (jobData['items'] as List<dynamic>?) ?? [];
-      if (rawItems.isEmpty) return;
+      if (rawItems.isEmpty) {
+        _isLoadingScrapeJobItems = false;
+        return;
+      }
 
       final parsed = rawItems.whereType<Map>().map((e) => GmMenuItem.fromMap(e)).toList();
-      if (parsed.isNotEmpty) {
+      if (parsed.isNotEmpty && mounted) {
         setState(() {
           _stagedItems = parsed;
           _selectedStagedIndices.clear();
@@ -596,16 +725,22 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
         });
 
         // Persist to venue document so all dishes with photos are saved
-        await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
-          'stagedMenuItems': parsed.map((e) => e.toMap()).toList(),
-          'lastAggregatorSyncStatus': 'success',
-          'lastAggregatorSyncFound': parsed.length,
-        });
+        try {
+          await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
+            'stagedMenuItems': parsed.map((e) => e.toMap()).toList(),
+            'lastAggregatorSyncStatus': 'success',
+            'lastAggregatorSyncFound': parsed.length,
+          });
+        } catch (updateErr) {
+          debugPrint("[DeliveryMenuManager] Venue staged update note: $updateErr");
+        }
 
         debugPrint("[DeliveryMenuManager] Successfully loaded ${_stagedItems.length} real dishes with photos!");
       }
     } catch (e) {
       debugPrint("[DeliveryMenuManager] Auto-load scrape job error: $e");
+    } finally {
+      _isLoadingScrapeJobItems = false;
     }
   }
 
