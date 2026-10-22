@@ -348,6 +348,8 @@ function App() {
           })()} />
           <Route path="/grab" element={<GoogleMapsPreLanding />} />
           <Route path="/delivery" element={<GoogleMapsPreLanding />} />
+          <Route path="/menu" element={<GoogleMapsPreLanding />} />
+          <Route path="/dishes" element={<GoogleMapsPreLanding />} />
           <Route path="/business" element={<RevooB2BV2 />} />
           <Route path="/business-v3" element={<RevoAlternativeLanding />} />
           <Route path="/outreach" element={<RevoAlternativeLanding />} />
@@ -359,7 +361,14 @@ function App() {
           <Route path="/map" element={<PartnerMap />} />
 
           {/* Guest QR Logic (Now REVOO) */}
-          <Route path="/qr" element={<TestQRPage />} />
+          <Route path="/qr" element={(() => {
+            const params = new URLSearchParams(window.location.search);
+            const mode = params.get("mode") || params.get("view");
+            if (mode === "menu" || mode === "delivery" || mode === "dishes") {
+              return <GoogleMapsPreLanding />;
+            }
+            return <TestQRPage />;
+          })()} />
           <Route path="/hybrid" element={<HybridChoiceLanding />} />
           <Route path="/hybrid-v2" element={<HybridChoiceLandingV2 />} />
           <Route path="/hybrid2" element={<HybridChoiceLandingV2 />} />

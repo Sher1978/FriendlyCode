@@ -193,6 +193,12 @@ const TestQRPage = () => {
         safeStorage.setItem('currentVenueId', venueId);
         setActiveVenueId(venueId);
 
+        const currentMode = searchParams.get('mode') || searchParams.get('view');
+        if (currentMode === 'menu' || currentMode === 'delivery' || currentMode === 'dishes') {
+            navigate('/menu?id=' + venueId, { replace: true });
+            return;
+        }
+
         const cachedVenueRaw = safeStorage.getItem(`venue_cache_${venueId}`);
         const cachedName = safeStorage.getItem('guestName');
         if (cachedName) setGuestName(cachedName);
@@ -1331,6 +1337,40 @@ const TestQRPage = () => {
                         </div>
                     );
                 })()}
+
+                {/* Electronic Dishes Menu Storefront CTA */}
+                <div className="w-full my-3 px-1">
+                    <motion.div
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => navigate('/menu?id=' + (activeVenueId || venueId))}
+                        className="cursor-pointer bg-gradient-to-r from-emerald-500/25 via-[#202124] to-teal-500/20 border-2 border-emerald-500/60 hover:border-emerald-400 rounded-2xl p-4 shadow-[0_10px_30px_rgba(16,185,129,0.3)] backdrop-blur-2xl flex items-center justify-between gap-3 group transition-all"
+                    >
+                        <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-2xl shrink-0 group-hover:scale-110 transition-transform shadow-inner">
+                                🍽️
+                            </div>
+                            <div className="flex flex-col text-left min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="text-sm font-black text-white group-hover:text-emerald-300 transition-colors">
+                                        Меню блюд со скидкой
+                                    </span>
+                                    <span className="bg-emerald-500 text-black text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                        -{displayDiscount}%
+                                    </span>
+                                </div>
+                                <span className="text-xs text-white/70 mt-0.5 truncate">
+                                    {depositBalance > 0 
+                                        ? `Скидка по депозиту -${displayDiscount}% на всё меню` 
+                                        : `Ваша персональная скидка -${displayDiscount}%`}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-emerald-500/20 group-hover:bg-emerald-500 flex items-center justify-center text-emerald-400 group-hover:text-black transition-all shrink-0">
+                            <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+                        </div>
+                    </motion.div>
+                </div>
 
             </div>
 

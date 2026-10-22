@@ -483,7 +483,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
 
   void _openPublicStorefront() {
     final origin = Uri.base.origin;
-    final storefrontUrl = "$origin/qr?id=${widget.venueId}";
+    final storefrontUrl = "$origin/menu?id=${widget.venueId}";
 
     showCupertinoDialog(
       context: context,
@@ -1398,7 +1398,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                       ),
                       const SizedBox(height: 2),
                       SelectableText(
-                        "${Uri.base.origin}/qr?id=${widget.venueId}",
+                        "${Uri.base.origin}/menu?id=${widget.venueId}",
                         style: const TextStyle(color: Colors.white70, fontSize: 11, fontFamily: 'monospace'),
                       ),
                     ],
