@@ -1107,7 +1107,117 @@ exports.telegramWebhook = onRequest(async (req, res) => {
             const chatId = update.message.chat.id;
             const text = update.message.text.trim();
             const fromUser = update.message.from;
-            const username = (fromUser.username || "").toLowerCase();
+                        const username = (fromUser.username || "").toLowerCase();
+
+            // ── HUMAN-IN-THE-LOOP (HITL) BOOKING CONFIRMATION ──
+            if (callbackData && (callbackData.startsWith("BKG_CONFIRM_") || callbackData.startsWith("BKG_REJECT_"))) {
+                const isConfirm = callbackData.startsWith("BKG_CONFIRM_");
+                const bookingId = callbackData.replace(isConfirm ? "BKG_CONFIRM_" : "BKG_REJECT_", "").trim();
+
+                const bookingRef = db.collection("bookings").doc(bookingId);
+                const bookingSnap = await bookingRef.get();
+                if (!bookingSnap.exists) {
+                    await answerCallbackQuery(callbackQueryId, "❌ Заявка не найдена или уже удалена.", true);
+                    res.sendStatus(200);
+                    return;
+                }
+
+                const reviewer = fromUser.username ? `@${fromUser.username}` : (fromUser.first_name || "Диспетчер");
+                const newStatus = isConfirm ? "confirmed" : "rejected";
+
+                await bookingRef.update({
+                    status: newStatus,
+                    reviewedBy: reviewer,
+                    reviewedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+
+                const badge = isConfirm ? "✅ ПОДТВЕРЖДЕНО" : "❌ ОТКЛОНЕНО";
+                await answerCallbackQuery(callbackQueryId, isConfirm ? "Бронь подтверждена!" : "Бронь отклонена.", false);
+
+                const origText = callbackQuery.message ? (callbackQuery.message.text || "") : "";
+                await editTelegramMessage(chatId, messageId, `${origText}\n\n────────────────\n<b>${badge}</b> диспетчером ${reviewer}`);
+                res.sendStatus(200);
+                return;
+            }
+            // ── HUMAN-IN-THE-LOOP (HITL) ACTIVE LEARNING REPLY ──
+            if (update.message.reply_to_message) {
+                const replyTo = update.message.reply_to_message;
+                const replyToText = replyTo.text || "";
+                const replyToMessageId = replyTo.message_id;
+
+                if (replyToText.includes("ВОПРОС ОТ ГОСТЯ В ЧАТЕ") || replyToText.includes("ТРЕБУЕТСЯ ОТВЕТ ДИСПЕТЧЕРА")) {
+                    logger.info(`Received reply from dispatcher for message ${replyToMessageId}: ${text}`);
+
+                    let inquiryDoc = null;
+                    let venueId = null;
+
+                    const inquirySnap = await db.collectionGroup("manager_inquiries")
+                        .where("telegramMessageId", "==", replyToMessageId)
+                        .limit(1)
+                        .get();
+
+                    if (!inquirySnap.empty) {
+                        inquiryDoc = inquirySnap.docs[0];
+                    } else {
+                        const inquiryArraySnap = await db.collectionGroup("manager_inquiries")
+                            .where("telegramMessageIds", "array-contains", replyToMessageId)
+                            .limit(1)
+                            .get();
+                        if (!inquiryArraySnap.empty) {
+                            inquiryDoc = inquiryArraySnap.docs[0];
+                        }
+                    }
+
+                    if (!inquiryDoc) {
+                        const pendingSnap = await db.collectionGroup("manager_inquiries")
+                            .where("status", "==", "pending_answer")
+                            .orderBy("createdAt", "desc")
+                            .limit(1)
+                            .get();
+                        if (!pendingSnap.empty) {
+                            inquiryDoc = pendingSnap.docs[0];
+                        }
+                    }
+
+                    if (inquiryDoc) {
+                        venueId = inquiryDoc.ref.parent.parent ? inquiryDoc.ref.parent.parent.id : null;
+                        const inquiryData = inquiryDoc.data();
+                        const guestQuestion = inquiryData.question;
+                        const managerAnswer = text;
+                        const reviewer = fromUser.username ? `@${fromUser.username}` : (fromUser.first_name || "Диспетчер");
+
+                        await inquiryDoc.ref.update({
+                            status: "answered",
+                            answer: managerAnswer,
+                            answeredBy: reviewer,
+                            answeredAt: admin.firestore.FieldValue.serverTimestamp()
+                        });
+
+                        if (venueId) {
+                            await db.collection("venues").doc(venueId).collection("knowledge_docs").add({
+                                category: "auto_learned",
+                                question: guestQuestion,
+                                answer: managerAnswer,
+                                criticalNote: `Уточнено диспетчером ${reviewer}`,
+                                sourceType: "telegram_learning",
+                                sourceTitle: `Ответ в Telegram от ${reviewer}`,
+                                active: true,
+                                createdAt: admin.firestore.FieldValue.serverTimestamp()
+                            });
+                        }
+
+                        const successReply = 
+                            `🧠 <b>Ответ принят и выучен!</b>\n\n` +
+                            `📌 <b>Вопрос гостя:</b> «${guestQuestion}»\n` +
+                            `💡 <b>Ваш ответ:</b> «${managerAnswer}»\n\n` +
+                            `✅ <i>Правило добавлено в постоянную базу знаний. В следующий раз AI-консьерж ответит гостям автоматически!</i>`;
+
+                        await sendTelegramMessage(chatId, successReply);
+                        res.sendStatus(200);
+                        return;
+                    }
+                }
+            }
 
             if (text.startsWith('/leads') || text.toLowerCase() === 'лиды') {
                 // Verify user is admin/superadmin
@@ -1426,6 +1536,37 @@ exports.telegramWebhook = onRequest(async (req, res) => {
 
                     const promptMsg = `💰 <b>Списание депозита клиента</b>\n\n👤 <b>Гость:</b> ${sessionData.userName}\n💳 <b>Баланс депозита:</b> ${sessionData.depositBalance.toFixed(2)} ${sessionData.currency}\n🔥 <b>Скидка:</b> ${sessionData.discountPercentage}%\n\nПожалуйста, введите сумму чека (только цифры):`;
                     await sendTelegramMessage(chatId, promptMsg);
+                    res.sendStatus(200);
+                    return;
+                } else if (param.startsWith("mgr_")) {
+                    const venueId = param.replace("mgr_", "").trim();
+                    const venueDoc = await db.collection("venues").doc(venueId).get();
+                    if (!venueDoc.exists) {
+                        await sendTelegramMessage(chatId, "❌ Заведение не найдено.");
+                        res.sendStatus(200);
+                        return;
+                    }
+                    const venueData = venueDoc.data();
+
+                    await db.collection("venues").doc(venueId).collection("authorized_managers").doc(String(chatId)).set({
+                        chatId: String(chatId),
+                        username: update.message.chat.username || "",
+                        firstName: update.message.chat.first_name || "",
+                        registeredAt: admin.firestore.FieldValue.serverTimestamp(),
+                        role: "manager"
+                    }, { merge: true });
+
+                    await db.collection("venues").doc(venueId).update({
+                        authorizedTelegramChatIds: admin.firestore.FieldValue.arrayUnion(String(chatId))
+                    }).catch(() => {});
+
+                    const welcomeMsg = `🤝 <b>Вы успешно подключены как диспетчер заведения «${venueData.name}»!</b>\n\n` +
+                        `✅ Сюда будут приходить:\n` +
+                        `• Заявки на бронирование рейсов с кнопками [✅ Подтвердить] / [❌ Отклонить]\n` +
+                        `• Нестандартные вопросы гостей от AI-Консьержа\n\n` +
+                        `💡 <i>AI-Консьерж консультирует строго по вашей базе знаний и никогда не выдумывает информацию. Бронирование считается подтвержденным только после вашего одобрения!</i>`;
+
+                    await sendTelegramMessage(chatId, welcomeMsg);
                     res.sendStatus(200);
                     return;
                 } else if (param.startsWith("auth_") || param.startsWith("gauth_")) {

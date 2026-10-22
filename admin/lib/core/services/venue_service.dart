@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
+import 'package:friendly_code/core/services/direct_services_scraper_service.dart';
 
 class VenuesService {
   final FirebaseFirestore _firestore;
@@ -130,6 +131,88 @@ class VenuesService {
         'payment': 'Банковские карты, СБП, наличные на ресепшене',
       },
       'cancellationPolicy': 'Отмена или перенос без штрафов за 2 часа до начала визита',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    await batch.commit();
+  }
+
+  /// Seeds fully scraped and synthesized services, staff/vehicles, yield rules, and AI digital passport.
+  Future<void> seedScrapedServicesData(String venueId, ScrapedServiceData data) async {
+    final batch = _firestore.batch();
+
+    // 1. Staff / Vehicles
+    for (int i = 0; i < data.staff.length; i++) {
+      final s = data.staff[i];
+      final staffId = s['id'] ?? 'master_${i + 1}';
+      final staffRef = _firestore.collection(_collection).doc(venueId).collection('staff').doc(staffId);
+      batch.set(staffRef, {
+        'name': s['name'] ?? 'Экипаж #${i + 1}',
+        'role': s['role'] ?? 'Специалист / Трансфер',
+        'avatarUrl': s['avatarUrl'] ?? 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=250&q=80',
+        'services': data.services.map((srv) => srv['id'] ?? 'srv_1').toList(),
+        'rating': 5.0,
+        'workingHours': {
+          'monday': {'start': s['workStartTime'] ?? '06:00', 'end': s['workEndTime'] ?? '18:00'},
+          'tuesday': {'start': s['workStartTime'] ?? '06:00', 'end': s['workEndTime'] ?? '18:00'},
+          'wednesday': {'start': s['workStartTime'] ?? '06:00', 'end': s['workEndTime'] ?? '18:00'},
+          'thursday': {'start': s['workStartTime'] ?? '06:00', 'end': s['workEndTime'] ?? '18:00'},
+          'friday': {'start': s['workStartTime'] ?? '06:00', 'end': s['workEndTime'] ?? '18:00'},
+          'saturday': {'start': s['workStartTime'] ?? '06:00', 'end': s['workEndTime'] ?? '18:00'},
+          'sunday': {'start': s['workStartTime'] ?? '06:00', 'end': s['workEndTime'] ?? '18:00'},
+        },
+        'isActive': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // 2. Services
+    for (int i = 0; i < data.services.length; i++) {
+      final s = data.services[i];
+      final srvId = s['id'] ?? 'srv_${i + 1}';
+      final srvRef = _firestore.collection(_collection).doc(venueId).collection('services').doc(srvId);
+      batch.set(srvRef, {
+        'title': s['title'] ?? 'Услуга ${i + 1}',
+        'description': s['description'] ?? '',
+        'category': s['category'] ?? 'Направления',
+        'price': s['price'] ?? 1000,
+        'durationMinutes': s['durationMinutes'] ?? 60,
+        'bufferMinutes': 10,
+        'assignedStaffIds': data.staff.isNotEmpty ? [data.staff.first['id'] ?? 'master_1'] : ['master_1'],
+        'isActive': true,
+        'sortOrder': s['sortOrder'] ?? (i + 1),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // 3. Yield Rules
+    for (int i = 0; i < data.yieldRules.length; i++) {
+      final y = data.yieldRules[i];
+      final ruleId = 'rule_${i + 1}';
+      final ruleRef = _firestore.collection(_collection).doc(venueId).collection('yield_rules').doc(ruleId);
+      batch.set(ruleRef, {
+        'name': y['name'] ?? 'Скидка на слот',
+        'daysOfWeek': y['daysOfWeek'] ?? [2, 3],
+        'startTime': y['startTime'] ?? '10:00',
+        'endTime': y['endTime'] ?? '18:00',
+        'discountType': y['discountType'] ?? 'fixed',
+        'discountValue': y['discountValue'] ?? 300,
+        'isActive': true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // 4. AI Knowledge Profile
+    final aiRef = _firestore.collection(_collection).doc(venueId).collection('ai_knowledge').doc('profile');
+    final aiK = data.aiKnowledge;
+    batch.set(aiRef, {
+      'toneOfVoice': aiK['toneOfVoice'] ?? 'respectful_formal',
+      'mainServices': aiK['mainServices'] ?? '',
+      'parkingInstructions': aiK['parkingOrPickup'] ?? 'Инструкции при бронировании.',
+      'petPolicy': aiK['rulesAndPolicies'] ?? 'Требования к документам и правила.',
+      'specialInstructions': aiK['specialInstructions'] ?? 'Комфорт и сервис включены.',
+      'cancellationPolicy': 'Отмена или перенос без штрафов за 12 часов до поездки.',
+      'faq': aiK['faq'] ?? [],
       'updatedAt': FieldValue.serverTimestamp(),
     });
 

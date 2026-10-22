@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/services/venue_service.dart';
+import 'package:friendly_code/core/services/direct_services_scraper_service.dart';
+import 'package:friendly_code/features/services/presentation/widgets/smart_services_onboarding_dialog.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
@@ -36,6 +38,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
 
   String _businessType = 'services';
   bool _seedStarterPack = true;
+  ScrapedServiceData? _scrapedServiceData;
   String _selectedLanguage = 'ru';
   bool _isSaving = false;
   bool _hasCaptiveWifi = false;
@@ -222,8 +225,10 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         await _venuesService.updateVenue(updatedVenue);
       }
 
-      // Seed starter pack if checked for new Services venue
-      if (_seedStarterPack && (widget.venue == null || widget.venue!.id.isEmpty) && _businessType == 'services') {
+      // Seed scraped data or starter pack for new Services venue
+      if (_scrapedServiceData != null) {
+        await _venuesService.seedScrapedServicesData(savedVenueId, _scrapedServiceData!);
+      } else if (_seedStarterPack && (widget.venue == null || widget.venue!.id.isEmpty) && _businessType == 'services') {
         await _venuesService.seedServicesStarterPack(
           savedVenueId,
           category: _categoryCtrl.text.trim(),
@@ -376,7 +381,11 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                     "Заполните первичные данные карточки партнера и запустите заведение.",
                     style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 15),
                   ),
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 28),
+
+                  // ── AI SMART ONBOARDING BANNER ──
+                  if (widget.venue == null)
+                    _buildAiOnboardingBanner(),
 
                   // ── 1. BUSINESS PROFILE SELECTION ──
                   _buildGlassSection(
@@ -716,9 +725,131 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     );
   }
 
+  void _openSmartOnboarding() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => SmartServicesOnboardingDialog(
+        onApply: (data) {
+          setState(() {
+            _scrapedServiceData = data;
+            final v = data.venue;
+            if (v['name'] != null && v['name'].toString().isNotEmpty) {
+              _nameCtrl.text = v['name'].toString();
+            }
+            if (v['category'] != null && v['category'].toString().isNotEmpty) {
+              _categoryCtrl.text = v['category'].toString();
+            }
+            if (v['description'] != null && v['description'].toString().isNotEmpty) {
+              _descCtrl.text = v['description'].toString();
+            }
+            if (v['phone'] != null && v['phone'].toString().isNotEmpty) {
+              _phoneCtrl.text = v['phone'].toString();
+            }
+            if (v['address'] != null && v['address'].toString().isNotEmpty) {
+              _addressCtrl.text = v['address'].toString();
+            }
+            if (v['currency'] != null && v['currency'].toString().isNotEmpty) {
+              _currencyCtrl.text = v['currency'].toString();
+            }
+            if (v['googleMapsUrl'] != null && v['googleMapsUrl'].toString().isNotEmpty) {
+              _googleMapsUrlCtrl.text = v['googleMapsUrl'].toString();
+            }
+            _businessType = 'services';
+            _seedStarterPack = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("✨ Карточка заведения и база знаний AI успешно заполнены!"),
+              backgroundColor: AppColors.accentTeal,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildAiOnboardingBanner() {
+    final hasData = _scrapedServiceData != null;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: hasData ? AppColors.accentGreen.withValues(alpha: 0.08) : AppColors.accentTeal.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: hasData ? AppColors.accentGreen : AppColors.accentTeal.withValues(alpha: 0.4),
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: (hasData ? AppColors.accentGreen : AppColors.accentTeal).withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              hasData ? CupertinoIcons.checkmark_seal_fill : CupertinoIcons.sparkles,
+              color: hasData ? AppColors.accentGreen : AppColors.accentTeal,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hasData 
+                    ? "✨ Данные заведения успешно сформированы через AI"
+                    : "🤖 Умный AI-онбординг из ссылки (Google Maps / Сайт)",
+                  style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  hasData
+                    ? "Извлечено ${_scrapedServiceData!.services.length} услуг/рейсов, сформирован цифровой паспорт AI и ответы на вопросы."
+                    : "Вставьте ссылку на Google Maps, сайт или описание — Gemini сам создаст направления, цены, правила и обучит AI-консьержа.",
+                  style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          CupertinoButton(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            color: hasData ? Colors.white.withValues(alpha: 0.1) : AppColors.accentTeal,
+            onPressed: _openSmartOnboarding,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  hasData ? CupertinoIcons.arrow_2_circlepath : CupertinoIcons.bolt_fill,
+                  color: hasData ? Colors.white : Colors.black,
+                  size: 16,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  hasData ? "Изменить / Заново" : "Запустить AI-анализ",
+                  style: TextStyle(
+                    color: hasData ? Colors.white : Colors.black,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCategoryPills() {
     final suggestions = _businessType == 'services'
-        ? ['Барбершоп', 'Салон красоты', 'СПА & Массаж', 'Косметология', 'Детейлинг']
+        ? ['Бордер-ран', 'Визаран', 'Трансфер', 'СПА & Массаж', 'Барбершоп', 'Салон красоты', 'Детейлинг']
         : ['Ресторан', 'Кафе', 'Бар', 'Кофейня', 'Пиццерия'];
 
     return Padding(

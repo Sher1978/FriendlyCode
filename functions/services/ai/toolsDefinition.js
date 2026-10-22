@@ -79,6 +79,28 @@ const toolsDefinition = [
           },
           required: ["topic"]
         }
+      },
+      {
+        name: "askHumanManager",
+        description: "Передать нестандартный вопрос гостя живому дежурному диспетчеру заведения в Telegram, если в базе знаний заведения нет точного ответа. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО выдумывать ответ или искать догадки в интернете.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            question: {
+              type: "STRING",
+              description: "Точный текст вопроса гостя"
+            },
+            clientName: {
+              type: "STRING",
+              description: "Имя гостя (если известно)"
+            },
+            clientPhone: {
+              type: "STRING",
+              description: "Телефон гостя (если известен)"
+            }
+          },
+          required: ["question"]
+        }
       }
     ]
   }
