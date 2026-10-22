@@ -26,6 +26,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
   double _scrapeProgress = 0.0;
   String _scrapeStepText = '';
   String? _scrapeError;
+  String? _activeJobId;
   StreamSubscription<DocumentSnapshot>? _activeJobSubscription;
 
   // Staging items from scrapers
