@@ -19,6 +19,7 @@ import 'package:friendly_code/core/auth/auth_service.dart';
 import 'package:friendly_code/features/owner/presentation/screens/pos_sticker_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/deposit_action_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/deposit_analytics_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/online_orders_manager_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/giftx_setup_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/google_maps_integration_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/google_maps_config_screen.dart';
@@ -69,6 +70,9 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
   late Animation<double> _pulseAnimation;
 
   StreamSubscription? _staffReqSubscription;
+  StreamSubscription? _onlineOrdersSubscription;
+  final Set<String> _processedOrderAlertIds = {};
+  int _pendingOrdersCount = 0;
 
   void _subscribeToVisits(String venueId) {
     _visitSubscription?.cancel();
@@ -110,6 +114,102 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
         }
       }
     });
+  }
+
+  void _subscribeToOnlineOrders(String venueId) {
+    _onlineOrdersSubscription?.cancel();
+    _onlineOrdersSubscription = FirebaseFirestore.instance
+        .collection('orders')
+        .where('venueId', isEqualTo: venueId)
+        .snapshots()
+        .listen((snapshot) {
+      if (!mounted) return;
+      final docs = snapshot.docs;
+      final pendingDocs = docs.where((d) {
+        final data = d.data();
+        final status = (data['status'] ?? 'new').toString().toLowerCase();
+        final depStatus = (data['depositStatus'] ?? '').toString().toLowerCase();
+        final depDeducted = (data['depositDeducted'] as num?)?.toDouble() ?? 0.0;
+        return status == 'new' || depStatus == 'pending_approval' || (depDeducted > 0 && depStatus != 'approved');
+      }).toList();
+
+      setState(() {
+        _pendingOrdersCount = pendingDocs.length;
+      });
+
+      if (pendingDocs.isNotEmpty) {
+        final latest = pendingDocs.first;
+        if (!_processedOrderAlertIds.contains(latest.id)) {
+          _processedOrderAlertIds.add(latest.id);
+          _showNewOnlineOrderAlert(latest.id, latest.data());
+        }
+      }
+    });
+  }
+
+  void _showNewOnlineOrderAlert(String orderDocId, Map<String, dynamic> data) {
+    final orderId = data['orderId'] ?? orderDocId;
+    final customer = (data['customer'] as Map<String, dynamic>?) ?? {};
+    final name = customer['name'] ?? 'Гость';
+    final depositDeducted = (data['depositDeducted'] as num?)?.toDouble() ?? 0.0;
+    final totalPayable = (data['totalPayable'] as num?)?.toDouble() ?? 0.0;
+    final hasDeposit = depositDeducted > 0;
+
+    showCupertinoDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(hasDeposit ? CupertinoIcons.money_dollar_circle_fill : CupertinoIcons.bag_fill, color: AppColors.accentYellow),
+            const SizedBox(width: 8),
+            Text(hasDeposit ? 'Списание депозита' : 'Новый заказ'),
+          ],
+        ),
+        content: Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Заказ #$orderId от $name', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              const SizedBox(height: 8),
+              if (hasDeposit) ...[
+                Text(
+                  'Запрос на списание депозита:\n${depositDeducted.round()} ₫',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.accentYellow),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 4),
+              ],
+              Text(
+                totalPayable > 0 ? 'К оплате при получении: ${totalPayable.round()} ₫' : 'Полностью оплачен депозитом',
+                style: const TextStyle(fontSize: 12, color: Colors.white70),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text('Позже'),
+            onPressed: () => Navigator.pop(ctx),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            child: const Text('Открыть заказ'),
+            onPressed: () {
+              Navigator.pop(ctx);
+              final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+              final vId = roleProvider.venueId ?? '';
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => OnlineOrdersManagerScreen(venueId: vId)),
+              );
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   void _showOwnerRoleAssignmentDialog(String reqId, Map<String, dynamic> data) {
@@ -295,6 +395,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
   void dispose() {
     _visitSubscription?.cancel();
     _staffReqSubscription?.cancel();
+    _onlineOrdersSubscription?.cancel();
     _pulseController.dispose();
     super.dispose();
   }
@@ -387,6 +488,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _subscribeToVisits(activeVenueId);
         _subscribeToStaffRequests(activeVenueId);
+        _subscribeToOnlineOrders(activeVenueId);
         _fetchRealStats(activeVenueId);
 
         // Auto open DepositActionScreen or GuestListScreen based on URL params
@@ -720,6 +822,45 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                 ),
               ),
             ),
+            // ── 📦 ЗАКАЗЫ & СПИСАНИЕ — Quick Access ──
+            if (activeVenueId != null)
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => OnlineOrdersManagerScreen(venueId: activeVenueId)),
+                ),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _pendingOrdersCount > 0
+                        ? AppColors.accentGreen.withOpacity(0.2)
+                        : Colors.white.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: _pendingOrdersCount > 0
+                          ? AppColors.accentGreen
+                          : Colors.white24,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text('📦', style: TextStyle(fontSize: 14)),
+                      const SizedBox(width: 6),
+                      Text(
+                        _pendingOrdersCount > 0 ? 'ЗАКАЗЫ ($_pendingOrdersCount)' : 'ЗАКАЗЫ',
+                        style: TextStyle(
+                          color: _pendingOrdersCount > 0 ? AppColors.accentGreen : Colors.white70,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             // ── 🎁 GIFTX — Hybrid Toggle Quick Button ──
             if (activeVenueId != null)
               StreamBuilder<VenueModel?>(
@@ -1152,6 +1293,13 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                 IOSSettingsGroup(
                   title: "Direct Delivery & Food Apps",
                   children: [
+                    IOSSettingsRow(
+                      title: "Онлайн-заказы и списание депозита",
+                      subtitle: "Входящие заказы, подтверждение и управление списанием",
+                      icon: CupertinoIcons.cart_badge_plus,
+                      iconColor: AppColors.accentGreen,
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OnlineOrdersManagerScreen(venueId: venue.id))),
+                    ),
                     IOSSettingsRow(
                       title: "Меню доставки и Импорт",
                       subtitle: "Парсинг из GrabFood, Zomato, Glovo и управление ценами",

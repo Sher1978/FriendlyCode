@@ -356,6 +356,18 @@ const GoogleMapsPreLanding = () => {
     return () => clearInterval(interval);
   }, [deliveryLoyaltyConfig, venueTimezone]);
 
+  // Live listener for completed order status updates (e.g. staff deposit deduction approval)
+  useEffect(() => {
+    if (!completedOrder?.id) return;
+    const unsub = onSnapshot(doc(db, 'orders', completedOrder.id), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setCompletedOrder(prev => prev ? ({ ...prev, ...data }) : null);
+      }
+    }, (err) => console.warn("Live order subscription note:", err));
+    return () => unsub();
+  }, [completedOrder?.id]);
+
   // Calculate Effective User Identity
   const effectiveEmail = guestEmail || user?.email || userProfile?.email || '';
   const effectiveTelegram = guestTelegram || userProfile?.telegram || '';
@@ -988,6 +1000,7 @@ const GoogleMapsPreLanding = () => {
         discountAmount: Math.round(cartSubtotal * (currentDiscountRate / 100)),
         deliveryFee,
         depositDeducted: depositDeduction,
+        depositStatus: depositDeduction > 0 ? 'pending_approval' : 'not_used',
         totalPayable: finalOrderTotal,
         currency: venueCurrency,
         paymentMethod: selectedPaymentMethod,
@@ -1029,42 +1042,9 @@ const GoogleMapsPreLanding = () => {
       }
       setUserVisits(prev => [{ visitDateStr: todayStr, timestamp: new Date() }, ...prev]);
       
-      // Deduct spent deposit from Firestore users doc & log transaction
+      // When deposit is requested, staff confirms and deducts in the Admin Online Orders Screen
       if (depositDeduction > 0 && user?.uid) {
-        try {
-          const userRef = doc(db, 'users', user.uid);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists()) {
-            const uData = userSnap.data();
-            const balances = { ...(uData.deposit_balances || {}) };
-            const currentVenueBal = parseBalance(balances[venueId] ?? uData.deposit_balance ?? depositBalance);
-            const newVenueBal = Math.max(0, currentVenueBal - depositDeduction);
-            balances[venueId] = newVenueBal;
-            
-            await setDoc(userRef, {
-              deposit_balances: balances,
-              deposit_balance: newVenueBal
-            }, { merge: true });
-
-            await addDoc(collection(db, 'deposit_transactions'), {
-              userId: user.uid,
-              uid: user.uid,
-              guestEmail: (effectiveEmail || '').toLowerCase(),
-              guestName: effectiveDisplayName || 'Guest',
-              venueId,
-              amount: -depositDeduction,
-              type: 'online_order',
-              orderId,
-              description: `Оплата онлайн-заказа #${orderId} (${itemsList.length} поз.)`,
-              timestamp: serverTimestamp()
-            });
-
-            setDepositBalance(newVenueBal);
-            safeStorage.setItem('cached_deposit_balance', String(newVenueBal));
-          }
-        } catch (depErr) {
-          console.warn("Deposit balance debit note:", depErr);
-        }
+        console.log(`Deposit deduction of ${depositDeduction} requested for order #${orderId}; waiting for staff confirmation in Admin`);
       }
 
       // Clear cart & show completed state
@@ -2847,6 +2827,27 @@ const GoogleMapsPreLanding = () => {
                   <img src={vietQrUrl} alt="VietQR" className="w-full aspect-square object-contain mx-auto" />
                   <p className="text-[11px] font-bold text-gray-700">
                     Отсканируйте в любом банковском приложении Вьетнама для мгновенной оплаты
+                  </p>
+                </div>
+              )}
+
+              {/* Deposit Deduction Status Chip */}
+              {completedOrder.depositDeducted > 0 && (
+                <div className={`rounded-xl p-3 text-xs border text-left space-y-1 ${
+                  completedOrder.depositStatus === 'approved'
+                    ? 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300'
+                    : 'bg-amber-950/40 border-amber-500/50 text-amber-300'
+                }`}>
+                  <div className="font-bold flex items-center justify-between">
+                    <span>💰 Списание с депозита: {formatPrice(completedOrder.depositDeducted, completedOrder.currency)}</span>
+                    <span className="text-[10px] uppercase px-1.5 py-0.5 rounded font-black bg-black/40">
+                      {completedOrder.depositStatus === 'approved' ? '✓ Списано' : '⏳ Ожидает подтверждения'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-300">
+                    {completedOrder.depositStatus === 'approved'
+                      ? `Сотрудник заведения ${completedOrder.depositDeductedBy ? `(${completedOrder.depositDeductedBy})` : ''} подтвердил заказ и списал депозит.`
+                      : 'Сотрудник заведения спишет эту сумму с вашего депозита при подтверждении заказа.'}
                   </p>
                 </div>
               )}

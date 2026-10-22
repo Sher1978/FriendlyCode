@@ -17,6 +17,7 @@ import 'firebase_options.dart';
 import 'features/web/presentation/pages/b2c_home_screen.dart';
 import 'features/web/presentation/pages/not_found_screen.dart';
 import 'features/owner/presentation/screens/deposit_action_screen.dart';
+import 'features/owner/presentation/screens/online_orders_manager_screen.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'guest_app.dart';
 import 'features/web/presentation/pages/super_admin_login_screen.dart';
@@ -148,6 +149,18 @@ class FriendlyCodeApp extends StatelessWidget {
         ),
         '/superadmin-login': (context) => const SuperAdminLoginScreen(),
         '/deposit': (context) => const DepositActionScreen(),
+        '/orders': (context) {
+          final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+          final uri = Uri.base;
+          final venueId = uri.queryParameters['id'] ?? uri.queryParameters['venueId'] ?? roleProvider.venueId ?? '';
+          return OnlineOrdersManagerScreen(venueId: venueId);
+        },
+        '/online-orders': (context) {
+          final roleProvider = Provider.of<RoleProvider>(context, listen: false);
+          final uri = Uri.base;
+          final venueId = uri.queryParameters['id'] ?? uri.queryParameters['venueId'] ?? roleProvider.venueId ?? '';
+          return OnlineOrdersManagerScreen(venueId: venueId);
+        },
         '/partner': (context) => const B2BLandingScreen(),
       },
       onUnknownRoute: (settings) => MaterialPageRoute(

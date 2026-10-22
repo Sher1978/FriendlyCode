@@ -42,6 +42,8 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
   double _currentBalance = 0.0;
   bool _hasLockedDiscount = false;
   String _venueId = '';
+  Map<String, dynamic>? _pendingOnlineOrder;
+  String? _pendingOnlineOrderDocId;
 
   final TextEditingController _amountCtrl = TextEditingController();
   final TextEditingController _searchCtrl = TextEditingController();
@@ -321,6 +323,38 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
           }
         }
       }
+
+      if (_userId != null && _userId!.isNotEmpty && _venueId.isNotEmpty) {
+        try {
+          final ordersSnap = await FirebaseFirestore.instance
+              .collection('orders')
+              .where('venueId', isEqualTo: _venueId)
+              .where('customer.uid', isEqualTo: _userId)
+              .limit(5)
+              .get();
+          final pending = ordersSnap.docs.where((d) {
+            final oData = d.data();
+            final depStatus = (oData['depositStatus'] ?? '').toString();
+            final depAmount = (oData['depositDeducted'] as num?)?.toDouble() ?? 0.0;
+            return depAmount > 0 && depStatus != 'approved' && oData['status'] != 'cancelled';
+          }).firstOrNull;
+
+          if (pending != null) {
+            _pendingOnlineOrder = pending.data();
+            _pendingOnlineOrderDocId = pending.id;
+            final depDeducted = (_pendingOnlineOrder?['depositDeducted'] as num?)?.toDouble() ?? 0.0;
+            if (depDeducted > 0 && _amountCtrl.text.isEmpty) {
+              _amountCtrl.text = depDeducted.round().toString();
+              _activeTab = 'deduct';
+            }
+          } else {
+            _pendingOnlineOrder = null;
+            _pendingOnlineOrderDocId = null;
+          }
+        } catch (err) {
+          debugPrint('Error checking pending online order for user: $err');
+        }
+      }
     } catch (e) {
       debugPrint('Error loading user for deposit action: $e');
     } finally {
@@ -475,6 +509,22 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
         _hasLockedDiscount = newBalance > 0;
       });
       _amountCtrl.clear();
+
+      if (_pendingOnlineOrderDocId != null) {
+        await FirebaseFirestore.instance
+            .collection('orders')
+            .doc(_pendingOnlineOrderDocId)
+            .update({
+          'depositStatus': 'approved',
+          'status': 'confirmed',
+          'depositDeductedBy': staffName,
+          'depositDeductedAt': FieldValue.serverTimestamp(),
+        }).catchError((_) {});
+        setState(() {
+          _pendingOnlineOrder = null;
+          _pendingOnlineOrderDocId = null;
+        });
+      }
 
       if (mounted) {
         showCupertinoDialog(
@@ -1053,6 +1103,51 @@ class _DepositActionScreenState extends State<DepositActionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_pendingOnlineOrder != null) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.accentYellow.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.accentYellow.withOpacity(0.6)),
+              ),
+              child: Row(
+                children: [
+                  const Text('📦', style: TextStyle(fontSize: 20)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Активный онлайн-заказ #${_pendingOnlineOrder!['orderId'] ?? ''}',
+                          style: const TextStyle(color: AppColors.accentYellow, fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Запрос на списание: ${_pendingOnlineOrder!['depositDeducted'] ?? 0} ₫',
+                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    color: AppColors.accentYellow,
+                    borderRadius: BorderRadius.circular(8),
+                    onPressed: () {
+                      final dep = _pendingOnlineOrder!['depositDeducted'];
+                      if (dep != null) {
+                        _amountCtrl.text = (dep as num).round().toString();
+                      }
+                    },
+                    child: const Text('Применить', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11)),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const Text('Сумма чека заведения (к списанию)',
               style: TextStyle(
                   color: Colors.white70,

@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
+import 'package:friendly_code/features/owner/presentation/screens/online_orders_manager_screen.dart';
 
 class DeliveryMenuManagerScreen extends StatefulWidget {
   final String venueId;
@@ -1405,6 +1406,24 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                   ),
                 ),
                 const SizedBox(width: 10),
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  color: CupertinoColors.activeGreen,
+                  borderRadius: BorderRadius.circular(6),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => OnlineOrdersManagerScreen(venueId: widget.venueId)),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.bag_fill, size: 13, color: Colors.black),
+                      SizedBox(width: 6),
+                      Text("Заказы и депозиты", style: TextStyle(fontSize: 12, color: Colors.black, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
                 CupertinoButton(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   color: CupertinoColors.activeBlue,
