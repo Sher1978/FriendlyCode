@@ -2,9 +2,11 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/theme/colors.dart';
+import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
 class DeliveryMenuManagerScreen extends StatefulWidget {
   final String venueId;
@@ -24,7 +26,6 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
   double _scrapeProgress = 0.0;
   String _scrapeStepText = '';
   String? _scrapeError;
-  String? _activeJobId;
   StreamSubscription<DocumentSnapshot>? _activeJobSubscription;
 
   // Staging items from scrapers
@@ -46,6 +47,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
   bool _isSaving = false;
   bool _hasLoadedInitial = false;
   bool _isLoadingScrapeJobItems = false;
+  bool _isSyncingPhotos = false;
 
   @override
   void dispose() {
@@ -474,7 +476,187 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
     }
   }
 
-  void _publishSelectedItems() async {
+  String _normalizeName(String s) {
+    return s.toLowerCase().replaceAll(RegExp(r'[^a-zа-я0-9]'), '').trim();
+  }
+
+  void _openPublicStorefront() {
+    final origin = Uri.base.origin;
+    final storefrontUrl = "$origin/qr?id=${widget.venueId}";
+
+    showCupertinoDialog(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text("Витрина для гостей (PWA)"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            const Text(
+              "По этой ссылке гости открывают электронное меню и программу лояльности заведения:",
+              style: TextStyle(fontSize: 13),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: CupertinoColors.systemGrey6,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: SelectableText(
+                storefrontUrl,
+                style: const TextStyle(
+                  color: CupertinoColors.activeBlue,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "Вы можете открыть витрину в новой вкладке браузера или скопировать ссылку.",
+              style: TextStyle(fontSize: 12, color: CupertinoColors.systemGrey),
+            ),
+          ],
+        ),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text("Скопировать ссылку"),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: storefrontUrl));
+              Navigator.of(ctx).pop();
+              _showToast("Ссылка на витрину скопирована в буфер обмена");
+            },
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            child: const Text("Открыть в новой вкладке"),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              try {
+                url_launcher.launchUrl(
+                  Uri.parse(storefrontUrl),
+                  webOnlyWindowName: '_blank',
+                );
+              } catch (e) {
+                debugPrint("Storefront open error: $e");
+              }
+            },
+          ),
+          CupertinoDialogAction(
+            child: const Text("Закрыть"),
+            onPressed: () => Navigator.of(ctx).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _syncPhotosToPublished({bool silent = false}) async {
+    if (_isSyncingPhotos || _publishedItems.isEmpty) return;
+    _isSyncingPhotos = true;
+
+    try {
+      // 1. Get source items with photos: from staged items, or from job_grab_live_svoi
+      List<GmMenuItem> sourceItems = _stagedItems.where((e) => e.imageUrl.trim().isNotEmpty).toList();
+
+      if (sourceItems.length < 20) {
+        try {
+          final doc = await FirebaseFirestore.instance
+              .collection('venues')
+              .doc(widget.venueId)
+              .collection('scrape_jobs')
+              .doc('job_grab_live_svoi')
+              .get();
+          if (doc.exists && doc.data()?['items'] is List) {
+            final parsed = (doc.data()!['items'] as List)
+                .whereType<Map>()
+                .map((e) => GmMenuItem.fromMap(e))
+                .toList();
+            if (parsed.isNotEmpty) {
+              sourceItems = parsed.where((e) => e.imageUrl.trim().isNotEmpty).toList();
+            }
+          }
+        } catch (_) {}
+      }
+
+      if (sourceItems.isEmpty) {
+        if (!silent) _showToast("Нет спарсенных фото для синхронизации");
+        _isSyncingPhotos = false;
+        return;
+      }
+
+      final currentWithPhotos = _publishedItems.where((e) => e.imageUrl.trim().isNotEmpty).length;
+      List<GmMenuItem> updatedList = [];
+
+      if (currentWithPhotos <= 2 && sourceItems.length >= 20) {
+        // Upgrade published menu to the 28 real dishes with photos
+        updatedList = List.from(sourceItems);
+      } else {
+        // Map source items by normalized name
+        final Map<String, GmMenuItem> sourceMap = {};
+        for (final item in sourceItems) {
+          sourceMap[_normalizeName(item.name)] = item;
+          if (item.id.isNotEmpty) sourceMap[item.id] = item;
+        }
+
+        for (final pub in _publishedItems) {
+          if (pub.name == "Новый пункт" && (pub.price == '0' || pub.price.isEmpty)) {
+            continue;
+          }
+
+          final norm = _normalizeName(pub.name);
+          GmMenuItem? match = sourceMap[norm];
+
+          if (match == null) {
+            for (final entry in sourceMap.entries) {
+              if (norm.contains(entry.key) || entry.key.contains(norm)) {
+                match = entry.value;
+                break;
+              }
+            }
+          }
+
+          if (match != null && match.imageUrl.isNotEmpty) {
+            updatedList.add(pub.copyWith(
+              imageUrl: match.imageUrl,
+              description: pub.description.isEmpty ? match.description : pub.description,
+              category: match.category.isNotEmpty ? match.category : pub.category,
+              aggregatorPrice: pub.aggregatorPrice.isEmpty ? match.aggregatorPrice : pub.aggregatorPrice,
+            ));
+          } else {
+            updatedList.add(pub);
+          }
+        }
+      }
+
+      if (updatedList.isNotEmpty && mounted) {
+        setState(() {
+          _publishedItems = updatedList;
+        });
+
+        await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).set({
+          'gmConfig': {
+            'businessType': 'horeca',
+            'menuItems': updatedList.map((e) => e.toMap()).toList(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          }
+        }, SetOptions(merge: true));
+
+        final totalPhotos = updatedList.where((e) => e.imageUrl.trim().isNotEmpty).length;
+        if (!silent) {
+          _showToast("Фотографии успешно подтянуты в опубликованное меню! ($totalPhotos с фото)");
+        }
+      }
+    } catch (e) {
+      debugPrint("[DeliveryMenuManager] Sync photos error: $e");
+    } finally {
+      _isSyncingPhotos = false;
+    }
+  }
+
+  void _publishSelectedItems({bool replaceAll = false}) async {
     final itemsToPublish = <GmMenuItem>[];
     for (int i = 0; i < _stagedItems.length; i++) {
       if (_selectedStagedIndices.contains(i)) {
@@ -489,8 +671,62 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
 
     setState(() => _isSaving = true);
     try {
-      // Merge with published items
-      final combined = [..._publishedItems, ...itemsToPublish];
+      List<GmMenuItem> combined;
+
+      final pubPhotosCount = _publishedItems.where((e) => e.imageUrl.trim().isNotEmpty).length;
+      if (replaceAll || _publishedItems.isEmpty || pubPhotosCount <= 1) {
+        // Direct clean replace: published menu receives all items with photos!
+        combined = List<GmMenuItem>.from(itemsToPublish);
+      } else {
+        // Smart merge & update:
+        final Map<String, GmMenuItem> publishMap = {};
+        for (final item in itemsToPublish) {
+          publishMap[_normalizeName(item.name)] = item;
+          if (item.id.isNotEmpty) publishMap[item.id] = item;
+        }
+
+        final List<GmMenuItem> updatedPublished = [];
+        final Set<String> matchedKeys = {};
+
+        for (final pub in _publishedItems) {
+          if (pub.name == "Новый пункт" && (pub.price == '0' || pub.price.isEmpty)) {
+            continue;
+          }
+
+          final norm = _normalizeName(pub.name);
+          GmMenuItem? match;
+          if (publishMap.containsKey(norm)) {
+            match = publishMap[norm];
+            matchedKeys.add(norm);
+          } else if (pub.id.isNotEmpty && publishMap.containsKey(pub.id)) {
+            match = publishMap[pub.id];
+            matchedKeys.add(pub.id);
+          }
+
+          if (match != null) {
+            updatedPublished.add(pub.copyWith(
+              imageUrl: match.imageUrl.isNotEmpty ? match.imageUrl : pub.imageUrl,
+              description: match.description.isNotEmpty ? match.description : pub.description,
+              category: match.category.isNotEmpty ? match.category : pub.category,
+              price: match.price.isNotEmpty ? match.price : pub.price,
+              aggregatorPrice: match.aggregatorPrice.isNotEmpty ? match.aggregatorPrice : pub.aggregatorPrice,
+              isPublished: true,
+            ));
+          } else {
+            updatedPublished.add(pub);
+          }
+        }
+
+        for (final item in itemsToPublish) {
+          final norm = _normalizeName(item.name);
+          if (!matchedKeys.contains(norm) && !matchedKeys.contains(item.id)) {
+            updatedPublished.add(item);
+          }
+        }
+
+        combined = updatedPublished;
+      }
+
       final remainingStaged = _stagedItems.where((item) => !itemsToPublish.contains(item)).toList();
 
       await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).set({
@@ -504,13 +740,13 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
 
       setState(() {
         _publishedItems = combined;
-        // Remove published from staging
         _stagedItems = remainingStaged;
         _selectedStagedIndices.clear();
         _isSaving = false;
       });
 
-      _showToast("Успешно утверждено и опубликовано ${itemsToPublish.length} блюд в Revoo Delivery!");
+      final totalPhotos = combined.where((e) => e.imageUrl.trim().isNotEmpty).length;
+      _showToast("Успешно утверждено и опубликовано ${combined.length} блюд (из них $totalPhotos с фото)!");
     } catch (e) {
       setState(() => _isSaving = false);
       _showToast("Ошибка публикации: $e");
@@ -520,13 +756,16 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
   void _publishAllStaged() async {
     if (_stagedItems.isEmpty) return;
 
+    final pubPhotosCount = _publishedItems.where((e) => e.imageUrl.trim().isNotEmpty).length;
+    final bool replaceAll = _publishedItems.isEmpty || pubPhotosCount <= 1;
+
     setState(() {
       _selectedStagedIndices.clear();
       for (int i = 0; i < _stagedItems.length; i++) {
         _selectedStagedIndices.add(i);
       }
     });
-    _publishSelectedItems();
+    _publishSelectedItems(replaceAll: replaceAll);
   }
 
   void _savePublishedMenu() async {
@@ -607,6 +846,15 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
           if (_stagedItems.isEmpty || photosCount <= 1 || _stagedItems.length < 28) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _loadLatestScrapeJobItems();
+            });
+          }
+
+          // If published items lack photos (e.g. <= 2 photos out of 17),
+          // auto-sync the real photos from scrape_jobs into published items!
+          final pubPhotosCount = _publishedItems.where((e) => e.imageUrl.trim().isNotEmpty).length;
+          if (_publishedItems.isNotEmpty && pubPhotosCount <= 2) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _syncPhotosToPublished(silent: true);
             });
           }
 
@@ -760,22 +1008,41 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                 letterSpacing: -0.5,
               ),
             ),
-            if (_publishedItems.isNotEmpty)
-              CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                color: AppColors.accentOrange,
-                borderRadius: BorderRadius.circular(10),
-                onPressed: _isSaving ? null : _savePublishedMenu,
-                child: _isSaving
-                    ? const CupertinoActivityIndicator(color: Colors.white)
-                    : const Row(
-                        children: [
-                          Icon(CupertinoIcons.checkmark_alt, size: 16, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text("СОХРАНИТЬ МЕНЮ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
-                        ],
-                      ),
-              ),
+            Row(
+              children: [
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  color: CupertinoColors.activeBlue.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                  onPressed: _openPublicStorefront,
+                  child: const Row(
+                    children: [
+                      Icon(CupertinoIcons.device_phone_portrait, size: 16, color: CupertinoColors.activeBlue),
+                      SizedBox(width: 8),
+                      Text("Витрина гостей (проверка)", style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: CupertinoColors.activeBlue)),
+                    ],
+                  ),
+                ),
+                if (_publishedItems.isNotEmpty) ...[
+                  const SizedBox(width: 10),
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    color: AppColors.accentOrange,
+                    borderRadius: BorderRadius.circular(10),
+                    onPressed: _isSaving ? null : _savePublishedMenu,
+                    child: _isSaving
+                        ? const CupertinoActivityIndicator(color: Colors.white)
+                        : const Row(
+                            children: [
+                              Icon(CupertinoIcons.checkmark_alt, size: 16, color: Colors.white),
+                              SizedBox(width: 8),
+                              Text("СОХРАНИТЬ МЕНЮ", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white)),
+                            ],
+                          ),
+                  ),
+                ],
+              ],
+            ),
           ],
         ),
         const SizedBox(height: 6),
@@ -1106,6 +1373,54 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
               ],
             ),
           ],
+
+          // Storefront preview banner
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: CupertinoColors.activeBlue.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: CupertinoColors.activeBlue.withOpacity(0.25)),
+            ),
+            child: Row(
+              children: [
+                const Icon(CupertinoIcons.device_phone_portrait, size: 18, color: CupertinoColors.activeBlue),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        "Витрина меню для гостей (PWA):",
+                        style: TextStyle(color: CupertinoColors.activeBlue, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 2),
+                      SelectableText(
+                        "${Uri.base.origin}/qr?id=${widget.venueId}",
+                        style: const TextStyle(color: Colors.white70, fontSize: 11, fontFamily: 'monospace'),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                CupertinoButton(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  color: CupertinoColors.activeBlue,
+                  borderRadius: BorderRadius.circular(6),
+                  onPressed: _openPublicStorefront,
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.eye_fill, size: 13, color: Colors.white),
+                      SizedBox(width: 6),
+                      Text("Проверить витрину", style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
 
           if (_isScraping) ...[
             const SizedBox(height: 14),
@@ -1685,30 +2000,69 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                   ),
                 ],
               ),
-              CupertinoButton(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                onPressed: () {
-                  final newItem = GmMenuItem(
-                    id: "item_${DateTime.now().millisecondsSinceEpoch}",
-                    name: "Новое блюдо",
-                    category: "General",
-                    price: "0",
-                    isPublished: true,
-                  );
-                  setState(() {
-                    _publishedItems.add(newItem);
-                  });
-                  _openProductDetailDialog(newItem, isStaged: false, index: _publishedItems.length - 1);
-                },
-                child: const Row(
-                  children: [
-                    Icon(CupertinoIcons.add, size: 14, color: Colors.white),
-                    SizedBox(width: 6),
-                    Text("Добавить вручную", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                  ],
-                ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    color: CupertinoColors.activeBlue.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(8),
+                    onPressed: _openPublicStorefront,
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(CupertinoIcons.eye_fill, size: 14, color: CupertinoColors.activeBlue),
+                        SizedBox(width: 6),
+                        Text("Витрина гостей", style: TextStyle(color: CupertinoColors.activeBlue, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    color: Colors.amber.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(8),
+                    onPressed: _isSyncingPhotos ? null : () => _syncPhotosToPublished(silent: false),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_isSyncingPhotos)
+                          const CupertinoActivityIndicator(radius: 6, color: Colors.amber)
+                        else
+                          const Icon(CupertinoIcons.photo_fill_on_rectangle_fill, size: 14, color: Colors.amber),
+                        const SizedBox(width: 6),
+                        const Text("Обновить фото из спарсенного", style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    color: Colors.white.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    onPressed: () {
+                      final newItem = GmMenuItem(
+                        id: "item_${DateTime.now().millisecondsSinceEpoch}",
+                        name: "Новое блюдо",
+                        category: "General",
+                        price: "0",
+                        isPublished: true,
+                      );
+                      setState(() {
+                        _publishedItems.add(newItem);
+                      });
+                      _openProductDetailDialog(newItem, isStaged: false, index: _publishedItems.length - 1);
+                    },
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(CupertinoIcons.add, size: 14, color: Colors.white),
+                        SizedBox(width: 6),
+                        Text("Добавить вручную", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1802,9 +2156,31 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                                       ),
                                     ],
                                     const SizedBox(height: 2),
-                                    Text(
-                                      "${item.category} • ${item.price} ${item.currency}",
-                                      style: const TextStyle(color: CupertinoColors.activeGreen, fontSize: 12, fontWeight: FontWeight.w600),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          "${item.category} • ${item.price} ${item.currency}",
+                                          style: const TextStyle(color: CupertinoColors.activeGreen, fontSize: 12, fontWeight: FontWeight.w600),
+                                        ),
+                                        if (item.imageUrl.trim().isEmpty) ...[
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                            decoration: BoxDecoration(
+                                              color: Colors.amber.withOpacity(0.18),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(CupertinoIcons.photo_fill, size: 10, color: Colors.amber),
+                                                SizedBox(width: 4),
+                                                Text("Нет фото", style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold)),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                   ],
                                 ),
@@ -1912,6 +2288,17 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
   }
 
   void _openProductDetailDialog(GmMenuItem item, {required bool isStaged, required int index}) {
+    String? suggestedImageUrl;
+    if (item.imageUrl.trim().isEmpty) {
+      final norm = _normalizeName(item.name);
+      for (final s in _stagedItems) {
+        if (s.imageUrl.trim().isNotEmpty && (_normalizeName(s.name) == norm || (s.id.isNotEmpty && s.id == item.id))) {
+          suggestedImageUrl = s.imageUrl;
+          break;
+        }
+      }
+    }
+
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -1919,6 +2306,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
         return _ProductDetailDialog(
           item: item,
           isStaged: isStaged,
+          suggestedImageUrl: suggestedImageUrl,
           onSave: (updatedItem) async {
             if (isStaged) {
               setState(() {
@@ -2074,6 +2462,7 @@ String _toCorsSafeImageUrl(String url) {
 class _ProductDetailDialog extends StatefulWidget {
   final GmMenuItem item;
   final bool isStaged;
+  final String? suggestedImageUrl;
   final Function(GmMenuItem) onSave;
   final Function(GmMenuItem)? onPublishDirectly;
   final VoidCallback onDelete;
@@ -2082,6 +2471,7 @@ class _ProductDetailDialog extends StatefulWidget {
   const _ProductDetailDialog({
     required this.item,
     required this.isStaged,
+    this.suggestedImageUrl,
     required this.onSave,
     this.onPublishDirectly,
     required this.onDelete,
@@ -2110,9 +2500,13 @@ class _ProductDetailDialogState extends State<_ProductDetailDialog> {
     _descCtrl = TextEditingController(text: widget.item.description);
     _priceCtrl = TextEditingController(text: widget.item.price);
     _aggPriceCtrl = TextEditingController(text: widget.item.aggregatorPrice);
-    _imageUrlCtrl = TextEditingController(text: widget.item.imageUrl);
+
+    final initialImage = widget.item.imageUrl.trim().isNotEmpty
+        ? widget.item.imageUrl.trim()
+        : (widget.suggestedImageUrl?.trim() ?? '');
+    _imageUrlCtrl = TextEditingController(text: initialImage);
     _isAvailable = widget.item.isAvailable;
-    _currentImageUrl = widget.item.imageUrl.trim();
+    _currentImageUrl = initialImage;
 
     _imageUrlCtrl.addListener(() {
       final newUrl = _imageUrlCtrl.text.trim();
@@ -2298,6 +2692,29 @@ class _ProductDetailDialogState extends State<_ProductDetailDialog> {
                               ),
                       ),
                     ),
+                    if (widget.item.imageUrl.trim().isEmpty && widget.suggestedImageUrl != null && widget.suggestedImageUrl!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: CupertinoColors.activeGreen.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: CupertinoColors.activeGreen.withOpacity(0.3)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(CupertinoIcons.checkmark_circle_fill, size: 14, color: CupertinoColors.activeGreen),
+                            SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                "Фото автоматически подобрано из спарсенного каталога GrabFood",
+                                style: TextStyle(color: CupertinoColors.activeGreen, fontSize: 11, fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 16),
 
                     // Image URL field
