@@ -280,14 +280,16 @@ export class RewardCalculator {
         hasLockedDiscount = false,
         baseDiscountFallback = 5,
         depositBalance = 0,
-        isGrabBagVip = false
+        isGrabBagVip = false,
+        isOnlineOrder = false
     ) {
         const norm = this.normalizeConfig(config, baseDiscountFallback);
         const todayStr = this.getVenueDateString(currentTime, venueTimezone);
 
-        // 1. DEPOSIT DISCOUNT: Active whenever user has a positive deposit balance (> 0).
-        // When deposit runs out (<= 0), user automatically returns to regular dynamic discount tiers.
-        if (Number(depositBalance) > 0) {
+        // 1. DEPOSIT DISCOUNT:
+        // When ordering food online (isOnlineOrder = true), regular tier discounts strictly apply.
+        // The deposit is used solely as a payment method for debiting the order.
+        if (!isOnlineOrder && hasLockedDiscount && Number(depositBalance) > 0) {
             return {
                 discount: norm.percDeposit,
                 status: 'deposit',

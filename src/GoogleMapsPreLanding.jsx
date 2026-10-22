@@ -124,6 +124,7 @@ const GoogleMapsPreLanding = () => {
   const [authTriggerReason, setAuthTriggerReason] = useState('manual');
   const [depositBalance, setDepositBalance] = useState(() => Number(safeStorage.getItem('cached_deposit_balance') || 0));
   const [selectedProductModalItem, setSelectedProductModalItem] = useState(null);
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
 
   // Multi-Provider Auth Sub-state
   const [authMethod, setAuthMethod] = useState('options'); // 'options' | 'telegram' | 'magic_link' | 'phone'
@@ -505,10 +506,11 @@ const GoogleMapsPreLanding = () => {
       activeLoyaltyConfig,
       venueTimezone,
       isDayActive,
-      depositBalance > 0,
+      false, // In online order flow, deposit does NOT override discount: regular tier strictly applies!
       baseTierDiscount,
       depositBalance,
-      isGrabBagActive
+      isGrabBagActive,
+      true // isOnlineOrder = true
     );
 
     setPersonalDiscount(calcResult.discount);
@@ -1027,6 +1029,44 @@ const GoogleMapsPreLanding = () => {
       }
       setUserVisits(prev => [{ visitDateStr: todayStr, timestamp: new Date() }, ...prev]);
       
+      // Deduct spent deposit from Firestore users doc & log transaction
+      if (depositDeduction > 0 && user?.uid) {
+        try {
+          const userRef = doc(db, 'users', user.uid);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const uData = userSnap.data();
+            const balances = { ...(uData.deposit_balances || {}) };
+            const currentVenueBal = parseBalance(balances[venueId] ?? uData.deposit_balance ?? depositBalance);
+            const newVenueBal = Math.max(0, currentVenueBal - depositDeduction);
+            balances[venueId] = newVenueBal;
+            
+            await setDoc(userRef, {
+              deposit_balances: balances,
+              deposit_balance: newVenueBal
+            }, { merge: true });
+
+            await addDoc(collection(db, 'deposit_transactions'), {
+              userId: user.uid,
+              uid: user.uid,
+              guestEmail: (effectiveEmail || '').toLowerCase(),
+              guestName: effectiveDisplayName || 'Guest',
+              venueId,
+              amount: -depositDeduction,
+              type: 'online_order',
+              orderId,
+              description: `Оплата онлайн-заказа #${orderId} (${itemsList.length} поз.)`,
+              timestamp: serverTimestamp()
+            });
+
+            setDepositBalance(newVenueBal);
+            safeStorage.setItem('cached_deposit_balance', String(newVenueBal));
+          }
+        } catch (depErr) {
+          console.warn("Deposit balance debit note:", depErr);
+        }
+      }
+
       // Clear cart & show completed state
       setCart({});
       setIsCartOpen(false);
@@ -1183,6 +1223,27 @@ const GoogleMapsPreLanding = () => {
 
           {/* Right: Compact Battery, Discount & Login in Google Maps Style */}
           <div className="flex items-center gap-1.5 shrink-0">
+            {depositBalance > 0 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsDepositModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 to-yellow-600/25 hover:from-amber-500/30 hover:to-yellow-600/35 border border-amber-400/60 rounded-2xl px-2.5 py-1 text-white shadow-[0_0_12px_rgba(245,158,11,0.25)] active:scale-95 transition-all cursor-pointer"
+                title="Детали депозита и QR-код"
+              >
+                <span className="text-xs">💰</span>
+                <div className="flex flex-col text-left leading-none">
+                  <span className="text-[10px] text-amber-300 font-extrabold whitespace-nowrap">
+                    {formatPrice(depositBalance, venueCurrency)}
+                  </span>
+                  <span className="text-[8px] text-amber-200/80 font-medium whitespace-nowrap">
+                    Депозит
+                  </span>
+                </div>
+              </button>
+            )}
             {!isUserIdentified ? (
               <button
                 type="button"
@@ -1441,7 +1502,7 @@ const GoogleMapsPreLanding = () => {
               </div>
               <p className="text-[11px] text-gray-300 leading-tight">
                 {depositBalance > 0 
-                  ? `💰 Депозит: ${formatPrice(depositBalance, venueCurrency)} — ваша депозитная скидка (-${currentDiscountRate}%) активна!` 
+                  ? `💰 Баланс депозита: ${formatPrice(depositBalance, venueCurrency)} доступен для оплаты онлайн. На меню действует регулярная скидка -${currentDiscountRate}% по визитам.` 
                   : isGrabBagScenario
                     ? `Закажите завтра у нас напрямую (или прямо сейчас) — ваша скидка уже максимальная (${maxPossibleDiscount}%)!`
                     : hasVisitedToday || userTierStatus === 'vip'
@@ -2214,6 +2275,87 @@ const GoogleMapsPreLanding = () => {
                   </div>
                 );
               })()}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Detailed Deposit Modal (QR code for staff & wallet inspection) */}
+      <AnimatePresence>
+        {isDepositModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsDepositModalOpen(false)}
+            className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.92, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.92, opacity: 0, y: 15 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-sm bg-[#1C1C1E] border border-amber-500/40 rounded-3xl p-6 shadow-2xl relative overflow-hidden text-center"
+            >
+              <div className="absolute top-0 right-0 w-36 h-36 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setIsDepositModalOpen(false)}
+                className="absolute top-3.5 right-3.5 w-8 h-8 rounded-full bg-white/10 text-white/80 hover:text-white flex items-center justify-center transition-colors"
+              >
+                ✕
+              </button>
+
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-base">💰</span>
+                <span className="text-xs font-black uppercase tracking-widest text-amber-400">
+                  Баланс депозита
+                </span>
+              </div>
+
+              <div className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-2 drop-shadow-[0_2px_10px_rgba(245,158,11,0.3)]">
+                {formatPrice(depositBalance, venueCurrency)}
+              </div>
+
+              <p className="text-xs text-gray-400 mb-4 px-2 leading-relaxed">
+                Этот депозит привязан к вашему аккаунту и может быть использован для оплаты онлайн-заказов или списания счета в заведении.
+              </p>
+
+              {/* QR Code for Staff */}
+              <div className="bg-white p-3.5 rounded-2xl shadow-xl mb-3 inline-block border border-white/20">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=170x170&data=${encodeURIComponent(
+                    `https://bot-lab-21910.web.app/admin/deposit?search=${user?.uid || safeStorage.getItem('effectiveUid') || effectiveEmail || guestName || ''}&venueId=${venueId}&action=deduct`
+                  )}`}
+                  alt="Personal Deposit QR"
+                  className="w-[160px] h-[160px] block mx-auto"
+                />
+              </div>
+
+              <p className="text-[11px] font-bold text-gray-300 uppercase tracking-wide mb-4">
+                Покажите этот QR-код сотруднику для оплаты в заведении
+              </p>
+
+              <div className="bg-[#202124] rounded-2xl p-3 border border-emerald-500/20 text-left text-xs text-emerald-300 space-y-1 mb-4">
+                <div className="font-bold flex items-center gap-1.5 text-white">
+                  <span>🍽️</span>
+                  <span>Онлайн-заказ еды со скидкой</span>
+                </div>
+                <p className="text-[11px] text-gray-300 leading-tight">
+                  При заказе онлайн действует регулярная скидка (-${currentDiscountRate}%), а депозит автоматически уменьшает сумму к оплате.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsDepositModalOpen(false)}
+                className="w-full py-3 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-extrabold rounded-xl text-xs uppercase tracking-wider shadow-lg active:scale-95 transition-all"
+              >
+                Вернуться к выбору блюд
+              </button>
             </motion.div>
           </motion.div>
         )}
