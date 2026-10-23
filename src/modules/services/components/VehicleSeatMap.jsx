@@ -192,21 +192,34 @@ export const VehicleSeatMap = ({
   onProceed,
   onBack
 }) => {
-  // Preset selector toggle for live interactive demo
-  const [activePresetType, setActivePresetType] = useState(() => {
-    const vName = (vehicle?.name || '').toLowerCase();
-    return (vName.includes('слипер') || vName.includes('ночной') || vName.includes('sleeper'))
-      ? 'sleeper'
-      : 'minivan';
-  });
-
+  // Transport layout is strictly determined by the Administrator (assigned vehicle / template)
   const activeLayout = useMemo(() => {
-    if (activePresetType === 'sleeper') return SLEEPER_BUS_PRESET;
-    return MINIVAN_VIP_PRESET;
-  }, [activePresetType]);
+    // 1. If vehicle provides explicit custom decks/layout from Firestore
+    if (vehicle?.decks && Array.isArray(vehicle.decks) && vehicle.decks.length > 0) {
+      return {
+        id: vehicle.id || 'custom_vehicle',
+        name: vehicle.name || 'Транспорт',
+        type: vehicle.layoutType || (vehicle.decks.length > 1 ? 'sleeper' : 'seat'),
+        decks: vehicle.decks
+      };
+    }
+
+    // 2. Otherwise determine layout preset from assigned vehicle name / role / metadata
+    const str = `${vehicle?.name || ''} ${vehicle?.role || ''} ${vehicle?.id || ''}`.toLowerCase();
+    const isSleeper = str.includes('слипер') || str.includes('sleeper') || str.includes('ночной') || str.includes('этаж');
+
+    return isSleeper ? SLEEPER_BUS_PRESET : MINIVAN_VIP_PRESET;
+  }, [vehicle]);
 
   // Current active Deck/Zone tab (e.g. 'lower' or 'upper')
   const [activeDeckId, setActiveDeckId] = useState(() => activeLayout.decks[0]?.id || 'lower');
+
+  // Sync activeDeckId when vehicle changes
+  React.useEffect(() => {
+    if (activeLayout.decks[0]?.id) {
+      setActiveDeckId(activeLayout.decks[0].id);
+    }
+  }, [activeLayout]);
 
   // Ensure activeDeckId matches current layout
   const currentDeck = useMemo(() => {
@@ -297,44 +310,25 @@ export const VehicleSeatMap = ({
         </div>
       </div>
 
-      {/* Demo Preset Switcher: Minivan vs Sleeper Bus */}
-      <div className="p-2.5 rounded-2xl bg-[#1C1C1E] border border-white/10 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <FontAwesomeIcon icon={faLayerGroup} className="text-[#00FF41] text-xs ml-1" />
-          <span className="text-[11px] text-white/70 font-medium">Тип автобуса на рейсе:</span>
+      {/* Assigned Vehicle Info Banner (Determined strictly by Administrator) */}
+      <div className="p-3 rounded-2xl bg-[#1C1C1E] border border-white/10 flex items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-sm shrink-0">
+            {activeLayout.type === 'sleeper' ? '🛏' : '🚌'}
+          </div>
+          <div>
+            <div className="text-[10px] text-white/40 uppercase font-bold tracking-wider">
+              Транспорт рейса
+            </div>
+            <div className="text-xs font-bold text-white leading-tight mt-0.5">
+              {vehicle?.name || activeLayout.name}
+            </div>
+          </div>
         </div>
-        <div className="flex gap-1">
-          <button
-            type="button"
-            onClick={() => {
-              setActivePresetType('minivan');
-              setActiveDeckId('main');
-              if (onSelectSeats) onSelectSeats([]);
-            }}
-            className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all ${
-              activePresetType === 'minivan'
-                ? 'bg-[#00FF41] text-black shadow-md'
-                : 'bg-white/5 text-white/60 hover:text-white'
-            }`}
-          >
-            Минивэн (10 мест)
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActivePresetType('sleeper');
-              setActiveDeckId('lower');
-              if (onSelectSeats) onSelectSeats([]);
-            }}
-            className={`px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all ${
-              activePresetType === 'sleeper'
-                ? 'bg-[#00FF41] text-black shadow-md'
-                : 'bg-white/5 text-white/60 hover:text-white'
-            }`}
-          >
-            Слипер-бас (2 этажа)
-          </button>
-        </div>
+
+        <span className="px-2.5 py-1 rounded-xl bg-[#00FF41]/10 text-[#00FF41] text-[10px] font-bold border border-[#00FF41]/30 shrink-0 whitespace-nowrap">
+          {activeLayout.decks.length > 1 ? '2 этажа • 36 полок' : 'VIP Салон • 10 мест'}
+        </span>
       </div>
 
       {/* Multi-Deck / Zone Tabs (Custom Naming Supported!) */}

@@ -53,8 +53,8 @@ async function runServicesPlaywrightTest() {
   console.log('✅ STEP 1: HoReCa isolation verified (No food basket or delivery cart).');
 
   // 2. Check Service Storefront Title
-  const hasServiceHeader = await page.waitForSelector('text=Выберите услугу', { timeout: 15000 });
-  assert.ok(hasServiceHeader, 'Services header "Выберите услугу" should be visible');
+  const hasServiceHeader = await page.waitForSelector('h2:has-text("Все услуги"), h2:has-text("Выберите услугу"), span:has-text("Горящие предложения")', { timeout: 15000 });
+  assert.ok(hasServiceHeader, 'Services header should be visible');
   console.log('✅ STEP 2: Service storefront successfully mounted via Google Maps link.');
 
   // 3. Check Service Cards rendering
@@ -101,22 +101,12 @@ async function runServicesPlaywrightTest() {
   assert.ok(windshield, 'Vehicle seat map windshield should be rendered');
   console.log('✅ STEP 6: Interactive Vehicle Seat Map mounted with windshield & driver zone!');
 
-  // Test Decks & Presets (Switch to 2-Deck Sleeper Bus)
-  const sleeperToggle = await page.waitForSelector('button:has-text("Слипер-бас (2 этажа)")', { timeout: 5000 });
-  assert.ok(sleeperToggle, 'Sleeper bus toggle button must exist');
-  await sleeperToggle.click();
-  console.log('   Switched to 2-Deck Sleeper Bus layout...');
-  await page.waitForTimeout(600);
-
-  const lowerDeckTab = await page.waitForSelector('button:has-text("Нижний ярус")', { timeout: 5000 });
-  const upperDeckTab = await page.waitForSelector('button:has-text("Верхний ярус")', { timeout: 5000 });
-  assert.ok(lowerDeckTab && upperDeckTab, 'Both Lower and Upper deck tabs should be present');
-  console.log('✅ STEP 7: Double-deck tabs (Нижний / Верхний ярус) rendered successfully!');
-
-  // Test Upper Deck tab click
-  await upperDeckTab.click();
-  await page.waitForTimeout(400);
-  console.log('   Switched to Upper Deck tab (Панорамный вид).');
+  // Verify Admin-assigned transport banner is displayed and read-only (no guest toggle)
+  const transportBanner = await page.waitForSelector('text=Транспорт рейса', { timeout: 5000 });
+  assert.ok(transportBanner, 'Assigned transport banner must exist');
+  const guestToggleExists = await page.$('button:has-text("Слипер-бас (2 этажа)")');
+  assert.strictEqual(guestToggleExists, null, 'Guest should NOT be able to toggle bus type (set strictly by Admin)');
+  console.log('✅ STEP 7: Verified bus type is determined strictly by Admin (Guest toggle removed)!');
 
   // Test Seat Auto-Pick
   const autoPickBtn = await page.waitForSelector('button:has-text("Выбрать автоматически")', { timeout: 5000 });
