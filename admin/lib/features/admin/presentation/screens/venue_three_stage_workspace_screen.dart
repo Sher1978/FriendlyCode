@@ -56,8 +56,8 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
   final _visaRulesCtrl = TextEditingController();
 
   // Tier 2 Optional
-  final _ratingCtrl = TextEditingController(text: '4.9');
-  final _reviewCountCtrl = TextEditingController(text: '142');
+  final _ratingCtrl = TextEditingController();
+  final _reviewCountCtrl = TextEditingController();
   final _coverPhotoUrlCtrl = TextEditingController();
   final _timingCtrl = TextEditingController();
   final _fleetCtrl = TextEditingController();
@@ -161,8 +161,8 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
     _googleMapsUrlCtrl.text = v.googleMapsUrl ?? '';
     _websiteUrlCtrl.text = v.websiteUrl ?? '';
     _coverPhotoUrlCtrl.text = v.coverPhotoUrl ?? '';
-    _ratingCtrl.text = ((v.rating ?? 0) > 0 ? v.rating : 4.9).toString();
-    _reviewCountCtrl.text = ((v.reviewCount ?? 0) > 0 ? v.reviewCount : 142).toString();
+    _ratingCtrl.text = (v.rating != null && v.rating! > 0) ? v.rating.toString() : '';
+    _reviewCountCtrl.text = (v.reviewCount != null && v.reviewCount! > 0) ? v.reviewCount.toString() : '';
     _masterDocCtrl.text = v.masterKnowledgeDoc ?? '';
   }
 
@@ -195,25 +195,35 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
         if ((data['coverPhotoUrl'] ?? '').toString().isNotEmpty && _coverPhotoUrlCtrl.text.isEmpty) {
           _coverPhotoUrlCtrl.text = data['coverPhotoUrl'].toString();
         }
-        if (data['rating'] != null) {
+        if (data['rating'] != null && data['rating'].toString() != 'null') {
           final r = double.tryParse(data['rating'].toString());
           if (r != null && r > 0) {
             _ratingCtrl.text = r.toString();
+          } else {
+            _ratingCtrl.text = '';
           }
+        } else {
+          _ratingCtrl.text = '';
         }
-        if (data['reviewCount'] != null) {
+        if (data['reviewCount'] != null && data['reviewCount'].toString() != 'null') {
           final rc = int.tryParse(data['reviewCount'].toString());
           if (rc != null && rc > 0) {
             _reviewCountCtrl.text = rc.toString();
+          } else {
+            _reviewCountCtrl.text = '';
           }
+        } else {
+          _reviewCountCtrl.text = '';
         }
 
         final addrText = _cityAddressCtrl.text.isNotEmpty ? " • Точка: ${_cityAddressCtrl.text}" : "";
         final currentRating = double.tryParse(_ratingCtrl.text) ?? 0;
+        final currentReviews = int.tryParse(_reviewCountCtrl.text) ?? 0;
         if (currentRating > 0) {
-          _mapsParseSuccess = "✅ Google Карты: ${_ratingCtrl.text} ★ (${_reviewCountCtrl.text} отзывов)$addrText";
+          final reviewsSuffix = currentReviews > 0 ? " ($currentReviews отзывов)" : "";
+          _mapsParseSuccess = "✅ Google Карты: ${_ratingCtrl.text} ★$reviewsSuffix$addrText";
         } else {
-          _mapsParseSuccess = "✅ Точка найдена на картах$addrText (Рейтинг и отзывы можно ввести вручную)";
+          _mapsParseSuccess = "✅ Точка найдена на картах: ${_nameCtrl.text.isNotEmpty ? _nameCtrl.text : 'Объект'}$addrText\n⭐ На картах пока нет отзывов или они скрыты (рейтинг можно ввести вручную)";
         }
       });
     } catch (e) {
@@ -261,8 +271,8 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
       _websiteUrlCtrl.text = "https://www.sirvisaran.us/";
       _telegramChannelCtrl.text = "https://t.me/Dora_Sir_Visaranus";
       _otherSocialsCtrl.text = "https://www.instagram.com/sir_visarun_go_to_laos/";
-      _ratingCtrl.text = "4.9";
-      _reviewCountCtrl.text = "142";
+      _ratingCtrl.text = "";
+      _reviewCountCtrl.text = "";
       _coverPhotoUrlCtrl.text = "https://www.sirvisaran.us/images/hero.png";
       _timingCtrl.text = "Дорога Нячанг-граница Лаоса ~12-14 часов в одну сторону. Выезды по графику.";
       _fleetCtrl.text = "Комфортабельные VIP-слипбасы с индивидуальными USB, розетками и Wi-Fi";
@@ -316,8 +326,22 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
         if ((crit['telegram_group_id'] ?? '').toString().isNotEmpty) _telegramStaffChatCtrl.text = crit['telegram_group_id'].toString();
         if ((crit['visa_rules_summary'] ?? '').toString().isNotEmpty) _visaRulesCtrl.text = crit['visa_rules_summary'].toString();
 
-        if ((opt['rating'] ?? '').toString().isNotEmpty) _ratingCtrl.text = opt['rating'].toString();
-        if ((opt['review_count'] ?? '').toString().isNotEmpty) _reviewCountCtrl.text = opt['review_count'].toString();
+        if ((result['ai_plain_narrative'] ?? '').toString().isNotEmpty) {
+          _aiNarrative = result['ai_plain_narrative'].toString();
+        }
+
+        if (opt['rating'] != null && opt['rating'].toString().isNotEmpty && opt['rating'].toString() != 'null') {
+          final parsedR = double.tryParse(opt['rating'].toString());
+          _ratingCtrl.text = (parsedR != null && parsedR > 0) ? parsedR.toString() : '';
+        } else {
+          _ratingCtrl.text = '';
+        }
+        if (opt['review_count'] != null && opt['review_count'].toString().isNotEmpty && opt['review_count'].toString() != 'null') {
+          final parsedRc = int.tryParse(opt['review_count'].toString());
+          _reviewCountCtrl.text = (parsedRc != null && parsedRc > 0) ? parsedRc.toString() : '';
+        } else {
+          _reviewCountCtrl.text = '';
+        }
         if ((opt['timing_summary'] ?? '').toString().isNotEmpty) _timingCtrl.text = opt['timing_summary'].toString();
         if ((opt['fleet_summary'] ?? '').toString().isNotEmpty) _fleetCtrl.text = opt['fleet_summary'].toString();
         if ((opt['lunch_included'] ?? '').toString().isNotEmpty) _lunchCtrl.text = opt['lunch_included'].toString();
@@ -403,8 +427,8 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
         "website_url": _websiteUrlCtrl.text.trim(),
         "google_maps_url": _googleMapsUrlCtrl.text.trim(),
         "cover_photo_url": _coverPhotoUrlCtrl.text.trim(),
-        "rating": double.tryParse(_ratingCtrl.text.trim()) ?? 4.9,
-        "review_count": int.tryParse(_reviewCountCtrl.text.trim()) ?? 142,
+        "rating": double.tryParse(_ratingCtrl.text.trim()),
+        "review_count": int.tryParse(_reviewCountCtrl.text.trim()),
         "timing_summary": _timingCtrl.text.trim(),
         "fleet_summary": _fleetCtrl.text.trim(),
         "lunch_included": _lunchCtrl.text.trim(),
@@ -588,8 +612,8 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
         'websiteUrl': _websiteUrlCtrl.text.trim(),
         'googleMapsUrl': _googleMapsUrlCtrl.text.trim(),
         'coverPhotoUrl': _coverPhotoUrlCtrl.text.trim(),
-        'rating': double.tryParse(_ratingCtrl.text.trim()) ?? 4.9,
-        'reviewCount': int.tryParse(_reviewCountCtrl.text.trim()) ?? 142,
+        'rating': double.tryParse(_ratingCtrl.text.trim()),
+        'reviewCount': int.tryParse(_reviewCountCtrl.text.trim()),
         'masterKnowledgeDoc': _masterDocCtrl.text.trim(),
         'isActive': true,
         'isManuallyBlocked': false,
@@ -1431,11 +1455,11 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
                               child: Text(_categoryCtrl.text, style: const TextStyle(color: Colors.white70, fontSize: 10)),
                             ),
                             const SizedBox(width: 8),
-                            if (_ratingCtrl.text.isNotEmpty) ...[
+                            if ((double.tryParse(_ratingCtrl.text.trim()) ?? 0) > 0) ...[
                               const Icon(CupertinoIcons.star_fill, color: Colors.amberAccent, size: 11),
                               const SizedBox(width: 3),
                               Text(
-                                "${_ratingCtrl.text} (${_reviewCountCtrl.text} отзывов)",
+                                "${_ratingCtrl.text} (${_reviewCountCtrl.text.isNotEmpty ? '${_reviewCountCtrl.text} отзывов' : 'нет отзывов'})",
                                 style: const TextStyle(color: Colors.amberAccent, fontSize: 11, fontWeight: FontWeight.bold),
                               ),
                             ],

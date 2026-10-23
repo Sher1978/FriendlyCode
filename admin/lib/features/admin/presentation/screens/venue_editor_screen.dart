@@ -96,8 +96,8 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     _websiteUrlCtrl = TextEditingController(text: widget.venue?.websiteUrl ?? '');
     _coverPhotoUrlCtrl = TextEditingController(text: widget.venue?.coverPhotoUrl ?? '');
     _telegramStaffChatIdCtrl = TextEditingController(text: widget.venue?.telegramStaffChatId ?? '');
-    _ratingCtrl = TextEditingController(text: widget.venue?.rating != null ? widget.venue!.rating!.toString() : '4.9');
-    _reviewCountCtrl = TextEditingController(text: widget.venue?.reviewCount != null ? widget.venue!.reviewCount!.toString() : '142');
+    _ratingCtrl = TextEditingController(text: (widget.venue?.rating != null && widget.venue!.rating! > 0) ? widget.venue!.rating!.toString() : '');
+    _reviewCountCtrl = TextEditingController(text: (widget.venue?.reviewCount != null && widget.venue!.reviewCount! > 0) ? widget.venue!.reviewCount!.toString() : '');
     _masterKnowledgeDocCtrl = TextEditingController(text: widget.venue?.masterKnowledgeDoc ?? '');
     _seedStarterPack = widget.venue == null;
 

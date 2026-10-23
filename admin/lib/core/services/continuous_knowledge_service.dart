@@ -59,9 +59,9 @@ class ContinuousKnowledgeService {
   "facts": [
     {
       "category": "visa_rules | routes_and_stops | pricing_and_payment | luggage_and_pets | overstay | requirements | emergency | general",
-      "question": "Типовой вопрос гостя (например: 'Сколько дней оверстея допустимо?' или 'Во сколько сбор у Central Pattaya?')",
+      "question": "Типовой вопрос гостя (например: 'Сколько дней оверстея допустимо?' или 'Во сколько сбор на посадку?')",
       "answer": "Точный, исчерпывающий и понятный ответ для клиента",
-      "criticalNote": "Критическое требование или штраф (например: 'Обязательно наличие 2 свободных страниц в паспорте' или 'Штраф 500 бат/день на границе') либо null"
+      "criticalNote": "Критическое требование или штраф (например: 'Обязательно наличие 2 свободных страниц в паспорте' или 'Штраф за оверстей на границе') либо null"
     }
   ]
 }
@@ -273,33 +273,63 @@ class ContinuousKnowledgeService {
     String? currency,
   }) async {
     final curr = currency ?? '฿';
+    final isVietnam = address.toLowerCase().contains('вьетнам') ||
+        address.toLowerCase().contains('vietnam') ||
+        address.toLowerCase().contains('нячанг') ||
+        address.toLowerCase().contains('nha trang');
+    final isThailand = address.toLowerCase().contains('таиланд') ||
+        address.toLowerCase().contains('thailand') ||
+        address.toLowerCase().contains('паттай') ||
+        address.toLowerCase().contains('pattaya') ||
+        address.toLowerCase().contains('пхукет') ||
+        address.toLowerCase().contains('phuket');
+
+    final geoContext = isVietnam
+        ? """
+Географический контекст: Вьетнам (Нячанг -> граница Лаос, КПП Nam Can / Bo Y / Cha Lo).
+1. Паспортные требования: загранпаспорт со сроком действия не менее 6 месяцев, 2 чистые страницы, 2 фотографии для визы/штампа.
+2. Визовый режим: безвизовый въезд в Лаос для граждан РФ (штамп до 30 дней). Оформление вьетнамской электронной визы (E-Visa) для возвращения во Вьетнам.
+3. Логистика: комфортабельные VIP-слипбасы с индивидуальными спальными местами, USB, розетками и Wi-Fi. Точка сбора: $address. Время в пути до границы около 12-14 часов с остановками.
+4. Валюта: $curr (вьетнамский донг ₫ или доллары \$).
+"""
+        : isThailand
+            ? """
+Географический контекст: Таиланд (Паттайя / Бангкок -> граница Камбоджа, КПП Ban Laem / Poipet).
+1. Паспортные требования: загранпаспорт со сроком действия не менее 6 месяцев, 2 чистые страницы, фото 3х4.
+2. Визовый режим: безвизовый штамп Таиланда, туристические визы. Штраф за оверстей 500 $curr/день на иммиграционном контроле.
+3. Логистика: минивэны Toyota Commuter VIP, сбор по отелям или центральная точка ($address).
+4. Валюта: $curr (тайский бат ฿).
+"""
+            : """
+Географический контекст: $address.
+Маршруты, правила пересечения границы, требования к паспорту и визам должны СТРОГО соответствовать стране и городу: $address!
+Валюта расчетов: $curr.
+""";
+
     final prompt = """
 Ты — старший эксперт по настройке AI-консьержа для сервисного бизнеса ($archetype, бордер-раны, виза-раны, междугородние и трансграничные трансферы).
 Сформируй исчерпывающий, профессиональный регламент и мастер-базу знаний (Master Knowledge Document) в формате Markdown для компании:
 - Название: $venueName
 - Адрес / Локация: $address
-- Ниша: $archetype (пассажирские перевозки на границу, виза-раны)
+- Ниша: $archetype
 - Валюта: $curr
 
-Используй реальные актуальные правила границы для данной локации (если Таиланд -> Камбоджа, КПП Ban Laem / Poipet):
-1. Паспортные требования (срок действия не менее 6 месяцев, минимум 2 чистые страницы, 2 фотографии 3х4 для визы Камбоджи).
-2. Визовый режим для граждан РФ (безвизовый штамп 60 дней), стран СНГ (VOA / электронная виза) и третьих стран.
-3. Политика оверстея: штраф 500 $curr в день на иммиграционном контроле Таиланда. Максимальный допустимый оверстей для поездки (до 7 дней без спецсогласования).
-4. Тарифные пакеты:
-   - Базовый ($curr 2,900): трансфер туда-обратно, визовые сборы границы, горячий обед, вода, сопровождение гида.
-   - VIP Комфорт ($curr 3,800): забор от отеля, увеличенное место для ног в минивэне Toyota Commuter VIP, приоритетный VIP-коридор.
-5. Логистика и тайминг:
-   - Центральный сбор у ТЦ (Central Pattaya / Central Festival) в 05:30 утра.
-   - Отельный пикап с 05:00 до 05:40.
-   - Выезд в 06:00, КПП в 09:30, возвращение в 16:30–17:00.
-6. Правила багажа и питомцев:
-   - Ручная кладь до 7 кг бесплатно.
-   - Чемоданы по предварительному согласованию (багажное место).
-   - Животные запрещены.
-7. Правила отмены и возврата:
-   - Бесплатная отмена за 12 часов. При отмене менее чем за 12 часов или неявке — удержание 50%.
+$geoContext
 
-Сформируй документ Markdown со структурированными заголовками первого и второго уровня (# и ##), списками и четкими формулировками.
+=== КРИТИЧЕСКИЙ ПРИОРИТЕТ: ЗАПРЕТ ГАЛЛЮЦИНАЦИЙ И СТРОГАЯ ПРИВЯЗКА К ГЕОГРАФИИ ===
+1. Все правила и регламенты должны СТРОГО соответствовать локации: $address.
+2. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО упоминать Паттайю или Таиланд, если локация — Вьетнам / Нячанг!
+3. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО выдумывать чужие города или несуществующие маршруты.
+
+Структура документа Markdown:
+# МАСТЕР-ДОКУМЕНТ БАЗЫ ЗНАНИЙ: $venueName
+## 1. Общие сведения и локация ($address)
+## 2. Маршруты, расписание и логистика
+## 3. Требования к документам, паспорту и визам
+## 4. Тарифные пакеты и способы оплаты ($curr)
+## 5. Правила багажа, питания и комфорта в поездке
+## 6. Правила отмены, возврата и форс-мажоры
+
 Выводи ТОЛЬКО готовый текст Markdown на русском языке без вступительных слов и без тройных кавычек ```markdown.
 """;
 
@@ -535,93 +565,107 @@ $currentDoc
     final resolvedUrl = await resolveRedirectUrl(clean);
     debugPrint("[parseGoogleMapsListing] Clean: $clean, Resolved: $resolvedUrl");
 
-    // Extract query name or kgmid if share.google or search
+    // 1. Extract Name from resolved URL (e.g. /maps/place/Sir+Visaranus/)
     String queryName = '';
-    
     try {
       final uri = Uri.parse(resolvedUrl);
       queryName = uri.queryParameters['q'] ?? '';
-      
+      if (queryName.isEmpty) {
+        final segments = uri.pathSegments;
+        final placeIdx = segments.indexOf('place');
+        if (placeIdx != -1 && placeIdx + 1 < segments.length) {
+          queryName = Uri.decodeComponent(segments[placeIdx + 1]).replaceAll('+', ' ');
+        }
+      }
     } catch (_) {}
 
-    // If queryName is empty and clean URL has name parts
-    if (queryName.isEmpty && clean.contains('Sir')) {
+    if (queryName.isEmpty && (clean.contains('Sir') || resolvedUrl.contains('Sir'))) {
       queryName = 'Sir Visaranus';
     }
 
-    // Determine target maps URL for Jina Reader
-    String targetMapsUrl = resolvedUrl;
-    if (queryName.isNotEmpty) {
-      targetMapsUrl = "https://maps.google.com/?q=${Uri.encodeComponent(queryName)}";
-    }
-
-    final jinaUrl = Uri.parse("https://r.jina.ai/$targetMapsUrl");
-    debugPrint("[parseGoogleMapsListing] Fetching from Jina: $jinaUrl");
-
-    String content = '';
-    try {
-      final res = await http.get(jinaUrl, headers: {
-        'Accept': 'text/plain',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      }).timeout(const Duration(seconds: 15));
-      if (res.statusCode >= 200 && res.statusCode < 300) {
-        content = res.body.length > 15000 ? res.body.substring(0, 15000) : res.body;
-      }
-    } catch (e) {
-      debugPrint("[parseGoogleMapsListing] Fetch error: $e");
-    }
-
-    // Check if blocked by reCAPTCHA / bot check
-    final isBotBlocked = content.contains("unusual traffic") || content.contains("recaptcha") || content.contains("Our systems have detected");
-
-    String? extractedAddress;
+    // 2. Extract Place ID and Coordinates directly from canonical Google Maps URL
     String? extractedPlaceId;
     double? extractedLat;
     double? extractedLng;
+    String? extractedAddress;
 
-    if (!isBotBlocked && content.isNotEmpty) {
-      final placeMatch = RegExp(r"https://maps\.google\.com/maps/place/[^\s\)>]+").firstMatch(content);
-      if (placeMatch != null) {
-        final canonicalPlace = placeMatch.group(0)!;
-        final pidMatch = RegExp(r'!19s(ChIJ[a-zA-Z0-9_\-]+)').firstMatch(canonicalPlace);
-        if (pidMatch != null) extractedPlaceId = pidMatch.group(1);
+    final pidMatch = RegExp(r'!19s(ChIJ[a-zA-Z0-9_\-]+)|!1s(0x[0-9a-fA-F]+:0x[0-9a-fA-F]+)').firstMatch(resolvedUrl);
+    if (pidMatch != null) {
+      extractedPlaceId = pidMatch.group(1) ?? pidMatch.group(2);
+    }
 
-        final coordMatch = RegExp(r'!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)').firstMatch(canonicalPlace);
-        if (coordMatch != null) {
-          extractedLat = double.tryParse(coordMatch.group(1)!);
-          extractedLng = double.tryParse(coordMatch.group(2)!);
-        }
-      }
-
-      // Look for street address line: e.g. "Transportation service 60 Hòn Chồng"
-      for (final line in content.split('\n')) {
-        final s = line.trim();
-        if (s.toLowerCase().contains('hòn chồng') || 
-            s.toLowerCase().contains('nha trang') || 
-            s.toLowerCase().contains('transportation service')) {
-          extractedAddress = s.replaceAll('Transportation service', '').trim();
-          if (!extractedAddress.toLowerCase().contains('nha trang') && !extractedAddress.toLowerCase().contains('нячанг')) {
-            extractedAddress = "$extractedAddress, Nha Trang, Vietnam";
-          }
-          break;
-        }
+    final coordMatch = RegExp(r'!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)').firstMatch(resolvedUrl);
+    if (coordMatch != null) {
+      extractedLat = double.tryParse(coordMatch.group(1)!);
+      extractedLng = double.tryParse(coordMatch.group(2)!);
+    } else {
+      final atCoordMatch = RegExp(r'@(-?\d+\.\d+),(-?\d+\.\d+)').firstMatch(resolvedUrl);
+      if (atCoordMatch != null) {
+        extractedLat = double.tryParse(atCoordMatch.group(1)!);
+        extractedLng = double.tryParse(atCoordMatch.group(2)!);
       }
     }
 
-    final prompt = """
+    // 3. Real Reverse Geocoding via OpenStreetMap Nominatim on extracted coordinates
+    if (extractedLat != null && extractedLng != null) {
+      try {
+        final nomUri = Uri.parse(
+          "https://nominatim.openstreetmap.org/reverse?format=json&lat=$extractedLat&lon=$extractedLng&accept-language=ru,en",
+        );
+        final nomRes = await http.get(nomUri, headers: {
+          'User-Agent': 'RevooApp/1.0 (contact@revoo.ai)',
+        }).timeout(const Duration(seconds: 5));
+
+        if (nomRes.statusCode == 200) {
+          final nomData = jsonDecode(utf8.decode(nomRes.bodyBytes));
+          final addr = nomData['address'] as Map<String, dynamic>?;
+          if (addr != null) {
+            final road = addr['road'] ?? addr['suburb'] ?? '';
+            final city = addr['city'] ?? addr['town'] ?? addr['county'] ?? addr['state'] ?? '';
+            final country = addr['country'] ?? '';
+            final parts = [road, city, country].where((s) => (s ?? '').toString().trim().isNotEmpty).toList();
+            if (parts.isNotEmpty) {
+              extractedAddress = parts.join(', ');
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint("[parseGoogleMapsListing] Nominatim reverse geocode error: $e");
+      }
+    }
+
+    // 4. Try fetching content via Jina Reader only if we still need extra metadata
+    String content = '';
+    try {
+      final jinaTarget = queryName.isNotEmpty ? "https://maps.google.com/?q=${Uri.encodeComponent(queryName)}" : resolvedUrl;
+      final jinaUri = Uri.parse("https://r.jina.ai/$jinaTarget");
+      final res = await http.get(jinaUri, headers: {
+        'Accept': 'text/plain',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      }).timeout(const Duration(seconds: 10));
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        final body = res.body;
+        if (!body.contains("unusual traffic") && !body.contains("recaptcha") && !body.contains("Enable JavaScript")) {
+          content = body.length > 10000 ? body.substring(0, 10000) : body;
+        }
+      }
+    } catch (_) {}
+
+    // 5. If content is available, prompt Gemini for any rating or phone; otherwise return extracted canonical
+    if (content.isNotEmpty) {
+      final prompt = """
 Ты — специализированный парсер карточек Google Maps для платформы Revoo.
 Извлеки данные карточки заведения из текста ниже:
-URL: $targetMapsUrl
 === СОДЕРЖИМОЕ КАРТОЧКИ GOOGLE MAPS ===
 $content
 === КОНЕЦ СОДЕРЖИМОГО ===
 
 ПРАВИЛА ИЗВЛЕЧЕНИЯ:
 1. "name": реальное название заведения (${queryName.isNotEmpty ? queryName : 'из текста'}).
-2. "address": точный адрес из текста (например: ${extractedAddress ?? 'улица, дом, город'}).
-3. "rating": число звезд (от 1.0 до 5.0). ВНИМАНИЕ: Если точный рейтинг не найден или страница заблокирована — верни null! ЗАПРЕЩЕНО ставить 0!
-4. "reviewCount": число отзывов. ВНИМАНИЕ: Если число отзывов не найдено — верни null! ЗАПРЕЩЕНО ставить 0!
-5. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО выдумывать чужие города (не выдумывай Паттайю если заведение во Вьетнаме/Нячанге)!
+2. "address": точный адрес из текста (например: ${extractedAddress ?? 'улица, город, страна'}).
+3. "rating": число звезд (от 1.0 до 5.0). ВНИМАНИЕ: Если точный рейтинг не найден или равен null — верни null! ЗАПРЕЩЕНО ставить 0!
+4. "reviewCount": число отзывов. ВНИМАНИЕ: Если число отзывов не найдено — верни null! ЗАПРЕЩЕНО выдумывать отзывы!
+5. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО подменять город на чужие города!
 
 Верни СТРОГО валидный JSON-объект:
 {
@@ -636,30 +680,31 @@ $content
 }
 """;
 
-    try {
-      final raw = await _callGeminiRawText(prompt);
-      final cleanJson = raw.replaceAll('```json', '').replaceAll('```', '').trim();
-      final decoded = jsonDecode(cleanJson);
-      if (decoded is Map<String, dynamic>) {
-        if (extractedAddress != null && extractedAddress.isNotEmpty && (decoded['address'] ?? '').toString().isEmpty) {
-          decoded['address'] = extractedAddress;
+      try {
+        final raw = await _callGeminiRawText(prompt);
+        final cleanJson = raw.replaceAll('```json', '').replaceAll('```', '').trim();
+        final decoded = jsonDecode(cleanJson);
+        if (decoded is Map<String, dynamic>) {
+          if (extractedAddress != null && extractedAddress.isNotEmpty && (decoded['address'] ?? '').toString().isEmpty) {
+            decoded['address'] = extractedAddress;
+          }
+          if (extractedPlaceId != null) decoded['placeId'] = extractedPlaceId;
+          if (extractedLat != null) decoded['latitude'] = extractedLat;
+          if (extractedLng != null) decoded['longitude'] = extractedLng;
+          return decoded;
         }
-        if (extractedPlaceId != null) decoded['placeId'] = extractedPlaceId;
-        if (extractedLat != null) decoded['latitude'] = extractedLat;
-        if (extractedLng != null) decoded['longitude'] = extractedLng;
-        return decoded;
+      } catch (e) {
+        debugPrint("[parseGoogleMapsListing] Gemini parse error: $e");
       }
-    } catch (e) {
-      debugPrint("[parseGoogleMapsListing] Gemini parse error: $e");
     }
 
     return {
-      "name": queryName.isNotEmpty ? queryName : "Sir Visaranus",
+      "name": queryName.isNotEmpty ? queryName : "Объект на картах",
       "rating": null,
       "reviewCount": null,
       "address": extractedAddress ?? "",
       "phone": "",
-      "websiteUrl": resolvedUrl,
+      "websiteUrl": clean,
       "coverPhotoUrl": "",
       "placeId": extractedPlaceId,
       "latitude": extractedLat,
@@ -865,8 +910,8 @@ ${jsonEncode(currentJson)}
     "currency": "${criticalData['currency'] ?? '฿'}",
     "phone_dispatcher": "${criticalData['phone_dispatcher'] ?? ''}",
     "telegram_group_id": "${criticalData['telegram_group_id'] ?? ''}",
-    "rating": ${optionalData['rating'] ?? 4.9},
-    "review_count": ${optionalData['review_count'] ?? 142}
+    "rating": ${optionalData['rating'] != null && optionalData['rating'].toString() != 'null' ? optionalData['rating'] : 'null'},
+    "review_count": ${optionalData['review_count'] != null && optionalData['review_count'].toString() != 'null' ? optionalData['review_count'] : 'null'}
   },
   "master_knowledge_markdown": "# МАСТЕР-ДОКУМЕНТ БАЗЫ ЗНАНИЙ\n\n## 1. Локация и контакты...",
   "interview_questions": [
