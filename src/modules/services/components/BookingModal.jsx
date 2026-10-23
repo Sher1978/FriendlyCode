@@ -40,6 +40,7 @@ export const BookingModal = ({
     if (currency === 'VND') return `${num.toLocaleString('vi-VN')} ₫`;
     if (currency === 'AED') return `${num.toLocaleString()} AED`;
     if (currency === 'USD') return `$${num}`;
+    if (currency === 'THB' || currency === '฿') return `${num.toLocaleString()} ฿`;
     return `${num.toLocaleString('ru-RU')} ₽`;
   };
 
@@ -79,7 +80,7 @@ export const BookingModal = ({
         clientName,
         clientPhone,
         serviceId: service.id,
-        serviceName: service.name,
+        serviceName: service.title || service.name || 'Услуга',
         staffId: staff?.id || 'any',
         staffName: staff?.name || 'Любой свободный мастер',
         startTime: startDateTime.toISOString(),

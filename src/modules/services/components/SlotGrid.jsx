@@ -8,8 +8,10 @@ export const SlotGrid = ({
   onSelectSlot, 
   selectedDateStr, 
   onSelectDate,
-  currency = 'RUB' 
+  currency = 'RUB',
+  archetype = 'personal'
 }) => {
+  const isBatch = archetype === 'batch';
   // Generate 7 upcoming dates starting today
   const dateOptions = useMemo(() => {
     const list = [];
@@ -42,6 +44,7 @@ export const SlotGrid = ({
     if (currency === 'VND') return `${num.toLocaleString('vi-VN')} ₫`;
     if (currency === 'AED') return `${num.toLocaleString()} AED`;
     if (currency === 'USD') return `$${num}`;
+    if (currency === 'THB' || currency === '฿') return `${num.toLocaleString()} ฿`;
     return `${num.toLocaleString('ru-RU')} ₽`;
   };
 
@@ -105,7 +108,9 @@ export const SlotGrid = ({
       {/* Slots Grid */}
       <div className="space-y-3 pt-1">
         <div className="flex items-center justify-between text-xs text-white/70">
-          <span className="font-semibold text-white/90">Доступное время</span>
+          <span className="font-semibold text-white/90">
+            {isBatch ? 'Доступные рейсы и время' : 'Доступное время'}
+          </span>
           <span className="text-[11px] text-[#00FF41] font-medium flex items-center gap-1">
             <FontAwesomeIcon icon={faFire} className="text-[10px] text-[#FF9933]" />
             <span>Окна со значком содержат скидку</span>
@@ -136,6 +141,7 @@ export const SlotGrid = ({
                       isSelected={selectedSlotTime === slot.time}
                       onSelect={() => onSelectSlot(slot)}
                       formatPrice={formatPrice}
+                      currency={currency}
                     />
                   ))}
                 </div>
@@ -156,6 +162,7 @@ export const SlotGrid = ({
                       isSelected={selectedSlotTime === slot.time}
                       onSelect={() => onSelectSlot(slot)}
                       formatPrice={formatPrice}
+                      currency={currency}
                     />
                   ))}
                 </div>
@@ -176,6 +183,7 @@ export const SlotGrid = ({
                       isSelected={selectedSlotTime === slot.time}
                       onSelect={() => onSelectSlot(slot)}
                       formatPrice={formatPrice}
+                      currency={currency}
                     />
                   ))}
                 </div>
@@ -189,7 +197,9 @@ export const SlotGrid = ({
 };
 
 // Subcomponent: Individual Slot Pill
-const SlotPill = ({ slot, isSelected, onSelect, formatPrice }) => {
+const SlotPill = ({ slot, isSelected, onSelect, formatPrice, currency = 'RUB' }) => {
+  const currencySymbol = currency === 'RUB' ? '₽' : currency === 'THB' || currency === '฿' ? '฿' : currency === 'AED' ? 'AED' : currency === 'USD' ? '$' : currency === 'VND' ? '₫' : currency;
+
   return (
     <button
       type="button"
@@ -211,7 +221,7 @@ const SlotPill = ({ slot, isSelected, onSelect, formatPrice }) => {
         }`}>
           <FontAwesomeIcon icon={faFire} className="text-[8px]" />
           <span>
-            {slot.discountType === 'fixed' ? `-${slot.discountAmount} ₽` : `-${Math.round((slot.discountAmount / slot.basePrice) * 100)}%`}
+            {slot.discountType === 'fixed' ? `-${slot.discountAmount} ${currencySymbol}` : `-${Math.round((slot.discountAmount / slot.basePrice) * 100)}%`}
           </span>
         </span>
       )}

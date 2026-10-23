@@ -313,7 +313,7 @@ function App() {
           {/* Multi-Brand Landing Logic — Stories as main entry unless deposit is active */}
           <Route path="/" element={(() => {
             const searchParams = new URLSearchParams(window.location.search);
-            const utmSource = (searchParams.get('utm_source') || '').toLowerCase();
+            const utmSource = (searchParams.get('utm_source') || searchParams.get('source') || '').toLowerCase();
             const promoParam = (searchParams.get('promo') || '').toLowerCase();
             const isDirectDeliveryEntry =
                 utmSource === 'google_maps' ||

@@ -16,13 +16,14 @@ console.log('✅ Onboarding interview questions verified (4 steps).');
 // 2. Test Gemini Tools Definition
 assert.strictEqual(Array.isArray(toolsDefinition), true);
 const declarations = toolsDefinition[0].functionDeclarations;
-assert.strictEqual(declarations.length, 3);
+assert.strictEqual(declarations.length, 4);
 
 const toolNames = declarations.map(d => d.name);
 assert.ok(toolNames.includes('getAvailableSlots'));
 assert.ok(toolNames.includes('createBooking'));
 assert.ok(toolNames.includes('getVenueFAQ'));
-console.log('✅ Gemini Function Calling tool declarations verified: [getAvailableSlots, createBooking, getVenueFAQ].');
+assert.ok(toolNames.includes('askHumanManager'));
+console.log('✅ Gemini Function Calling tool declarations verified: [getAvailableSlots, createBooking, getVenueFAQ, askHumanManager].');
 
 // 3. Test Manager Chat Dispatcher regex & intents
 console.log('✅ Manager chat dispatcher pattern verified.');

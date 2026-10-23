@@ -5,19 +5,40 @@ import { faUser, faStar, faUsers } from '@fortawesome/free-solid-svg-icons';
 export const MasterSelector = ({ 
   staff = [], 
   selectedStaffId, 
-  onSelectStaff 
+  onSelectStaff,
+  archetype = 'personal'
 }) => {
+  const isBatch = archetype === 'batch';
+  const isAsset = archetype === 'asset';
+  const isSpace = archetype === 'space';
+
+  const titleText = isBatch 
+    ? 'Выберите рейс / транспорт' 
+    : isAsset 
+    ? 'Выберите кабинет / бокс' 
+    : isSpace 
+    ? 'Выберите площадку / зал' 
+    : 'Выберите специалиста';
+
+  const anyText = isBatch 
+    ? 'Любой рейс' 
+    : isAsset 
+    ? 'Любой свободный бокс' 
+    : isSpace 
+    ? 'Любая площадка' 
+    : 'Любой мастер';
+
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between text-xs text-white/70">
-        <span className="font-semibold text-white/90">Выберите специалиста</span>
-        <span className="text-[11px] text-white/40">или выберите любого мастера</span>
+        <span className="font-semibold text-white/90">{titleText}</span>
+        <span className="text-[11px] text-white/40">или выберите любой вариант</span>
       </div>
 
       <div className="flex items-stretch gap-2.5 overflow-x-auto pb-2 scrollbar-none">
-        {/* Option 1: Any available master */}
+        {/* Option 1: Any available unit */}
         <div
-          onClick={() => onSelectStaff({ id: 'any', name: 'Любой свободный мастер', role: 'Рекомендуется для лучших слотов' })}
+          onClick={() => onSelectStaff({ id: 'any', name: anyText, role: 'Рекомендуется для лучших слотов' })}
           className={`shrink-0 w-36 p-3 rounded-2xl cursor-pointer border transition-all text-center flex flex-col items-center justify-between ${
             selectedStaffId === 'any'
               ? 'bg-[#1C1C1E] border-[#00FF41] shadow-[0_0_15px_rgba(0,255,65,0.15)]'
@@ -28,7 +49,7 @@ export const MasterSelector = ({
             <FontAwesomeIcon icon={faUsers} className="text-lg" />
           </div>
           <div>
-            <div className="text-xs font-bold text-white leading-tight">Любой мастер</div>
+            <div className="text-xs font-bold text-white leading-tight">{anyText}</div>
             <div className="text-[10px] text-[#00FF41] mt-0.5">Максимум окон</div>
           </div>
         </div>

@@ -14,6 +14,7 @@ export const ServiceCard = ({
     if (currency === 'VND') return `${num.toLocaleString('vi-VN')} ₫`;
     if (currency === 'AED') return `${num.toLocaleString()} AED`;
     if (currency === 'USD') return `$${num}`;
+    if (currency === 'THB' || currency === '฿') return `${num.toLocaleString()} ฿`;
     return `${num.toLocaleString('ru-RU')} ₽`;
   };
 
@@ -45,7 +46,7 @@ export const ServiceCard = ({
 
           {/* Service Name */}
           <h3 className="text-base font-semibold text-white tracking-tight leading-snug">
-            {service.name}
+            {service.title || service.name || 'Услуга'}
           </h3>
 
           {/* Description */}

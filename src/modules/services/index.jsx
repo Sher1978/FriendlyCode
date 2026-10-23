@@ -30,6 +30,24 @@ export const ServiceStorefront = ({ venue }) => {
   const venueId = venue?.id;
   const currency = venue?.currency || 'RUB';
 
+  // Compute Archetype: batch (transfers/visa), asset (dentistry/clinic/detailing), space (courts/studios), personal (masters/barbers/spa)
+  const archetype = useMemo(() => {
+    if (venue?.archetype) return venue.archetype;
+    const cat = (venue?.category || '').toLowerCase();
+    const name = (venue?.name || '').toLowerCase();
+    const str = `${cat} ${name}`;
+    if (str.includes('бордер') || str.includes('виза') || str.includes('трансфер') || str.includes('тур') || str.includes('bus') || str.includes('рейс')) {
+      return 'batch';
+    }
+    if (str.includes('стоматолог') || str.includes('клиник') || str.includes('детейлинг') || str.includes('бокс') || str.includes('узи') || str.includes('мрт')) {
+      return 'asset';
+    }
+    if (str.includes('корт') || str.includes('студи') || str.includes('баня') || str.includes('зал') || str.includes('аренд')) {
+      return 'space';
+    }
+    return 'personal';
+  }, [venue]);
+
   // 1. Initial Load: Services, Staff, Yield Rules
   useEffect(() => {
     let isMounted = true;
@@ -178,7 +196,7 @@ export const ServiceStorefront = ({ venue }) => {
                       Выбранная услуга
                     </div>
                     <div className="text-sm font-bold text-white mt-0.5">
-                      {selectedService.name}
+                      {selectedService.title || selectedService.name || 'Услуга'}
                     </div>
                     <div className="text-xs text-white/60">
                       {selectedService.durationMinutes || 45} мин
@@ -205,6 +223,7 @@ export const ServiceStorefront = ({ venue }) => {
                     staff={staff}
                     selectedStaffId={selectedStaff?.id}
                     onSelectStaff={setSelectedStaff}
+                    archetype={archetype}
                   />
                 )}
 
@@ -216,6 +235,7 @@ export const ServiceStorefront = ({ venue }) => {
                   selectedDateStr={selectedDateStr}
                   onSelectDate={setSelectedDateStr}
                   currency={currency}
+                  archetype={archetype}
                 />
               </div>
             )}
@@ -233,6 +253,7 @@ export const ServiceStorefront = ({ venue }) => {
         dateStr={selectedDateStr}
         venue={venue}
         currency={currency}
+        archetype={archetype}
         onConfirmSuccess={handleConfirmBooking}
       />
 
