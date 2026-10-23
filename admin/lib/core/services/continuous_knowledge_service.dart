@@ -217,14 +217,12 @@ class ContinuousKnowledgeService {
     return rawMime.isNotEmpty ? rawMime : 'application/pdf';
   }
 
-  /// Low-level text generator via Gemini
-  static Future<String> _callGeminiRawText(String prompt) async {
+  /// Multimodal and text parts generator via Gemini
+  static Future<String> _callGeminiWithParts(List<Map<String, dynamic>> parts) async {
     final body = {
       'contents': [
         {
-          'parts': [
-            {'text': prompt}
-          ]
+          'parts': parts,
         }
       ]
     };
@@ -250,9 +248,9 @@ class ContinuousKnowledgeService {
             final candidates = jsonResp['candidates'] as List<dynamic>?;
             if (candidates != null && candidates.isNotEmpty) {
               final content = candidates[0]['content'] as Map<String, dynamic>?;
-              final parts = content?['parts'] as List<dynamic>?;
-              if (parts != null && parts.isNotEmpty) {
-                return (parts[0]['text'] as String? ?? '').trim();
+              final rParts = content?['parts'] as List<dynamic>?;
+              if (rParts != null && rParts.isNotEmpty) {
+                return (rParts[0]['text'] as String? ?? '').trim();
               }
             }
           }
@@ -263,6 +261,11 @@ class ContinuousKnowledgeService {
       }
     }
     throw lastError ?? Exception("Не удалось получить ответ от Gemini AI.");
+  }
+
+  /// Low-level text generator via Gemini
+  static Future<String> _callGeminiRawText(String prompt) {
+    return _callGeminiWithParts([{'text': prompt}]);
   }
 
   /// Synthesizes a full Master Knowledge Document based on Geo & Niche
@@ -713,7 +716,7 @@ $content
     };
   }
 
-  /// STAGE 1 -> STAGE 2: Extracts Two-Tier Onboarding JSON from Multimodal Pack
+  /// STAGE 1 -> STAGE 2: Extracts Two-Tier Onboarding JSON from Multimodal Pack with Live Progress
   static Future<Map<String, dynamic>> extractTwoTierJsonFromMultimodalPack({
     required List<String> links,
     required List<Map<String, dynamic>> files,
@@ -721,6 +724,13 @@ $content
     String? defaultVenueName,
     String? defaultAddress,
     String? defaultArchetype,
+    void Function({
+      required String stepKey,
+      required String stepTitle,
+      required String statusText,
+      required bool isDone,
+      String? previewData,
+    })? onProgress,
   }) async {
     final buffer = StringBuffer();
     buffer.writeln("=== СЫРЫЕ ТЕКСТОВЫЕ ДАННЫЕ, ЗАМЕТКИ И ВВОД АДМИНИСТРАТОРА ===");
@@ -731,24 +741,123 @@ $content
       final clean = l.trim();
       if (clean.isEmpty) continue;
       if (clean.contains('maps.') || clean.contains('goo.gl') || clean.contains('share.google') || clean.contains('google.com/maps')) {
+        onProgress?.call(
+          stepKey: 'maps',
+          stepTitle: 'Google Карты',
+          statusText: 'Считывание геометрии и карточки...',
+          isDone: false,
+        );
         try {
           mapsData = await parseGoogleMapsListing(clean);
           buffer.writeln("\n=== ДАННЫЕ GOOGLE MAPS КАРТОЧКИ ===\n${jsonEncode(mapsData)}");
+          final nameStr = (mapsData['name'] ?? '').toString();
+          final addrStr = (mapsData['address'] ?? '').toString();
+          final prev = [nameStr, addrStr].where((s) => s.isNotEmpty).join(' • ');
+          onProgress?.call(
+            stepKey: 'maps',
+            stepTitle: 'Google Карты',
+            statusText: 'Точка успешно считана',
+            isDone: true,
+            previewData: prev.isNotEmpty ? prev : clean,
+          );
         } catch (e) {
           debugPrint("[extractTwoTierJson] Maps parse error: $e");
+          onProgress?.call(
+            stepKey: 'maps',
+            stepTitle: 'Google Карты',
+            statusText: 'Ошибка чтения карт: $e',
+            isDone: true,
+          );
         }
+      } else if (clean.contains('t.me') || clean.contains('telegram') || clean.contains('instagram.com') || clean.contains('vk.com')) {
+        buffer.writeln("\n=== КАНАЛ СВЯЗИ / СОЦСЕТЬ ===\n$clean");
+        onProgress?.call(
+          stepKey: 'socials',
+          stepTitle: 'Telegram и соцсети',
+          statusText: 'Канал связи подключен',
+          isDone: true,
+          previewData: clean,
+        );
       } else {
+        onProgress?.call(
+          stepKey: 'website',
+          stepTitle: 'Официальный сайт',
+          statusText: 'Загрузка $clean через Jina Reader...',
+          isDone: false,
+        );
         try {
           final jinaUrl = Uri.parse("https://r.jina.ai/$clean");
           final res = await http.get(jinaUrl, headers: {'Accept': 'text/plain'}).timeout(const Duration(seconds: 15));
           if (res.statusCode >= 200 && res.statusCode < 300) {
             final bodySnippet = res.body.length > 8000 ? res.body.substring(0, 8000) : res.body;
             buffer.writeln("\n=== СОДЕРЖИМОЕ ССЫЛКИ ($clean) ===\n$bodySnippet");
+            String sitePreview = clean;
+            final titleMatch = RegExp(r'Title:\s*([^\n]+)').firstMatch(bodySnippet);
+            if (titleMatch != null) {
+              sitePreview = titleMatch.group(1)!.trim();
+            }
+            onProgress?.call(
+              stepKey: 'website',
+              stepTitle: 'Официальный сайт',
+              statusText: 'Сайт прочитан (${res.body.length} симв.)',
+              isDone: true,
+              previewData: sitePreview,
+            );
+          } else {
+            onProgress?.call(
+              stepKey: 'website',
+              stepTitle: 'Официальный сайт',
+              statusText: 'HTTP ${res.statusCode}',
+              isDone: true,
+            );
           }
         } catch (e) {
           debugPrint("[extractTwoTierJson] Failed to fetch link $clean: $e");
+          onProgress?.call(
+            stepKey: 'website',
+            stepTitle: 'Официальный сайт',
+            statusText: 'Ошибка загрузки: $e',
+            isDone: true,
+          );
         }
       }
+    }
+
+    // Process attached files (images / PDFs / texts)
+    final parts = <Map<String, dynamic>>[];
+    if (files.isNotEmpty) {
+      onProgress?.call(
+        stepKey: 'files',
+        stepTitle: 'Мультимодальные материалы',
+        statusText: 'Подготовка ${files.length} вложений для Gemini...',
+        isDone: false,
+      );
+      for (final file in files.take(3)) {
+        final bytes = file['bytes'] as Uint8List?;
+        final name = file['name']?.toString() ?? 'attachment';
+        final mime = file['mime']?.toString() ?? 'image/jpeg';
+        if (bytes != null && bytes.isNotEmpty) {
+          if (name.endsWith('.txt') || name.endsWith('.md')) {
+            final t = utf8.decode(bytes, allowMalformed: true);
+            buffer.writeln("\n=== ТЕКСТ ВЛОЖЕНИЯ ($name) ===\n$t");
+          } else {
+            final normalizedMime = _getMimeType(name, mime);
+            parts.add({
+              'inline_data': {
+                'mime_type': normalizedMime,
+                'data': base64Encode(bytes),
+              }
+            });
+          }
+        }
+      }
+      onProgress?.call(
+        stepKey: 'files',
+        stepTitle: 'Мультимодальные материалы',
+        statusText: 'Файлы прикреплены к анализу',
+        isDone: true,
+        previewData: "${files.length} вложений (баннеры, фото, прайсы)",
+      );
     }
 
     final prompt = """
@@ -790,8 +899,17 @@ $content
 }
 """;
 
+    onProgress?.call(
+      stepKey: 'gemini',
+      stepTitle: 'Синтез базы знаний (Gemini Flash)',
+      statusText: 'ИИ структурирует двухэтапный JSON и правила...',
+      isDone: false,
+    );
+
+    parts.insert(0, {'text': "$prompt\n\n$buffer"});
+
     try {
-      final rawJson = await _callGeminiRawText("$prompt\n\n$buffer");
+      final rawJson = await _callGeminiWithParts(parts);
       final cleanJson = rawJson.replaceAll('```json', '').replaceAll('```', '').trim();
       final decoded = jsonDecode(cleanJson);
       if (decoded is Map<String, dynamic>) {
@@ -808,6 +926,13 @@ $content
             crit['city_address'] = mapsData['address'];
           }
         }
+        onProgress?.call(
+          stepKey: 'gemini',
+          stepTitle: 'Синтез базы знаний (Gemini Flash)',
+          statusText: 'База данных успешно сформирована!',
+          isDone: true,
+          previewData: 'Структурированы критические и опциональные параметры',
+        );
         return decoded;
       }
     } catch (e) {

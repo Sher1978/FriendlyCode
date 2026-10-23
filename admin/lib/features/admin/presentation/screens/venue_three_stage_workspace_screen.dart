@@ -45,6 +45,10 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
   String? _mapsParseSuccess;
   final List<Map<String, dynamic>> _attachedFiles = []; // [{'name': str, 'bytes': Uint8List, 'mime': str}]
 
+  // Live Extraction Steps for Modal Overlay Console
+  final List<Map<String, dynamic>> _liveExtractionSteps = [];
+  String _livePreviewSnippet = '';
+
   // --- STAGE 2 CONTROLLERS (Two-Tier JSON Grid) ---
   final _nameCtrl = TextEditingController();
   final _archetypeCtrl = TextEditingController(text: 'batch');
@@ -288,12 +292,89 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
     );
   }
 
+    IconData _getIconForStepKey(String key) {
+    switch (key) {
+      case 'maps':
+        return CupertinoIcons.map_pin_ellipse;
+      case 'website':
+        return CupertinoIcons.globe;
+      case 'socials':
+        return CupertinoIcons.chat_bubble_2_fill;
+      case 'files':
+        return CupertinoIcons.photo_on_rectangle;
+      case 'gemini':
+        return CupertinoIcons.sparkles;
+      case 'doc':
+        return CupertinoIcons.doc_text_fill;
+      case 'audit':
+        return CupertinoIcons.question_circle_fill;
+      default:
+        return CupertinoIcons.doc_text_search;
+    }
+  }
+
   // --- STAGE 1 -> STAGE 2 TRANSITION ---
 
   Future<void> _startStage1Analysis() async {
+    final hasMaps = _googleMapsUrlCtrl.text.trim().isNotEmpty;
+    final hasWeb = _websiteUrlCtrl.text.trim().isNotEmpty;
+    final hasSocials = _telegramChannelCtrl.text.trim().isNotEmpty || _otherSocialsCtrl.text.trim().isNotEmpty;
+    final hasFiles = _attachedFiles.isNotEmpty;
+
     setState(() {
       _isAnalyzing = true;
-      _analyzingStatus = "Gemini Flash анализирует ссылки, считывает Google Карты, документы и текст...";
+      _analyzingStatus = "Инициализация мультимодального анализа Gemini Flash...";
+      _livePreviewSnippet = '';
+      _liveExtractionSteps.clear();
+
+      if (hasMaps) {
+        _liveExtractionSteps.add({
+          'id': 'maps',
+          'title': 'Google Карты',
+          'statusText': 'Ожидание считывания карточки...',
+          'isDone': false,
+          'icon': CupertinoIcons.map_pin_ellipse,
+          'previewData': null,
+        });
+      }
+      if (hasWeb) {
+        _liveExtractionSteps.add({
+          'id': 'website',
+          'title': 'Официальный сайт',
+          'statusText': 'Ожидание загрузки содержимого...',
+          'isDone': false,
+          'icon': CupertinoIcons.globe,
+          'previewData': null,
+        });
+      }
+      if (hasSocials) {
+        _liveExtractionSteps.add({
+          'id': 'socials',
+          'title': 'Telegram и соцсети',
+          'statusText': 'Ожидание проверки каналов...',
+          'isDone': false,
+          'icon': CupertinoIcons.chat_bubble_2_fill,
+          'previewData': null,
+        });
+      }
+      if (hasFiles) {
+        _liveExtractionSteps.add({
+          'id': 'files',
+          'title': 'Мультимодальные файлы',
+          'statusText': 'Ожидание прикрепленных материалов...',
+          'isDone': false,
+          'icon': CupertinoIcons.photo_on_rectangle,
+          'previewData': null,
+        });
+      }
+      _liveExtractionSteps.add({
+        'id': 'gemini',
+        'title': 'Синтез базы знаний (Gemini Flash)',
+        'statusText': 'Ожидание всех собранных данных...',
+        'isDone': false,
+        'icon': CupertinoIcons.sparkles,
+        'previewData': null,
+      });
     });
 
     try {
@@ -311,7 +392,42 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
         defaultVenueName: _nameCtrl.text.trim().isNotEmpty ? _nameCtrl.text.trim() : null,
         defaultAddress: _cityAddressCtrl.text.trim().isNotEmpty ? _cityAddressCtrl.text.trim() : null,
         defaultArchetype: _archetypeCtrl.text.trim(),
+        onProgress: ({
+          required String stepKey,
+          required String stepTitle,
+          required String statusText,
+          required bool isDone,
+          String? previewData,
+        }) {
+          if (!mounted) return;
+          setState(() {
+            _analyzingStatus = statusText;
+            if (previewData != null && previewData.isNotEmpty) {
+              _livePreviewSnippet = previewData;
+            }
+            final idx = _liveExtractionSteps.indexWhere((s) => s['id'] == stepKey);
+            if (idx != -1) {
+              _liveExtractionSteps[idx]['statusText'] = statusText;
+              _liveExtractionSteps[idx]['isDone'] = isDone;
+              if (previewData != null) {
+                _liveExtractionSteps[idx]['previewData'] = previewData;
+              }
+            } else {
+              _liveExtractionSteps.add({
+                'id': stepKey,
+                'title': stepTitle,
+                'statusText': statusText,
+                'isDone': isDone,
+                'icon': _getIconForStepKey(stepKey),
+                'previewData': previewData,
+              });
+            }
+          });
+        },
       );
+
+      // Brief delay to allow user to visually appreciate all completed steps
+      await Future.delayed(const Duration(milliseconds: 700));
 
       final crit = result['critical_required'] as Map<String, dynamic>? ?? {};
       final opt = result['optional_enrichment'] as Map<String, dynamic>? ?? {};
@@ -445,6 +561,34 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
       _isFinalizing = true;
       _analyzingStatus = "Gemini структурирует финальный канонический JSON, формирует Мастер-Документ и готовит вопросы интервью...";
       _isAnalyzing = true;
+      _livePreviewSnippet = '';
+      _liveExtractionSteps.clear();
+      _liveExtractionSteps.addAll([
+        {
+          'id': 'json',
+          'title': 'Гармонизация данных',
+          'statusText': 'Проверка критических и опциональных полей...',
+          'isDone': true,
+          'icon': CupertinoIcons.check_mark_circled,
+          'previewData': "${_nameCtrl.text} • ${_cityAddressCtrl.text}",
+        },
+        {
+          'id': 'doc',
+          'title': 'Мастер-Документ Markdown',
+          'statusText': 'Gemini синтезирует полный регламент бизнеса...',
+          'isDone': false,
+          'icon': CupertinoIcons.doc_text_fill,
+          'previewData': null,
+        },
+        {
+          'id': 'audit',
+          'title': 'Аудит пробелов (Gap Analysis)',
+          'statusText': 'Формирование целевых вопросов интервью...',
+          'isDone': false,
+          'icon': CupertinoIcons.question_circle_fill,
+          'previewData': null,
+        },
+      ]);
     });
 
     final currentJson = _buildCurrentTwoTierJson();
@@ -463,6 +607,17 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
       final markdown = res['master_knowledge_markdown'] as String? ?? '';
       final questions = (res['interview_questions'] as List<dynamic>? ?? []).map((e) => Map<String, dynamic>.from(e as Map)).toList();
 
+      // Mark all finalization steps as complete
+      setState(() {
+        for (final s in _liveExtractionSteps) {
+          s['isDone'] = true;
+        }
+        _livePreviewSnippet = "Сформирован регламент (${markdown.length} симв.) и ${questions.length} вопроса интервью";
+      });
+
+      await Future.delayed(const Duration(milliseconds: 650));
+
+      if (!mounted) return;
       setState(() {
         if (markdown.isNotEmpty) _masterDocCtrl.text = markdown;
         _interviewQuestions = questions;
@@ -728,37 +883,196 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
             ],
           ),
 
-          // OVERLAY WHEN ANALYZING
+          // OVERLAY WHEN ANALYZING WITH LIVE EXTRACTION STREAM
           if (_isAnalyzing)
             Container(
               color: Colors.black.withValues(alpha: 0.85),
               child: Center(
                 child: Container(
+                  constraints: const BoxConstraints(maxWidth: 580),
                   padding: const EdgeInsets.all(24),
-                  margin: const EdgeInsets.symmetric(horizontal: 32),
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.accentGreen.withValues(alpha: 0.3)),
+                    border: Border.all(color: AppColors.accentGreen.withValues(alpha: 0.35)),
                     boxShadow: [
-                      BoxShadow(color: AppColors.accentGreen.withValues(alpha: 0.3), blurRadius: 30),
+                      BoxShadow(color: AppColors.accentGreen.withValues(alpha: 0.25), blurRadius: 36),
                     ],
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const CupertinoActivityIndicator(color: AppColors.accentGreen, radius: 18),
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.accentGreen.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const CupertinoActivityIndicator(color: AppColors.accentGreen, radius: 12),
+                          ),
+                          const SizedBox(width: 14),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Живой синтез данных (Gemini Flash)",
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  "Считывание и проверка источников в реальном времени",
+                                  style: TextStyle(color: Colors.white54, fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 18),
-                      const Text(
-                        "Синтез базы данных Gemini Flash",
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _analyzingStatus,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
-                      ),
+                      const Divider(color: Colors.white10, height: 1),
+                      const SizedBox(height: 14),
+
+                      // Steps list
+                      if (_liveExtractionSteps.isNotEmpty)
+                        Column(
+                          children: _liveExtractionSteps.map((step) {
+                            final isDone = step['isDone'] == true;
+                            final hasPreview = (step['previewData'] ?? '').toString().isNotEmpty;
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: isDone
+                                    ? AppColors.accentGreen.withValues(alpha: 0.08)
+                                    : Colors.white.withValues(alpha: 0.03),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isDone
+                                      ? AppColors.accentGreen.withValues(alpha: 0.3)
+                                      : Colors.white10,
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: isDone
+                                        ? const Icon(CupertinoIcons.checkmark_circle_fill, color: AppColors.accentGreen, size: 18)
+                                        : const CupertinoActivityIndicator(radius: 8, color: Colors.white70),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              step['title']?.toString() ?? '',
+                                              style: TextStyle(
+                                                color: isDone ? Colors.white : Colors.white70,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                            const Spacer(),
+                                            Text(
+                                              isDone ? "Готово" : "В процессе",
+                                              style: TextStyle(
+                                                color: isDone ? AppColors.accentGreen : Colors.white38,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          step['statusText']?.toString() ?? '',
+                                          style: const TextStyle(color: Colors.white54, fontSize: 11),
+                                        ),
+                                        if (hasPreview) ...[
+                                          const SizedBox(height: 5),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black38,
+                                              borderRadius: BorderRadius.circular(6),
+                                              border: Border.all(color: Colors.white12),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                const Icon(CupertinoIcons.arrow_right_circle, size: 12, color: AppColors.accentTeal),
+                                                const SizedBox(width: 6),
+                                                Expanded(
+                                                  child: Text(
+                                                    step['previewData'].toString(),
+                                                    style: const TextStyle(color: AppColors.accentTeal, fontSize: 11, fontWeight: FontWeight.w500),
+                                                    maxLines: 2,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        )
+                      else ...[
+                        Text(
+                          _analyzingStatus,
+                          style: const TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
+                      ],
+
+                      // Live preview ticker if available
+                      if (_livePreviewSnippet.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.accentGreen.withValues(alpha: 0.2)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(CupertinoIcons.sparkles, size: 12, color: AppColors.accentGreen),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    "Последние спарсенные данные:",
+                                    style: TextStyle(color: AppColors.accentGreen, fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _livePreviewSnippet,
+                                style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.3),
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
