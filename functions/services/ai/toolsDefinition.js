@@ -106,4 +106,26 @@ const toolsDefinition = [
   }
 ];
 
-module.exports = { toolsDefinition };
+const groqToolsDefinition = toolsDefinition[0].functionDeclarations.map(fn => {
+  const properties = {};
+  for (const [key, val] of Object.entries(fn.parameters.properties)) {
+    properties[key] = {
+      type: val.type.toLowerCase(),
+      description: val.description
+    };
+  }
+  return {
+    type: "function",
+    function: {
+      name: fn.name,
+      description: fn.description,
+      parameters: {
+        type: "object",
+        properties,
+        required: fn.parameters.required || []
+      }
+    }
+  };
+});
+
+module.exports = { toolsDefinition, groqToolsDefinition };
