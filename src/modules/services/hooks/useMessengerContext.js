@@ -113,7 +113,7 @@ export function useMessengerContext() {
    * to transfer their booking confirmation to Telegram or WhatsApp.
    */
   const getMessengerDeepLink = (targetChannel, bookingId, venue) => {
-    const venueBot = venue?.telegramBotUsername || 'RevooFleetBot';
+    const venueBot = venue?.telegramBotUsername || 'revoogiftx_bot';
     const cleanId = String(bookingId || '').replace(/[^a-zA-Z0-9_]/g, '');
 
     if (targetChannel === 'telegram') {
