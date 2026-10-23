@@ -11,11 +11,13 @@ class RoleProvider extends ChangeNotifier {
   List<String> _venueIds = [];
   String? _uid;
   String? _activeVenueId;
+  bool _isInitialized = false;
 
   UserRole get currentRole => _currentRole;
   List<String> get venueIds => _venueIds;
   String? get venueId => _activeVenueId ?? (_venueIds.isNotEmpty ? _venueIds.first : null);
   String? get uid => _uid;
+  bool get isInitialized => _isInitialized;
 
   // Convenience getters for UI logic
   bool get isSuperAdmin => _currentRole == UserRole.superAdmin;
@@ -25,6 +27,7 @@ class RoleProvider extends ChangeNotifier {
 
   void setRole(UserRole role) {
     _currentRole = role;
+    _saveToPrefs();
     notifyListeners();
   }
 
@@ -37,6 +40,7 @@ class RoleProvider extends ChangeNotifier {
   Future<void> _saveToPrefs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cached_user_role', _currentRole.name);
       if (_venueIds.isNotEmpty) {
         await prefs.setStringList('cached_venue_ids', _venueIds);
       }
@@ -51,16 +55,36 @@ class RoleProvider extends ChangeNotifier {
   Future<void> _loadFromPrefs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final cachedRole = prefs.getString('cached_user_role');
       final cachedIds = prefs.getStringList('cached_venue_ids');
       final cachedActive = prefs.getString('cached_active_venue_id');
       
+      bool changed = false;
+
+      // Fast check if currentUser is founder
+      final user = _authService.currentUser;
+      if (user?.email?.trim().toLowerCase() == '0451611@gmail.com') {
+        _currentRole = UserRole.superAdmin;
+        changed = true;
+      } else if (cachedRole != null) {
+        for (final r in UserRole.values) {
+          if (r.name == cachedRole) {
+            _currentRole = r;
+            changed = true;
+            break;
+          }
+        }
+      }
+
       if (cachedIds != null && cachedIds.isNotEmpty && _venueIds.isEmpty) {
         _venueIds = cachedIds;
+        changed = true;
       }
       if (cachedActive != null && _activeVenueId == null) {
         _activeVenueId = cachedActive;
+        changed = true;
       }
-      if (_venueIds.isNotEmpty || _activeVenueId != null) {
+      if (changed) {
         notifyListeners();
       }
     } catch (e) {
@@ -69,7 +93,14 @@ class RoleProvider extends ChangeNotifier {
   }
 
   RoleProvider() {
-    _loadFromPrefs();
+    // Fast synchronous founder check if user is already signed in
+    final user = _authService.currentUser;
+    if (user?.email?.trim().toLowerCase() == '0451611@gmail.com') {
+      _currentRole = UserRole.superAdmin;
+    }
+    _loadFromPrefs().then((_) {
+      refreshRole();
+    });
   }
 
   Future<void> refreshRole() async {
@@ -80,6 +111,9 @@ class RoleProvider extends ChangeNotifier {
     
     final user = _authService.currentUser;
     if (user != null) {
+      if (user.email?.trim().toLowerCase() == '0451611@gmail.com') {
+        _currentRole = UserRole.superAdmin;
+      }
       _uid = user.uid;
       try {
         final docRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
@@ -254,6 +288,7 @@ class RoleProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
     }
+    _isInitialized = true;
     notifyListeners();
   }
 }

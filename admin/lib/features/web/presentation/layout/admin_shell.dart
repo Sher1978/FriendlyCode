@@ -518,8 +518,24 @@ class _AdminShellState extends State<AdminShell> {
 
     final roleProvider = Provider.of<RoleProvider>(context);
 
+    final isKnownSuperAdmin = roleProvider.isSuperAdmin ||
+        (currentUser.email?.trim().toLowerCase() == '0451611@gmail.com');
+
     // If route requires SuperAdmin, strictly enforce SuperAdmin role
-    if (widget.role == UserRole.superAdmin && !roleProvider.isSuperAdmin) {
+    if (widget.role == UserRole.superAdmin && !isKnownSuperAdmin) {
+      // If role data hasn't initialized from local storage / Firestore yet, show sleek dark loader instead of flashing 403
+      if (!roleProvider.isInitialized) {
+        return const Scaffold(
+          backgroundColor: Colors.black,
+          body: Center(
+            child: CupertinoActivityIndicator(
+              color: AppColors.accentOrange,
+              radius: 16,
+            ),
+          ),
+        );
+      }
+
       return Scaffold(
         backgroundColor: Colors.black,
         body: Center(
