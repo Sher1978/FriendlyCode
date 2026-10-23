@@ -1,3 +1,4 @@
+import 'package:friendly_code/features/admin/presentation/screens/venue_three_stage_workspace_screen.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
@@ -416,6 +417,9 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                   if (widget.venue == null)
                     _buildAiOnboardingBanner(),
 
+                  // ── 3-STAGE WORKSPACE BANNER ──
+                  _buildThreeStageWorkspaceBanner(),
+
                   // ── TWO-TIER VALIDATION CHECKLIST ──
                   _buildValidationChecklist(),
 
@@ -824,7 +828,96 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     );
   }
 
-  Widget _buildAiOnboardingBanner() {
+    Widget _buildThreeStageWorkspaceBanner() {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.accentTeal.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.accentTeal,
+          width: 1.5,
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.accentTeal.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              CupertinoIcons.sparkles,
+              color: AppColors.accentTeal,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      "⚡ 3-этапный мастер онбординга & База знаний",
+                      style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.accentTeal.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text("РЕКОМЕНДУЕТСЯ", style: TextStyle(color: AppColors.accentTeal, fontSize: 9, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  "Этап 1: Автопарсинг Google Maps, сайта и файлов • Этап 2: Двухуровневый JSON, резюме и живой диалог с ИИ • Этап 3: AI-интервью и песочница.",
+                  style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 12, height: 1.3),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          CupertinoButton(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            color: AppColors.accentTeal,
+            borderRadius: BorderRadius.circular(12),
+            onPressed: () {
+              Navigator.push(
+                context,
+                CupertinoPageRoute(
+                  builder: (_) => VenueThreeStageWorkspaceScreen(
+                    venue: widget.venue,
+                    venueId: widget.venue?.id,
+                    onSaved: () {
+                      Navigator.pop(context);
+                    },
+                  ),
+                ),
+              );
+            },
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(CupertinoIcons.arrow_right_circle_fill, color: Colors.black, size: 16),
+                SizedBox(width: 6),
+                Text("Открыть мастер ➔", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 13)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+Widget _buildAiOnboardingBanner() {
     final hasData = _scrapedServiceData != null;
     return Container(
       margin: const EdgeInsets.only(bottom: 24),

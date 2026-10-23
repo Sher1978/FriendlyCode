@@ -1,3 +1,4 @@
+import 'package:friendly_code/features/admin/presentation/screens/venue_three_stage_workspace_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
@@ -38,13 +39,10 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
     if (_isServices) {
       if (_isBatch) {
         return const [
-          _TabItem(icon: CupertinoIcons.info_circle_fill,        label: 'Инфо'),
-          _TabItem(icon: CupertinoIcons.sparkles,                 label: 'Рейсы & Тарифы'),
-          _TabItem(icon: CupertinoIcons.bus,                      label: 'Автопарк & Схемы мест'),
-          _TabItem(icon: CupertinoIcons.percent,                 label: 'Yield & Горящие места'),
-          _TabItem(icon: CupertinoIcons.chat_bubble_2_fill,      label: 'AI-Консьерж & Регламенты'),
-          _TabItem(icon: CupertinoIcons.person_crop_circle_fill, label: 'Пассажиры & Брони'),
-          _TabItem(icon: CupertinoIcons.rocket_fill,             label: 'Маркетинг'),
+          _TabItem(icon: CupertinoIcons.sparkles,                 label: 'Паспорт & AI (3 этапа)'),
+          _TabItem(icon: CupertinoIcons.bus,                      label: 'Рейсы & Автопарк'),
+          _TabItem(icon: CupertinoIcons.percent,                 label: 'Yield & Скидки'),
+          _TabItem(icon: CupertinoIcons.person_2_fill,           label: 'Диспетчерская & Брони'),
         ];
       }
       return const [
@@ -201,21 +199,15 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
       if (_isBatch) {
         switch (_selectedTab) {
           case 0:
-            return VenueEditorScreen(venue: venue);
+            return VenueThreeStageWorkspaceScreen(venue: venue, venueId: venue.id);
           case 1:
-            return ServicesCatalogScreen(venueId: venue.id, currency: venue.currency, archetype: 'batch');
+            return _BatchProductsAndFleetView(venue: venue);
           case 2:
-            return FleetManagementScreen(venueId: venue.id);
-          case 3:
             return YieldRulesScreen(venueId: venue.id);
-          case 4:
-            return AiConciergeConfigScreen(venueId: venue.id);
-          case 5:
-            return GuestListScreen(venueId: venue.id);
-          case 6:
-            return MarketingBlastScreen(venueId: venue.id);
+          case 3:
+            return _BatchDispatcherAndGuestsView(venue: venue);
           default:
-            return VenueEditorScreen(venue: venue);
+            return VenueThreeStageWorkspaceScreen(venue: venue, venueId: venue.id);
         }
       }
 
@@ -268,4 +260,137 @@ class _TabItem {
   final IconData icon;
   final String label;
   const _TabItem({required this.icon, required this.label});
+}
+
+
+class _BatchProductsAndFleetView extends StatefulWidget {
+  final VenueModel venue;
+  const _BatchProductsAndFleetView({required this.venue});
+
+  @override
+  State<_BatchProductsAndFleetView> createState() => _BatchProductsAndFleetViewState();
+}
+
+class _BatchProductsAndFleetViewState extends State<_BatchProductsAndFleetView> {
+  int _subIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          color: AppColors.surface,
+          child: Row(
+            children: [
+              _buildSubButton(0, CupertinoIcons.sparkles, "Рейсы & Тарифы"),
+              const SizedBox(width: 8),
+              _buildSubButton(1, CupertinoIcons.bus, "Автопарк & Схемы мест"),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _subIndex == 0
+              ? ServicesCatalogScreen(venueId: widget.venue.id, currency: widget.venue.currency, archetype: 'batch')
+              : FleetManagementScreen(venueId: widget.venue.id),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubButton(int index, IconData icon, String label) {
+    final isSelected = _subIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _subIndex = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.accentTeal.withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isSelected ? AppColors.accentTeal : Colors.white12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 14, color: isSelected ? AppColors.accentTeal : Colors.white70),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? AppColors.accentTeal : Colors.white70,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BatchDispatcherAndGuestsView extends StatefulWidget {
+  final VenueModel venue;
+  const _BatchDispatcherAndGuestsView({required this.venue});
+
+  @override
+  State<_BatchDispatcherAndGuestsView> createState() => _BatchDispatcherAndGuestsViewState();
+}
+
+class _BatchDispatcherAndGuestsViewState extends State<_BatchDispatcherAndGuestsView> {
+  int _subIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          color: AppColors.surface,
+          child: Row(
+            children: [
+              _buildSubButton(0, CupertinoIcons.person_crop_circle_fill, "Пассажиры & Брони"),
+              const SizedBox(width: 8),
+              _buildSubButton(1, CupertinoIcons.rocket_fill, "Маркетинг & Рассылки"),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _subIndex == 0
+              ? GuestListScreen(venueId: widget.venue.id)
+              : MarketingBlastScreen(venueId: widget.venue.id),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubButton(int index, IconData icon, String label) {
+    final isSelected = _subIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _subIndex = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.accentTeal.withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: isSelected ? AppColors.accentTeal : Colors.white12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 14, color: isSelected ? AppColors.accentTeal : Colors.white70),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? AppColors.accentTeal : Colors.white70,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

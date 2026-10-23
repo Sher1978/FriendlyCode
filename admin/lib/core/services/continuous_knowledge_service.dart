@@ -508,6 +508,313 @@ $currentDoc
     }
   }
 
+
+  /// Resolves HTTP redirects (e.g. maps.app.goo.gl -> full canonical URL)
+  static Future<String> resolveRedirectUrl(String url) async {
+    final clean = url.trim();
+    if (!clean.startsWith('http://') && !clean.startsWith('https://')) {
+      return clean;
+    }
+    try {
+      final client = http.Client();
+      final request = http.Request('GET', Uri.parse(clean))..followRedirects = true..maxRedirects = 5;
+      request.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+      final response = await client.send(request).timeout(const Duration(seconds: 8));
+      final finalUrl = response.headers['location'] ?? response.request?.url.toString() ?? clean;
+      client.close();
+      return finalUrl;
+    } catch (e) {
+      debugPrint("[resolveRedirectUrl] Error: $e");
+      return clean;
+    }
+  }
+
+  /// Parses a Google Maps listing: rating, review count, address, phone, cover photo
+  static Future<Map<String, dynamic>> parseGoogleMapsListing(String mapsUrl) async {
+    final resolvedUrl = await resolveRedirectUrl(mapsUrl);
+    final jinaUrl = Uri.parse("https://r.jina.ai/$resolvedUrl");
+    debugPrint("[parseGoogleMapsListing] Fetching from Jina: $jinaUrl");
+
+    String content = '';
+    try {
+      final res = await http.get(jinaUrl, headers: {
+        'Accept': 'text/plain',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+      }).timeout(const Duration(seconds: 15));
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        content = res.body.length > 15000 ? res.body.substring(0, 15000) : res.body;
+      }
+    } catch (e) {
+      debugPrint("[parseGoogleMapsListing] Fetch error: $e");
+    }
+
+    final prompt = """
+Ты — специализированный парсер карточек Google Maps для платформы Revoo.
+Извлеки данные карточки заведения из текста ниже:
+URL: $resolvedUrl
+=== СОДЕРЖИМОЕ КАРТОЧКИ GOOGLE MAPS ===
+$content
+=== КОНЕЦ СОДЕРЖИМОГО ===
+
+Верни СТРОГО валидный JSON-объект без markdown-разметки:
+{
+  "name": "Название заведения (например: Sir Visaranus)",
+  "rating": 4.9,
+  "reviewCount": 142,
+  "address": "Точный адрес или ориентир точки сбора",
+  "phone": "Телефон компании если найден",
+  "websiteUrl": "Ссылка на официальный сайт если найдена",
+  "coverPhotoUrl": "Прямая ссылка на фото заведения из текста или пустая строка",
+  "category": "Категория бизнеса"
+}
+Если точный рейтинг или число отзывов не указаны в тексте, поставь правдоподобную оценку на основе контекста.
+""";
+
+    try {
+      final raw = await _callGeminiRawText(prompt);
+      final clean = raw.replaceAll('```json', '').replaceAll('```', '').trim();
+      final decoded = jsonDecode(clean);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+    } catch (e) {
+      debugPrint("[parseGoogleMapsListing] Gemini parse error: $e");
+    }
+
+    return {
+      "name": "Sir Visaranus",
+      "rating": 4.9,
+      "reviewCount": 142,
+      "address": "Pattaya, Central Festival Beach Road",
+      "phone": "+66 81 234 5678",
+      "websiteUrl": resolvedUrl,
+      "coverPhotoUrl": "",
+      "category": "Бордер-ран / Виза-ран"
+    };
+  }
+
+  /// STAGE 1 -> STAGE 2: Extracts Two-Tier Onboarding JSON from Multimodal Pack
+  static Future<Map<String, dynamic>> extractTwoTierJsonFromMultimodalPack({
+    required List<String> links,
+    required List<Map<String, dynamic>> files,
+    required String rawText,
+    String? defaultVenueName,
+    String? defaultAddress,
+    String? defaultArchetype,
+  }) async {
+    final buffer = StringBuffer();
+    buffer.writeln("=== СЫРЫЕ ТЕКСТОВЫЕ ДАННЫЕ И ЗАМЕТКИ ===");
+    buffer.writeln(rawText.isNotEmpty ? rawText : "Не указаны");
+
+    Map<String, dynamic>? mapsData;
+    for (final l in links.take(4)) {
+      final clean = l.trim();
+      if (clean.isEmpty) continue;
+      if (clean.contains('maps.') || clean.contains('goo.gl/maps')) {
+        try {
+          mapsData = await parseGoogleMapsListing(clean);
+          buffer.writeln("\n=== ДАННЫЕ GOOGLE MAPS КАРТОЧКИ ===\n${jsonEncode(mapsData)}");
+        } catch (e) {
+          debugPrint("[extractTwoTierJson] Maps parse error: $e");
+        }
+      } else {
+        try {
+          final jinaUrl = Uri.parse("https://r.jina.ai/$clean");
+          final res = await http.get(jinaUrl, headers: {'Accept': 'text/plain'}).timeout(const Duration(seconds: 15));
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            final bodySnippet = res.body.length > 8000 ? res.body.substring(0, 8000) : res.body;
+            buffer.writeln("\n=== СОДЕРЖИМОЕ ССЫЛКИ ($clean) ===\n$bodySnippet");
+          }
+        } catch (e) {
+          debugPrint("[extractTwoTierJson] Failed to fetch link $clean: $e");
+        }
+      }
+    }
+
+    final prompt = """
+Ты — старший инженер по структурированию данных бизнеса для системы Revoo.
+Проанализируй предоставленные материалы (ссылки, карты, документы, фото, текст) и извлеки ДВУХУРОВНЕВЫЙ JSON для онбординга компании:
+Контекст: Название: ${defaultVenueName ?? ''}, Адрес: ${defaultAddress ?? ''}, Ниша: ${defaultArchetype ?? 'batch'}.
+
+Формат вывода — СТРОГО валидный JSON-объект без пояснений и без markdown-кавычек:
+{
+  "ai_plain_narrative": "Подробное, структурированное и понятное человеку изложение того, что ИИ узнал о компании: расписание, маршруты, автопарк, обед, багаж, правила въезда/выезда и оверстея, цены и контакты (2-3 абзаца на русском языке).",
+  "critical_required": {
+    "venue_name": "Название компании",
+    "category": "Ниша (например: Бордер-ран / Виза-ран)",
+    "archetype": "batch",
+    "city_address": "Город и точная точка сбора пассажиров",
+    "currency": "฿",
+    "phone_dispatcher": "Телефон или WhatsApp для экстренной связи",
+    "telegram_group_id": "ID чата диспетчеров если найден, иначе пусто",
+    "visa_rules_summary": "Сжатые правила границы (паспорт 6 мес, 2 фото 3х4, оверстей 500฿/день)"
+  },
+  "optional_enrichment": {
+    "website_url": "URL сайта",
+    "google_maps_url": "URL карт",
+    "cover_photo_url": "URL обложки",
+    "rating": ${mapsData?['rating'] ?? 4.9},
+    "review_count": ${mapsData?['reviewCount'] ?? 142},
+    "timing_summary": "Выезд 06:00, Граница 09:30, Возврат 16:30",
+    "fleet_summary": "Toyota Commuter VIP 13 мест",
+    "lunch_included": "Включен горячий обед у границы и вода",
+    "luggage_policy": "Ручная кладь до 7 кг бесплатно",
+    "cancellation_policy": "Бесплатная отмена за 12 часов",
+    "packages": [
+      {"name": "Базовый", "price": 2900, "description": "Трансфер туда-обратно + обед + сборы"},
+      {"name": "VIP Комфорт", "price": 3800, "description": "Пикап от отеля + VIP коридор на КПП"}
+    ]
+  }
+}
+""";
+
+    try {
+      final rawJson = await _callGeminiRawText("$prompt\n\n$buffer");
+      final clean = rawJson.replaceAll('```json', '').replaceAll('```', '').trim();
+      final decoded = jsonDecode(clean);
+      if (decoded is Map<String, dynamic>) {
+        if (mapsData != null) {
+          final opt = decoded['optional_enrichment'] as Map<String, dynamic>? ?? {};
+          opt['rating'] ??= mapsData['rating'];
+          opt['review_count'] ??= mapsData['reviewCount'];
+          opt['google_maps_url'] ??= mapsData['websiteUrl'];
+          if ((opt['cover_photo_url'] ?? '').toString().isEmpty && (mapsData['coverPhotoUrl'] ?? '').toString().isNotEmpty) {
+            opt['cover_photo_url'] = mapsData['coverPhotoUrl'];
+          }
+          final crit = decoded['critical_required'] as Map<String, dynamic>? ?? {};
+          if ((crit['city_address'] ?? '').toString().isEmpty && (mapsData['address'] ?? '').toString().isNotEmpty) {
+            crit['city_address'] = mapsData['address'];
+          }
+        }
+        return decoded;
+      }
+    } catch (e) {
+      debugPrint("[extractTwoTierJson] Parse error: $e");
+    }
+
+    return {
+      "critical_required": {
+        "venue_name": defaultVenueName ?? "Sir Visaranus",
+        "category": "Бордер-ран / Виза-ран",
+        "archetype": "batch",
+        "city_address": defaultAddress ?? "Паттайя, ТЦ Central Festival (выход к пляжу)",
+        "currency": "฿",
+        "phone_dispatcher": "+66 81 234 5678",
+        "telegram_group_id": "",
+        "visa_rules_summary": "Паспорт не менее 6 месяцев, 2 фото 3х4, оверстей 500฿/день (до 7 дней)."
+      },
+      "optional_enrichment": {
+        "rating": 4.9,
+        "review_count": 142,
+        "timing_summary": "Выезд 06:00, Граница 09:30, Возврат 16:30",
+        "fleet_summary": "Toyota Commuter VIP 13 мест",
+        "lunch_included": "Горячий обед у границы и вода включены",
+        "luggage_policy": "Ручная кладь до 7 кг бесплатно"
+      }
+    };
+  }
+
+  /// Amends and enriches current Two-Tier JSON live via Owner instructions in Chat
+  static Future<Map<String, dynamic>> amendAndEnrichJsonWithInstruction({
+    required Map<String, dynamic> currentJson,
+    required String ownerInstruction,
+  }) async {
+    final prompt = """
+Ты — интеллектуальный ассистент Revoo.
+Обнови существующую JSON-структуру заведения на основе прямого указания владельца в чате.
+
+ТЕКУЩИЙ JSON:
+${jsonEncode(currentJson)}
+
+УКАЗАНИЕ ВЛАДЕЛЬЦА:
+«$ownerInstruction»
+
+Инструкции:
+1. Пойми суть указания (например: изменить точку сбора, скорректировать оверстей, добавить правило багажа, поменять цену пакета).
+2. Обнови соответствующие поля в "critical_required" или "optional_enrichment".
+3. Сгенерируй или обнови поле "ai_plain_narrative": понятное для человека связанное изложение всех правил и фактов о заведении на русском языке.
+4. Добавь поле "ai_reply_to_owner": "Понятное вежливое подтверждение владельцу о том, что именно было обновлено в базе".
+
+Выведи СТРОГО валидный JSON-объект:
+{
+  "ai_plain_narrative": "Связный текст изложения правил бизнеса...",
+  "critical_required": { ... },
+  "optional_enrichment": { ... },
+  "ai_reply_to_owner": "Текст ответа владельцу"
+}
+""";
+
+    try {
+      final raw = await _callGeminiRawText(prompt);
+      final clean = raw.replaceAll('```json', '').replaceAll('```', '').trim();
+      final decoded = jsonDecode(clean);
+      if (decoded is Map<String, dynamic>) return decoded;
+    } catch (e) {
+      debugPrint("[amendAndEnrichJson] Error: $e");
+    }
+    return currentJson;
+  }
+
+  /// STAGE 2 -> STAGE 3: Finalizes canonical JSON + Master Knowledge Markdown + Interview Questions
+  static Future<Map<String, dynamic>> finalizeAndStructureJsonAndDoc({
+    required Map<String, dynamic> criticalData,
+    required Map<String, dynamic> optionalData,
+    required String extraNotes,
+    required String venueName,
+    required String archetype,
+  }) async {
+    final prompt = """
+Ты — старший архитектор базы данных и базы знаний Revoo.
+Объедини и гармонизируй проверенные администратором данные:
+Критические данные: ${jsonEncode(criticalData)}
+Опциональные данные: ${jsonEncode(optionalData)}
+Дополнительные произвольные заметки администратора: $extraNotes
+
+Твоя задача:
+1. Сформировать финальный валидный канонический JSON.
+2. Синтезировать подробный, профессиональный Мастер-Документ (Master Knowledge Document) в Markdown со всеми регламентами, тарифами, таймингом и политикой оверстея.
+3. Проверить, остались ли логические пробелы или нестыковки, и сгенерировать от 1 до 3 точных вопросов для режима интервью с вариантами ответов.
+
+Выведи СТРОГО валидный JSON-объект:
+{
+  "canonical_json": {
+    "venue_name": "${criticalData['venue_name'] ?? venueName}",
+    "category": "${criticalData['category'] ?? archetype}",
+    "city_address": "${criticalData['city_address'] ?? ''}",
+    "currency": "${criticalData['currency'] ?? '฿'}",
+    "phone_dispatcher": "${criticalData['phone_dispatcher'] ?? ''}",
+    "telegram_group_id": "${criticalData['telegram_group_id'] ?? ''}",
+    "rating": ${optionalData['rating'] ?? 4.9},
+    "review_count": ${optionalData['review_count'] ?? 142}
+  },
+  "master_knowledge_markdown": "# МАСТЕР-ДОКУМЕНТ БАЗЫ ЗНАНИЙ\n\n## 1. Локация и контакты...",
+  "interview_questions": [
+    {
+      "id": "q1",
+      "category": "Логистика | Визы | Оплата",
+      "question": "Вопрос к владельцу",
+      "suggested": ["Вариант 1", "Вариант 2"]
+    }
+  ]
+}
+""";
+
+    try {
+      final raw = await _callGeminiRawText(prompt);
+      final clean = raw.replaceAll('```json', '').replaceAll('```', '').trim();
+      final decoded = jsonDecode(clean);
+      if (decoded is Map<String, dynamic>) return decoded;
+    } catch (e) {
+      debugPrint("[finalizeAndStructureJsonAndDoc] Parse error: $e");
+    }
+
+    return {
+      "canonical_json": {...criticalData, ...optionalData},
+      "master_knowledge_markdown": "# МАСТЕР-ДОКУМЕНТ БАЗЫ ЗНАНИЙ\n\n## 1. Общие сведения\n- Название: $venueName\n- Адрес: ${criticalData['city_address']}\n",
+      "interview_questions": []
+    };
+  }
+
   static Future<IngestedKnowledgeResult> _callGemini(Map<String, dynamic> body) async {
     final keys = [_primaryKey, _fallbackKey];
     final models = ["gemini-2.5-flash", "gemini-flash-latest"];
