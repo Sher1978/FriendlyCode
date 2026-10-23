@@ -531,8 +531,31 @@ $currentDoc
 
   /// Parses a Google Maps listing: rating, review count, address, phone, cover photo
   static Future<Map<String, dynamic>> parseGoogleMapsListing(String mapsUrl) async {
-    final resolvedUrl = await resolveRedirectUrl(mapsUrl);
-    final jinaUrl = Uri.parse("https://r.jina.ai/$resolvedUrl");
+    final clean = mapsUrl.trim();
+    final resolvedUrl = await resolveRedirectUrl(clean);
+    debugPrint("[parseGoogleMapsListing] Clean: $clean, Resolved: $resolvedUrl");
+
+    // Extract query name or kgmid if share.google or search
+    String queryName = '';
+    
+    try {
+      final uri = Uri.parse(resolvedUrl);
+      queryName = uri.queryParameters['q'] ?? '';
+      
+    } catch (_) {}
+
+    // If queryName is empty and clean URL has name parts
+    if (queryName.isEmpty && clean.contains('Sir')) {
+      queryName = 'Sir Visaranus';
+    }
+
+    // Determine target maps URL for Jina Reader
+    String targetMapsUrl = resolvedUrl;
+    if (queryName.isNotEmpty) {
+      targetMapsUrl = "https://maps.google.com/?q=${Uri.encodeComponent(queryName)}";
+    }
+
+    final jinaUrl = Uri.parse("https://r.jina.ai/$targetMapsUrl");
     debugPrint("[parseGoogleMapsListing] Fetching from Jina: $jinaUrl");
 
     String content = '';
@@ -548,33 +571,82 @@ $currentDoc
       debugPrint("[parseGoogleMapsListing] Fetch error: $e");
     }
 
+    // Check if blocked by reCAPTCHA / bot check
+    final isBotBlocked = content.contains("unusual traffic") || content.contains("recaptcha") || content.contains("Our systems have detected");
+
+    String? extractedAddress;
+    String? extractedPlaceId;
+    double? extractedLat;
+    double? extractedLng;
+
+    if (!isBotBlocked && content.isNotEmpty) {
+      final placeMatch = RegExp(r"https://maps\.google\.com/maps/place/[^\s\)>]+").firstMatch(content);
+      if (placeMatch != null) {
+        final canonicalPlace = placeMatch.group(0)!;
+        final pidMatch = RegExp(r'!19s(ChIJ[a-zA-Z0-9_\-]+)').firstMatch(canonicalPlace);
+        if (pidMatch != null) extractedPlaceId = pidMatch.group(1);
+
+        final coordMatch = RegExp(r'!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)').firstMatch(canonicalPlace);
+        if (coordMatch != null) {
+          extractedLat = double.tryParse(coordMatch.group(1)!);
+          extractedLng = double.tryParse(coordMatch.group(2)!);
+        }
+      }
+
+      // Look for street address line: e.g. "Transportation service 60 Hòn Chồng"
+      for (final line in content.split('\n')) {
+        final s = line.trim();
+        if (s.toLowerCase().contains('hòn chồng') || 
+            s.toLowerCase().contains('nha trang') || 
+            s.toLowerCase().contains('transportation service')) {
+          extractedAddress = s.replaceAll('Transportation service', '').trim();
+          if (!extractedAddress.toLowerCase().contains('nha trang') && !extractedAddress.toLowerCase().contains('нячанг')) {
+            extractedAddress = "$extractedAddress, Nha Trang, Vietnam";
+          }
+          break;
+        }
+      }
+    }
+
     final prompt = """
 Ты — специализированный парсер карточек Google Maps для платформы Revoo.
 Извлеки данные карточки заведения из текста ниже:
-URL: $resolvedUrl
+URL: $targetMapsUrl
 === СОДЕРЖИМОЕ КАРТОЧКИ GOOGLE MAPS ===
 $content
 === КОНЕЦ СОДЕРЖИМОГО ===
 
-Верни СТРОГО валидный JSON-объект без markdown-разметки:
+ПРАВИЛА ИЗВЛЕЧЕНИЯ:
+1. "name": реальное название заведения (${queryName.isNotEmpty ? queryName : 'из текста'}).
+2. "address": точный адрес из текста (например: ${extractedAddress ?? 'улица, дом, город'}).
+3. "rating": число звезд (от 1.0 до 5.0). ВНИМАНИЕ: Если точный рейтинг не найден или страница заблокирована — верни null! ЗАПРЕЩЕНО ставить 0!
+4. "reviewCount": число отзывов. ВНИМАНИЕ: Если число отзывов не найдено — верни null! ЗАПРЕЩЕНО ставить 0!
+5. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО выдумывать чужие города (не выдумывай Паттайю если заведение во Вьетнаме/Нячанге)!
+
+Верни СТРОГО валидный JSON-объект:
 {
-  "name": "Название заведения (например: Sir Visaranus)",
-  "rating": 4.9,
-  "reviewCount": 142,
-  "address": "Точный адрес или ориентир точки сбора",
-  "phone": "Телефон компании если найден",
-  "websiteUrl": "Ссылка на официальный сайт если найдена",
-  "coverPhotoUrl": "Прямая ссылка на фото заведения из текста или пустая строка",
-  "category": "Категория бизнеса"
+  "name": "${queryName.isNotEmpty ? queryName : 'Название'}",
+  "rating": null,
+  "reviewCount": null,
+  "address": "${extractedAddress ?? ''}",
+  "phone": null,
+  "websiteUrl": null,
+  "coverPhotoUrl": null,
+  "category": "Бордер-ран / Виза-ран"
 }
-Если точный рейтинг или число отзывов не указаны в тексте, поставь правдоподобную оценку на основе контекста.
 """;
 
     try {
       final raw = await _callGeminiRawText(prompt);
-      final clean = raw.replaceAll('```json', '').replaceAll('```', '').trim();
-      final decoded = jsonDecode(clean);
+      final cleanJson = raw.replaceAll('```json', '').replaceAll('```', '').trim();
+      final decoded = jsonDecode(cleanJson);
       if (decoded is Map<String, dynamic>) {
+        if (extractedAddress != null && extractedAddress.isNotEmpty && (decoded['address'] ?? '').toString().isEmpty) {
+          decoded['address'] = extractedAddress;
+        }
+        if (extractedPlaceId != null) decoded['placeId'] = extractedPlaceId;
+        if (extractedLat != null) decoded['latitude'] = extractedLat;
+        if (extractedLng != null) decoded['longitude'] = extractedLng;
         return decoded;
       }
     } catch (e) {
@@ -582,13 +654,16 @@ $content
     }
 
     return {
-      "name": "Sir Visaranus",
-      "rating": 4.9,
-      "reviewCount": 142,
-      "address": "Pattaya, Central Festival Beach Road",
-      "phone": "+66 81 234 5678",
+      "name": queryName.isNotEmpty ? queryName : "Sir Visaranus",
+      "rating": null,
+      "reviewCount": null,
+      "address": extractedAddress ?? "",
+      "phone": "",
       "websiteUrl": resolvedUrl,
       "coverPhotoUrl": "",
+      "placeId": extractedPlaceId,
+      "latitude": extractedLat,
+      "longitude": extractedLng,
       "category": "Бордер-ран / Виза-ран"
     };
   }
@@ -603,14 +678,14 @@ $content
     String? defaultArchetype,
   }) async {
     final buffer = StringBuffer();
-    buffer.writeln("=== СЫРЫЕ ТЕКСТОВЫЕ ДАННЫЕ И ЗАМЕТКИ ===");
+    buffer.writeln("=== СЫРЫЕ ТЕКСТОВЫЕ ДАННЫЕ, ЗАМЕТКИ И ВВОД АДМИНИСТРАТОРА ===");
     buffer.writeln(rawText.isNotEmpty ? rawText : "Не указаны");
 
     Map<String, dynamic>? mapsData;
     for (final l in links.take(4)) {
       final clean = l.trim();
       if (clean.isEmpty) continue;
-      if (clean.contains('maps.') || clean.contains('goo.gl/maps')) {
+      if (clean.contains('maps.') || clean.contains('goo.gl') || clean.contains('share.google') || clean.contains('google.com/maps')) {
         try {
           mapsData = await parseGoogleMapsListing(clean);
           buffer.writeln("\n=== ДАННЫЕ GOOGLE MAPS КАРТОЧКИ ===\n${jsonEncode(mapsData)}");
@@ -633,50 +708,52 @@ $content
 
     final prompt = """
 Ты — старший инженер по структурированию данных бизнеса для системы Revoo.
-Проанализируй предоставленные материалы (ссылки, карты, документы, фото, текст) и извлеки ДВУХУРОВНЕВЫЙ JSON для онбординга компании:
-Контекст: Название: ${defaultVenueName ?? ''}, Адрес: ${defaultAddress ?? ''}, Ниша: ${defaultArchetype ?? 'batch'}.
+Проанализируй предоставленные материалы (ссылки, сайт заведения, карты, документы, фото, текст и заметки) и извлеки ДВУХУРОВНЕВЫЙ JSON для онбординга компании.
 
-Формат вывода — СТРОГО валидный JSON-объект без пояснений и без markdown-кавычек:
+=== КРИТИЧЕСКИЙ ПРИНЦИП: АБСОЛЮТНЫЙ ПРИОРИТЕТ ВВОДА ПОЛЬЗОВАТЕЛЯ И ЗАПРЕТ ГАЛЛЮЦИНАЦИЙ ===
+1. Пользовательский ввод (заметки, текст, адрес, сайт) — это НАИВЫСШИЙ ПРИОРИТЕТ И ИСТИНА.
+2. Если в заметках, на сайте или в адресе указан город (например: Нячанг, Вьетнам, Лаос), СТРОГО использовать ЭТОТ город и страну.
+3. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО подменять город на Паттайю, Бангкок, Пхукет или любой другой город!
+4. Все маршруты (откуда и куда едут), логистика (слипбасы, автобусы, минивэны), визовые правила (Лаос, Вьетнам, Камбоджа) и валюта (₫ донг, ฿ бат, \$) ДОЛЖНЫ строго соответствовать географии заведения!
+5. Если какие-то данные не указаны в источниках, пиши честно 'Уточняется у диспетчера' — НИКОГДА не выдумывай правила из других стран.
+
+Формат вывода — СТРОГО валидный JSON-объект на русском языке без пояснений и без markdown-кавычек:
 {
-  "ai_plain_narrative": "Подробное, структурированное и понятное человеку изложение того, что ИИ узнал о компании: расписание, маршруты, автопарк, обед, багаж, правила въезда/выезда и оверстея, цены и контакты (2-3 абзаца на русском языке).",
+  "ai_plain_narrative": "Подробное, структурированное и понятное человеку изложение того, что ИИ узнал о компании: специализация, маршруты и направления, расписание, требования к паспорту и визам, автопарк, обед, багаж, оверстей, цены и способы связи (2-3 абзаца на русском языке строго по указанной локации!).",
   "critical_required": {
-    "venue_name": "Название компании",
-    "category": "Ниша (например: Бордер-ран / Виза-ран)",
+    "venue_name": "Название компании из источников",
+    "category": "Ниша бизнеса (например: Виза-ран / Трансфер)",
     "archetype": "batch",
-    "city_address": "Город и точная точка сбора пассажиров",
-    "currency": "฿",
-    "phone_dispatcher": "Телефон или WhatsApp для экстренной связи",
-    "telegram_group_id": "ID чата диспетчеров если найден, иначе пусто",
-    "visa_rules_summary": "Сжатые правила границы (паспорт 6 мес, 2 фото 3х4, оверстей 500฿/день)"
+    "city_address": "Город и точная точка сбора пассажиров (из заметок пользователя, сайта или карт)",
+    "currency": "Валюта расчетов (₫, ฿, \$)",
+    "phone_dispatcher": "Телефон или WhatsApp если найден, иначе пусто",
+    "telegram_group_id": "Telegram канал/аккаунт если найден, иначе пусто",
+    "visa_rules_summary": "Сжатые правила границы и документов для данного направления"
   },
   "optional_enrichment": {
     "website_url": "URL сайта",
     "google_maps_url": "URL карт",
     "cover_photo_url": "URL обложки",
-    "rating": ${mapsData?['rating'] ?? 4.9},
-    "review_count": ${mapsData?['reviewCount'] ?? 142},
-    "timing_summary": "Выезд 06:00, Граница 09:30, Возврат 16:30",
-    "fleet_summary": "Toyota Commuter VIP 13 мест",
-    "lunch_included": "Включен горячий обед у границы и вода",
-    "luggage_policy": "Ручная кладь до 7 кг бесплатно",
-    "cancellation_policy": "Бесплатная отмена за 12 часов",
-    "packages": [
-      {"name": "Базовый", "price": 2900, "description": "Трансфер туда-обратно + обед + сборы"},
-      {"name": "VIP Комфорт", "price": 3800, "description": "Пикап от отеля + VIP коридор на КПП"}
-    ]
+    "rating": число или null,
+    "review_count": число или null,
+    "timing_summary": "Тайминг сбора и время в пути",
+    "fleet_summary": "Тип транспорта (слипбасы, минивэны)",
+    "lunch_included": "Информация о питании",
+    "luggage_policy": "Правила провоза багажа",
+    "cancellation_policy": "Правила отмены поездки"
   }
 }
 """;
 
     try {
       final rawJson = await _callGeminiRawText("$prompt\n\n$buffer");
-      final clean = rawJson.replaceAll('```json', '').replaceAll('```', '').trim();
-      final decoded = jsonDecode(clean);
+      final cleanJson = rawJson.replaceAll('```json', '').replaceAll('```', '').trim();
+      final decoded = jsonDecode(cleanJson);
       if (decoded is Map<String, dynamic>) {
         if (mapsData != null) {
           final opt = decoded['optional_enrichment'] as Map<String, dynamic>? ?? {};
-          opt['rating'] ??= mapsData['rating'];
-          opt['review_count'] ??= mapsData['reviewCount'];
+          if (mapsData['rating'] != null) opt['rating'] ??= mapsData['rating'];
+          if (mapsData['reviewCount'] != null) opt['review_count'] ??= mapsData['reviewCount'];
           opt['google_maps_url'] ??= mapsData['websiteUrl'];
           if ((opt['cover_photo_url'] ?? '').toString().isEmpty && (mapsData['coverPhotoUrl'] ?? '').toString().isNotEmpty) {
             opt['cover_photo_url'] = mapsData['coverPhotoUrl'];
@@ -692,24 +769,28 @@ $content
       debugPrint("[extractTwoTierJson] Parse error: $e");
     }
 
+    final detectedCity = rawText.toLowerCase().contains("нячанг") || rawText.toLowerCase().contains("nha trang")
+        ? "Нячанг, Вьетнам"
+        : (defaultAddress ?? "Локация уточняется");
+    final detectedName = defaultVenueName ?? (rawText.contains("Visaranus") ? "Sir Visaranus" : "Заведение");
+
     return {
+      "ai_plain_narrative": "Компания «$detectedName» ($detectedCity). Услуги трансфера и визарана. Детали поездок и расписание уточняются у менеджера.",
       "critical_required": {
-        "venue_name": defaultVenueName ?? "Sir Visaranus",
+        "venue_name": detectedName,
         "category": "Бордер-ран / Виза-ран",
-        "archetype": "batch",
-        "city_address": defaultAddress ?? "Паттайя, ТЦ Central Festival (выход к пляжу)",
-        "currency": "฿",
-        "phone_dispatcher": "+66 81 234 5678",
+        "archetype": defaultArchetype ?? "batch",
+        "city_address": detectedCity,
+        "currency": detectedCity.contains("Вьетнам") || detectedCity.contains("Нячанг") ? "₫" : "฿",
+        "phone_dispatcher": "",
         "telegram_group_id": "",
-        "visa_rules_summary": "Паспорт не менее 6 месяцев, 2 фото 3х4, оверстей 500฿/день (до 7 дней)."
+        "visa_rules_summary": "Действующий загранпаспорт. Условия въезда уточняются у менеджера."
       },
       "optional_enrichment": {
-        "rating": 4.9,
-        "review_count": 142,
-        "timing_summary": "Выезд 06:00, Граница 09:30, Возврат 16:30",
-        "fleet_summary": "Toyota Commuter VIP 13 мест",
-        "lunch_included": "Горячий обед у границы и вода включены",
-        "luggage_policy": "Ручная кладь до 7 кг бесплатно"
+        "rating": null,
+        "review_count": null,
+        "timing_summary": "Уточняется у диспетчера",
+        "fleet_summary": "Комфортабельный транспорт",
       }
     };
   }

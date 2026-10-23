@@ -192,17 +192,29 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
         if ((data['websiteUrl'] ?? '').toString().isNotEmpty && _websiteUrlCtrl.text.isEmpty) {
           _websiteUrlCtrl.text = data['websiteUrl'].toString();
         }
-        if ((data['coverPhotoUrl'] ?? '').toString().isNotEmpty) {
+        if ((data['coverPhotoUrl'] ?? '').toString().isNotEmpty && _coverPhotoUrlCtrl.text.isEmpty) {
           _coverPhotoUrlCtrl.text = data['coverPhotoUrl'].toString();
         }
         if (data['rating'] != null) {
-          _ratingCtrl.text = data['rating'].toString();
+          final r = double.tryParse(data['rating'].toString());
+          if (r != null && r > 0) {
+            _ratingCtrl.text = r.toString();
+          }
         }
         if (data['reviewCount'] != null) {
-          _reviewCountCtrl.text = data['reviewCount'].toString();
+          final rc = int.tryParse(data['reviewCount'].toString());
+          if (rc != null && rc > 0) {
+            _reviewCountCtrl.text = rc.toString();
+          }
         }
 
-        _mapsParseSuccess = "✅ Google Карты: ${_ratingCtrl.text} ★ (${_reviewCountCtrl.text} отзывов) • Адрес распознан!";
+        final addrText = _cityAddressCtrl.text.isNotEmpty ? " • Точка: ${_cityAddressCtrl.text}" : "";
+        final currentRating = double.tryParse(_ratingCtrl.text) ?? 0;
+        if (currentRating > 0) {
+          _mapsParseSuccess = "✅ Google Карты: ${_ratingCtrl.text} ★ (${_reviewCountCtrl.text} отзывов)$addrText";
+        } else {
+          _mapsParseSuccess = "✅ Точка найдена на картах$addrText (Рейтинг и отзывы можно ввести вручную)";
+        }
       });
     } catch (e) {
       debugPrint("[_autoParseGoogleMaps] Error: $e");
@@ -239,29 +251,30 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
 
   void _fillSampleDemoData() {
     setState(() {
-      _nameCtrl.text = "Sir Visaranus VIP";
-      _categoryCtrl.text = "Бордер-ран / Виза-ран & Трансферы";
+      _nameCtrl.text = "Sir Visaranus";
+      _categoryCtrl.text = "Виза-ран / Трансферы в Лаос";
       _archetypeCtrl.text = "batch";
-      _cityAddressCtrl.text = "Паттайя, ТЦ Central Festival (выход к пляжной улице)";
-      _phoneCtrl.text = "+66 81 234 5678";
-      _currencyCtrl.text = "฿";
-      _googleMapsUrlCtrl.text = "https://maps.app.goo.gl/354Bw57xJ5672dKdA";
-      _websiteUrlCtrl.text = "https://visaruns.com/cambodia";
-      _telegramChannelCtrl.text = "https://t.me/sir_visaranus_pattaya";
+      _cityAddressCtrl.text = "60 Hòn Chồng, Нячанг, Вьетнам";
+      _phoneCtrl.text = "+84 90 123 4567";
+      _currencyCtrl.text = "₫";
+      _googleMapsUrlCtrl.text = "https://share.google/QRdjqW0kZOH2bpqcE";
+      _websiteUrlCtrl.text = "https://www.sirvisaran.us/";
+      _telegramChannelCtrl.text = "https://t.me/Dora_Sir_Visaranus";
+      _otherSocialsCtrl.text = "https://www.instagram.com/sir_visarun_go_to_laos/";
       _ratingCtrl.text = "4.9";
       _reviewCountCtrl.text = "142";
-      _coverPhotoUrlCtrl.text = "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957";
-      _timingCtrl.text = "Сбор 05:30, выезд 06:00, КПП Ban Laem 09:30, возврат в Паттайю 16:30";
-      _fleetCtrl.text = "Toyota Commuter VIP (13 мест, кондиционер, USB, откидные кресла)";
-      _lunchCtrl.text = "Горячий обед (шведский стол) в ресторане у границы включен";
-      _luggageCtrl.text = "Ручная кладь до 7 кг бесплатно. Чемоданы по согласованию.";
-      _cancellationCtrl.text = "Бесплатная отмена за 12 часов до выезда.";
-      _visaRulesCtrl.text = "Паспорт действителен >= 6 мес, 2 фото 3х4. Штамп РФ 60 дней. Оверстей 500฿/день (до 7 дней).";
-      _freeformNotesCtrl.text = "Детям до 5 лет бесплатно без отдельного кресла. Оплата наличными батами при посадке или переводом на карту РФ (СБП).";
-      _aiNarrative = "Компания «Sir Visaranus VIP» — лицензированный трансферный оператор в Паттайе. Организует ежедневные комфортабельные виза-раны и бордер-раны в Камбоджу через КПП Ban Laem. Рейтинг 4.9 ★ на основе 142 отзывов Google Maps. Поездки выполняются на минивэнах Toyota Commuter VIP (13 мест, кондиционер, USB). В стоимость 2900฿ включен трансфер туда-обратно, горячий обед у границы и помощь в прохождении КПП. Сбор в Паттайе у ТЦ Central Festival в 05:30. Требования к паспорту: срок действия от 6 месяцев, 2 цветных фото 3х4. Оверстей допускается до 7 дней со штрафом 500฿/день на границе.";
+      _coverPhotoUrlCtrl.text = "https://www.sirvisaran.us/images/hero.png";
+      _timingCtrl.text = "Дорога Нячанг-граница Лаоса ~12-14 часов в одну сторону. Выезды по графику.";
+      _fleetCtrl.text = "Комфортабельные VIP-слипбасы с индивидуальными USB, розетками и Wi-Fi";
+      _lunchCtrl.text = "Остановки в пути в кафе и на санитарных стоянках";
+      _luggageCtrl.text = "Стандартный багаж и ручная кладь";
+      _cancellationCtrl.text = "Условия отмены уточнять у менеджера до формирования списков";
+      _visaRulesCtrl.text = "Загранпаспорт (срок >= 6 мес), 2 фото 4х6. Штамп в Лаос для граждан РФ на 30 дней. Сопровождение E-Visa во Вьетнам.";
+      _freeformNotesCtrl.text = "Нячанг, Вьетнам. Трансфер на VIP слипбасах до границы с Лаосом. E-Visa Вьетнам, Fast Track в аэропорту Камрань. Скидки у партнеров в Нячанге.";
+      _aiNarrative = "Компания «Sir Visaranus» — ведущий сервис трансферов и экспат-сообщество в Нячанге (Вьетнам). Специализируется на регулярных комфортабельных визаранах из Нячанга в Лаос на современных VIP-слипбасах с кондиционером, индивидуальными USB-портами и Wi-Fi. Точка отправления: 60 Hòn Chồng, Нячанг. Для граждан РФ предоставляется безвизовый штамп в Лаос на 30 дней. Сервис также обеспечивает оформление и ускорение вьетнамских электронных виз (E-Visa) и Fast Track в аэропорту Камрань.";
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("💡 Пример заведения (Sir Visaranus) успешно подставлен!"), backgroundColor: AppColors.accentTeal),
+      const SnackBar(content: Text("💡 Демо-шаблон (Sir Visaranus Нячанг) подставлен!"), backgroundColor: AppColors.accentTeal),
     );
   }
 
@@ -285,9 +298,9 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
         links: links,
         files: _attachedFiles,
         rawText: _freeformNotesCtrl.text.trim(),
-        defaultVenueName: _nameCtrl.text.isNotEmpty ? _nameCtrl.text : 'Sir Visaranus',
-        defaultAddress: _cityAddressCtrl.text.isNotEmpty ? _cityAddressCtrl.text : 'Паттайя, ТЦ Central Festival',
-        defaultArchetype: _archetypeCtrl.text,
+        defaultVenueName: _nameCtrl.text.trim().isNotEmpty ? _nameCtrl.text.trim() : null,
+        defaultAddress: _cityAddressCtrl.text.trim().isNotEmpty ? _cityAddressCtrl.text.trim() : null,
+        defaultArchetype: _archetypeCtrl.text.trim(),
       );
 
       final crit = result['critical_required'] as Map<String, dynamic>? ?? {};
@@ -1360,9 +1373,19 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
 
   // --- MODE 0: HUMAN READABLE SUMMARY (NARRATIVE) ---
   Widget _buildStage2NarrativeView(List<String> missingCritical, bool is100Ready) {
-    final effectiveNarrative = _aiNarrative.isNotEmpty
-        ? _aiNarrative
-        : "Компания «${_nameCtrl.text.isNotEmpty ? _nameCtrl.text : 'Сервис'}» (${_categoryCtrl.text}). Главная точка сбора пассажиров: ${_cityAddressCtrl.text.isNotEmpty ? _cityAddressCtrl.text : 'не указана'}. Автопарк: ${_fleetCtrl.text.isNotEmpty ? _fleetCtrl.text : 'комфортабельные микроавтобусы'}. Расписание: ${_timingCtrl.text.isNotEmpty ? _timingCtrl.text : 'ежедневно по расписанию'}. Визовый регламент: ${_visaRulesCtrl.text.isNotEmpty ? _visaRulesCtrl.text : 'паспорт от 6 месяцев'}. Питание: ${_lunchCtrl.text.isNotEmpty ? _lunchCtrl.text : 'обед включен'}.";
+    final currentCity = _cityAddressCtrl.text.trim();
+    String effectiveNarrative = _aiNarrative.trim();
+
+    // Anti-Hallucination Guard: If user entered Nha Trang or Vietnam, but narrative has Pattaya/Cambodia, sanitize or rebuild
+    if (currentCity.isNotEmpty && !currentCity.toLowerCase().contains("паттай")) {
+      if (effectiveNarrative.toLowerCase().contains("паттай") || effectiveNarrative.toLowerCase().contains("ban laem") || effectiveNarrative.toLowerCase().contains("central festival")) {
+        effectiveNarrative = "Компания «${_nameCtrl.text.isNotEmpty ? _nameCtrl.text : 'Sir Visaranus'}» ($currentCity). Специализируется на направлении ${_categoryCtrl.text}. Точка отправления/сбора: $currentCity. Транспорт: ${_fleetCtrl.text.isNotEmpty ? _fleetCtrl.text : 'комфортабельные VIP-слипбасы'}. График: ${_timingCtrl.text.isNotEmpty ? _timingCtrl.text : 'по расписанию'}. Визовые требования: ${_visaRulesCtrl.text.isNotEmpty ? _visaRulesCtrl.text : 'загранпаспорт'}. Связь и бронирование через диспетчера.";
+      }
+    }
+
+    if (effectiveNarrative.isEmpty) {
+      effectiveNarrative = "Компания «${_nameCtrl.text.isNotEmpty ? _nameCtrl.text : 'Сервис'}» (${_categoryCtrl.text}). Локация и точка сбора: ${currentCity.isNotEmpty ? currentCity : 'уточняется'}. Автопарк: ${_fleetCtrl.text.isNotEmpty ? _fleetCtrl.text : 'комфортабельный транспорт'}. График: ${_timingCtrl.text.isNotEmpty ? _timingCtrl.text : 'по расписанию'}. Визовый регламент: ${_visaRulesCtrl.text.isNotEmpty ? _visaRulesCtrl.text : 'загранпаспорт'}. Питание: ${_lunchCtrl.text.isNotEmpty ? _lunchCtrl.text : 'уточняется'}.";
+    }
 
     return Column(
       children: [
@@ -1646,7 +1669,7 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
               _buildInlineFormField(
                 "Город и главная точка сбора пассажиров (Адрес):",
                 _cityAddressCtrl,
-                "Например: Паттайя, ТЦ Central Festival (выход к пляжу)",
+                "Например: 60 Hòn Chồng, Нячанг (или адрес точки сбора)",
                 isRequired: true,
               ),
 
