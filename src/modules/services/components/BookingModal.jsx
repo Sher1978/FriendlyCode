@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -11,9 +11,11 @@ import {
   faShieldAlt, 
   faSpinner, 
   faLocationDot,
-  faFire
+  faFire,
+  faArrowLeft
 } from '@fortawesome/free-solid-svg-icons';
-import { faGoogle } from '@fortawesome/free-brands-svg-icons';
+import { faGoogle, faTelegram, faWhatsapp } from '@fortawesome/free-brands-svg-icons';
+import { useMessengerContext } from '../hooks/useMessengerContext';
 
 export const BookingModal = ({
   isOpen,
@@ -28,12 +30,36 @@ export const BookingModal = ({
   selectedSeats = [],
   onConfirmSuccess
 }) => {
+  const { isFromMessenger, channel, messengerUser, closeMessengerView, getMessengerDeepLink } = useMessengerContext();
+
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [bookingSuccess, setBookingSuccess] = useState(null);
+
+  // Pre-fill user data if available from Telegram Mini App / Messenger SDK
+  useEffect(() => {
+    if (messengerUser?.firstName && !clientName) {
+      const fullName = [messengerUser.firstName, messengerUser.lastName].filter(Boolean).join(' ');
+      setClientName(fullName || messengerUser.username || '');
+    }
+    if (messengerUser?.phone && !clientPhone) {
+      setClientPhone(messengerUser.phone);
+    }
+  }, [messengerUser]);
+
+  // Auto-close countdown when booked from inside Telegram Mini App
+  useEffect(() => {
+    if (bookingSuccess && isFromMessenger) {
+      const timer = setTimeout(() => {
+        closeMessengerView();
+        onClose();
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [bookingSuccess, isFromMessenger]);
 
   if (!isOpen || !service || !slot) return null;
 
@@ -140,9 +166,16 @@ export const BookingModal = ({
             /* Booking Form */
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <span className="text-[10px] font-bold tracking-wider uppercase text-[#00FF41] bg-[#00FF41]/10 px-2 py-0.5 rounded">
-                  Подтверждение записи
-                </span>
+                {isFromMessenger ? (
+                  <span className="text-[10px] font-bold tracking-wider uppercase text-[#2AABEE] bg-[#2AABEE]/15 border border-[#2AABEE]/30 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 mb-1">
+                    <FontAwesomeIcon icon={channel === 'whatsapp' ? faWhatsapp : faTelegram} />
+                    <span>{channel === 'whatsapp' ? 'WhatsApp Диалог • Авторизован' : 'Telegram Mini App • Авторизован'}</span>
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold tracking-wider uppercase text-[#00FF41] bg-[#00FF41]/10 px-2 py-0.5 rounded">
+                    Подтверждение записи
+                  </span>
+                )}
                 <h2 className="text-xl font-bold text-white mt-1.5">
                   {service.name}
                 </h2>
@@ -291,7 +324,11 @@ export const BookingModal = ({
                   </>
                 ) : (
                   <>
-                    <span>Забронировать визит со скидкой</span>
+                    <span>
+                      {isFromMessenger
+                        ? `Зафиксировать ${selectedSeats.length > 0 ? `места (${selectedSeats.map(s => s.label).join(', ')})` : 'запись'} и вернуться в чат`
+                        : 'Забронировать визит со скидкой'}
+                    </span>
                   </>
                 )}
               </button>
@@ -311,7 +348,9 @@ export const BookingModal = ({
                   Ждем вас в {venue?.name || 'заведении'}!
                 </h2>
                 <p className="text-xs text-white/60 mt-1">
-                  Детали визита сохранены. Мы отправим напоминание за 2 часа до визита.
+                  {isFromMessenger 
+                    ? 'Детали бронирования и посадочный талон отправлены в ваш чат.' 
+                    : 'Детали визита сохранены. Мы отправим напоминание за 2 часа до визита.'}
                 </p>
               </div>
 
@@ -377,25 +416,80 @@ export const BookingModal = ({
                 </div>
               )}
 
-              <div className="pt-2 flex flex-col gap-2">
-                <a
-                  href={googleMapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs flex items-center justify-center gap-2 border border-white/10 transition-all"
-                >
-                  <FontAwesomeIcon icon={faLocationDot} className="text-[#EA4335]" />
-                  <span>Построить маршрут на Google Картах</span>
-                </a>
+              {/* Action Buttons: DUAL-ORIGIN LOGIC */}
+              {isFromMessenger ? (
+                /* Ветка Б: Клиент из мессенджера -> возврат в чат */
+                <div className="pt-2 flex flex-col gap-2.5">
+                  <div className="p-3 rounded-2xl bg-[#2AABEE]/15 border border-[#2AABEE]/30 text-xs text-white/90 space-y-1">
+                    <div className="font-bold text-[#2AABEE] flex items-center justify-center gap-1.5">
+                      <FontAwesomeIcon icon={channel === 'whatsapp' ? faWhatsapp : faTelegram} />
+                      <span>Посадочный талон отправлен в диалог!</span>
+                    </div>
+                    <div className="text-[11px] text-white/60">
+                      Окно закроется автоматически через 3 секунды...
+                    </div>
+                  </div>
 
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="w-full py-2.5 px-4 rounded-xl bg-transparent text-white/60 hover:text-white text-xs font-medium"
-                >
-                  Закрыть
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeMessengerView();
+                      onClose();
+                    }}
+                    className="w-full py-3.5 px-4 rounded-2xl bg-[#00FF41] hover:bg-[#00FF41]/90 text-black font-extrabold text-sm shadow-lg shadow-[#00FF41]/25 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                  >
+                    <FontAwesomeIcon icon={faArrowLeft} />
+                    <span>Вернуться в чат с компанией</span>
+                  </button>
+                </div>
+              ) : (
+                /* Ветка А: Холодный веб-гость -> Мост перелива в Telegram / WhatsApp */
+                <div className="pt-2 flex flex-col gap-2.5">
+                  <div className="p-3.5 rounded-2xl bg-[#1C1C1E] border border-white/10 space-y-2 text-left">
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-white/70">
+                      Сохранить билет и точку сбора в мессенджер:
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <a
+                        href={getMessengerDeepLink('telegram', bookingSuccess?.id || 'new', venue)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="py-2.5 px-3 rounded-xl bg-[#2AABEE]/20 hover:bg-[#2AABEE]/30 text-[#2AABEE] border border-[#2AABEE]/30 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <FontAwesomeIcon icon={faTelegram} className="text-sm" />
+                        <span>В Telegram</span>
+                      </a>
+                      <a
+                        href={getMessengerDeepLink('whatsapp', bookingSuccess?.id || 'new', venue)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="py-2.5 px-3 rounded-xl bg-[#25D366]/20 hover:bg-[#25D366]/30 text-[#25D366] border border-[#25D366]/30 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+                      >
+                        <FontAwesomeIcon icon={faWhatsapp} className="text-sm" />
+                        <span>В WhatsApp</span>
+                      </a>
+                    </div>
+                  </div>
+
+                  <a
+                    href={googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs flex items-center justify-center gap-2 border border-white/10 transition-all"
+                  >
+                    <FontAwesomeIcon icon={faLocationDot} className="text-[#EA4335]" />
+                    <span>Построить маршрут на Google Картах</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="w-full py-2.5 px-4 rounded-xl bg-transparent text-white/60 hover:text-white text-xs font-medium"
+                  >
+                    Закрыть
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </motion.div>

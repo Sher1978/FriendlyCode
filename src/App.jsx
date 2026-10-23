@@ -324,7 +324,15 @@ function App() {
                 promoParam === 'max_tier' ||
                 promoParam === 'grab_bag' ||
                 promoParam === 'grab' ||
-                searchParams.get('bag_qr') === '1';
+                searchParams.get('bag_qr') === '1' ||
+                utmSource === 'tg_mini_app' ||
+                utmSource === 'telegram' ||
+                utmSource === 'wa' ||
+                utmSource === 'whatsapp' ||
+                utmSource === 'ig' ||
+                utmSource === 'instagram' ||
+                Boolean(searchParams.get('v')) ||
+                Boolean(searchParams.get('venue'));
 
             if (isDirectDeliveryEntry) {
                 if (searchParams.get('activated') === 'true') {
