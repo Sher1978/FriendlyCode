@@ -26,54 +26,56 @@ const SLEEPER_BUS_PRESET = {
       id: 'lower',
       name: 'Нижний ярус',
       badge: 'Плавный ход • Без качки',
+      deckPrefix: 'A',
+      numberingScheme: 'deck_prefix',
       priceModifier: 0,
       rows: [
         {
           rowNumber: 1,
           seats: [
-            { id: 'L01', label: '01', col: 1, type: 'window', status: 'occupied', features: ['window', 'usb'] },
-            { id: 'L02', label: '02', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: 0 },
-            { id: 'L03', label: '03', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 }
+            { id: 'L01', label: 'A01', col: 1, type: 'window', status: 'occupied', features: ['window', 'usb'] },
+            { id: 'L02', label: 'A02', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: 0 },
+            { id: 'L03', label: 'A03', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 }
           ]
         },
         {
           rowNumber: 2,
           seats: [
-            { id: 'L04', label: '04', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 },
-            { id: 'L05', label: '05', col: 2, type: 'center', status: 'occupied', features: ['usb', 'ac_shield'] },
-            { id: 'L06', label: '06', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 }
+            { id: 'L04', label: 'A04', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 },
+            { id: 'L05', label: 'A05', col: 2, type: 'center', status: 'occupied', features: ['usb', 'ac_shield'] },
+            { id: 'L06', label: 'A06', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 }
           ]
         },
         {
           rowNumber: 3,
           seats: [
-            { id: 'L07', label: '07', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 },
-            { id: 'L08', label: '08', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: 0 },
-            { id: 'L09', label: '09', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 }
+            { id: 'L07', label: 'A07', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 },
+            { id: 'L08', label: 'A08', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: 0 },
+            { id: 'L09', label: 'A09', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 }
           ]
         },
         {
           rowNumber: 4,
           seats: [
-            { id: 'L10', label: '10', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 },
-            { id: 'L11', label: '11', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: 0 },
-            { id: 'L12', label: '12', col: 3, type: 'window', status: 'occupied', features: ['window', 'usb'] }
+            { id: 'L10', label: 'A10', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 },
+            { id: 'L11', label: 'A11', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: 0 },
+            { id: 'L12', label: 'A12', col: 3, type: 'window', status: 'occupied', features: ['window', 'usb'] }
           ]
         },
         {
           rowNumber: 5,
           seats: [
-            { id: 'L13', label: '13', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 },
-            { id: 'L14', label: '14', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: 0 },
-            { id: 'L15', label: '15', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 }
+            { id: 'L13', label: 'A13', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 },
+            { id: 'L14', label: 'A14', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: 0 },
+            { id: 'L15', label: 'A15', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 }
           ]
         },
         {
           rowNumber: 6,
           seats: [
-            { id: 'L16', label: '16', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 },
-            { id: 'L17', label: '17', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: 0 },
-            { id: 'L18', label: '18', col: 3, type: 'luggage', status: 'locked', note: 'Багаж гида', features: [] }
+            { id: 'L16', label: 'A16', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: 0 },
+            { id: 'L17', label: 'A17', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: 0 },
+            { id: 'L18', label: 'A18', col: 3, type: 'luggage', status: 'locked', note: 'Багаж гида', features: [] }
           ]
         }
       ]
@@ -82,54 +84,56 @@ const SLEEPER_BUS_PRESET = {
       id: 'upper',
       name: 'Верхний ярус',
       badge: 'Панорамный вид • Скидка 100 ฿',
+      deckPrefix: 'B',
+      numberingScheme: 'deck_prefix',
       priceModifier: -100,
       rows: [
         {
           rowNumber: 1,
           seats: [
-            { id: 'U19', label: '19', col: 1, type: 'window', status: 'occupied', features: ['window', 'usb'] },
-            { id: 'U20', label: '20', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: -100 },
-            { id: 'U21', label: '21', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 }
+            { id: 'U19', label: 'B01', col: 1, type: 'window', status: 'occupied', features: ['window', 'usb'] },
+            { id: 'U20', label: 'B02', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: -100 },
+            { id: 'U21', label: 'B03', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 }
           ]
         },
         {
           rowNumber: 2,
           seats: [
-            { id: 'U22', label: '22', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 },
-            { id: 'U23', label: '23', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: -100 },
-            { id: 'U24', label: '24', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 }
+            { id: 'U22', label: 'B04', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 },
+            { id: 'U23', label: 'B05', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: -100 },
+            { id: 'U24', label: 'B06', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 }
           ]
         },
         {
           rowNumber: 3,
           seats: [
-            { id: 'U25', label: '25', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 },
-            { id: 'U26', label: '26', col: 2, type: 'center', status: 'occupied', features: ['usb', 'ac_shield'] },
-            { id: 'U27', label: '27', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 }
+            { id: 'U25', label: 'B07', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 },
+            { id: 'U26', label: 'B08', col: 2, type: 'center', status: 'occupied', features: ['usb', 'ac_shield'] },
+            { id: 'U27', label: 'B09', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 }
           ]
         },
         {
           rowNumber: 4,
           seats: [
-            { id: 'U28', label: '28', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 },
-            { id: 'U29', label: '29', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: -100 },
-            { id: 'U30', label: '30', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 }
+            { id: 'U28', label: 'B10', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 },
+            { id: 'U29', label: 'B11', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: -100 },
+            { id: 'U30', label: 'B12', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 }
           ]
         },
         {
           rowNumber: 5,
           seats: [
-            { id: 'U31', label: '31', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 },
-            { id: 'U32', label: '32', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: -100 },
-            { id: 'U33', label: '33', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 }
+            { id: 'U31', label: 'B13', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 },
+            { id: 'U32', label: 'B14', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: -100 },
+            { id: 'U33', label: 'B15', col: 3, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 }
           ]
         },
         {
           rowNumber: 6,
           seats: [
-            { id: 'U34', label: '34', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 },
-            { id: 'U35', label: '35', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: -100 },
-            { id: 'U36', label: '36', col: 3, type: 'window', status: 'locked', note: 'Резерв', features: [] }
+            { id: 'U34', label: 'B16', col: 1, type: 'window', status: 'available', features: ['window', 'usb'], priceModifier: -100 },
+            { id: 'U35', label: 'B17', col: 2, type: 'center', status: 'available', features: ['usb', 'ac_shield'], priceModifier: -100 },
+            { id: 'U36', label: 'B18', col: 3, type: 'window', status: 'locked', note: 'Резерв', features: [] }
           ]
         }
       ]
