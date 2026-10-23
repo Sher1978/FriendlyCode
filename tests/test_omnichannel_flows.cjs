@@ -143,9 +143,9 @@ async function runOmnichannelTests() {
     await returnChatSubmit.click();
     await pageB.waitForTimeout(1500);
 
-    // Verify success state has "Посадочный талон отправлен в диалог!" and "Вернуться в чат с компанией"
-    const chatSentNotice = await pageB.waitForSelector('text=Посадочный талон отправлен в диалог!', { timeout: 8000 });
-    assert.ok(chatSentNotice, 'In-chat ticket notice should be visible');
+    // Verify success state has "Заявка передана менеджеру в чат!" and "Вернуться в чат с компанией"
+    const chatSentNotice = await pageB.waitForSelector('text=Заявка передана менеджеру в чат!', { timeout: 8000 });
+    assert.ok(chatSentNotice, 'In-chat pending notice should be visible');
 
     const returnBtn = await pageB.waitForSelector('button:has-text("Вернуться в чат с компанией")', { timeout: 8000 });
     assert.ok(returnBtn, 'Return to chat CTA button should be visible');

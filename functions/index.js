@@ -1374,14 +1374,14 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                         const clientDisplayName = bookingData.clientName || clientTgName;
 
                         const boardingPassMsg = 
-                            `🎫 <b>ВАШ ЦИФРОВОЙ БИЛЕТ • BOARDING PASS</b>\n\n` +
-                            `Здравствуйте, <b>${clientDisplayName}</b>! Ваша бронь успешно привязана к этому диалогу в Telegram.\n\n` +
+                            `📋 <b>ЗАЯВКА НА БРОНИРОВАНИЕ #${bookingId} ПРИНЯТА!</b>\n\n` +
+                            `Здравствуйте, <b>${clientDisplayName}</b>! Ваше место временно зафиксировано.\n\n` +
                             `🚍 <b>Рейс:</b> ${serviceName}\n` +
                             `🕒 <b>Отправление:</b> ${departureTime}\n` +
                             `💺 <b>Места в салоне:</b> <code>${seatList}</code>\n` +
-                            `💰 <b>К оплате:</b> ${finalPrice} (при посадке)\n` +
-                            `📋 <b>Номер брони:</b> <code>#${bookingId}</code>\n\n` +
-                            `📍 <i>Точка сбора и детали посадки будут продублированы сюда за 2 часа до выезда. Водитель и менеджер на связи в этом чате!</i>`;
+                            `💰 <b>К оплате:</b> ${finalPrice}\n` +
+                            `⏳ <b>Статус:</b> Ожидает подтверждения менеджером ⏳\n\n` +
+                            `👨‍✈️ <i>Наш менеджер свяжется с вами в этом чате для согласования оплаты. После подтверждения сюда поступит официальный посадочный талон для посадки в автобус!</i>`;
 
                         const keyboard = {
                             inline_keyboard: [
@@ -1406,13 +1406,23 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                                     const staffGroupId = vData.telegram_group_id || vData.telegramGroupId;
                                     if (staffGroupId) {
                                         const staffAlert = 
-                                            `⚡️ <b>КЛИЕНТ ПОДТВЕРДИЛ БРОНЬ В TELEGRAM!</b>\n\n` +
+                                            `⚡️ <b>НОВАЯ ЗАЯВКА НА БРОНИРОВАНИЕ!</b>\n\n` +
                                             `👤 <b>Гость:</b> ${clientDisplayName} (${fromUser.username ? '@' + fromUser.username : 'без @'})\n` +
                                             `🚍 <b>Рейс:</b> ${serviceName}\n` +
                                             `💺 <b>Места:</b> ${seatList}\n` +
                                             `💰 <b>Сумма:</b> ${finalPrice}\n` +
-                                            `📱 <b>Телефон:</b> ${bookingData.clientPhone || 'Из Telegram'}`;
-                                        await sendTelegramMessage(staffGroupId, staffAlert);
+                                            `📱 <b>Телефон:</b> ${bookingData.clientPhone || 'Из Telegram'}\n` +
+                                            `⏳ <b>Статус:</b> Ожидает согласования оплаты менеджером`;
+
+                                        const staffKeyboard = {
+                                            inline_keyboard: [
+                                                [
+                                                    { text: "✅ Подтвердить оплату и выдать билет", callback_data: `BKG_CONFIRM_${bookingId}` },
+                                                    { text: "❌ Отклонить", callback_data: `BKG_REJECT_${bookingId}` }
+                                                ]
+                                            ]
+                                        };
+                                        await sendTelegramMessageWithKeyboard(staffGroupId, staffAlert, staffKeyboard);
                                     }
                                 }
                             } catch (err) {
@@ -1649,11 +1659,65 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                     reviewedAt: admin.firestore.FieldValue.serverTimestamp()
                 });
 
+                const bookingData = bookingSnap.data() || {};
                 const badge = isConfirm ? "✅ ПОДТВЕРЖДЕНО" : "❌ ОТКЛОНЕНО";
                 await answerCallbackQuery(callbackQueryId, isConfirm ? "Бронь подтверждена!" : "Бронь отклонена.", false);
 
                 const origText = callbackQuery.message ? (callbackQuery.message.text || "") : "";
                 await editTelegramMessage(chatId, messageId, `${origText}\n\n────────────────\n<b>${badge}</b> диспетчером ${reviewer}`);
+
+                // ── NOTIFY GUEST ON MANAGER DECISION ──
+                if (bookingData.telegramChatId) {
+                    if (isConfirm) {
+                        const clientDisplayName = bookingData.clientName || 'Пассажир';
+                        const serviceName = bookingData.serviceName || bookingData.serviceTitle || 'Рейс бордер-ран';
+                        const seatList = (bookingData.seatDescriptions && bookingData.seatDescriptions.length > 0)
+                            ? bookingData.seatDescriptions.join(', ')
+                            : ((bookingData.seats && bookingData.seats.length > 0) ? bookingData.seats.join(', ') : 'Место зафиксировано');
+
+                        let departureTime = 'Уточняется';
+                        if (bookingData.startTime) {
+                            try {
+                                const d = bookingData.startTime.toDate ? bookingData.startTime.toDate() : new Date(bookingData.startTime);
+                                departureTime = d.toLocaleString('ru-RU', { timeZone: 'Asia/Bangkok', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                            } catch (e) {
+                                departureTime = String(bookingData.startTime);
+                            }
+                        }
+
+                        const finalPrice = bookingData.finalPrice ? `${bookingData.finalPrice.toLocaleString()} ฿` : 'Оплата подтверждена';
+
+                        const officialPassMsg = 
+                            `🎫 <b>ВАШ ОФИЦИАЛЬНЫЙ ПОСАДОЧНЫЙ ТАЛОН • BOARDING PASS</b>\n\n` +
+                            `Здравствуйте, <b>${clientDisplayName}</b>! Менеджер подтвердил вашу оплату и официально закрепил за вами место на рейсе.\n\n` +
+                            `🚍 <b>Рейс:</b> ${serviceName}\n` +
+                            `🕒 <b>Отправление:</b> ${departureTime}\n` +
+                            `💺 <b>Места в салоне:</b> <code>${seatList}</code>\n` +
+                            `💰 <b>Статус:</b> Оплата подтверждена ✅ (${finalPrice})\n` +
+                            `📋 <b>Номер билета:</b> <code>#${bookingId}</code>\n\n` +
+                            `📍 <i>Точка сбора: Central Festival Pattaya Beach (выход 1). Пожалуйста, приходите за 15 минут до выезда. Водитель ожидает вас!</i>`;
+
+                        const passKeyboard = {
+                            inline_keyboard: [
+                                [
+                                    { text: "📍 Точка сбора на Google Картах", url: "https://maps.google.com/?q=Central+Festival+Pattaya" }
+                                ],
+                                [
+                                    { text: "🚍 Схема салона и место", web_app: { url: `https://bot-lab-21910.web.app/?v=${bookingData.venueId || 'test_borderrun_pattaya'}&source=tg_mini_app&booking_id=${bookingId}` } }
+                                ]
+                            ]
+                        };
+
+                        await sendTelegramMessageWithKeyboard(bookingData.telegramChatId, officialPassMsg, passKeyboard);
+                    } else {
+                        const rejectMsg = 
+                            `⚠️ <b>Уведомление по бронированию #${bookingId}</b>\n\n` +
+                            `Здравствуйте, <b>${bookingData.clientName || 'Гость'}</b>. К сожалению, ваша заявка на рейс была отклонена или отменена диспетчером.\n\n` +
+                            `Если у вас остались вопросы или вы хотите выбрать другую дату, напишите нам прямо в этот чат.`;
+                        await sendTelegramMessage(bookingData.telegramChatId, rejectMsg);
+                    }
+                }
+
                 res.sendStatus(200);
                 return;
             }
@@ -4804,5 +4868,69 @@ exports.scheduledAggregatorSync = onSchedule({
         logger.info("[scheduledAggregatorSync] Completed scheduled sync run.");
     } catch (err) {
         logger.error("[scheduledAggregatorSync] Top-level error:", err);
+    }
+});
+
+/**
+ * SCENARIO 2: Partner / Payment Gateway Webhook
+ * Handles instant online payments (PromptPay, Stripe, Partner API).
+ * Automatically marks booking as paid_confirmed and issues official Digital Boarding Pass to guest.
+ */
+exports.partnerPaymentWebhook = onRequest(async (req, res) => {
+    try {
+        const { bookingId, paymentStatus, transactionId, amount, provider } = req.body || {};
+
+        if (!bookingId || paymentStatus !== 'paid') {
+            res.status(400).json({ error: 'Missing bookingId or paymentStatus is not paid' });
+            return;
+        }
+
+        const bookingRef = db.collection('bookings').doc(bookingId);
+        const snap = await bookingRef.get();
+        if (!snap.exists) {
+            res.status(404).json({ error: 'Booking not found' });
+            return;
+        }
+
+        const bData = snap.data();
+        await bookingRef.update({
+            status: 'paid_confirmed',
+            paymentStatus: 'paid',
+            transactionId: transactionId || null,
+            paymentProvider: provider || 'partner_gateway',
+            paidAmount: Number(amount) || bData.finalPrice || 0,
+            paidAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Auto-issue official Boarding Pass if customer is in Telegram
+        if (bData.telegramChatId) {
+            const clientDisplayName = bData.clientName || 'Пассажир';
+            const serviceName = bData.serviceName || bData.serviceTitle || 'Рейс бордер-ран';
+            const seatList = (bData.seatDescriptions && bData.seatDescriptions.length > 0)
+                ? bData.seatDescriptions.join(', ')
+                : ((bData.seats && bData.seats.length > 0) ? bData.seats.join(', ') : 'Место зафиксировано');
+
+            const paidTicketMsg = 
+                `🎫 <b>ОПЛАТА ПОЛУЧЕНА • ВАШ ПОСАДОЧНЫЙ ТАЛОН</b>\n\n` +
+                `Здравствуйте, <b>${clientDisplayName}</b>! Ваша онлайн-оплата успешно зачислена. Место зафиксировано за вами.\n\n` +
+                `🚍 <b>Рейс:</b> ${serviceName}\n` +
+                `💺 <b>Места:</b> <code>${seatList}</code>\n` +
+                `💰 <b>Оплачено онлайн:</b> ${amount || bData.finalPrice} ฿ (${provider || 'PromptPay'})\n` +
+                `📋 <b>Номер билета:</b> <code>#${bookingId}</code>\n\n` +
+                `📍 <i>Точка сбора: Central Festival Pattaya Beach (выход 1). Водитель ожидает вас!</i>`;
+
+            const keyboard = {
+                inline_keyboard: [
+                    [{ text: "📍 Точка сбора на Google Картах", url: "https://maps.google.com/?q=Central+Festival+Pattaya" }],
+                    [{ text: "🚍 Схема салона и место", web_app: { url: `https://bot-lab-21910.web.app/?v=${bData.venueId || 'test_borderrun_pattaya'}&source=tg_mini_app&booking_id=${bookingId}` } }]
+                ]
+            };
+            await sendTelegramMessageWithKeyboard(bData.telegramChatId, paidTicketMsg, keyboard);
+        }
+
+        res.json({ success: true, bookingId, status: 'paid_confirmed' });
+    } catch (err) {
+        logger.error('partnerPaymentWebhook error:', err);
+        res.status(500).json({ error: err.message });
     }
 });

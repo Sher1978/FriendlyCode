@@ -341,25 +341,25 @@ export const BookingModal = ({
               </div>
 
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-[#00FF41] bg-[#00FF41]/10 px-2 py-0.5 rounded">
-                  Запись подтверждена
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[#FF9933] bg-[#FF9933]/15 border border-[#FF9933]/30 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5">
+                  ⏳ Заявка принята • Ожидает подтверждения
                 </span>
                 <h2 className="text-2xl font-bold text-white mt-2">
-                  Ждем вас в {venue?.name || 'заведении'}!
+                  Место зафиксировано!
                 </h2>
-                <p className="text-xs text-white/60 mt-1">
+                <p className="text-xs text-white/60 mt-1 max-w-sm mx-auto">
                   {isFromMessenger 
-                    ? 'Детали бронирования и посадочный талон отправлены в ваш чат.' 
-                    : 'Детали визита сохранены. Мы отправим напоминание за 2 часа до визита.'}
+                    ? 'Заявка отправлена менеджеру. Он напишет вам прямо в этот диалог для согласования оплаты и вышлет официальный билет.' 
+                    : 'Заявка передана менеджеру. Мы свяжемся с вами в мессенджере для согласования оплаты и вышлем посадочный талон.'}
                 </p>
               </div>
 
               {/* Digital Boarding Pass / Ticket for Seated trips OR Standard Summary */}
               {selectedSeats && selectedSeats.length > 0 ? (
-                <div className="p-4 rounded-3xl bg-gradient-to-br from-[#1C1C1E] to-[#141416] border border-[#00FF41]/40 text-left text-xs space-y-3 shadow-xl relative overflow-hidden">
+                <div className="p-4 rounded-3xl bg-gradient-to-br from-[#1C1C1E] to-[#141416] border border-[#FF9933]/40 text-left text-xs space-y-3 shadow-xl relative overflow-hidden">
                   <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                    <span className="text-[10px] font-bold tracking-wider uppercase text-[#00FF41]">
-                      Цифровой билет • Boarding Pass
+                    <span className="text-[10px] font-bold tracking-wider uppercase text-[#FF9933]">
+                      Предварительная бронь • Pre-Booking
                     </span>
                     <span className="text-[10px] text-white/40">
                       ID: #{Math.floor(100000 + Math.random() * 900000)}
@@ -391,7 +391,7 @@ export const BookingModal = ({
                   </div>
 
                   <div className="flex justify-between items-center pt-2 border-t border-white/10">
-                    <span className="text-white/60">К оплате при посадке:</span>
+                    <span className="text-white/60">К оплате при согласовании:</span>
                     <span className="font-extrabold text-[#00FF41] text-sm">{formatPrice(calculatedTotal)}</span>
                   </div>
                 </div>
@@ -423,10 +423,10 @@ export const BookingModal = ({
                   <div className="p-3 rounded-2xl bg-[#2AABEE]/15 border border-[#2AABEE]/30 text-xs text-white/90 space-y-1">
                     <div className="font-bold text-[#2AABEE] flex items-center justify-center gap-1.5">
                       <FontAwesomeIcon icon={channel === 'whatsapp' ? faWhatsapp : faTelegram} />
-                      <span>Посадочный талон отправлен в диалог!</span>
+                      <span>Заявка передана менеджеру в чат!</span>
                     </div>
                     <div className="text-[11px] text-white/60">
-                      Окно закроется автоматически через 3 секунды...
+                      Менеджер согласует оплату и вышлет официальный билет.
                     </div>
                   </div>
 
