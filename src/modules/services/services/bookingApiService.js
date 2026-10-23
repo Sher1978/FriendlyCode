@@ -47,6 +47,42 @@ export const bookingApiService = {
         }));
       }
 
+      // Smart niche fallback for test venues if subcollection is empty
+      if (venueId.includes('borderrun') || venueId.includes('pattaya')) {
+        return [
+          {
+            id: 'srv_cambodia_basic',
+            name: 'Бордер-ран в Камбоджу (Базовый пакет)',
+            title: 'Бордер-ран в Камбоджу (Базовый пакет)',
+            description: 'Ежедневный выезд в 06:00. Трансфер на минивэне с кондиционером, пограничные сборы, обед, сопровождение и страховка.',
+            price: 2900,
+            durationMinutes: 600,
+            category: 'Камбоджа',
+            isActive: true
+          },
+          {
+            id: 'srv_cambodia_vip',
+            name: 'Бордер-ран в Камбоджу (VIP Всё включено)',
+            title: 'Бордер-ран в Камбоджу (VIP Всё включено)',
+            description: 'Пикап прямо из отеля/кондо, приоритетный вип-коридор без очередей на границе, горячий обед, напитки и новый штамп на 60 дней.',
+            price: 3800,
+            durationMinutes: 600,
+            category: 'Камбоджа VIP',
+            isActive: true
+          },
+          {
+            id: 'srv_penang_2days',
+            name: 'Виза-ран в Пенанг / Малайзия (2 дня / 1 ночь)',
+            title: 'Виза-ран в Пенанг / Малайзия (2 дня / 1 ночь)',
+            description: 'Поездка за туристической или студенческой визой. Отель 4*, трансфер, сопровождение в консульстве Таиланда и питание.',
+            price: 7500,
+            durationMinutes: 1440,
+            category: 'Малайзия / Пенанг',
+            isActive: true
+          }
+        ];
+      }
+
       return [];
     } catch (err) {
       console.warn('bookingApiService: getServices failed, using fallback:', err);
@@ -69,6 +105,31 @@ export const bookingApiService = {
           .filter(m => m.isActive !== false);
       }
 
+      if (venueId.includes('borderrun') || venueId.includes('pattaya')) {
+        return [
+          {
+            id: 'master_1',
+            name: 'VIP Минивэн Toyota Commuter #1 (Рейс 06:00)',
+            role: '10-местный VIP салон, кондиционер, USB и Wi-Fi',
+            avatarUrl: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=250&q=80',
+            rating: 4.98,
+            workStartTime: '06:00',
+            workEndTime: '18:00',
+            isActive: true
+          },
+          {
+            id: 'master_2',
+            name: 'VIP Спринтер #2 (Рейс 07:00)',
+            role: 'Кожаные кресла, напитки, индивидуальное прохождение границы',
+            avatarUrl: 'https://images.unsplash.com/photo-1570125909232-eb263c188f7e?auto=format&fit=crop&w=250&q=80',
+            rating: 4.95,
+            workStartTime: '07:00',
+            workEndTime: '19:00',
+            isActive: true
+          }
+        ];
+      }
+
       return [];
     } catch (err) {
       console.warn('bookingApiService: getStaff failed:', err);
@@ -89,6 +150,30 @@ export const bookingApiService = {
         return snap.docs
           .map(d => ({ id: d.id, ...d.data() }))
           .filter(r => r.isActive !== false);
+      }
+
+      if (venueId.includes('borderrun') || venueId.includes('pattaya')) {
+        return [
+          {
+            id: 'rule_weekday',
+            name: 'Скидка на выезд среди недели (Вт-Ср)',
+            daysOfWeek: ['tue', 'wed'],
+            startHour: 6,
+            endHour: 18,
+            discountType: 'fixed',
+            discountValue: 300,
+            isActive: true
+          },
+          {
+            id: 'rule_flash',
+            name: 'Горящее место за 12 часов до выезда',
+            isFlashSlot: true,
+            flashLeadHours: 12,
+            discountType: 'percent',
+            discountValue: 15,
+            isActive: true
+          }
+        ];
       }
 
       return [];

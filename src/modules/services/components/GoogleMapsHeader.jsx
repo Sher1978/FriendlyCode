@@ -20,6 +20,12 @@ export const GoogleMapsHeader = ({ venue }) => {
   const rating = venue?.rating || 4.9;
   const reviewCount = venue?.reviewCount || 128;
   const googleMapsUrl = venue?.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${name} ${address}`)}`;
+  const reviewsUrl = venue?.googleReviewUrl || googleMapsUrl;
+
+  const cleanWhatsapp = (whatsapp || phone || '').replace(/[^0-9]/g, '');
+  const whatsappUrl = cleanWhatsapp
+    ? `https://wa.me/${cleanWhatsapp}?text=${encodeURIComponent(`Здравствуйте! Нашел вас на Google Maps (${name}), хочу записаться`)}`
+    : null;
 
   const handleShare = () => {
     if (navigator.share) {
@@ -50,9 +56,20 @@ export const GoogleMapsHeader = ({ venue }) => {
             <span className="text-white/40">· Проверенное заведение</span>
           </div>
 
-          <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[#00FF41]/10 text-[#00FF41] border border-[#00FF41]/20 font-medium">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#00FF41] animate-pulse" />
-            <span>Онлайн-запись 24/7</span>
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-[#00FF41]/10 text-[#00FF41] border border-[#00FF41]/20 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00FF41] animate-pulse" />
+              <span>Онлайн-запись 24/7</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleShare}
+              title="Поделиться ссылкой на заведение"
+              className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 active:scale-90 border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all ml-0.5"
+            >
+              <FontAwesomeIcon icon={faShareNodes} className="text-[11px]" />
+            </button>
           </div>
         </div>
 
@@ -135,39 +152,46 @@ export const GoogleMapsHeader = ({ venue }) => {
             </div>
           )}
 
-          {whatsapp ? (
+          {/* 3. WhatsApp / Direct Chat */}
+          {whatsappUrl ? (
             <a
-              href={`https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}?text=${encodeURIComponent('Здравствуйте! Нашел вас на Google Maps, хочу записаться')}`}
+              href={whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 transition-all text-center border border-white/5"
             >
               <div className="w-8 h-8 rounded-full bg-[#25D366]/15 text-[#25D366] flex items-center justify-center mb-1">
-                <FontAwesomeIcon icon={faWhatsapp} className="text-sm" />
+                <FontAwesomeIcon icon={faWhatsapp} className="text-base" />
               </div>
               <span className="text-[11px] font-medium text-white/90">WhatsApp</span>
             </a>
           ) : (
             <button
-              onClick={handleShare}
+              onClick={() => {
+                const el = document.querySelector('[data-ai-widget-trigger]') || document.querySelector('button[aria-label*="ассистент"]');
+                if (el) el.click();
+              }}
               className="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 transition-all text-center border border-white/5"
             >
-              <div className="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center mb-1">
-                <FontAwesomeIcon icon={faShareNodes} className="text-xs" />
+              <div className="w-8 h-8 rounded-full bg-[#25D366]/15 text-[#25D366] flex items-center justify-center mb-1">
+                <FontAwesomeIcon icon={faWhatsapp} className="text-base" />
               </div>
-              <span className="text-[11px] font-medium text-white/90">Поделиться</span>
+              <span className="text-[11px] font-medium text-white/90">Чат 24/7</span>
             </button>
           )}
 
-          <button
-            onClick={handleShare}
+          {/* 4. Real Google Maps Reviews */}
+          <a
+            href={reviewsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex flex-col items-center justify-center py-2 px-1 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] active:scale-95 transition-all text-center border border-white/5"
           >
-            <div className="w-8 h-8 rounded-full bg-[#FF9933]/15 text-[#FF9933] flex items-center justify-center mb-1">
-              <FontAwesomeIcon icon={faShareNodes} className="text-xs" />
+            <div className="w-8 h-8 rounded-full bg-[#FBBC04]/15 text-[#FBBC04] flex items-center justify-center mb-1">
+              <FontAwesomeIcon icon={faStar} className="text-xs" />
             </div>
-            <span className="text-[11px] font-medium text-white/90">Ссылка</span>
-          </button>
+            <span className="text-[11px] font-medium text-white/90">Отзывы</span>
+          </a>
         </div>
 
         {/* Dynamic Yield Smart Banner */}

@@ -173,12 +173,12 @@ const GoogleMapsPreLanding = () => {
         const docRef = doc(db, 'venues', venueId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setVenue(docSnap.data());
+          setVenue({ id: docSnap.id, ...docSnap.data() });
         } else {
           const qSlug = query(collection(db, 'venues'), where('slug', '==', venueId));
           const qSlugSnap = await getDocs(qSlug);
           if (!qSlugSnap.empty) {
-            setVenue(qSlugSnap.docs[0].data());
+            setVenue({ id: qSlugSnap.docs[0].id, ...qSlugSnap.docs[0].data() });
           }
         }
       } catch (e) {

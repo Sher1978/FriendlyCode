@@ -62,13 +62,14 @@ async function runServicesPlaywrightTest() {
     console.log('   Clicked first service card -> transitioning to Step 2 (Slots)...');
     await page.waitForTimeout(1000);
 
-    const step2Header = await page.waitForSelector('text=Выбор времени, text=Выберите дату', { timeout: 10000 });
-    assert.ok(step2Header, 'Step 2 header should be visible');
+    const step2BackBtn = await page.waitForSelector('text=Назад к списку услуг', { timeout: 10000 });
+    assert.ok(step2BackBtn, 'Step 2 back button should be visible');
     console.log('✅ STEP 4: Successfully transitioned to Step 2: Date & Slot selection.');
 
-    // 5. Verify Archetype-Aware Master/Vehicle selector
-    const vehicleSelector = await page.$('text=Выберите рейс / транспорт, text=Выберите специалиста');
-    console.log(`✅ STEP 5: Archetype selector rendered: ${!!vehicleSelector}`);
+    // 5. Verify Archetype-Aware Master/Vehicle selector ("Выберите рейс / транспорт" for Border Run)
+    const vehicleSelector = await page.waitForSelector('text=Выберите рейс / транспорт', { timeout: 10000 });
+    assert.ok(vehicleSelector, 'Vehicle/Transit archetype selector should be rendered');
+    console.log('✅ STEP 5: Archetype selector rendered: "Выберите рейс / транспорт"!');
   }
 
   // 6. Verify 24/7 AI-Concierge Floating Widget
