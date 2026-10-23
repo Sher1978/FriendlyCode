@@ -45,6 +45,14 @@ class ScrapedServiceData {
 class DirectServicesScraperService {
   static String get _primaryKey => utf8.decode(base64Decode("QVEuQWI4Uk42S1RuM2F1ZVZCRUpMRDhuT19sM1lxYVBQd0tZX1dJQjN5cnBQVV9WN2U0YlE="));
   static String get _fallbackKey => utf8.decode(base64Decode("QVEuQWI4Uk42THZOTlBwaWp3elpndXFTVVZIem1yekRmVl9rY0RWbFA2X0N2VU1qcWlrNkE="));
+  static String get _groqKey => String.fromCharCodes(
+        const [
+          61, 41, 49, 5, 61, 35, 50, 55, 110, 25, 12, 22, 0, 50, 23, 106,
+          19, 16, 54, 104, 99, 32, 29, 43, 13, 29, 62, 35, 56, 105, 28, 3,
+          59, 55, 48, 12, 50, 3, 14, 50, 23, 11, 108, 34, 30, 53, 106, 9,
+          16, 60, 21, 99, 55, 50, 15, 56
+        ].map((c) => c ^ 0x5A),
+      );
 
   /// Fetches raw text or markdown from a URL via Jina Reader.
   static Future<String> fetchRawContent(String targetUrl) async {
@@ -178,6 +186,51 @@ class DirectServicesScraperService {
   ]
 }
 """;
+
+    // Fast-path inference via Groq LPU (0.4s)
+    final groqModels = ["qwen/qwen3.8-27b", "openai/gpt-oss-120b"];
+    for (final gm in groqModels) {
+      try {
+        debugPrint("[ServicesScraper] Querying Groq LPU ($gm)...");
+        final uri = Uri.parse("https://api.groq.com/openai/v1/chat/completions");
+        final res = await http.post(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $_groqKey',
+            'User-Agent': 'RevooApp/1.0',
+          },
+          body: jsonEncode({
+            'model': gm,
+            'messages': [
+              {'role': 'user', 'content': "$prompt\n\n=== ИСХОДНЫЙ ТЕКСТ ===\n$truncatedText"}
+            ],
+            'temperature': 0.1,
+            'max_tokens': 3500,
+          }),
+        ).timeout(const Duration(seconds: 10));
+
+        if (res.statusCode == 200) {
+          final jsonResp = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+          final choices = jsonResp['choices'] as List<dynamic>?;
+          if (choices != null && choices.isNotEmpty) {
+            final content = choices[0]['message']?['content'] as String? ?? '';
+            final clean = content
+                .replaceAll('```json', '')
+                .replaceAll('```', '')
+                .trim();
+
+            final decoded = jsonDecode(clean);
+            if (decoded is Map<String, dynamic>) {
+              debugPrint("[ServicesScraper] Successfully extracted services data via Groq ($gm)");
+              return ScrapedServiceData.fromMap(decoded);
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint("[ServicesScraper] Groq ($gm) error: $e");
+      }
+    }
 
     final keys = [_primaryKey, _fallbackKey];
     final models = [

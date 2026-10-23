@@ -680,7 +680,7 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
         },
         {
           'id': 'merge',
-          'title': 'Интеграция в Регламент (Gemini Flash)',
+          'title': 'Интеграция в Регламент (Groq LPU / AI)',
           'statusText': 'Встраивание в разделы мастер-документа Markdown...',
           'isDone': false,
           'icon': CupertinoIcons.sparkles,
@@ -961,7 +961,7 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Живой синтез данных (Gemini Flash)",
+                                  "Живой синтез данных (Groq LPU + Gemini)",
                                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
                                 SizedBox(height: 2),
@@ -1565,7 +1565,7 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
                 Icon(CupertinoIcons.bolt_fill, color: Colors.black, size: 18),
                 SizedBox(width: 8),
                 Text(
-                  "🚀 Синтезировать данные заведения (Gemini Flash) ➔",
+                  "🚀 Синтезировать данные заведения (Groq LPU + Gemini) ➔",
                   style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 14),
                 ),
               ],

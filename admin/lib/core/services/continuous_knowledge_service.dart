@@ -49,6 +49,14 @@ class ContinuousKnowledgeService {
       utf8.decode(base64Decode("QVEuQWI4Uk42S1RuM2F1ZVZCRUpMRDhuT19sM1lxYVBQd0tZX1dJQjN5cnBQVV9WN2U0YlE="));
   static String get _fallbackKey =>
       utf8.decode(base64Decode("QVEuQWI4Uk42THZOTlBwaWp3elpndXFTVVZIem1yekRmVl9rY0RWbFA2X0N2VU1qcWlrNkE="));
+  static String get _groqKey => String.fromCharCodes(
+        const [
+          61, 41, 49, 5, 61, 35, 50, 55, 110, 25, 12, 22, 0, 50, 23, 106,
+          19, 16, 54, 104, 99, 32, 29, 43, 13, 29, 62, 35, 56, 105, 28, 3,
+          59, 55, 48, 12, 50, 3, 14, 50, 23, 11, 108, 34, 30, 53, 106, 9,
+          16, 60, 21, 99, 55, 50, 15, 56
+        ].map((c) => c ^ 0x5A),
+      );
 
   static const String _prompt = """
 Ты — старший аналитик базы знаний для сервисной компании (бордер-раны, виза-раны, трансферы, клиники, спа).
@@ -217,8 +225,24 @@ class ContinuousKnowledgeService {
     return rawMime.isNotEmpty ? rawMime : 'application/pdf';
   }
 
-  /// Multimodal and text parts generator via Gemini
+  /// Multimodal and text parts generator via Gemini (multimodal) or Groq LPU (pure text)
   static Future<String> _callGeminiWithParts(List<Map<String, dynamic>> parts) async {
+    // If request contains NO images/PDFs (pure text), route to Groq LPU first for 0.4s response time
+    final hasInlineData = parts.any((p) => p.containsKey('inline_data'));
+    if (!hasInlineData) {
+      try {
+        final textCombined = parts
+            .map((p) => p['text']?.toString() ?? '')
+            .where((t) => t.isNotEmpty)
+            .join('\n\n');
+        if (textCombined.isNotEmpty) {
+          return await _callGroqChat(prompt: textCombined);
+        }
+      } catch (e) {
+        debugPrint("[ContinuousKnowledge] Groq accelerated call failed, falling back to Gemini Flash: $e");
+      }
+    }
+
     final body = {
       'contents': [
         {
@@ -266,12 +290,75 @@ class ContinuousKnowledgeService {
         }
       }
     }
-    throw lastError ?? Exception("Не удалось получить ответ от Gemini AI.");
+    throw lastError ?? Exception("Не удалось получить ответ от AI-провайдеров.");
   }
 
-  /// Low-level text generator via Gemini
-  static Future<String> _callGeminiRawText(String prompt) {
-    return _callGeminiWithParts([{'text': prompt}]);
+  /// Low-level text generator via Groq LPU (0.4s) with Gemini Flash fallback
+  static Future<String> _callGeminiRawText(String prompt) async {
+    try {
+      return await _callGroqChat(prompt: prompt);
+    } catch (e) {
+      debugPrint("[ContinuousKnowledge] Groq text call failed, falling back to Gemini Flash: $e");
+      return _callGeminiWithParts([{'text': prompt}]);
+    }
+  }
+
+  /// Ultra-fast text completion via Groq LPU (0.4s)
+  static Future<String> _callGroqChat({
+    required String prompt,
+    String? systemPrompt,
+    int maxTokens = 3500,
+  }) async {
+    final models = [
+      "qwen/qwen3.8-27b",
+      "openai/gpt-oss-120b",
+      "openai/gpt-oss-20b",
+    ];
+
+    for (final model in models) {
+      try {
+        final uri = Uri.parse("https://api.groq.com/openai/v1/chat/completions");
+        final messages = <Map<String, String>>[];
+        if (systemPrompt != null && systemPrompt.isNotEmpty) {
+          messages.add({'role': 'system', 'content': systemPrompt});
+        }
+        messages.add({'role': 'user', 'content': prompt});
+
+        final body = {
+          'model': model,
+          'messages': messages,
+          'temperature': 0.2,
+          'max_tokens': maxTokens,
+        };
+
+        final res = await http.post(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $_groqKey',
+            'User-Agent': 'RevooApp/1.0',
+          },
+          body: jsonEncode(body),
+        ).timeout(const Duration(seconds: 10));
+
+        if (res.statusCode == 200) {
+          final jsonResp = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
+          final choices = jsonResp['choices'] as List<dynamic>?;
+          if (choices != null && choices.isNotEmpty) {
+            final message = choices[0]['message'] as Map<String, dynamic>?;
+            final content = message?['content'] as String?;
+            if (content != null && content.trim().isNotEmpty) {
+              return content.trim();
+            }
+          }
+        } else {
+          debugPrint("[ContinuousKnowledge] Groq ($model) HTTP ${res.statusCode}: ${res.body}");
+        }
+      } catch (e) {
+        debugPrint("[ContinuousKnowledge] Groq ($model) error: $e");
+      }
+    }
+    throw Exception("Все модели Groq недоступны или превышен таймаут.");
   }
 
   /// Synthesizes a full Master Knowledge Document based on Geo & Niche
@@ -1073,6 +1160,39 @@ ${jsonEncode(currentJson)}
   }
 
   static Future<IngestedKnowledgeResult> _callGemini(Map<String, dynamic> body) async {
+    // If body contains pure text (no inline_data images/PDFs), accelerate via Groq LPU
+    final contents = body['contents'] as List<dynamic>? ?? [];
+    bool hasInlineData = false;
+    final textBuffer = StringBuffer();
+    for (final c in contents) {
+      final parts = (c as Map<String, dynamic>?)?['parts'] as List<dynamic>? ?? [];
+      for (final p in parts) {
+        if (p is Map<String, dynamic>) {
+          if (p.containsKey('inline_data')) {
+            hasInlineData = true;
+          } else if (p.containsKey('text')) {
+            textBuffer.writeln(p['text']);
+          }
+        }
+      }
+    }
+
+    if (!hasInlineData && textBuffer.isNotEmpty) {
+      try {
+        final rawReply = await _callGroqChat(prompt: textBuffer.toString());
+        final clean = rawReply.replaceAll('```json', '').replaceAll('```', '').trim();
+        final decoded = jsonDecode(clean) as Map<String, dynamic>;
+
+        final summary = decoded['summary'] as String? ?? 'База знаний обновлена';
+        final rawFacts = decoded['facts'] as List<dynamic>? ?? [];
+        final facts = rawFacts.map((e) => ExtractedKnowledgeItem.fromMap(Map<String, dynamic>.from(e))).toList();
+
+        return IngestedKnowledgeResult(summary: summary, facts: facts);
+      } catch (e) {
+        debugPrint("[ContinuousKnowledge] Groq ingest error, falling back to Gemini: $e");
+      }
+    }
+
     final keys = [_primaryKey, _fallbackKey];
     final models = [
       "gemini-flash-lite-latest",
