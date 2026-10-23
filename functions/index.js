@@ -1538,6 +1538,138 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                 }
             }
 
+            // ── TELEGRAM STAFF CHAT AI-CONCIERGE TRAINING SUITE ──
+            const lowerText = text.toLowerCase();
+            if (lowerText.startsWith('/learn') || lowerText.startsWith('/запомни') || lowerText.startsWith('/учи')) {
+                const ruleText = text.replace(/^\/(learn|запомни|учи)\s*/i, '').trim();
+                if (!ruleText) {
+                    await sendTelegramMessage(chatId, "ℹ️ <b>Как обучить AI-Консьержа:</b>\n\nНапишите правило после команды, например:\n<code>/learn С 1 ноября точка сбора переносится на выход 2 Central Festival</code>");
+                    res.sendStatus(200);
+                    return;
+                }
+
+                // Resolve Venue by Staff Chat ID
+                let vId = 'test_borderrun_pattaya';
+                let vName = 'Бовиза Ранум';
+                try {
+                    let vSnap = await db.collection("venues").where("telegram_group_id", "==", String(chatId)).get();
+                    if (vSnap.empty) vSnap = await db.collection("venues").where("telegramGroupId", "==", String(chatId)).get();
+                    if (vSnap.empty) vSnap = await db.collection("venues").where("telegram_group_id", "==", Number(chatId)).get();
+                    if (vSnap.empty) vSnap = await db.collection("venues").where("telegramGroupId", "==", Number(chatId)).get();
+                    if (!vSnap.empty) {
+                        vId = vSnap.docs[0].id;
+                        vName = vSnap.docs[0].data().name || vName;
+                    }
+                } catch (e) {
+                    logger.warn("Staff chat venue lookup failed:", e);
+                }
+
+                const reviewer = fromUser.username ? ("@" + fromUser.username) : (fromUser.first_name || "Диспетчер");
+
+                // Save to Firestore knowledge_docs
+                await db.collection("venues").doc(vId).collection("knowledge_docs").add({
+                    category: "staff_learned",
+                    question: "Регламент/Правило заведения",
+                    answer: ruleText,
+                    criticalNote: "Добавлено в стафф-чате диспетчером " + reviewer,
+                    sourceType: "telegram_staff_chat",
+                    sourceTitle: "Стафф-чат Telegram (" + reviewer + ")",
+                    active: true,
+                    author: reviewer,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+
+                const confirmMsg = 
+                    "🧠 <b>НОВОЕ ЗНАНИЕ СОХРАНЕНО В БАЗУ!</b>\n\n" +
+                    "🏢 <b>Заведение:</b> " + vName + "\n" +
+                    "📝 <b>Правило:</b> «" + ruleText + "»\n" +
+                    "👤 <b>Автор:</b> " + reviewer + "\n\n" +
+                    "✅ <i>AI-Консьерж мгновенно выучил это правило и теперь будет отвечать так всем клиентам на сайте, в боте и в виджете!</i>";
+
+                await sendTelegramMessage(chatId, confirmMsg);
+                res.sendStatus(200);
+                return;
+            }
+
+            if (lowerText.startsWith('/test') || lowerText.startsWith('/ask') || lowerText.startsWith('/тест') || lowerText.startsWith('/спроси')) {
+                const questionText = text.replace(/^\/(test|ask|тест|спроси)\s*/i, '').trim();
+                if (!questionText) {
+                    await sendTelegramMessage(chatId, "ℹ️ <b>Как протестировать AI-Консьержа:</b>\n\nЗадайте вопрос, например:\n<code>/test Какие документы нужны для поездки?</code>");
+                    res.sendStatus(200);
+                    return;
+                }
+
+                let vId = 'test_borderrun_pattaya';
+                try {
+                    let vSnap = await db.collection("venues").where("telegram_group_id", "==", String(chatId)).get();
+                    if (vSnap.empty) vSnap = await db.collection("venues").where("telegramGroupId", "==", String(chatId)).get();
+                    if (!vSnap.empty) vId = vSnap.docs[0].id;
+                } catch (e) {}
+
+                let aiReply = "Не удалось сгенерировать ответ. Попробуйте еще раз.";
+                try {
+                    const { GeminiConciergeAgent } = require('./services/ai/geminiAgent');
+                    const concierge = new GeminiConciergeAgent();
+                    aiReply = await concierge.processGuestMessage({
+                        venueId: vId,
+                        userMessage: questionText,
+                        senderPhone: fromUser.username ? ("@" + fromUser.username) : ""
+                    });
+                } catch (e) {
+                    logger.warn("Test question AI generation failed:", e);
+                }
+
+                const testMsg = 
+                    "🧪 <b>ТЕСТОВЫЙ ОТВЕТ AI-КОНСЬЕРЖА:</b>\n\n" +
+                    "❓ <b>Вопрос:</b> «" + questionText + "»\n\n" +
+                    "🤖 <b>Ответ гостю:</b>\n«" + aiReply + "»\n\n" +
+                    "────────────────\n" +
+                    "💡 <i>Если ответ неточный, скорректируйте его прямо здесь командой:</i>\n" +
+                    "<code>/learn [правильный факт]</code>";
+
+                await sendTelegramMessage(chatId, testMsg);
+                res.sendStatus(200);
+                return;
+            }
+
+            if (lowerText === '/rules' || lowerText === '/база' || lowerText === '/правила') {
+                let vId = 'test_borderrun_pattaya';
+                try {
+                    let vSnap = await db.collection("venues").where("telegram_group_id", "==", String(chatId)).get();
+                    if (vSnap.empty) vSnap = await db.collection("venues").where("telegramGroupId", "==", String(chatId)).get();
+                    if (!vSnap.empty) vId = vSnap.docs[0].id;
+                } catch (e) {}
+
+                let rulesSnap = null;
+                try {
+                    rulesSnap = await db.collection("venues").doc(vId).collection("knowledge_docs")
+                        .where("active", "==", true)
+                        .orderBy("createdAt", "desc")
+                        .limit(5)
+                        .get();
+                } catch (e) {
+                    try {
+                        rulesSnap = await db.collection("venues").doc(vId).collection("knowledge_docs").limit(5).get();
+                    } catch (err2) {
+                        rulesSnap = null;
+                    }
+                }
+
+                if (!rulesSnap || rulesSnap.empty) {
+                    await sendTelegramMessage(chatId, "📚 В базе знаний пока нет добавленных правил. Вы можете обучить консьержа командой <code>/learn [правило]</code>.");
+                } else {
+                    let msg = "📚 <b>ПОСЛЕДНИЕ ВЫУЧЕННЫЕ ПРАВИЛА:</b>\n\n";
+                    rulesSnap.docs.forEach((doc, idx) => {
+                        const d = doc.data();
+                        msg += (idx + 1) + ". <b>" + (d.question || "Регламент") + ":</b> " + d.answer + "\n<i>(Добавил: " + (d.author || "Диспетчер") + ")</i>\n\n";
+                    });
+                    msg += "💡 <i>Чтобы добавить новое правило, напишите: /learn [текст]</i>";
+                    await sendTelegramMessage(chatId, msg);
+                }
+                res.sendStatus(200);
+                return;
+            }
+
             if (text.startsWith('/leads') || text.toLowerCase() === 'лиды') {
                 // Verify user is admin/superadmin
                 const uSnap = await db.collection("users")
