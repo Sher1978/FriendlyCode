@@ -126,6 +126,16 @@ export const bookingApiService = {
             workStartTime: '07:00',
             workEndTime: '19:00',
             isActive: true
+          },
+          {
+            id: 'master_3',
+            name: 'VIP Слипер-бас #3 (Рейс 21:00 / Ночной)',
+            role: '36 спальных мест, 2 этажа (Нижний и Верхний ярус), розетки USB, шторки',
+            avatarUrl: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=250&q=80',
+            rating: 4.99,
+            workStartTime: '21:00',
+            workEndTime: '23:30',
+            isActive: true
           }
         ];
       }

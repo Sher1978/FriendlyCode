@@ -4,6 +4,7 @@ import { ServiceList } from './components/ServiceList';
 import { MasterSelector } from './components/MasterSelector';
 import { SlotGrid } from './components/SlotGrid';
 import { BookingModal } from './components/BookingModal';
+import { VehicleSeatMap } from './components/VehicleSeatMap';
 import { AIConciergeWidget } from './components/AIConciergeWidget';
 import { bookingApiService } from './services/bookingApiService';
 import { ServiceYieldCalculator } from './logic/ServiceYieldCalculator';
@@ -25,6 +26,8 @@ export const ServiceStorefront = ({ venue }) => {
   const [selectedStaff, setSelectedStaff] = useState({ id: 'any', name: 'Любой свободный мастер' });
   const [selectedDateStr, setSelectedDateStr] = useState(() => new Date().toISOString().split('T')[0]);
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [selectedSeats, setSelectedSeats] = useState([]);
+  const [isSelectingSeat, setIsSelectingSeat] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const venueId = venue?.id;
@@ -119,12 +122,25 @@ export const ServiceStorefront = ({ venue }) => {
   const handleSelectService = (service) => {
     setSelectedService(service);
     setSelectedSlot(null);
+    setSelectedSeats([]);
+    setIsSelectingSeat(false);
     setCurrentStep('slots');
     window.scrollTo({ top: 320, behavior: 'smooth' });
   };
 
   const handleSelectSlot = (slot) => {
     setSelectedSlot(slot);
+    setSelectedSeats([]);
+    if (archetype === 'batch') {
+      setIsSelectingSeat(true);
+      window.scrollTo({ top: 380, behavior: 'smooth' });
+    } else {
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleProceedFromSeatMap = (seats) => {
+    setSelectedSeats(seats);
     setIsModalOpen(true);
   };
 
@@ -186,7 +202,7 @@ export const ServiceStorefront = ({ venue }) => {
               </div>
             )}
 
-            {/* Step 2: Pick Master & Time Slots */}
+            {/* Step 2: Pick Master & Time Slots OR Vehicle Seating */}
             {currentStep === 'slots' && selectedService && (
               <div className="space-y-6">
                 {/* Active Service Card Summary */}
@@ -209,7 +225,10 @@ export const ServiceStorefront = ({ venue }) => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setCurrentStep('services')}
+                      onClick={() => {
+                        setCurrentStep('services');
+                        setIsSelectingSeat(false);
+                      }}
                       className="text-[11px] text-white/50 hover:text-white underline mt-0.5"
                     >
                       Изменить
@@ -217,26 +236,41 @@ export const ServiceStorefront = ({ venue }) => {
                   </div>
                 </div>
 
-                {/* Master Selection */}
-                {staff.length > 0 && (
-                  <MasterSelector
-                    staff={staff}
-                    selectedStaffId={selectedStaff?.id}
-                    onSelectStaff={setSelectedStaff}
-                    archetype={archetype}
+                {/* If user picked a batch slot, show Interactive Vehicle Seat Map with Decks/Zones */}
+                {isSelectingSeat && selectedSlot ? (
+                  <VehicleSeatMap
+                    vehicle={selectedStaff}
+                    slot={selectedSlot}
+                    currency={currency}
+                    selectedSeats={selectedSeats}
+                    onSelectSeats={setSelectedSeats}
+                    onProceed={handleProceedFromSeatMap}
+                    onBack={() => setIsSelectingSeat(false)}
                   />
-                )}
+                ) : (
+                  <>
+                    {/* Master / Vehicle Selection */}
+                    {staff.length > 0 && (
+                      <MasterSelector
+                        staff={staff}
+                        selectedStaffId={selectedStaff?.id}
+                        onSelectStaff={setSelectedStaff}
+                        archetype={archetype}
+                      />
+                    )}
 
-                {/* Slot Selection Grid */}
-                <SlotGrid
-                  slots={computedSlots}
-                  selectedSlotTime={selectedSlot?.time}
-                  onSelectSlot={handleSelectSlot}
-                  selectedDateStr={selectedDateStr}
-                  onSelectDate={setSelectedDateStr}
-                  currency={currency}
-                  archetype={archetype}
-                />
+                    {/* Slot Selection Grid */}
+                    <SlotGrid
+                      slots={computedSlots}
+                      selectedSlotTime={selectedSlot?.time}
+                      onSelectSlot={handleSelectSlot}
+                      selectedDateStr={selectedDateStr}
+                      onSelectDate={setSelectedDateStr}
+                      currency={currency}
+                      archetype={archetype}
+                    />
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -254,6 +288,7 @@ export const ServiceStorefront = ({ venue }) => {
         venue={venue}
         currency={currency}
         archetype={archetype}
+        selectedSeats={selectedSeats}
         onConfirmSuccess={handleConfirmBooking}
       />
 

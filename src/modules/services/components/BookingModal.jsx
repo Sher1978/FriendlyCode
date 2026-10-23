@@ -24,6 +24,8 @@ export const BookingModal = ({
   dateStr,
   venue,
   currency = 'RUB',
+  archetype = 'personal',
+  selectedSeats = [],
   onConfirmSuccess
 }) => {
   const [clientName, setClientName] = useState('');
@@ -34,6 +36,11 @@ export const BookingModal = ({
   const [bookingSuccess, setBookingSuccess] = useState(null);
 
   if (!isOpen || !service || !slot) return null;
+
+  const seatCount = selectedSeats.length > 0 ? selectedSeats.length : 1;
+  const calculatedTotal = selectedSeats.length > 0
+    ? selectedSeats.reduce((sum, s) => sum + (s.price || slot.finalPrice), 0)
+    : slot.finalPrice;
 
   const formatPrice = (amount) => {
     const num = Math.round(Number(amount) || 0);
@@ -75,6 +82,9 @@ export const BookingModal = ({
       const startDateTime = new Date(`${dateStr}T${slot.time}:00Z`);
       const endDateTime = new Date(startDateTime.getTime() + (slot.durationMinutes || 45) * 60000);
 
+      const seatIds = selectedSeats.map(s => s.id);
+      const seatDescriptions = selectedSeats.map(s => `${s.label} (${s.deckName || 'Салон'})`);
+
       const bookingPayload = {
         venueId: venue?.id || 'default_venue',
         clientName,
@@ -82,20 +92,23 @@ export const BookingModal = ({
         serviceId: service.id,
         serviceName: service.title || service.name || 'Услуга',
         staffId: staff?.id || 'any',
-        staffName: staff?.name || 'Любой свободный мастер',
+        staffName: staff?.name || (archetype === 'batch' ? 'Рейсовый борт' : 'Любой свободный мастер'),
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
-        originalPrice: slot.basePrice,
-        finalPrice: slot.finalPrice,
-        discountAmount: slot.discountAmount || 0,
+        originalPrice: (slot.basePrice || 0) * seatCount,
+        finalPrice: calculatedTotal,
+        discountAmount: (slot.discountAmount || 0) * seatCount,
         discountType: slot.discountType || 'percent',
         appliedRuleName: slot.appliedRuleName,
+        seats: seatIds,
+        seatDescriptions,
+        seatCount,
         notes,
         source: 'google_maps'
       };
 
       const result = await onConfirmSuccess(bookingPayload);
-      setBookingSuccess(result);
+      setBookingSuccess(result || { id: `BK_${Date.now()}`, ...bookingPayload });
     } catch (err) {
       console.error('Booking failed:', err);
       setErrorMessage('Произошла ошибка при сохранении записи. Пожалуйста, попробуйте еще раз.');
@@ -163,21 +176,41 @@ export const BookingModal = ({
                 )}
               </div>
 
+              {/* Selected Seats Pill (for Batch / Seated archetypes) */}
+              {selectedSeats && selectedSeats.length > 0 && (
+                <div className="p-3 rounded-2xl bg-[#00FF41]/10 border border-[#00FF41]/30 flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-lg">💺</span>
+                    <div>
+                      <div className="text-[10px] text-white/50 uppercase font-bold tracking-wider">
+                        Выбранные места ({selectedSeats.length} шт)
+                      </div>
+                      <div className="text-[#00FF41] font-bold text-xs mt-0.5">
+                        {selectedSeats.map(s => `${s.label} (${s.deckName || 'Салон'})`).join(', ')}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-lg bg-[#00FF41]/20 text-[#00FF41] text-[10px] font-bold">
+                    Зафиксировано
+                  </span>
+                </div>
+              )}
+
               {/* Price Calculation breakdown */}
               <div className="p-3.5 rounded-2xl bg-[#1C1C1E]/50 border border-white/5 space-y-1.5 text-xs">
                 <div className="flex items-center justify-between text-white/60">
-                  <span>Базовая стоимость услуги:</span>
-                  <span>{formatPrice(slot.basePrice)}</span>
+                  <span>{seatCount > 1 ? `Билеты (${seatCount} шт):` : 'Базовая стоимость услуги:'}</span>
+                  <span>{formatPrice((slot.basePrice || 0) * seatCount)}</span>
                 </div>
                 {slot.hasDiscount && (
                   <div className="flex items-center justify-between text-[#00FF41] font-medium">
-                    <span>Динамическая скидка на свободный час:</span>
-                    <span>-{formatPrice(slot.discountAmount)}</span>
+                    <span>Динамическая скидка на рейс:</span>
+                    <span>-{formatPrice((slot.discountAmount || 0) * seatCount)}</span>
                   </div>
                 )}
                 <div className="pt-2 border-t border-white/10 flex items-center justify-between text-sm font-bold text-white">
                   <span>Итого к оплате на месте:</span>
-                  <span className="text-base text-[#00FF41]">{formatPrice(slot.finalPrice)}</span>
+                  <span className="text-base text-[#00FF41]">{formatPrice(calculatedTotal)}</span>
                 </div>
               </div>
 
@@ -282,24 +315,67 @@ export const BookingModal = ({
                 </p>
               </div>
 
-              <div className="p-4 rounded-2xl bg-[#1C1C1E] border border-white/10 text-left text-xs space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-white/50">Услуга:</span>
-                  <span className="font-semibold text-white">{service.name}</span>
+              {/* Digital Boarding Pass / Ticket for Seated trips OR Standard Summary */}
+              {selectedSeats && selectedSeats.length > 0 ? (
+                <div className="p-4 rounded-3xl bg-gradient-to-br from-[#1C1C1E] to-[#141416] border border-[#00FF41]/40 text-left text-xs space-y-3 shadow-xl relative overflow-hidden">
+                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
+                    <span className="text-[10px] font-bold tracking-wider uppercase text-[#00FF41]">
+                      Цифровой билет • Boarding Pass
+                    </span>
+                    <span className="text-[10px] text-white/40">
+                      ID: #{Math.floor(100000 + Math.random() * 900000)}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-[10px] text-white/40 uppercase">Рейс / Услуга</div>
+                      <div className="font-bold text-white text-xs mt-0.5">{service.name}</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-white/40 uppercase">Отправление</div>
+                      <div className="font-bold text-[#00FF41] text-xs mt-0.5">{dateStr} в {slot.time}</div>
+                    </div>
+                  </div>
+
+                  <div className="p-2.5 rounded-xl bg-black/40 border border-white/5 flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] text-white/40 uppercase">Места в салоне</div>
+                      <div className="font-extrabold text-sm text-[#00FF41] mt-0.5">
+                        {selectedSeats.map(s => `${s.label} (${s.deckName || 'Салон'})`).join(', ')}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] text-white/40 uppercase">Пассажир</div>
+                      <div className="font-bold text-white text-xs mt-0.5">{clientName}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-2 border-t border-white/10">
+                    <span className="text-white/60">К оплате при посадке:</span>
+                    <span className="font-extrabold text-[#00FF41] text-sm">{formatPrice(calculatedTotal)}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-white/50">Мастер:</span>
-                  <span className="font-semibold text-white">{staff?.name || 'Любой свободный мастер'}</span>
+              ) : (
+                <div className="p-4 rounded-2xl bg-[#1C1C1E] border border-white/10 text-left text-xs space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-white/50">Услуга:</span>
+                    <span className="font-semibold text-white">{service.name}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-white/50">Мастер:</span>
+                    <span className="font-semibold text-white">{staff?.name || 'Любой свободный мастер'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-white/50">Дата и время:</span>
+                    <span className="font-semibold text-[#00FF41]">{dateStr} в {slot.time}</span>
+                  </div>
+                  <div className="flex justify-between pt-1 border-t border-white/5">
+                    <span className="text-white/50">К оплате на месте:</span>
+                    <span className="font-bold text-white text-sm">{formatPrice(slot.finalPrice)}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-white/50">Дата и время:</span>
-                  <span className="font-semibold text-[#00FF41]">{dateStr} в {slot.time}</span>
-                </div>
-                <div className="flex justify-between pt-1 border-t border-white/5">
-                  <span className="text-white/50">К оплате на месте:</span>
-                  <span className="font-bold text-white text-sm">{formatPrice(slot.finalPrice)}</span>
-                </div>
-              </div>
+              )}
 
               <div className="pt-2 flex flex-col gap-2">
                 <a

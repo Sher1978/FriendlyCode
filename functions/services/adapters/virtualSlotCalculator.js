@@ -74,8 +74,14 @@ class VirtualSlotCalculator {
       } 
       // 2. Regular Day & Hour Window Rule
       else {
-        const days = Array.isArray(rule.daysOfWeek) ? rule.daysOfWeek.map(d => d.toLowerCase()) : [];
-        const isDayMatched = days.length === 0 || days.includes(dayOfWeek.toLowerCase());
+        const dayNames = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+        const dayIndex = dayNames.indexOf((dayOfWeek || '').toLowerCase());
+        const days = Array.isArray(rule.daysOfWeek)
+          ? rule.daysOfWeek.map(d => (d != null ? String(d).toLowerCase() : ''))
+          : [];
+        const isDayMatched = days.length === 0 ||
+          days.includes((dayOfWeek || '').toLowerCase()) ||
+          (dayIndex !== -1 && days.includes(String(dayIndex)));
         const isHourMatched = slotHour >= (rule.startHour ?? 0) && slotHour < (rule.endHour ?? 24);
 
         if (isDayMatched && isHourMatched) {
