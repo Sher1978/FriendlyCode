@@ -1109,35 +1109,139 @@ exports.telegramWebhook = onRequest(async (req, res) => {
             const fromUser = update.message.from;
                         const username = (fromUser.username || "").toLowerCase();
 
-            // ── HUMAN-IN-THE-LOOP (HITL) BOOKING CONFIRMATION ──
-            if (callbackData && (callbackData.startsWith("BKG_CONFIRM_") || callbackData.startsWith("BKG_REJECT_"))) {
-                const isConfirm = callbackData.startsWith("BKG_CONFIRM_");
-                const bookingId = callbackData.replace(isConfirm ? "BKG_CONFIRM_" : "BKG_REJECT_", "").trim();
+            // ── DEEP LINK OMNICHANNEL BOOKING HANDLER (/start bk_...) ──
+            if (text.startsWith('/start')) {
+                const parts = text.split(' ');
+                const startPayload = (parts[1] || '').trim();
 
-                const bookingRef = db.collection("bookings").doc(bookingId);
-                const bookingSnap = await bookingRef.get();
-                if (!bookingSnap.exists) {
-                    await answerCallbackQuery(callbackQueryId, "❌ Заявка не найдена или уже удалена.", true);
+                if (startPayload.startsWith('bk_')) {
+                    const bookingId = startPayload.replace('bk_', '').trim();
+                    logger.info(`[DEEP_LINK] Handling booking transfer for ID: ${bookingId} from Telegram Chat ID: ${chatId}`);
+
+                    let bookingDoc = null;
+                    let bookingData = null;
+
+                    const globalSnap = await db.collection("bookings").doc(bookingId).get();
+                    if (globalSnap.exists) {
+                        bookingDoc = globalSnap.ref;
+                        bookingData = globalSnap.data();
+                    } else {
+                        const groupSnap = await db.collectionGroup("bookings")
+                            .where("id", "==", bookingId)
+                            .limit(1)
+                            .get();
+                        if (!groupSnap.empty) {
+                            bookingDoc = groupSnap.docs[0].ref;
+                            bookingData = groupSnap.docs[0].data();
+                        }
+                    }
+
+                    if (bookingDoc && bookingData) {
+                        const clientTgName = fromUser.first_name 
+                            ? `${fromUser.first_name} ${fromUser.last_name || ''}`.trim() 
+                            : (fromUser.username ? `@${fromUser.username}` : 'Пассажир');
+                        
+                        await bookingDoc.update({
+                            telegramChatId: String(chatId),
+                            telegramUserId: String(fromUser.id),
+                            telegramUsername: fromUser.username ? `@${fromUser.username}` : null,
+                            messengerTransferredAt: admin.firestore.FieldValue.serverTimestamp(),
+                            channelSource: 'telegram_bridge',
+                            status: bookingData.status || 'confirmed'
+                        });
+
+                        const serviceName = bookingData.serviceName || bookingData.serviceTitle || 'Рейс бордер-ран';
+                        const seatList = (bookingData.seatDescriptions && bookingData.seatDescriptions.length > 0)
+                            ? bookingData.seatDescriptions.join(', ')
+                            : ((bookingData.seats && bookingData.seats.length > 0) ? bookingData.seats.join(', ') : 'Место зафиксировано');
+                        
+                        let departureTime = 'Уточняется';
+                        if (bookingData.startTime) {
+                            try {
+                                const d = bookingData.startTime.toDate ? bookingData.startTime.toDate() : new Date(bookingData.startTime);
+                                departureTime = d.toLocaleString('ru-RU', { timeZone: 'Asia/Bangkok', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+                            } catch (e) {
+                                departureTime = String(bookingData.startTime);
+                            }
+                        }
+
+                        const finalPrice = bookingData.finalPrice ? `${bookingData.finalPrice.toLocaleString()} ฿` : 'Оплата при посадке';
+                        const clientDisplayName = bookingData.clientName || clientTgName;
+
+                        const boardingPassMsg = 
+                            `🎫 <b>ВАШ ЦИФРОВОЙ БИЛЕТ • BOARDING PASS</b>\n\n` +
+                            `Здравствуйте, <b>${clientDisplayName}</b>! Ваша бронь успешно привязана к этому диалогу в Telegram.\n\n` +
+                            `🚍 <b>Рейс:</b> ${serviceName}\n` +
+                            `🕒 <b>Отправление:</b> ${departureTime}\n` +
+                            `💺 <b>Места в салоне:</b> <code>${seatList}</code>\n` +
+                            `💰 <b>К оплате:</b> ${finalPrice} (при посадке)\n` +
+                            `📋 <b>Номер брони:</b> <code>#${bookingId}</code>\n\n` +
+                            `📍 <i>Точка сбора и детали посадки будут продублированы сюда за 2 часа до выезда. Водитель и менеджер на связи в этом чате!</i>`;
+
+                        const keyboard = {
+                            inline_keyboard: [
+                                [
+                                    { text: "📍 Точка сбора на Google Картах", url: "https://maps.google.com/?q=Central+Festival+Pattaya" }
+                                ],
+                                [
+                                    { text: "🚍 Открыть схему автобуса", web_app: { url: `https://bot-lab-21910.web.app/?v=test_borderrun_pattaya&source=tg_mini_app&booking_id=${bookingId}` } }
+                                ]
+                            ]
+                        };
+
+                        await sendTelegramMessageWithKeyboard(chatId, boardingPassMsg, keyboard);
+
+                        // Notify staff group if linked
+                        const venueId = bookingData.venueId;
+                        if (venueId) {
+                            try {
+                                const vSnap = await db.collection("venues").doc(venueId).get();
+                                if (vSnap.exists) {
+                                    const vData = vSnap.data();
+                                    const staffGroupId = vData.telegram_group_id || vData.telegramGroupId;
+                                    if (staffGroupId) {
+                                        const staffAlert = 
+                                            `⚡️ <b>КЛИЕНТ ПОДТВЕРДИЛ БРОНЬ В TELEGRAM!</b>\n\n` +
+                                            `👤 <b>Гость:</b> ${clientDisplayName} (${fromUser.username ? '@' + fromUser.username : 'без @'})\n` +
+                                            `🚍 <b>Рейс:</b> ${serviceName}\n` +
+                                            `💺 <b>Места:</b> ${seatList}\n` +
+                                            `💰 <b>Сумма:</b> ${finalPrice}\n` +
+                                            `📱 <b>Телефон:</b> ${bookingData.clientPhone || 'Из Telegram'}`;
+                                        await sendTelegramMessage(staffGroupId, staffAlert);
+                                    }
+                                }
+                            } catch (err) {
+                                logger.warn("Failed to notify staff group:", err);
+                            }
+                        }
+
+                        res.sendStatus(200);
+                        return;
+                    } else {
+                        await sendTelegramMessageWithKeyboard(chatId, `⚠️ <b>Бронирование #${bookingId} не найдено или истек срок предброни.</b>\n\nВы можете выбрать новый рейс прямо сейчас:`, {
+                            inline_keyboard: [[{ text: "🚍 Выбрать рейс", web_app: { url: "https://bot-lab-21910.web.app/?v=test_borderrun_pattaya&source=tg_mini_app" } }]]
+                        });
+                        res.sendStatus(200);
+                        return;
+                    }
+                } else {
+                    const welcomeText = 
+                        `👋 <b>Добро пожаловать в сервис бронирования Revoo!</b>\n\n` +
+                        `Здесь вы можете забронировать рейс на бордер-ран, трансфер или услугу с выбором мест на интерактивной схеме автобуса.\n\n` +
+                        `Нажмите кнопку ниже, чтобы открыть расписание и актуальные скидки:`;
+
+                    const welcomeKeyboard = {
+                        inline_keyboard: [
+                            [
+                                { text: "🚍 Открыть расписание и выбор мест", web_app: { url: "https://bot-lab-21910.web.app/?v=test_borderrun_pattaya&source=tg_mini_app" } }
+                            ]
+                        ]
+                    };
+
+                    await sendTelegramMessageWithKeyboard(chatId, welcomeText, welcomeKeyboard);
                     res.sendStatus(200);
                     return;
                 }
-
-                const reviewer = fromUser.username ? `@${fromUser.username}` : (fromUser.first_name || "Диспетчер");
-                const newStatus = isConfirm ? "confirmed" : "rejected";
-
-                await bookingRef.update({
-                    status: newStatus,
-                    reviewedBy: reviewer,
-                    reviewedAt: admin.firestore.FieldValue.serverTimestamp()
-                });
-
-                const badge = isConfirm ? "✅ ПОДТВЕРЖДЕНО" : "❌ ОТКЛОНЕНО";
-                await answerCallbackQuery(callbackQueryId, isConfirm ? "Бронь подтверждена!" : "Бронь отклонена.", false);
-
-                const origText = callbackQuery.message ? (callbackQuery.message.text || "") : "";
-                await editTelegramMessage(chatId, messageId, `${origText}\n\n────────────────\n<b>${badge}</b> диспетчером ${reviewer}`);
-                res.sendStatus(200);
-                return;
             }
             // ── HUMAN-IN-THE-LOOP (HITL) ACTIVE LEARNING REPLY ──
             if (update.message.reply_to_message) {
@@ -1314,6 +1418,37 @@ exports.telegramWebhook = onRequest(async (req, res) => {
 
             if (staffSnap.empty) {
                 await answerCallbackQuery(callbackQueryId, "⛔️ Access Denied: Your Telegram username is not registered in Revoo staff settings.", true);
+                res.sendStatus(200);
+                return;
+            }
+
+            // ── HUMAN-IN-THE-LOOP (HITL) BOOKING CONFIRMATION ──
+            if (callbackData.startsWith("BKG_CONFIRM_") || callbackData.startsWith("BKG_REJECT_")) {
+                const isConfirm = callbackData.startsWith("BKG_CONFIRM_");
+                const bookingId = callbackData.replace(isConfirm ? "BKG_CONFIRM_" : "BKG_REJECT_", "").trim();
+
+                const bookingRef = db.collection("bookings").doc(bookingId);
+                const bookingSnap = await bookingRef.get();
+                if (!bookingSnap.exists) {
+                    await answerCallbackQuery(callbackQueryId, "❌ Заявка не найдена или уже удалена.", true);
+                    res.sendStatus(200);
+                    return;
+                }
+
+                const reviewer = fromUser.username ? `@${fromUser.username}` : (fromUser.first_name || "Диспетчер");
+                const newStatus = isConfirm ? "confirmed" : "rejected";
+
+                await bookingRef.update({
+                    status: newStatus,
+                    reviewedBy: reviewer,
+                    reviewedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+
+                const badge = isConfirm ? "✅ ПОДТВЕРЖДЕНО" : "❌ ОТКЛОНЕНО";
+                await answerCallbackQuery(callbackQueryId, isConfirm ? "Бронь подтверждена!" : "Бронь отклонена.", false);
+
+                const origText = callbackQuery.message ? (callbackQuery.message.text || "") : "";
+                await editTelegramMessage(chatId, messageId, `${origText}\n\n────────────────\n<b>${badge}</b> диспетчером ${reviewer}`);
                 res.sendStatus(200);
                 return;
             }

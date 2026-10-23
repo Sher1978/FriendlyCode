@@ -256,6 +256,9 @@ export const bookingApiService = {
       status: 'created',
       source: payload.source || 'google_maps',
       appliedRuleName: payload.appliedRuleName || null,
+      seats: payload.seats || [],
+      seatDescriptions: payload.seatDescriptions || [],
+      seatCount: payload.seatCount || 1,
       notes: payload.notes || '',
       createdAt: serverTimestamp()
     };
