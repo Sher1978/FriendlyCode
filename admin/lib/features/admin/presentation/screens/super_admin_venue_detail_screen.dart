@@ -28,11 +28,11 @@ class SuperAdminVenueDetailScreen extends StatefulWidget {
 class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScreen> {
   int _selectedTab = 0;
 
-  bool get _isServices => widget.venue.gmConfig.businessType == 'services';
   bool get _isBatch => widget.venue.archetype == 'batch' || 
       widget.venue.category.toLowerCase().contains('виза') || 
       widget.venue.category.toLowerCase().contains('бордер') || 
       widget.venue.category.toLowerCase().contains('трансфер');
+  bool get _isServices => widget.venue.gmConfig.businessType == 'services' || _isBatch;
 
   List<_TabItem> get _tabs {
     if (_isServices) {

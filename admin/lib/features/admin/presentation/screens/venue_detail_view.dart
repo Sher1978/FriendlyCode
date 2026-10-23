@@ -1,3 +1,4 @@
+import 'package:friendly_code/features/admin/presentation/screens/super_admin_venue_detail_screen.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/models/venue_model.dart';
 import '../../../../core/data/venue_repository.dart';
@@ -76,6 +77,17 @@ class _VenueDetailViewState extends State<VenueDetailView> {
         backgroundColor: AppColors.surface,
         foregroundColor: AppColors.title,
         elevation: 0,
+        actions: [
+          TextButton.icon(
+            onPressed: () => Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => SuperAdminVenueDetailScreen(venue: widget.venue)),
+            ),
+            icon: const Icon(Icons.open_in_new, color: AppColors.accentTeal, size: 16),
+            label: const Text("Полное управление", style: TextStyle(color: AppColors.accentTeal, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Center(
         child: Container(

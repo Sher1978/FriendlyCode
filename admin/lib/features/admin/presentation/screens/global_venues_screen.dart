@@ -187,6 +187,11 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                                   const DataColumn(label: Text("ACTIONS")),
                                 ],
                                 rows: filteredVenues.map((v) => DataRow(
+                                  onSelectChanged: (_) => Navigator.push(context, MaterialPageRoute(
+                                    builder: (_) => roleProvider.isSuperAdmin
+                                        ? SuperAdminVenueDetailScreen(venue: v)
+                                        : VenueEditorScreen(venue: v),
+                                  )),
                                   cells: [
                                     DataCell(
                                       Builder(builder: (context) {

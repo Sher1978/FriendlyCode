@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
-import 'package:friendly_code/features/admin/presentation/screens/venue_detail_view.dart';
+import 'package:friendly_code/features/admin/presentation/screens/super_admin_venue_detail_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/marketing_campaign_screen.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
@@ -32,6 +32,25 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
   void initState() {
     super.initState();
     _searchCtrl.addListener(() => setState(() {}));
+    _checkDeepLinkVenue();
+  }
+
+  void _checkDeepLinkVenue() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        final uri = Uri.base;
+        final vid = uri.queryParameters['venueId'] ?? uri.queryParameters['id'];
+        if (vid != null && vid.isNotEmpty) {
+          final doc = await FirebaseFirestore.instance.collection('venues').doc(vid).get();
+          if (doc.exists && doc.data() != null && mounted) {
+            final v = VenueModel.fromMap(doc.id, doc.data()!);
+            Navigator.push(context, MaterialPageRoute(builder: (_) => SuperAdminVenueDetailScreen(venue: v)));
+          }
+        }
+      } catch (e) {
+        debugPrint('[SuperAdminDashboard] DeepLink error: ');
+      }
+    });
   }
 
   @override
@@ -509,7 +528,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard> {
         border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
       child: ListTile(
-        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueDetailView(venue: venue))),
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SuperAdminVenueDetailScreen(venue: venue))),
         leading: Container(
           width: 40, height: 40,
           decoration: BoxDecoration(color: AppColors.secondarySurface, borderRadius: BorderRadius.circular(8)),
