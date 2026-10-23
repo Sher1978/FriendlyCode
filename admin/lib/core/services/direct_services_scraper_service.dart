@@ -180,7 +180,13 @@ class DirectServicesScraperService {
 """;
 
     final keys = [_primaryKey, _fallbackKey];
-    final models = ["gemini-2.5-flash", "gemini-flash-latest"];
+    final models = [
+      "gemini-flash-lite-latest",
+      "gemini-3.5-flash-lite",
+      "gemini-3-flash-preview",
+      "gemini-flash-latest",
+      "gemini-2.5-flash",
+    ];
 
     Exception? lastError;
 
@@ -201,7 +207,7 @@ class DirectServicesScraperService {
                 }
               ]
             }),
-          ).timeout(const Duration(seconds: 35));
+          ).timeout(const Duration(seconds: 15));
 
           if (res.statusCode == 200) {
             final jsonResp = jsonDecode(res.body) as Map<String, dynamic>;

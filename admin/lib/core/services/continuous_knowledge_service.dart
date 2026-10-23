@@ -227,7 +227,13 @@ class ContinuousKnowledgeService {
       ]
     };
     final keys = [_primaryKey, _fallbackKey];
-    final models = ["gemini-2.5-flash", "gemini-flash-latest"];
+    final models = [
+      "gemini-flash-lite-latest",
+      "gemini-3.5-flash-lite",
+      "gemini-3-flash-preview",
+      "gemini-flash-latest",
+      "gemini-2.5-flash",
+    ];
     Exception? lastError;
 
     for (final key in keys) {
@@ -241,7 +247,7 @@ class ContinuousKnowledgeService {
                 headers: {'Content-Type': 'application/json'},
                 body: jsonEncode(body),
               )
-              .timeout(const Duration(seconds: 45));
+              .timeout(const Duration(seconds: 15));
 
           if (res.statusCode == 200) {
             final jsonResp = jsonDecode(res.body) as Map<String, dynamic>;
@@ -1068,7 +1074,13 @@ ${jsonEncode(currentJson)}
 
   static Future<IngestedKnowledgeResult> _callGemini(Map<String, dynamic> body) async {
     final keys = [_primaryKey, _fallbackKey];
-    final models = ["gemini-2.5-flash", "gemini-flash-latest"];
+    final models = [
+      "gemini-flash-lite-latest",
+      "gemini-3.5-flash-lite",
+      "gemini-3-flash-preview",
+      "gemini-flash-latest",
+      "gemini-2.5-flash",
+    ];
     Exception? lastError;
 
     for (final key in keys) {
@@ -1082,7 +1094,7 @@ ${jsonEncode(currentJson)}
                 headers: {'Content-Type': 'application/json'},
                 body: jsonEncode(body),
               )
-              .timeout(const Duration(seconds: 45));
+              .timeout(const Duration(seconds: 15));
 
           if (res.statusCode == 200) {
             final jsonResp = jsonDecode(res.body) as Map<String, dynamic>;

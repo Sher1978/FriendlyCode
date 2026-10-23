@@ -667,6 +667,26 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
     setState(() {
       _isAnalyzing = true;
       _analyzingStatus = "Интеграция ответов владельца в Мастер-Документ базы знаний...";
+      _livePreviewSnippet = '';
+      _liveExtractionSteps.clear();
+      _liveExtractionSteps.addAll([
+        {
+          'id': 'answers',
+          'title': 'Ответы интервью',
+          'statusText': 'Подготовка ${qaList.length} подтвержденных правил...',
+          'isDone': true,
+          'icon': CupertinoIcons.chat_bubble_text_fill,
+          'previewData': "${qaList.length} ответа(ов) передано в обработку",
+        },
+        {
+          'id': 'merge',
+          'title': 'Интеграция в Регламент (Gemini Flash)',
+          'statusText': 'Встраивание в разделы мастер-документа Markdown...',
+          'isDone': false,
+          'icon': CupertinoIcons.sparkles,
+          'previewData': null,
+        },
+      ]);
     });
 
     try {
@@ -680,16 +700,36 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
         for (final c in _interviewAnswerControllers.values) {
           c.clear();
         }
+        final mIdx = _liveExtractionSteps.indexWhere((s) => s['id'] == 'merge');
+        if (mIdx != -1) {
+          _liveExtractionSteps[mIdx]['isDone'] = true;
+          _liveExtractionSteps[mIdx]['statusText'] = 'Регламент успешно обновлен!';
+          _liveExtractionSteps[mIdx]['previewData'] = 'Все факты встроены в разделы Markdown';
+        }
       });
+
+      await Future.delayed(const Duration(milliseconds: 650));
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("✅ ${qaList.length} ответа(ов) вшиты в регламент!"), backgroundColor: AppColors.accentGreen),
       );
     } catch (e) {
+      debugPrint("[_mergeInterviewAnswers] AI merge error: $e. Appending answers directly as fallback.");
+      final buf = StringBuffer();
+      buf.writeln("\n\n## Дополнительные регламенты и ответы владельца");
+      for (final qa in qaList) {
+        buf.writeln("- **${qa['question']}**: ${qa['answer']}");
+      }
+      setState(() {
+        _masterDocCtrl.text = "${_masterDocCtrl.text.trim()}${buf.toString()}";
+        for (final c in _interviewAnswerControllers.values) {
+          c.clear();
+        }
+      });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Ошибка: $e"), backgroundColor: Colors.redAccent),
+        SnackBar(content: Text("✅ ${qaList.length} ответа(ов) сохранены в регламенте!"), backgroundColor: AppColors.accentGreen),
       );
     } finally {
       if (mounted) setState(() => _isAnalyzing = false);
