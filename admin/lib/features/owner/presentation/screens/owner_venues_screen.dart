@@ -58,20 +58,7 @@ class _OwnerVenuesScreenState extends State<OwnerVenuesScreen> {
                 ),
                 Row(
                   children: [
-                    CupertinoButton(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      color: CupertinoColors.activeBlue,
-                      borderRadius: BorderRadius.circular(10),
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())),
-                      child: Row(
-                        children: [
-                          const Icon(CupertinoIcons.add, size: 18),
-                          const SizedBox(width: 8),
-                          Text(l10n.registerNewVenue, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
+
                     CupertinoButton(
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       color: Colors.white.withOpacity(0.1),

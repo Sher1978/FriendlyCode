@@ -13,6 +13,7 @@ import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 
 // SuperAdmin & Global Screens
+import 'package:friendly_code/features/web/presentation/pages/super_admin_login_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/global_email_settings_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/global_guests_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/global_venues_screen.dart';
@@ -509,7 +510,59 @@ class _AdminShellState extends State<AdminShell> {
 
   @override
   Widget build(BuildContext context) {
+    // ── STRICT AUTH & RBAC GUARD ──
+    final currentUser = AuthService().currentUser;
+    if (currentUser == null) {
+      return const SuperAdminLoginScreen();
+    }
+
     final roleProvider = Provider.of<RoleProvider>(context);
+
+    // If route requires SuperAdmin, strictly enforce SuperAdmin role
+    if (widget.role == UserRole.superAdmin && !roleProvider.isSuperAdmin) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            constraints: const BoxConstraints(maxWidth: 480),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1C1C1E),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lock_outline, size: 64, color: Colors.redAccent),
+                const SizedBox(height: 16),
+                const Text(
+                  "403: Доступ запрещен",
+                  style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  "Этот раздел доступен только Суперадминистратору платформы Revoo.",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accentOrange,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () => Navigator.pushReplacementNamed(context, '/superadmin-login'),
+                  child: const Text("Войти под аккаунтом администратора"),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final activeVenueId = roleProvider.venueId;
     final allItems = _getNavItems();
     final visibleItems = allItems.where((item) => item.isVisible(widget.role)).toList();
@@ -836,7 +889,7 @@ class _AdminShellState extends State<AdminShell> {
 
   Widget _buildHeader({bool isDesktop = true}) {
     final currentUser = AuthService().currentUser;
-    final userEmail = currentUser?.email ?? 'Venue Owner';
+    final userEmail = currentUser?.email ?? 'Не авторизован';
 
     return ClipRRect(
       child: BackdropFilter(
@@ -1041,7 +1094,7 @@ class _AdminShellState extends State<AdminShell> {
                           ),
                         ),
                         Text(
-                          widget.role == UserRole.superAdmin ? "System Access" : "Venue Owner",
+                          widget.role == UserRole.superAdmin ? "SuperAdmin" : "Владелец заведения",
                           style: TextStyle(
                             color: Colors.white.withOpacity(0.5),
                             fontSize: 12,

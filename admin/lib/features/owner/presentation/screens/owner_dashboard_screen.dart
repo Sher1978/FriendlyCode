@@ -599,7 +599,7 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                 const Icon(Icons.storefront_outlined, size: 80, color: AppColors.premiumBurntOrange),
                 const SizedBox(height: 24),
                 Text(
-                  "Welcome to REVOO",
+                  "Добро пожаловать в REVOO",
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     color: AppColors.title,
                     fontWeight: FontWeight.bold,
@@ -608,25 +608,29 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  "You don't have any venues registered yet. Start your journey by creating your first venue.",
+                  "За вашим аккаунтом пока не закреплено ни одного заведения.\nОбратитесь к администратору платформы Revoo для подключения и настройки доступа к вашему бизнесу.",
                   textAlign: TextAlign.center,
                   style: TextStyle(fontSize: 16, height: 1.5, color: AppColors.body),
                 ),
-                const SizedBox(height: 32),
-                ElevatedButton.icon(
-                  onPressed: () async {
-                    final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen()));
-                    if (result == true && context.mounted) {
-                      _refreshRole();
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.premiumBurntOrange,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                const SizedBox(height: 24),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.1)),
                   ),
-                  icon: const Icon(Icons.add_circle_outline),
-                  label: const Text("CREATE MY FIRST VENUE"),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.info_outline, size: 20, color: AppColors.premiumBurntOrange),
+                      SizedBox(width: 10),
+                      Text(
+                        "Создание заведений выполняется только Суперадминистратором Revoo",
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
+                    ],
+                  ),
                 ),
             ],
           ),
