@@ -1101,7 +1101,212 @@ exports.telegramWebhook = onRequest(async (req, res) => {
         const update = req.body;
 
         // ==========================================
-        // 0. TEXT MESSAGE HANDLER (Commands)
+        // 0. TELEGRAM BUSINESS CONNECTION HANDLER
+        // ==========================================
+        if (update.business_connection) {
+            const bc = update.business_connection;
+            const connectionId = bc.id;
+            const userId = bc.user ? String(bc.user.id) : null;
+            const username = bc.user ? (bc.user.username || '').toLowerCase() : '';
+            const canReply = bc.can_reply;
+            const isEnabled = bc.is_enabled;
+
+            logger.info(`[TELEGRAM_BUSINESS] Connection update: ID ${connectionId}, User: ${userId} (@${username}), Enabled: ${isEnabled}, CanReply: ${canReply}`);
+
+            let venueId = null;
+            if (userId) {
+                const venueSnap = await db.collection("venues")
+                    .where("telegram_owner_id", "==", userId)
+                    .limit(1)
+                    .get();
+                if (!venueSnap.empty) {
+                    venueId = venueSnap.docs[0].id;
+                }
+            }
+
+            if (!venueId && username) {
+                const venueSnap2 = await db.collection("venues")
+                    .where("telegram_owner_username", "==", username)
+                    .limit(1)
+                    .get();
+                if (!venueSnap2.empty) {
+                    venueId = venueSnap2.docs[0].id;
+                }
+            }
+
+            await db.collection("business_connections").doc(connectionId).set({
+                connectionId,
+                userId,
+                username,
+                canReply,
+                isEnabled,
+                venueId: venueId || 'test_borderrun_pattaya',
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            res.sendStatus(200);
+            return;
+        }
+
+        // ==========================================
+        // 0.1. TELEGRAM BUSINESS MESSAGE (Customer chatting with connected business account)
+        // ==========================================
+        if (update.business_message && update.business_message.text) {
+            const bMsg = update.business_message;
+            const connectionId = bMsg.business_connection_id;
+            const chatId = bMsg.chat.id;
+            const text = bMsg.text.trim();
+            const fromUser = bMsg.from;
+            const fromId = fromUser ? String(fromUser.id) : null;
+            const clientName = fromUser ? `${fromUser.first_name || ''} ${fromUser.last_name || ''}`.trim() : 'Гость';
+
+            logger.info(`[TELEGRAM_BUSINESS] Incoming message in chat ${chatId} (Conn: ${connectionId}): "${text}"`);
+
+            const connDoc = await db.collection("business_connections").doc(connectionId).get();
+            const connData = connDoc.exists ? connDoc.data() : null;
+            const venueOwnerId = connData ? String(connData.userId) : null;
+            const venueId = connData ? (connData.venueId || 'test_borderrun_pattaya') : 'test_borderrun_pattaya';
+
+            const stateRef = db.collection("dialogue_states").doc(String(chatId));
+            const stateDoc = await stateRef.get();
+            const stateData = stateDoc.exists ? stateDoc.data() : {};
+
+            // ── SILENT MUTE PROTOCOL: DETECT MANAGER ACTIVITY ──
+            if (fromId && venueOwnerId && fromId === venueOwnerId) {
+                if (text === '/unmute') {
+                    await stateRef.set({ isMutedUntil: null, unmutedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+                    await sendTelegramBusinessMessage(connectionId, chatId, "🤖 <i>Бот-консьерж снова на дежурстве и готов отвечать гостям.</i>");
+                    res.sendStatus(200);
+                    return;
+                }
+
+                const muteHours = text === '/mute' ? 24 : 0.75; // 45 mins default on any manual manager message
+                const muteUntil = new Date(Date.now() + muteHours * 3600 * 1000);
+
+                await stateRef.set({
+                    isMutedUntil: admin.firestore.Timestamp.fromDate(muteUntil),
+                    lastManagerMsgAt: admin.firestore.FieldValue.serverTimestamp(),
+                    mutedBy: 'manager_activity'
+                }, { merge: true });
+
+                logger.info(`[SILENT_MUTE] Manager sent message in chat ${chatId}. Bot muted until ${muteUntil.toISOString()}`);
+                res.sendStatus(200);
+                return;
+            }
+
+            // ── CHECK IF DIALOGUE IS CURRENTLY MUTED ──
+            if (stateData.isMutedUntil) {
+                const muteUntilDate = stateData.isMutedUntil.toDate();
+                if (muteUntilDate > new Date()) {
+                    logger.info(`[SILENT_MUTE] Chat ${chatId} is currently muted until ${muteUntilDate.toISOString()}. Bot remaining silent.`);
+                    res.sendStatus(200);
+                    return;
+                }
+            }
+
+            // ── INTENT & FUNCTION CALLING DISPATCHER ──
+            const lowerText = text.toLowerCase();
+            const isBookingIntent = lowerText.includes('рейс') || 
+                                    lowerText.includes('забронир') || 
+                                    lowerText.includes('мест') || 
+                                    lowerText.includes('запис') || 
+                                    lowerText.includes('билет') || 
+                                    lowerText.includes('автобус') || 
+                                    lowerText.includes('выезд') || 
+                                    lowerText.includes('бордер');
+
+            const isAskHuman = lowerText.includes('человек') || 
+                               lowerText.includes('оператор') || 
+                               lowerText.includes('менеджер') || 
+                               lowerText.includes('позови') || 
+                               lowerText.includes('живой');
+
+            if (isAskHuman) {
+                const muteUntil = new Date(Date.now() + 45 * 60 * 1000);
+                await stateRef.set({
+                    isMutedUntil: admin.firestore.Timestamp.fromDate(muteUntil),
+                    lastManagerMsgAt: admin.firestore.FieldValue.serverTimestamp(),
+                    mutedBy: 'client_requested_human'
+                }, { merge: true });
+
+                await sendTelegramBusinessMessage(
+                    connectionId, 
+                    chatId, 
+                    `👨‍✈️ <i>Секундочку, ${clientName}! Я передал диалог дежурному менеджеру заведения. Он ответит вам прямо в этом чате в ближайшие пару минут.</i>`
+                );
+
+                res.sendStatus(200);
+                return;
+            }
+
+            if (isBookingIntent) {
+                const busCardText = 
+                    `🚍 <b>РЕЙСЫ БОРДЕР-РАН ПАТТАЙЯ — КАМБОДЖА</b>\n\n` +
+                    `Здравствуйте, <b>${clientName}</b>! Ближайшие выезды на комфортабельных слипер-басах:\n\n` +
+                    `🔹 <b>Завтра (06:00):</b> Слипер-бас VIP • <code>Осталось 4 места</code>\n` +
+                    `💰 <b>Цена:</b> 2 900 ฿ (Ваша динамическая скидка учтена)\n` +
+                    `🔹 <b>Послезавтра (06:00):</b> Минивэн Toyota • <code>Свободно 7 мест</code>\n\n` +
+                    `Нажмите кнопку ниже, чтобы открыть интерактивную схему автобуса и зафиксировать полку:`;
+
+                const replyMarkup = {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: "💺 Выбрать полку в автобусе (A01-B18)",
+                                web_app: { url: `https://bot-lab-21910.web.app/?v=${venueId}&source=tg_mini_app&client_name=${encodeURIComponent(clientName)}` }
+                            }
+                        ],
+                        [
+                            {
+                                text: "💬 Позвать живого оператора",
+                                callback_data: "action_call_human"
+                            }
+                        ]
+                    ]
+                };
+
+                await sendTelegramBusinessMessage(connectionId, chatId, busCardText, replyMarkup);
+                res.sendStatus(200);
+                return;
+            }
+
+            // General FAQ / AI Concierge fallback
+            let aiReply = "Здравствуйте! Я виртуальный консьерж сервиса. Могу подсказать расписание рейсов, правила багажа и помочь зафиксировать место в автобусе. Чем могу помочь?";
+            try {
+                const { GeminiConciergeAgent } = require('./services/ai/geminiAgent');
+                const concierge = new GeminiConciergeAgent();
+                if (concierge.genAI) {
+                    const result = await concierge.processGuestMessage({
+                        venueId,
+                        userMessage: text,
+                        senderPhone: fromUser.username ? `@${fromUser.username}` : ''
+                    });
+                    if (result && result.replyText) {
+                        aiReply = result.replyText;
+                    }
+                }
+            } catch (aiErr) {
+                logger.warn("[AI_CONCIERGE] Gemini fallback error:", aiErr);
+            }
+
+            const generalMarkup = {
+                inline_keyboard: [
+                    [
+                        {
+                            text: "🚍 Открыть расписание и выбор мест",
+                            web_app: { url: `https://bot-lab-21910.web.app/?v=${venueId}&source=tg_mini_app&client_name=${encodeURIComponent(clientName)}` }
+                        }
+                    ]
+                ]
+            };
+
+            await sendTelegramBusinessMessage(connectionId, chatId, aiReply, generalMarkup);
+            res.sendStatus(200);
+            return;
+        }
+
+        // ==========================================
+        // 0.2. TEXT MESSAGE HANDLER (Commands)
         // ==========================================
         if (update.message && update.message.text) {
             const chatId = update.message.chat.id;
@@ -2379,6 +2584,28 @@ async function sendTelegramMessageWithKeyboard(chatId, text, keyboard) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'HTML', reply_markup: keyboard })
     });
+}
+
+/**
+ * Helper to send Telegram Business Messages via business_connection_id
+ */
+async function sendTelegramBusinessMessage(connectionId, chatId, text, replyMarkup = null) {
+    const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
+    const payload = {
+        business_connection_id: connectionId,
+        chat_id: chatId,
+        text: text,
+        parse_mode: 'HTML'
+    };
+    if (replyMarkup) {
+        payload.reply_markup = replyMarkup;
+    }
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    return res.json();
 }
 
 /**
