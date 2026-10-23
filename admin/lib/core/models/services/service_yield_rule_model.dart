@@ -8,6 +8,7 @@ class ServiceYieldRule {
   final int endHour;
   final bool isFlashSlot;
   final int flashLeadHours;
+  final int emptySeatsThreshold;
   final double minServicePrice;
   final double? maxDiscountCap;
   final bool isActive;
@@ -22,6 +23,7 @@ class ServiceYieldRule {
     this.endHour = 16,
     this.isFlashSlot = false,
     this.flashLeadHours = 3,
+    this.emptySeatsThreshold = 3,
     this.minServicePrice = 0.0,
     this.maxDiscountCap,
     this.isActive = true,
@@ -37,6 +39,7 @@ class ServiceYieldRule {
     'endHour': endHour,
     'isFlashSlot': isFlashSlot,
     'flashLeadHours': flashLeadHours,
+    'emptySeatsThreshold': emptySeatsThreshold,
     'minServicePrice': minServicePrice,
     'maxDiscountCap': maxDiscountCap,
     'isActive': isActive,
@@ -52,6 +55,7 @@ class ServiceYieldRule {
     endHour: (map['endHour'] as num?)?.toInt() ?? 16,
     isFlashSlot: map['isFlashSlot'] ?? false,
     flashLeadHours: (map['flashLeadHours'] as num?)?.toInt() ?? 3,
+    emptySeatsThreshold: (map['emptySeatsThreshold'] as num?)?.toInt() ?? 3,
     minServicePrice: (map['minServicePrice'] as num?)?.toDouble() ?? 0.0,
     maxDiscountCap: (map['maxDiscountCap'] as num?)?.toDouble(),
     isActive: map['isActive'] ?? true,

@@ -9,6 +9,7 @@ class ScrapedServiceData {
   final List<Map<String, dynamic>> yieldRules;
   final Map<String, dynamic> aiKnowledge;
   final List<Map<String, dynamic>> smartConfirmationQuestions;
+  final String masterKnowledgeDoc;
 
   ScrapedServiceData({
     required this.venue,
@@ -17,6 +18,7 @@ class ScrapedServiceData {
     required this.yieldRules,
     required this.aiKnowledge,
     required this.smartConfirmationQuestions,
+    this.masterKnowledgeDoc = '',
   });
 
   factory ScrapedServiceData.fromMap(Map<String, dynamic> map) {
@@ -35,6 +37,7 @@ class ScrapedServiceData {
       smartConfirmationQuestions: List<Map<String, dynamic>>.from(
         (map['smartConfirmationQuestions'] as List<dynamic>? ?? []).map((e) => Map<String, dynamic>.from(e)),
       ),
+      masterKnowledgeDoc: map['masterKnowledgeDoc']?.toString() ?? '',
     );
   }
 }
@@ -77,37 +80,52 @@ class DirectServicesScraperService {
 
     final prompt = """
 Ты — старший аналитик онбординга платформы Revoo Services.
-Твоя задача — проанализировать сайт, описание на Google Maps или текст компании из сферы услуг (например, компании по бордер-ранам / виза-ранам / трансферам, СПА, барбершопа, клиники, проката авто/байков и т.д.) и извлечь ПОЛНЫЙ цифровой паспорт для мгновенного запуска заведения и обучения 24/7 AI-Консьержа.
+Твоя задача — проанализировать сайт, описание на Google Maps или текст компании из сферы услуг (особенно компании по бордер-ранам / виза-ранам / пассажирским перевозкам, СПА, клиникам) и извлечь ПОЛНЫЙ цифровой паспорт для мгновенного запуска заведения и обучения 24/7 AI-Консьержа.
+
+ВАЖНО:
+1. Обязательно извлеки реальный рейтинг (rating, e.g. 4.9) и количество отзывов (reviewCount, e.g. 142) из текста страницы/карточки. Если точное число не указано, поставь консервативную оценку на основе текста.
+2. Определи архетип: для визаранов, бордер-ранов, трансферов и продажи мест в транспорте ставь "archetype": "batch".
+3. Сформируй "masterKnowledgeDoc" — единый связный Markdown-документ (не менее 800-1500 символов), объединяющий:
+   - Общие сведения о заведении, локацию, точку сбора и время.
+   - ПРЕДЗАПОЛНЕНИЕ ПО ГЕОЛОКАЦИИ И НИШЕ: если это бордер-ран/визаран из Таиланда в Камбоджу/Малайзию, предзаполни официальные пограничные правила (паспорт от 6 мес, 2 фото 3x4, безвизовый штамп 60 дней для РФ, VOA для СНГ, оверстей 500 ฿/день до 7 дней). Если из Вьетнама в Лаос — соответствующие правила КПП Lao Bao.
+   - Описание тарифов и что входит (трансфер, визовые сборы, обед, вода).
+   - Правила багажа, отмены и переноса поездки.
 
 Исходная ссылка (если передана): $originalUrl
 
 Верни СТРОГО валидный JSON-объект без пояснений и без markdown-разметки со следующей структурой:
 {
   "venue": {
-    "name": "Название компании (e.g. Pattaya Border Run VIP)",
-    "category": "Категория бизнеса (e.g. Бордер-ран & Трансферы, Визаран, СПА & Массаж)",
+    "name": "Название компании (e.g. Sir Visaranus VIP)",
+    "category": "Категория бизнеса (e.g. Визаран, Бордер-ран & Трансферы)",
+    "archetype": "batch",
     "description": "Привлекательное описание из 2-3 предложений для гостей",
     "phone": "Телефон / WhatsApp компании (e.g. +66 81 234 5678 или оставь пустым если нет)",
     "address": "Физический адрес или точка сбора (город, район, пикап)",
-    "currency": "Валюта цен: ฿, \$, ₽, VND, € (если Таиланд - ฿, если Вьетнам - VND, если РФ - ₽)",
+    "currency": "฿",
+    "rating": 4.9,
+    "reviewCount": 142,
+    "coverPhotoUrl": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957",
+    "websiteUrl": "$originalUrl",
     "googleMapsUrl": "$originalUrl"
   },
+  "masterKnowledgeDoc": "# ЦИФРОВОЙ ПАСПОРТ И РЕГЛАМЕНТЫ ЗАВЕДЕНИЯ\\n\\n## 1. Локация и сбор...",
   "services": [
     {
       "id": "srv_1",
       "title": "Название услуги/маршрута (e.g. Бордер-ран в Камбоджу (Базовый) / VIP всё включено)",
       "description": "Что входит: трансфер от отеля, визовые сборы, обед, страховка, сопровождение",
-      "price": 2800,
+      "price": 2900,
       "durationMinutes": 600,
-      "category": "Категория направления (e.g. Камбоджа, Малайзия, Регулярные)",
+      "category": "Камбоджа",
       "sortOrder": 1
     }
   ],
   "staff": [
     {
-      "id": "master_1",
-      "name": "VIP Минивэн Toyota Commuter #1 (или имя координатора/мастера)",
-      "role": "Комфортный трансфер с кондиционером и питьевой водой",
+      "id": "vehicle_1",
+      "name": "VIP Минивэн Toyota Commuter #1",
+      "role": "Комфортный трансфер с кондиционером и питьевой водой (13 мест)",
       "workStartTime": "06:00",
       "workEndTime": "18:00",
       "workingDays": [1, 2, 3, 4, 5, 6, 7]
@@ -121,9 +139,9 @@ class DirectServicesScraperService {
       "daysOfWeek": [2, 3]
     },
     {
-      "name": "Горящее место за 12 часов",
+      "name": "Горящее место за 24 часа",
       "discountType": "percentage",
-      "discountValue": 15,
+      "discountValue": 20,
       "daysOfWeek": [1, 2, 3, 4, 5, 6, 7]
     }
   ],

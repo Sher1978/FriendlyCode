@@ -13,6 +13,7 @@ import 'package:friendly_code/features/owner/presentation/screens/delivery_loyal
 import 'package:friendly_code/features/owner/presentation/screens/delivery_logistics_payment_screen.dart';
 import 'package:friendly_code/features/services/presentation/screens/services_catalog_screen.dart';
 import 'package:friendly_code/features/services/presentation/screens/staff_management_screen.dart';
+import 'package:friendly_code/features/services/presentation/screens/fleet_management_screen.dart';
 import 'package:friendly_code/features/services/presentation/screens/yield_rules_screen.dart';
 import 'package:friendly_code/features/services/presentation/screens/ai_concierge_config_screen.dart';
 
@@ -28,9 +29,24 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
   int _selectedTab = 0;
 
   bool get _isServices => widget.venue.gmConfig.businessType == 'services';
+  bool get _isBatch => widget.venue.archetype == 'batch' || 
+      widget.venue.category.toLowerCase().contains('виза') || 
+      widget.venue.category.toLowerCase().contains('бордер') || 
+      widget.venue.category.toLowerCase().contains('трансфер');
 
   List<_TabItem> get _tabs {
     if (_isServices) {
+      if (_isBatch) {
+        return const [
+          _TabItem(icon: CupertinoIcons.info_circle_fill,        label: 'Инфо'),
+          _TabItem(icon: CupertinoIcons.sparkles,                 label: 'Рейсы & Тарифы'),
+          _TabItem(icon: CupertinoIcons.bus,                      label: 'Автопарк & Схемы мест'),
+          _TabItem(icon: CupertinoIcons.percent,                 label: 'Yield & Горящие места'),
+          _TabItem(icon: CupertinoIcons.chat_bubble_2_fill,      label: 'AI-Консьерж & Регламенты'),
+          _TabItem(icon: CupertinoIcons.person_crop_circle_fill, label: 'Пассажиры & Брони'),
+          _TabItem(icon: CupertinoIcons.rocket_fill,             label: 'Маркетинг'),
+        ];
+      }
       return const [
         _TabItem(icon: CupertinoIcons.info_circle_fill,        label: 'Инфо'),
         _TabItem(icon: CupertinoIcons.sparkles,                 label: 'Услуги (Каталог)'),
@@ -182,11 +198,32 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
 
   Widget _buildBody(VenueModel venue) {
     if (_isServices) {
+      if (_isBatch) {
+        switch (_selectedTab) {
+          case 0:
+            return VenueEditorScreen(venue: venue);
+          case 1:
+            return ServicesCatalogScreen(venueId: venue.id, currency: venue.currency, archetype: 'batch');
+          case 2:
+            return FleetManagementScreen(venueId: venue.id);
+          case 3:
+            return YieldRulesScreen(venueId: venue.id);
+          case 4:
+            return AiConciergeConfigScreen(venueId: venue.id);
+          case 5:
+            return GuestListScreen(venueId: venue.id);
+          case 6:
+            return MarketingBlastScreen(venueId: venue.id);
+          default:
+            return VenueEditorScreen(venue: venue);
+        }
+      }
+
       switch (_selectedTab) {
         case 0:
           return VenueEditorScreen(venue: venue);
         case 1:
-          return ServicesCatalogScreen(venueId: venue.id);
+          return ServicesCatalogScreen(venueId: venue.id, currency: venue.currency, archetype: 'personal_time');
         case 2:
           return StaffManagementScreen(venueId: venue.id);
         case 3:

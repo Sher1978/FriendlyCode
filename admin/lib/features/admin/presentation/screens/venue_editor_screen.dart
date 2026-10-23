@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
+import 'package:friendly_code/core/models/venue_onboarding_schema.dart';
 import 'package:friendly_code/core/services/venue_service.dart';
 import 'package:friendly_code/core/services/direct_services_scraper_service.dart';
 import 'package:friendly_code/features/services/presentation/widgets/smart_services_onboarding_dialog.dart';
@@ -35,6 +37,13 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
   late TextEditingController _placeIdCtrl;
   late TextEditingController _googleReviewUrlCtrl;
   late TextEditingController _currencyCtrl;
+  late TextEditingController _websiteUrlCtrl;
+  late TextEditingController _coverPhotoUrlCtrl;
+  late TextEditingController _telegramStaffChatIdCtrl;
+  late TextEditingController _ratingCtrl;
+  late TextEditingController _reviewCountCtrl;
+  late TextEditingController _masterKnowledgeDocCtrl;
+  String _archetype = 'batch';
 
   String _businessType = 'services';
   bool _seedStarterPack = true;
@@ -72,8 +81,9 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
 
     _ownerEmailCtrl = TextEditingController(text: ownerEmail);
     _businessType = widget.venue?.gmConfig.businessType ?? 'services';
+    _archetype = widget.venue?.archetype ?? 'batch';
     _categoryCtrl = TextEditingController(
-      text: widget.venue?.category ?? (_businessType == 'services' ? 'Барбершоп' : 'Ресторан')
+      text: widget.venue?.category ?? (_businessType == 'services' ? 'Визаран & Бордер-ран' : 'Ресторан')
     );
     _addressCtrl = TextEditingController(text: widget.venue?.address ?? '');
     _descCtrl = TextEditingController(text: widget.venue?.description ?? '');
@@ -81,7 +91,13 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     _phoneCtrl = TextEditingController(text: widget.venue?.phone ?? '');
     _placeIdCtrl = TextEditingController(text: widget.venue?.placeId ?? '');
     _googleReviewUrlCtrl = TextEditingController(text: widget.venue?.googleReviewUrl ?? '');
-    _currencyCtrl = TextEditingController(text: widget.venue?.currency ?? '₽');
+    _currencyCtrl = TextEditingController(text: widget.venue?.currency ?? '฿');
+    _websiteUrlCtrl = TextEditingController(text: widget.venue?.websiteUrl ?? '');
+    _coverPhotoUrlCtrl = TextEditingController(text: widget.venue?.coverPhotoUrl ?? '');
+    _telegramStaffChatIdCtrl = TextEditingController(text: widget.venue?.telegramStaffChatId ?? '');
+    _ratingCtrl = TextEditingController(text: widget.venue?.rating != null ? widget.venue!.rating!.toString() : '4.9');
+    _reviewCountCtrl = TextEditingController(text: widget.venue?.reviewCount != null ? widget.venue!.reviewCount!.toString() : '142');
+    _masterKnowledgeDocCtrl = TextEditingController(text: widget.venue?.masterKnowledgeDoc ?? '');
     _seedStarterPack = widget.venue == null;
 
     _wifiSsidCtrl = TextEditingController(text: widget.venue?.wifiSsid ?? '');
@@ -161,6 +177,12 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
     _placeIdCtrl.dispose();
     _googleReviewUrlCtrl.dispose();
     _currencyCtrl.dispose();
+    _websiteUrlCtrl.dispose();
+    _coverPhotoUrlCtrl.dispose();
+    _telegramStaffChatIdCtrl.dispose();
+    _ratingCtrl.dispose();
+    _reviewCountCtrl.dispose();
+    _masterKnowledgeDocCtrl.dispose();
     _wifiSsidCtrl.dispose();
     _latCtrl.dispose();
     _lngCtrl.dispose();
@@ -189,6 +211,7 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         name: _nameCtrl.text.trim(),
         ownerEmail: _ownerEmailCtrl.text.trim(),
         category: _categoryCtrl.text.trim(),
+        archetype: _archetype,
         address: _addressCtrl.text.trim(),
         description: _descCtrl.text.trim(),
         googleMapsUrl: _googleMapsUrlCtrl.text.trim(),
@@ -196,6 +219,12 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
         placeId: _placeIdCtrl.text.trim().isNotEmpty ? _placeIdCtrl.text.trim() : null,
         googleReviewUrl: _googleReviewUrlCtrl.text.trim().isNotEmpty ? _googleReviewUrlCtrl.text.trim() : null,
         currency: _currencyCtrl.text.trim(),
+        websiteUrl: _websiteUrlCtrl.text.trim(),
+        coverPhotoUrl: _coverPhotoUrlCtrl.text.trim(),
+        telegramStaffChatId: _telegramStaffChatIdCtrl.text.trim(),
+        rating: double.tryParse(_ratingCtrl.text.trim()),
+        reviewCount: int.tryParse(_reviewCountCtrl.text.trim()),
+        masterKnowledgeDoc: _masterKnowledgeDocCtrl.text.trim(),
         hasCaptiveWifi: _hasCaptiveWifi,
         wifiSsid: _wifiSsidCtrl.text,
         latitude: double.tryParse(_latCtrl.text),
@@ -387,6 +416,9 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                   if (widget.venue == null)
                     _buildAiOnboardingBanner(),
 
+                  // ── TWO-TIER VALIDATION CHECKLIST ──
+                  _buildValidationChecklist(),
+
                   // ── 1. BUSINESS PROFILE SELECTION ──
                   _buildGlassSection(
                     title: "ПРОФИЛЬ БИЗНЕСА (BUSINESS PROFILE)",
@@ -531,6 +563,11 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
                       _buildCupertinoField("Краткое описание", _descCtrl, placeholder: "Премиальный барбершоп в центре города...", maxLines: 2),
                     ],
                   ),
+
+                  const SizedBox(height: 32),
+
+                  // ── MULTIMODAL & CHANNELS ──
+                  _buildMultimodalSection(),
 
                   // ── 4. QUICK-START STARTER PACK FOR SERVICES ──
                   if (_businessType == 'services' && widget.venue == null) ...[
@@ -755,6 +792,24 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
             if (v['googleMapsUrl'] != null && v['googleMapsUrl'].toString().isNotEmpty) {
               _googleMapsUrlCtrl.text = v['googleMapsUrl'].toString();
             }
+            if (v['websiteUrl'] != null && v['websiteUrl'].toString().isNotEmpty) {
+              _websiteUrlCtrl.text = v['websiteUrl'].toString();
+            }
+            if (v['coverPhotoUrl'] != null && v['coverPhotoUrl'].toString().isNotEmpty) {
+              _coverPhotoUrlCtrl.text = v['coverPhotoUrl'].toString();
+            }
+            if (v['rating'] != null) {
+              _ratingCtrl.text = v['rating'].toString();
+            }
+            if (v['reviewCount'] != null) {
+              _reviewCountCtrl.text = v['reviewCount'].toString();
+            }
+            if (v['archetype'] != null) {
+              _archetype = v['archetype'].toString();
+            }
+            if (data.masterKnowledgeDoc.isNotEmpty) {
+              _masterKnowledgeDocCtrl.text = data.masterKnowledgeDoc;
+            }
             _businessType = 'services';
             _seedStarterPack = false;
           });
@@ -937,6 +992,381 @@ class _VenueEditorScreenState extends State<VenueEditorScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildValidationChecklist() {
+    final tempVenue = VenueModel(
+      id: widget.venue?.id ?? 'temp',
+      name: _nameCtrl.text.trim(),
+      category: _categoryCtrl.text.trim(),
+      address: _addressCtrl.text.trim(),
+      currency: _currencyCtrl.text.trim(),
+      phone: _phoneCtrl.text.trim(),
+      telegramStaffChatId: _telegramStaffChatIdCtrl.text.trim(),
+      masterKnowledgeDoc: _masterKnowledgeDocCtrl.text.trim(),
+    );
+
+    final validation = VenueOnboardingSchema.validateVenue(tempVenue);
+    final is100 = validation.isValid;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: is100 
+            ? AppColors.accentGreen.withValues(alpha: 0.08) 
+            : Colors.amber.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: is100 ? AppColors.accentGreen : Colors.amber.withValues(alpha: 0.4),
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                is100 ? CupertinoIcons.checkmark_seal_fill : CupertinoIcons.exclamationmark_triangle_fill,
+                color: is100 ? AppColors.accentGreen : Colors.amber,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  is100 
+                      ? "Критические данные заведения: 7/7 заполнено (Готово к боевому запуску)"
+                      : "Чеклист запуска: заполнено ${validation.completedCount} из ${validation.totalCriticalCount} обязательных полей",
+                  style: TextStyle(
+                    color: is100 ? AppColors.accentGreen : Colors.amber,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              CupertinoButton(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                color: Colors.white.withValues(alpha: 0.1),
+                onPressed: () => _openCanonicalJsonViewer(tempVenue),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(CupertinoIcons.chevron_left_slash_chevron_right, size: 12, color: Colors.white70),
+                    SizedBox(width: 4),
+                    Text("JSON-схема", style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: validation.progress,
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(is100 ? AppColors.accentGreen : Colors.amber),
+              minHeight: 5,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: validation.checks.map((chk) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: chk.isFilled 
+                      ? AppColors.accentGreen.withValues(alpha: 0.15) 
+                      : Colors.redAccent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: chk.isFilled ? AppColors.accentGreen.withValues(alpha: 0.4) : Colors.redAccent.withValues(alpha: 0.4),
+                    width: 0.8,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      chk.isFilled ? CupertinoIcons.checkmark : CupertinoIcons.xmark,
+                      size: 11,
+                      color: chk.isFilled ? AppColors.accentGreen : Colors.redAccent,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      chk.label,
+                      style: TextStyle(
+                        color: chk.isFilled ? Colors.white : Colors.redAccent,
+                        fontSize: 11,
+                        fontWeight: chk.isFilled ? FontWeight.w500 : FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMultimodalSection() {
+    return _buildGlassSection(
+      title: "МУЛЬТИДАННЫЕ И ОНЛАЙН-ВИТРИНА (MULTIMODAL & CHANNELS)",
+      children: [
+        _buildCupertinoField("Сайт компании / Ссылка на бронирование", _websiteUrlCtrl, placeholder: "https://example-visarun.com"),
+        _buildCupertinoField("Ссылка на фото / Обложку заведения", _coverPhotoUrlCtrl, placeholder: "https://images.unsplash.com/..."),
+        if (_coverPhotoUrlCtrl.text.trim().isNotEmpty && _coverPhotoUrlCtrl.text.startsWith('http')) ...[
+          Container(
+            height: 130,
+            width: double.infinity,
+            margin: const EdgeInsets.only(bottom: 20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.macosDivider),
+              image: DecorationImage(
+                image: NetworkImage(_coverPhotoUrlCtrl.text.trim()),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+        ],
+        _buildCupertinoField(
+          "Telegram Staff Group ID (для диспетчеров и подтверждения броней)",
+          _telegramStaffChatIdCtrl,
+          placeholder: "-1001234567890 (ID группы со швейцаром)",
+        ),
+        Row(
+          children: [
+            Expanded(
+              child: _buildCupertinoField("Рейтинг с карт Google Maps", _ratingCtrl, placeholder: "4.9"),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildCupertinoField("Количество отзывов", _reviewCountCtrl, placeholder: "142"),
+            ),
+          ],
+        ),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.accentTeal.withValues(alpha: 0.3)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(CupertinoIcons.doc_text_fill, color: AppColors.accentTeal, size: 16),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      "Единый Мастер-Документ базы знаний (Markdown)",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                  CupertinoButton(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    color: AppColors.accentTeal.withValues(alpha: 0.2),
+                    onPressed: _openMasterDocEditor,
+                    child: const Text("Открыть / Редактировать", style: TextStyle(color: AppColors.accentTeal, fontSize: 11, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _masterKnowledgeDocCtrl.text.isNotEmpty 
+                    ? (_masterKnowledgeDocCtrl.text.split('\n').take(3).join('\n') + "\n...")
+                    : "База знаний еще не сформирована. Запустите AI-онбординг или вставьте регламенты.",
+                style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 11, height: 1.3),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _openMasterDocEditor() {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.accentTeal, width: 1.5),
+        ),
+        child: Container(
+          width: 720,
+          constraints: const BoxConstraints(maxHeight: 700),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(CupertinoIcons.doc_text_fill, color: AppColors.accentTeal, size: 24),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      "Редактор Мастер-Документа базы знаний (Markdown)",
+                      style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(CupertinoIcons.xmark, color: Colors.white54, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Здесь хранится 100% фактов, которыми оперирует AI-Консьерж: правила границы, документы, оверстей, точки сбора, включенный сервис.",
+                style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.macosDivider),
+                  ),
+                  child: CupertinoTextField(
+                    controller: _masterKnowledgeDocCtrl,
+                    maxLines: null,
+                    expands: true,
+                    style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.4, fontFamily: 'monospace'),
+                    placeholder: "Введите правила и регламенты заведения в Markdown...",
+                    placeholderStyle: const TextStyle(color: Colors.white30, fontSize: 13),
+                    decoration: null,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  CupertinoButton(
+                    child: const Text("Закрыть"),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accentTeal,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () {
+                      setState(() {});
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Мастер-Документ обновлен!"), backgroundColor: AppColors.accentTeal),
+                      );
+                    },
+                    icon: const Icon(CupertinoIcons.checkmark_alt, size: 16),
+                    label: const Text("Применить изменения"),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openCanonicalJsonViewer(VenueModel venue) {
+    final canonicalMap = VenueOnboardingSchema.toCanonicalJson(venue);
+    final jsonStr = const JsonEncoder.withIndent('  ').convert(canonicalMap);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: AppColors.accentTeal, width: 1.5),
+        ),
+        child: Container(
+          width: 680,
+          constraints: const BoxConstraints(maxHeight: 650),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(CupertinoIcons.chevron_left_slash_chevron_right, color: AppColors.accentTeal, size: 24),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      "Канонический JSON заведения (SoT Schema)",
+                      style: TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(CupertinoIcons.xmark, color: Colors.white54, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.macosDivider),
+                  ),
+                  child: SingleChildScrollView(
+                    child: SelectableText(
+                      jsonStr,
+                      style: const TextStyle(color: AppColors.accentGreen, fontSize: 12, fontFamily: 'monospace'),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton.icon(
+                    icon: const Icon(CupertinoIcons.doc_on_clipboard, size: 16),
+                    label: const Text("Копировать JSON"),
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: jsonStr));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("JSON скопирован в буфер!"), backgroundColor: AppColors.accentTeal),
+                      );
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accentTeal,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text("Готово"),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

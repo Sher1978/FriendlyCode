@@ -321,6 +321,13 @@ class VenueModel {
   final String? googleReviewUrl;
   final String currencyPosition;
   final VenueOperatingHours operatingHours;
+  final String archetype;
+  final double? rating;
+  final int? reviewCount;
+  final String? coverPhotoUrl;
+  final String? websiteUrl;
+  final String telegramStaffChatId;
+  final String? masterKnowledgeDoc;
 
   VenueModel({
     required this.id,
@@ -364,6 +371,13 @@ class VenueModel {
     this.googleReviewUrl,
     this.currencyPosition = 'suffix',
     VenueOperatingHours? operatingHours,
+    this.archetype = 'personal_time',
+    this.rating,
+    this.reviewCount,
+    this.coverPhotoUrl,
+    this.websiteUrl,
+    this.telegramStaffChatId = '',
+    this.masterKnowledgeDoc,
   }) : operatingHours = operatingHours ?? const VenueOperatingHours(), 
     tiers = tiers ?? [],
     subscription = subscription ?? VenueSubscription(),
@@ -422,6 +436,14 @@ class VenueModel {
       'googleReviewUrl': googleReviewUrl,
       'currencyPosition': currencyPosition,
       'operatingHours': operatingHours.toMap(),
+      'archetype': archetype,
+      'rating': rating,
+      'reviewCount': reviewCount,
+      'coverPhotoUrl': coverPhotoUrl,
+      'websiteUrl': websiteUrl,
+      'telegramStaffChatId': telegramStaffChatId,
+      'telegram_group_id': telegramStaffChatId,
+      'masterKnowledgeDoc': masterKnowledgeDoc,
     };
   }
 
@@ -471,6 +493,13 @@ class VenueModel {
       googleReviewUrl: map['googleReviewUrl'],
       currencyPosition: map['currencyPosition'] ?? (map['currency'] == 'USD' || map['currency'] == 'INR' ? 'prefix' : 'suffix'),
       operatingHours: VenueOperatingHours.fromMap(map['operatingHours'] as Map<String, dynamic>?),
+      archetype: map['archetype'] ?? ((map['category']?.toString().toLowerCase().contains('виза') == true || map['category']?.toString().toLowerCase().contains('бордер') == true || map['category']?.toString().toLowerCase().contains('трансфер') == true) ? 'batch' : 'personal_time'),
+      rating: (map['rating'] as num?)?.toDouble(),
+      reviewCount: (map['reviewCount'] as num?)?.toInt() ?? (map['user_ratings_total'] as num?)?.toInt(),
+      coverPhotoUrl: map['coverPhotoUrl'] ?? map['logoUrl'],
+      websiteUrl: map['websiteUrl'] ?? map['linkUrl'],
+      telegramStaffChatId: map['telegramStaffChatId'] ?? map['telegram_group_id'] ?? map['telegramDispatchChatId'] ?? '',
+      masterKnowledgeDoc: map['masterKnowledgeDoc'] ?? map['knowledgeBaseRaw'],
     );
   }
   VenueModel copyWith({
@@ -515,6 +544,13 @@ class VenueModel {
     String? googleReviewUrl,
     String? currencyPosition,
     VenueOperatingHours? operatingHours,
+    String? archetype,
+    double? rating,
+    int? reviewCount,
+    String? coverPhotoUrl,
+    String? websiteUrl,
+    String? telegramStaffChatId,
+    String? masterKnowledgeDoc,
   }) {
     return VenueModel(
       id: id ?? this.id,
@@ -558,6 +594,13 @@ class VenueModel {
       googleReviewUrl: googleReviewUrl ?? this.googleReviewUrl,
       currencyPosition: currencyPosition ?? this.currencyPosition,
       operatingHours: operatingHours ?? this.operatingHours,
+      archetype: archetype ?? this.archetype,
+      rating: rating ?? this.rating,
+      reviewCount: reviewCount ?? this.reviewCount,
+      coverPhotoUrl: coverPhotoUrl ?? this.coverPhotoUrl,
+      websiteUrl: websiteUrl ?? this.websiteUrl,
+      telegramStaffChatId: telegramStaffChatId ?? this.telegramStaffChatId,
+      masterKnowledgeDoc: masterKnowledgeDoc ?? this.masterKnowledgeDoc,
     );
   }
 

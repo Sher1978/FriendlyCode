@@ -9,6 +9,7 @@ class ServiceItem {
   final String externalServiceId;
   final bool isActive;
   final double? maxDiscountCap;
+  final String? photoUrl;
 
   const ServiceItem({
     required this.id,
@@ -21,6 +22,7 @@ class ServiceItem {
     this.externalServiceId = '',
     this.isActive = true,
     this.maxDiscountCap,
+    this.photoUrl,
   });
 
   Map<String, dynamic> toMap() => {
@@ -34,6 +36,7 @@ class ServiceItem {
     'externalServiceId': externalServiceId,
     'isActive': isActive,
     'maxDiscountCap': maxDiscountCap,
+    'photoUrl': photoUrl,
   };
 
   factory ServiceItem.fromMap(Map<String, dynamic> map, [String? docId]) => ServiceItem(
@@ -47,6 +50,7 @@ class ServiceItem {
     externalServiceId: map['externalServiceId'] ?? '',
     isActive: map['isActive'] ?? true,
     maxDiscountCap: (map['maxDiscountCap'] as num?)?.toDouble(),
+    photoUrl: map['photoUrl'] as String? ?? map['imageUrl'] as String?,
   );
 
   ServiceItem copyWith({
@@ -60,6 +64,7 @@ class ServiceItem {
     String? externalServiceId,
     bool? isActive,
     double? maxDiscountCap,
+    String? photoUrl,
   }) => ServiceItem(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -71,5 +76,6 @@ class ServiceItem {
     externalServiceId: externalServiceId ?? this.externalServiceId,
     isActive: isActive ?? this.isActive,
     maxDiscountCap: maxDiscountCap ?? this.maxDiscountCap,
+    photoUrl: photoUrl ?? this.photoUrl,
   );
 }

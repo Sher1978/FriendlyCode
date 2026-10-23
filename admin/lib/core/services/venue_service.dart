@@ -202,7 +202,7 @@ class VenuesService {
       });
     }
 
-    // 4. AI Knowledge Profile
+    // 4. AI Knowledge Profile & Master Document
     final aiRef = _firestore.collection(_collection).doc(venueId).collection('ai_knowledge').doc('profile');
     final aiK = data.aiKnowledge;
     batch.set(aiRef, {
@@ -215,6 +215,59 @@ class VenuesService {
       'faq': aiK['faq'] ?? [],
       'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    final masterDocRef = _firestore.collection(_collection).doc(venueId).collection('ai_knowledge').doc('master_doc');
+    batch.set(masterDocRef, {
+      'raw_markdown': data.masterKnowledgeDoc.isNotEmpty ? data.masterKnowledgeDoc : (aiK['rulesAndPolicies'] ?? ''),
+      'completion_rate': 90,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    // 5. Fleet Template for BATCH_CAPACITY
+    final fleetRef = _firestore.collection(_collection).doc(venueId).collection('fleetTemplates').doc('toyota_commuter_13');
+    batch.set(fleetRef, {
+      'name': 'VIP Минивэн Toyota Commuter (13 мест)',
+      'category': 'minivan',
+      'totalCapacity': 13,
+      'decks': [
+        {
+          'id': 'main',
+          'name': 'Основной салон',
+          'badge': 'Кондиционер • Wi-Fi • USB',
+          'priceModifier': 0,
+          'layoutType': 'seat',
+          'rows': 4,
+          'columns': 4,
+          'seats': [
+            {'id': '1A', 'label': '1A', 'row': 1, 'col': 1, 'features': ['window', 'vip', 'usb']},
+            {'id': '1B', 'label': '1B', 'row': 1, 'col': 3, 'features': ['window', 'vip', 'usb']},
+            {'id': '2A', 'label': '2A', 'row': 2, 'col': 1, 'features': ['window', 'usb']},
+            {'id': '2B', 'label': '2B', 'row': 2, 'col': 2, 'features': ['ac_shield']},
+            {'id': '2C', 'label': '2C', 'row': 2, 'col': 3, 'features': ['window', 'usb']},
+            {'id': '3A', 'label': '3A', 'row': 3, 'col': 1, 'features': ['window', 'usb']},
+            {'id': '3B', 'label': '3B', 'row': 3, 'col': 2, 'features': ['ac_shield']},
+            {'id': '3C', 'label': '3C', 'row': 3, 'col': 3, 'features': ['window', 'usb']},
+            {'id': '4A', 'label': '4A', 'row': 4, 'col': 1, 'features': ['window']},
+            {'id': '4B', 'label': '4B', 'row': 4, 'col': 2, 'features': []},
+            {'id': '4C', 'label': '4C', 'row': 4, 'col': 3, 'features': []},
+            {'id': '4D', 'label': '4D', 'row': 4, 'col': 4, 'features': ['window']},
+          ]
+        }
+      ],
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    // 6. Update Parent Venue Document with enriched metadata
+    final venueDocRef = _firestore.collection(_collection).doc(venueId);
+    final vMap = <String, dynamic>{
+      'archetype': data.venue['archetype'] ?? 'batch',
+      'masterKnowledgeDoc': data.masterKnowledgeDoc,
+    };
+    if (data.venue['rating'] != null) vMap['rating'] = data.venue['rating'];
+    if (data.venue['reviewCount'] != null) vMap['reviewCount'] = data.venue['reviewCount'];
+    if (data.venue['coverPhotoUrl'] != null) vMap['coverPhotoUrl'] = data.venue['coverPhotoUrl'];
+    if (data.venue['websiteUrl'] != null) vMap['websiteUrl'] = data.venue['websiteUrl'];
+    batch.update(venueDocRef, vMap);
 
     await batch.commit();
   }

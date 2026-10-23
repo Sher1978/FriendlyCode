@@ -42,6 +42,13 @@ export const GoogleMapsHeader = ({ venue }) => {
 
   return (
     <div className="relative overflow-hidden bg-[#121214] border-b border-white/10 pt-4 pb-5 px-4 sm:px-6">
+      {/* Background cover photo overlay if available */}
+      {venue?.coverPhotoUrl && (
+        <div 
+          className="absolute inset-0 bg-cover bg-center opacity-15 pointer-events-none filter blur-[1px]"
+          style={{ backgroundImage: `url(${venue.coverPhotoUrl})` }}
+        />
+      )}
       {/* Background ambient neon glow */}
       <div className="absolute -top-16 -right-16 w-48 h-48 bg-[#00FF41]/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-[#007AFF]/10 rounded-full blur-3xl pointer-events-none" />
