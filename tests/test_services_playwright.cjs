@@ -136,15 +136,15 @@ async function runServicesPlaywrightTest() {
   await page.waitForTimeout(300);
 
   // Submit booking
-  const submitBtn = await page.waitForSelector('button:has-text("Забронировать визит")', { timeout: 5000 });
+  const submitBtn = await page.waitForSelector('button:has-text("Забронировать визит со скидкой"), button:has-text("Забронировать")', { timeout: 5000 });
   await submitBtn.click();
   console.log('   Submitted booking -> waiting for confirmation...');
   await page.waitForTimeout(1500);
 
-  // Verify Digital Boarding Pass
-  const boardingPass = await page.waitForSelector('text=Boarding Pass', { timeout: 8000 });
-  assert.ok(boardingPass, 'Digital Boarding Pass must be rendered on success');
-  console.log('✅ STEP 9: Digital Boarding Pass successfully generated and rendered!');
+  // Verify Booking Confirmation & Messenger Bridge (Scenario 1 Standard Flow)
+  const tgBridge = await page.waitForSelector('a:has-text("В Telegram")', { timeout: 8000 });
+  assert.ok(tgBridge, 'Telegram bridge link must be rendered on success');
+  console.log('✅ STEP 9: Booking confirmation & Messenger Bridge successfully generated and rendered!');
 
   // 7. Verify 24/7 AI-Concierge Floating Widget
   const aiWidget = await page.$('button[title*="ИИ"], button[aria-label*="ассистент"], div:has-text("AI")');

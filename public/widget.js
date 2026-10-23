@@ -11,9 +11,11 @@
   // Read configuration from script tag
   const currentScript = document.currentScript || document.querySelector('script[data-venue-id]');
   const venueId = currentScript ? currentScript.getAttribute('data-venue-id') : 'test_borderrun_pattaya';
+  const venueName = (currentScript && currentScript.getAttribute('data-venue-name')) || 'Бовиза Ранум';
   const primaryColor = (currentScript && currentScript.getAttribute('data-color')) || '#00FF41';
   const position = (currentScript && currentScript.getAttribute('data-position')) || 'right'; // 'right' or 'left'
   const apiUrl = (currentScript && currentScript.getAttribute('data-api-url')) || 'https://asia-south1-bot-lab-21910.cloudfunctions.net/conciergeChatHttp';
+  const bookingUrl = (currentScript && currentScript.getAttribute('data-booking-url')) || `https://bot-lab-21910.web.app/?v=${venueId}&source=partner_widget`;
 
   // Avoid multiple initializations
   if (window.__REVOO_WIDGET_INITIALIZED__) return;
@@ -332,7 +334,7 @@
         <div class="revoo-header-info">
           <div class="revoo-avatar">🤖</div>
           <div class="revoo-title-wrap">
-            <h4 id="revooVenueName">AI-Консьерж</h4>
+            <h4 id="revooVenueName">${venueName} • AI-Консьерж</h4>
             <div class="revoo-status">
               <span class="revoo-status-dot"></span>
               <span>В сети 24/7 • Ответ за 2 сек</span>
@@ -344,9 +346,18 @@
 
       <div class="revoo-messages-area" id="revooMessages">
         <div class="revoo-msg revoo-msg-bot">
-          Здравствуйте! Я официальный AI-ассистент. Отвечу на любые вопросы по бордер-ранам, необходимым документам, точкам сбора или помогу забронировать рейс со скидкой!
+          Здравствуйте! Я официальный цифровой AI-консьерж «${venueName}». Отвечу на любые вопросы по бордер-ранам, документам, точкам сбора или помогу забронировать рейс!
         </div>
       </div>
+
+      <!-- Direct Booking CTA Bar -->
+      <a href="${bookingUrl}" target="_blank" style="display: flex; align-items: center; justify-content: space-between; margin: 4px 14px 6px 14px; padding: 10px 14px; background: linear-gradient(135deg, rgba(0, 255, 65, 0.15) 0%, rgba(0, 122, 255, 0.15) 100%); border: 1px solid rgba(0, 255, 65, 0.35); border-radius: 12px; text-decoration: none; color: #FFF; font-size: 12px; font-weight: 600; transition: all 0.2s;">
+        <span style="display: flex; align-items: center; gap: 8px;">
+          <span>🚌</span>
+          <span>Выбрать рейс и место онлайн</span>
+        </span>
+        <span style="color: ${primaryColor}; font-weight: bold;">→</span>
+      </a>
 
       <!-- Quick Prompt Chips -->
       <div class="revoo-chips-row" id="revooChips">
