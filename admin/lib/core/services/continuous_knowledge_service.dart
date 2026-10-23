@@ -538,12 +538,14 @@ $currentDoc
     required String masterDoc,
     required String userMessage,
     required String venueName,
+    String conciergeName = 'AI-Консьерж',
     List<Map<String, String>> chatHistory = const [],
   }) async {
-    final historyStr = chatHistory.map((m) => "${m['role'] == 'user' ? 'Клиент' : 'Консьерж'}: ${m['text']}").join('\n');
+    final historyStr = chatHistory.map((m) => "${m['role'] == 'user' ? 'Клиент' : conciergeName}: ${m['text']}").join('\n');
 
     final prompt = """
-Ты — доброжелательный, компетентный AI-консьерж сервиса «$venueName».
+Ты — $conciergeName, доброжелательный, компетентный официальный AI-консьерж сервиса «$venueName».
+Если гость спрашивает, как тебя зовут или с кем он говорит — представляйся именем $conciergeName.
 Твоя задача — помочь клиенту с консультацией или бронированием поездки на основе официального регламента.
 
 === ОФИЦИАЛЬНЫЙ РЕГЛАМЕНТ ЗАВЕДЕНИЯ (MASTER KNOWLEDGE) ===

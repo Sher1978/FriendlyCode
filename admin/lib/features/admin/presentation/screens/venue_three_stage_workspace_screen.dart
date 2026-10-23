@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
+import 'package:friendly_code/core/models/services/ai_knowledge_profile_model.dart';
 import 'package:friendly_code/core/services/continuous_knowledge_service.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 
@@ -80,6 +81,12 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
   final Map<String, TextEditingController> _interviewAnswerControllers = {};
   bool _isFinalizing = false;
 
+  // Personal Concierge Profile
+  final _conciergeNameCtrl = TextEditingController(text: 'Алиса');
+  final _conciergeAvatarCtrl = TextEditingController(
+    text: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=256&q=80',
+  );
+
   // Sandbox Chat State
   final List<Map<String, String>> _sandboxMessages = [];
   final _sandboxInputCtrl = TextEditingController();
@@ -120,6 +127,8 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
 
     _liveAiCorrectionCtrl.dispose();
     _masterDocCtrl.dispose();
+    _conciergeNameCtrl.dispose();
+    _conciergeAvatarCtrl.dispose();
     _sandboxInputCtrl.dispose();
     _sandboxScrollCtrl.dispose();
 
@@ -168,6 +177,12 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
     _ratingCtrl.text = (v.rating != null && v.rating! > 0) ? v.rating.toString() : '';
     _reviewCountCtrl.text = (v.reviewCount != null && v.reviewCount! > 0) ? v.reviewCount.toString() : '';
     _masterDocCtrl.text = v.masterKnowledgeDoc ?? '';
+    if (v.conciergeName.isNotEmpty) {
+      _conciergeNameCtrl.text = v.conciergeName;
+    }
+    if ((v.conciergeAvatarUrl ?? '').isNotEmpty) {
+      _conciergeAvatarCtrl.text = v.conciergeAvatarUrl!;
+    }
   }
 
   // --- STAGE 1: AUTO-PARSE GOOGLE MAPS ON BLUR/SUBMIT ---
@@ -753,6 +768,7 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
         masterDoc: _masterDocCtrl.text.isNotEmpty ? _masterDocCtrl.text : "Регламент заведения формируется.",
         userMessage: clean,
         venueName: _nameCtrl.text.isNotEmpty ? _nameCtrl.text : 'Сервис',
+        conciergeName: _conciergeNameCtrl.text.trim().isNotEmpty ? _conciergeNameCtrl.text.trim() : 'AI-Консьерж',
         chatHistory: _sandboxMessages,
       );
 
@@ -810,6 +826,8 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
         'rating': double.tryParse(_ratingCtrl.text.trim()),
         'reviewCount': int.tryParse(_reviewCountCtrl.text.trim()),
         'masterKnowledgeDoc': _masterDocCtrl.text.trim(),
+        'conciergeName': _conciergeNameCtrl.text.trim().isNotEmpty ? _conciergeNameCtrl.text.trim() : 'AI-Консьерж',
+        'conciergeAvatarUrl': _conciergeAvatarCtrl.text.trim(),
         'isActive': true,
         'isManuallyBlocked': false,
         'updatedAt': FieldValue.serverTimestamp(),
@@ -820,6 +838,14 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
       // Synchronize master_doc subcollection
       await FirebaseFirestore.instance.collection('venues').doc(vid).collection('ai_knowledge').doc('master_doc').set({
         'content': _masterDocCtrl.text.trim(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+
+      // Synchronize ai_knowledge/profile subcollection
+      await FirebaseFirestore.instance.collection('venues').doc(vid).collection('ai_knowledge').doc('profile').set({
+        'venueId': vid,
+        'conciergeName': _conciergeNameCtrl.text.trim().isNotEmpty ? _conciergeNameCtrl.text.trim() : 'AI-Консьерж',
+        'conciergeAvatarUrl': _conciergeAvatarCtrl.text.trim(),
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
@@ -2553,6 +2579,212 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
           const SizedBox(height: 16),
         ],
 
+        // PERSONAL CONCIERGE IDENTITY CARD
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.purpleAccent.withValues(alpha: 0.35)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.purpleAccent.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(CupertinoIcons.person_crop_circle_badge_checkmark, color: Colors.purpleAccent, size: 18),
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Личность и Аватар AI-Консьержа", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                        SizedBox(height: 2),
+                        Text("Имя и фотография ассистента в веб-интерфейсе и чатах с гостями", style: TextStyle(color: Colors.purpleAccent, fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Live Avatar Row
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white12),
+                ),
+                child: Row(
+                  children: [
+                    Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor: Colors.purpleAccent.withValues(alpha: 0.25),
+                          backgroundImage: _conciergeAvatarCtrl.text.trim().isNotEmpty ? NetworkImage(_conciergeAvatarCtrl.text.trim()) : null,
+                          child: _conciergeAvatarCtrl.text.trim().isEmpty ? const Icon(CupertinoIcons.person_fill, color: Colors.white, size: 24) : null,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            width: 12,
+                            height: 12,
+                            decoration: BoxDecoration(
+                              color: AppColors.accentGreen,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.black, width: 2),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                _conciergeNameCtrl.text.trim().isNotEmpty ? _conciergeNameCtrl.text.trim() : 'AI-Консьерж',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentGreen.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: AppColors.accentGreen.withValues(alpha: 0.4)),
+                                ),
+                                child: const Text("Онлайн 24/7", style: TextStyle(color: AppColors.accentGreen, fontSize: 9, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          const Text("Официальный ассистент сервиса • Отвечает за 0.4 сек через Groq LPU", style: TextStyle(color: Colors.white54, fontSize: 10.5)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              // Fields
+              Row(
+                children: [
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("Имя консьержа:", style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        CupertinoTextField(
+                          controller: _conciergeNameCtrl,
+                          placeholder: "Имя (e.g. Алиса, Алексей)",
+                          placeholderStyle: const TextStyle(color: Colors.white30, fontSize: 12),
+                          style: const TextStyle(color: Colors.white, fontSize: 12.5),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white12),
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 6,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("URL фотографии аватара:", style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        CupertinoTextField(
+                          controller: _conciergeAvatarCtrl,
+                          placeholder: "https://... (фото лица)",
+                          placeholderStyle: const TextStyle(color: Colors.white30, fontSize: 12),
+                          style: const TextStyle(color: Colors.white, fontSize: 12.5),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white12),
+                          ),
+                          onChanged: (_) => setState(() {}),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Presets
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: kConciergeAvatarPresets.map((preset) {
+                    final isSelected = _conciergeAvatarCtrl.text.trim() == preset.avatarUrl;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _conciergeAvatarCtrl.text = preset.avatarUrl;
+                            if (_conciergeNameCtrl.text.isEmpty || _conciergeNameCtrl.text == 'AI-Консьерж' || kConciergeAvatarPresets.any((p) => p.name == _conciergeNameCtrl.text)) {
+                              _conciergeNameCtrl.text = preset.name;
+                            }
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isSelected ? Colors.purpleAccent.withValues(alpha: 0.3) : Colors.black.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: isSelected ? Colors.purpleAccent : Colors.white12),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 10,
+                                backgroundImage: NetworkImage(preset.avatarUrl),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                preset.name,
+                                style: TextStyle(
+                                  color: isSelected ? Colors.white : Colors.white70,
+                                  fontSize: 10.5,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
         // SANDBOX TESTING CHAT
         Container(
           padding: const EdgeInsets.all(16),
@@ -2564,11 +2796,23 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 children: [
-                  Icon(CupertinoIcons.chat_bubble_text_fill, color: Colors.purpleAccent, size: 16),
-                  SizedBox(width: 8),
-                  Text("Тестовая песочница консьержа (Проверка перед запуском)", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                  CircleAvatar(
+                    radius: 12,
+                    backgroundColor: Colors.purpleAccent.withValues(alpha: 0.25),
+                    backgroundImage: _conciergeAvatarCtrl.text.trim().isNotEmpty
+                        ? NetworkImage(_conciergeAvatarCtrl.text.trim())
+                        : null,
+                    child: _conciergeAvatarCtrl.text.trim().isEmpty
+                        ? const Icon(CupertinoIcons.sparkles, color: AppColors.accentGreen, size: 12)
+                        : null,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Песочница: ${_conciergeNameCtrl.text.trim().isNotEmpty ? _conciergeNameCtrl.text.trim() : 'AI-Консьерж'} (Проверка регламента)",
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -2598,11 +2842,62 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
                   itemBuilder: (context, index) {
                     final msg = _sandboxMessages[index];
                     final isUser = msg['role'] == 'user';
+                    final conciergeTitle = _conciergeNameCtrl.text.trim().isNotEmpty
+                        ? _conciergeNameCtrl.text.trim()
+                        : 'AI-Консьерж';
+
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 6),
-                      child: Text(
-                        "${isUser ? 'Гость' : '🤖 Консьерж'}: ${msg['text']}",
-                        style: TextStyle(color: isUser ? AppColors.accentTeal : Colors.white70, fontSize: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (!isUser) ...[
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: _conciergeAvatarCtrl.text.trim().isNotEmpty
+                                  ? Image.network(
+                                      _conciergeAvatarCtrl.text.trim(),
+                                      width: 16,
+                                      height: 16,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => const Icon(
+                                        CupertinoIcons.sparkles,
+                                        size: 14,
+                                        color: AppColors.accentGreen,
+                                      ),
+                                    )
+                                  : const Icon(
+                                      CupertinoIcons.sparkles,
+                                      size: 14,
+                                      color: AppColors.accentGreen,
+                                    ),
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          Expanded(
+                            child: RichText(
+                              text: TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: "${isUser ? 'Гость' : conciergeTitle}: ",
+                                    style: TextStyle(
+                                      color: isUser ? AppColors.accentTeal : AppColors.accentGreen,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: msg['text'] ?? '',
+                                    style: TextStyle(
+                                      color: isUser ? Colors.white : Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },

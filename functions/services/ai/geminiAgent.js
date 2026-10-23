@@ -104,6 +104,7 @@ class GeminiConciergeAgent {
     const { venue, profile, services, staff, yieldRules, knowledgeDocs = [] } = await this._loadVenueContext(venueId);
 
     const venueName = venue.name || 'Наш салон';
+    const conciergeName = profile.conciergeName || venue.conciergeName || 'AI-консьерж';
     const address = venue.address || '';
     const currency = venue.currency || 'RUB';
     const isInformal = profile.toneOfVoice === 'friendly_informal';
@@ -115,7 +116,8 @@ class GeminiConciergeAgent {
       : 'Специфических регламентов пока не добавлено. Опирайся на список услуг и базовые правила.';
 
     const systemInstruction = `
-Ты — вежливый, заботливый цифровой AI-консьерж заведения "${venueName}".
+Ты — ${conciergeName}, вежливый, заботливый цифровой AI-консьерж заведения "${venueName}".
+Если гость спрашивает, как тебя зовут или с кем он общается, всегда представляйся как ${conciergeName}.
 Категория: ${venue.category || 'Услуги'}.
 Адрес заведения: ${address}.
 Валюта: ${currency}.

@@ -328,6 +328,8 @@ class VenueModel {
   final String? websiteUrl;
   final String telegramStaffChatId;
   final String? masterKnowledgeDoc;
+  final String conciergeName;
+  final String? conciergeAvatarUrl;
 
   VenueModel({
     required this.id,
@@ -378,6 +380,8 @@ class VenueModel {
     this.websiteUrl,
     this.telegramStaffChatId = '',
     this.masterKnowledgeDoc,
+    this.conciergeName = 'AI-Консьерж',
+    this.conciergeAvatarUrl,
   }) : operatingHours = operatingHours ?? const VenueOperatingHours(), 
     tiers = tiers ?? [],
     subscription = subscription ?? VenueSubscription(),
@@ -444,6 +448,8 @@ class VenueModel {
       'telegramStaffChatId': telegramStaffChatId,
       'telegram_group_id': telegramStaffChatId,
       'masterKnowledgeDoc': masterKnowledgeDoc,
+      'conciergeName': conciergeName,
+      'conciergeAvatarUrl': conciergeAvatarUrl,
     };
   }
 
@@ -500,6 +506,8 @@ class VenueModel {
       websiteUrl: map['websiteUrl'] ?? map['linkUrl'],
       telegramStaffChatId: map['telegramStaffChatId'] ?? map['telegram_group_id'] ?? map['telegramDispatchChatId'] ?? '',
       masterKnowledgeDoc: map['masterKnowledgeDoc'] ?? map['knowledgeBaseRaw'],
+      conciergeName: map['conciergeName'] as String? ?? 'AI-Консьерж',
+      conciergeAvatarUrl: map['conciergeAvatarUrl'] as String?,
     );
   }
   VenueModel copyWith({
@@ -551,6 +559,8 @@ class VenueModel {
     String? websiteUrl,
     String? telegramStaffChatId,
     String? masterKnowledgeDoc,
+    String? conciergeName,
+    String? conciergeAvatarUrl,
   }) {
     return VenueModel(
       id: id ?? this.id,
@@ -601,6 +611,8 @@ class VenueModel {
       websiteUrl: websiteUrl ?? this.websiteUrl,
       telegramStaffChatId: telegramStaffChatId ?? this.telegramStaffChatId,
       masterKnowledgeDoc: masterKnowledgeDoc ?? this.masterKnowledgeDoc,
+      conciergeName: conciergeName ?? this.conciergeName,
+      conciergeAvatarUrl: conciergeAvatarUrl ?? this.conciergeAvatarUrl,
     );
   }
 
