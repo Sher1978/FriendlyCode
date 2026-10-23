@@ -95,3 +95,4 @@ The system supports four distinct operational roles within the Admin Panel:
 ## 9. REVOO SERVICES ARCHITECTURE SPECIFICATIONS
 *   **Services Master Architecture:** [`Bible_SoT/Revoo_Services_Architecture.md`](file:///c:/Sher_AI_Studio/projects/FriendlyCode/Bible_SoT/Revoo_Services_Architecture.md)
 *   **Dynamic Capacity, Multi-Zone Seating & Yield SoT:** [`Bible_SoT/Dynamic_Capacity_Yield_and_Seating_SoT.md`](file:///c:/Sher_AI_Studio/projects/FriendlyCode/Bible_SoT/Dynamic_Capacity_Yield_and_Seating_SoT.md)
+*   **Omnichannel Messenger AI Concierge & Booking SoT:** [`Bible_SoT/Omnichannel_Messenger_AI_Concierge_and_Booking_SoT.md`](file:///c:/Sher_AI_Studio/projects/FriendlyCode/Bible_SoT/Omnichannel_Messenger_AI_Concierge_and_Booking_SoT.md)
