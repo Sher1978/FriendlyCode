@@ -31,16 +31,28 @@ class VirtualSlotCalculator {
   }
 
   /**
-   * Calculate discount for a slot based on venue yield rules.
+   * Calculate discount for a slot based on venue yield rules and orthogonal recurrence loyalty.
    * @param {Object} params
    * @param {number} params.slotHour - e.g. 13
    * @param {string} params.dayOfWeek - 'mon', 'tue', etc.
    * @param {number} params.basePrice - e.g. 2500
-   * @param {Array} params.yieldRules - list of active yield rules
-   * @param {number} [params.leadTimeHours] - hours remaining until this slot
+   * @param {Array} [params.yieldRules=[]] - list of active yield rules
+   * @param {number} [params.leadTimeHours=24] - hours remaining until this slot
+   * @param {Object} [params.recurrenceReward=null] - { discount: number, status: 'vip' | 'medium' | 'base', name?: string }
+   * @param {string} [params.combinationMode='max'] - 'max' or 'stack'
+   * @param {number} [params.globalMaxDiscountCap=null]
    * @returns {{ discountAmount: number, discountType: string, finalPrice: number, appliedRuleName: string | null }}
    */
-  static calculateSlotPricing({ slotHour, dayOfWeek, basePrice, yieldRules = [], leadTimeHours = 24 }) {
+  static calculateSlotPricing({ 
+    slotHour, 
+    dayOfWeek, 
+    basePrice, 
+    yieldRules = [], 
+    leadTimeHours = 24,
+    recurrenceReward = null,
+    combinationMode = 'max',
+    globalMaxDiscountCap = null
+  }) {
     let bestDiscountAmount = 0;
     let bestDiscountType = 'percent';
     let appliedRuleName = null;
@@ -53,9 +65,10 @@ class VirtualSlotCalculator {
 
       let ruleMatches = false;
 
-      // 1. Flash Slot Rule (< X hours lead time)
+      // 1. Flash Slot Rule (< X hours lead time, dynamic configurable limit)
       if (rule.isFlashSlot) {
-        if (leadTimeHours <= (rule.flashLeadHours || 3)) {
+        const leadLimit = rule.flashLeadHours ?? rule.leadTimeHoursMax ?? 3;
+        if (leadTimeHours <= leadLimit) {
           ruleMatches = true;
         }
       } 
@@ -94,13 +107,37 @@ class VirtualSlotCalculator {
       }
     }
 
+    // --- ORTHOGONAL RECURRENCE LAYER ---
+    let effectiveRuleName = appliedRuleName;
+    if (recurrenceReward && Number(recurrenceReward.discount) > 0) {
+      const recPercent = Number(recurrenceReward.discount);
+      const recDiscountAmount = Math.round((basePrice * recPercent) / 100);
+
+      if (combinationMode === 'stack') {
+        bestDiscountAmount += recDiscountAmount;
+        effectiveRuleName = appliedRuleName 
+          ? `${appliedRuleName} + Лояльность (${recPercent}%)`
+          : `Скидка лояльности (${recPercent}%)`;
+      } else {
+        if (recDiscountAmount > bestDiscountAmount) {
+          bestDiscountAmount = recDiscountAmount;
+          bestDiscountType = 'percent';
+          effectiveRuleName = `Скидка лояльности (${recPercent}%)`;
+        }
+      }
+    }
+
+    if (globalMaxDiscountCap && bestDiscountAmount > Number(globalMaxDiscountCap)) {
+      bestDiscountAmount = Number(globalMaxDiscountCap);
+    }
+
     const finalPrice = Math.max(0, basePrice - bestDiscountAmount);
 
     return {
       discountAmount: bestDiscountAmount,
       discountType: bestDiscountType,
       finalPrice,
-      appliedRuleName
+      appliedRuleName: effectiveRuleName
     };
   }
 

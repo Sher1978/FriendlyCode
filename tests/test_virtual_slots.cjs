@@ -84,4 +84,32 @@ assert.strictEqual(slots[2].time, '13:00');
 assert.strictEqual(slots[2].finalPrice, 1600); // 13:00 has 20% discount (2000 - 400)
 console.log('✅ Virtual slot generation and collision detection passed.');
 
+// Scenario 4: Test Orthogonal RECURRENCE Layer (Time-Decay Retention Add-on)
+// 4.1 Max Mode: Loyalty (15%) vs Tuesday Yield (20%) -> 20% wins
+const recMaxPricing = VirtualSlotCalculator.calculateSlotPricing({
+  slotHour: 13,
+  dayOfWeek: 'tue',
+  basePrice: 2000,
+  yieldRules,
+  recurrenceReward: { discount: 15, status: 'vip' },
+  combinationMode: 'max'
+});
+assert.strictEqual(recMaxPricing.discountAmount, 400); // 20% > 15%
+assert.strictEqual(recMaxPricing.finalPrice, 1600);
+console.log('✅ 4.1 Recurrence in Max Mode passed (Yield 20% > Loyalty 15%).');
+
+// 4.2 Stack Mode: Loyalty (15% = 300) + Tuesday Yield (20% = 400) -> 700 руб (35%)
+const recStackPricing = VirtualSlotCalculator.calculateSlotPricing({
+  slotHour: 13,
+  dayOfWeek: 'tue',
+  basePrice: 2000,
+  yieldRules,
+  recurrenceReward: { discount: 15, status: 'vip' },
+  combinationMode: 'stack'
+});
+assert.strictEqual(recStackPricing.discountAmount, 700); // 400 + 300
+assert.strictEqual(recStackPricing.finalPrice, 1300);
+assert.ok(recStackPricing.appliedRuleName.includes('Лояльность'));
+console.log('✅ 4.2 Recurrence in Stack Mode passed (400 Yield + 300 Loyalty = 700 руб).');
+
 console.log('🎉 All VirtualSlotCalculator tests passed successfully!');

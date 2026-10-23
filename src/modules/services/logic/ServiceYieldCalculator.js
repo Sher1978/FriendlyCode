@@ -29,16 +29,28 @@ export class ServiceYieldCalculator {
   }
 
   /**
-   * Calculate slot discount and final price based on venue yield rules.
+   * Calculate slot discount and final price based on venue yield rules and orthogonal recurrence loyalty.
    * @param {Object} params
    * @param {number} params.slotHour - hour of day (0-23)
    * @param {string} params.dayOfWeek - 'mon', 'tue', etc.
    * @param {number} params.basePrice - base price of service
-   * @param {Array} params.yieldRules - list of active yield rules
+   * @param {Array} [params.yieldRules=[]] - list of active yield rules
    * @param {number} [params.leadTimeHours=24] - hours left until this slot
-   * @returns {{ discountAmount: number, discountType: string, finalPrice: number, appliedRuleName: string | null }}
+   * @param {Object} [params.recurrenceReward=null] - { discount: number, status: 'vip' | 'medium' | 'base', name?: string }
+   * @param {string} [params.combinationMode='max'] - 'max' (best discount wins) or 'stack' (sum discounts up to cap)
+   * @param {number} [params.globalMaxDiscountCap=null] - absolute cap for stacked discounts
+   * @returns {{ discountAmount: number, discountType: string, finalPrice: number, appliedRuleName: string | null, recurrenceBonus: number }}
    */
-  static calculatePricing({ slotHour, dayOfWeek, basePrice, yieldRules = [], leadTimeHours = 24 }) {
+  static calculatePricing({ 
+    slotHour, 
+    dayOfWeek, 
+    basePrice, 
+    yieldRules = [], 
+    leadTimeHours = 24,
+    recurrenceReward = null,
+    combinationMode = 'max',
+    globalMaxDiscountCap = null
+  }) {
     let bestDiscountAmount = 0;
     let bestDiscountType = 'percent';
     let appliedRuleName = null;
@@ -55,9 +67,10 @@ export class ServiceYieldCalculator {
 
       let matches = false;
 
-      // 1. Flash Slot (< X hours lead time)
+      // 1. Flash Slot (< X hours lead time, fully configurable per rule)
       if (rule.isFlashSlot) {
-        if (leadTimeHours <= (rule.flashLeadHours || 3)) {
+        const leadLimit = rule.flashLeadHours ?? rule.leadTimeHoursMax ?? 3;
+        if (leadTimeHours <= leadLimit) {
           matches = true;
         }
       } 
@@ -82,7 +95,7 @@ export class ServiceYieldCalculator {
           currentDiscount = Math.round((base * Number(rule.discountValue || 0)) / 100);
         }
 
-        // Apply discount ceiling if configured
+        // Apply discount ceiling if configured on rule
         if (rule.maxDiscountCap && currentDiscount > Number(rule.maxDiscountCap)) {
           currentDiscount = Number(rule.maxDiscountCap);
         }
@@ -95,13 +108,45 @@ export class ServiceYieldCalculator {
       }
     }
 
+    // --- ORTHOGONAL RECURRENCE LAYER (Time-Decay Retention Loyalty Add-on) ---
+    let recurrenceBonus = 0;
+    let effectiveRuleName = appliedRuleName;
+
+    if (recurrenceReward && Number(recurrenceReward.discount) > 0) {
+      const recPercent = Number(recurrenceReward.discount);
+      const recDiscountAmount = Math.round((base * recPercent) / 100);
+
+      if (combinationMode === 'stack') {
+        // Stack mode: sum yield + loyalty up to cap
+        recurrenceBonus = recDiscountAmount;
+        bestDiscountAmount += recDiscountAmount;
+        effectiveRuleName = appliedRuleName 
+          ? `${appliedRuleName} + Лояльность (${recPercent}%)`
+          : `Скидка лояльности (${recPercent}%)`;
+      } else {
+        // Max mode (default): give client whichever is higher
+        if (recDiscountAmount > bestDiscountAmount) {
+          bestDiscountAmount = recDiscountAmount;
+          bestDiscountType = 'percent';
+          recurrenceBonus = recDiscountAmount;
+          effectiveRuleName = `Скидка лояльности (${recPercent}%)`;
+        }
+      }
+    }
+
+    // Global Safety Cap check
+    if (globalMaxDiscountCap && bestDiscountAmount > Number(globalMaxDiscountCap)) {
+      bestDiscountAmount = Number(globalMaxDiscountCap);
+    }
+
     const finalPrice = Math.max(0, base - bestDiscountAmount);
 
     return {
       discountAmount: bestDiscountAmount,
       discountType: bestDiscountType,
       finalPrice,
-      appliedRuleName
+      appliedRuleName: effectiveRuleName,
+      recurrenceBonus
     };
   }
 
@@ -119,7 +164,10 @@ export class ServiceYieldCalculator {
     basePrice = 1000,
     dateStr,
     nowDateStr = '',
-    nowMinutes = 0
+    nowMinutes = 0,
+    recurrenceReward = null,
+    combinationMode = 'max',
+    globalMaxDiscountCap = null
   }) {
     const startM = this.timeToMinutes(shiftStart);
     const endM = this.timeToMinutes(shiftEnd);
@@ -158,7 +206,10 @@ export class ServiceYieldCalculator {
           dayOfWeek,
           basePrice,
           yieldRules,
-          leadTimeHours
+          leadTimeHours,
+          recurrenceReward,
+          combinationMode,
+          globalMaxDiscountCap
         });
 
         slots.push({

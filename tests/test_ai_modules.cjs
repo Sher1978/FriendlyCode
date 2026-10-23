@@ -6,12 +6,13 @@ console.log('🧪 Testing AI Concierge & Onboarding Modules...');
 
 // 1. Test Interview Questions structure
 assert.strictEqual(Array.isArray(INTERVIEW_QUESTIONS), true);
-assert.strictEqual(INTERVIEW_QUESTIONS.length, 4);
-assert.strictEqual(INTERVIEW_QUESTIONS[0].id, 'toneOfVoice');
-assert.strictEqual(INTERVIEW_QUESTIONS[1].id, 'parkingInstructions');
-assert.strictEqual(INTERVIEW_QUESTIONS[2].id, 'rulesAndPolicies');
-assert.strictEqual(INTERVIEW_QUESTIONS[3].id, 'specialFeatures');
-console.log('✅ Onboarding interview questions verified (4 steps).');
+assert.strictEqual(INTERVIEW_QUESTIONS.length, 5);
+assert.strictEqual(INTERVIEW_QUESTIONS[0].id, 'constraintFactor');
+assert.strictEqual(INTERVIEW_QUESTIONS[1].id, 'toneOfVoice');
+assert.strictEqual(INTERVIEW_QUESTIONS[2].id, 'parkingInstructions');
+assert.strictEqual(INTERVIEW_QUESTIONS[3].id, 'rulesAndPolicies');
+assert.strictEqual(INTERVIEW_QUESTIONS[4].id, 'specialFeatures');
+console.log('✅ Onboarding interview questions verified (5 steps including Constraint Factor).');
 
 // 2. Test Gemini Tools Definition
 assert.strictEqual(Array.isArray(toolsDefinition), true);
