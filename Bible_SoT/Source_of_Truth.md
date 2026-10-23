@@ -90,3 +90,8 @@ The system supports four distinct operational roles within the Admin Panel:
 *   `visits`: Records every activation event.
 *   `notifications`: Queue for in-app browser notification badge.
 
+
+
+## 9. REVOO SERVICES ARCHITECTURE SPECIFICATIONS
+*   **Services Master Architecture:** [`Bible_SoT/Revoo_Services_Architecture.md`](file:///c:/Sher_AI_Studio/projects/FriendlyCode/Bible_SoT/Revoo_Services_Architecture.md)
+*   **Dynamic Capacity, Multi-Zone Seating & Yield SoT:** [`Bible_SoT/Dynamic_Capacity_Yield_and_Seating_SoT.md`](file:///c:/Sher_AI_Studio/projects/FriendlyCode/Bible_SoT/Dynamic_Capacity_Yield_and_Seating_SoT.md)
