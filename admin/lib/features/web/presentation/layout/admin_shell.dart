@@ -18,7 +18,6 @@ import 'package:friendly_code/features/admin/presentation/screens/global_email_s
 import 'package:friendly_code/features/admin/presentation/screens/global_guests_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/global_venues_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/super_admin_venue_detail_screen.dart';
-import 'package:friendly_code/features/admin/presentation/screens/my_team_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/scan_logs_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_role_assignment_screen.dart';
@@ -31,17 +30,18 @@ import 'package:friendly_code/features/owner/presentation/screens/delivery_logis
 import 'package:friendly_code/features/owner/presentation/screens/delivery_loyalty_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/delivery_menu_manager_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/deposit_analytics_screen.dart';
-import 'package:friendly_code/features/owner/presentation/screens/deposit_tiers_setup_screen.dart';
-import 'package:friendly_code/features/owner/presentation/screens/google_maps_config_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/guest_list_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/marketing_blast_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/owner_analytics_screen.dart';
-import 'package:friendly_code/features/owner/presentation/screens/owner_venues_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/pos_sticker_screen.dart';
-import 'package:friendly_code/features/owner/presentation/screens/rules_config_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/settings_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/venue_regional_settings_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/venue_staff_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/online_orders_manager_screen.dart';
+import 'package:friendly_code/features/services/presentation/screens/trip_dispatcher_screen.dart';
+import 'package:friendly_code/features/services/presentation/screens/fleet_management_screen.dart';
+import 'package:friendly_code/features/services/presentation/screens/services_catalog_screen.dart';
+import 'package:friendly_code/features/services/presentation/screens/yield_rules_screen.dart';
 
 /// Scope to allow nested widgets to switch the active AdminShell tab
 class AdminShellScope extends InheritedWidget {
@@ -253,110 +253,333 @@ class _AdminShellState extends State<AdminShell> {
     );
   }
 
-  List<AdminNavItem> _getNavItems() {
+  List<AdminNavItem> _getNavItems(VenueModel? activeVenue) {
+    final isSuperAdmin = widget.role == UserRole.superAdmin;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 👑 1. SUPERADMIN: PURE PLATFORM MANAGEMENT (NO CAFE / DISPATCH POLLUTION)
+    // ═══════════════════════════════════════════════════════════════════════
+    if (isSuperAdmin) {
+      return [
+        // ── PLATFORM ──
+        AdminNavItem(
+          key: 'overview',
+          title: 'Platform Overview',
+          titleRu: 'Сводка платформы',
+          icon: Icons.grid_view_outlined,
+          groupTitle: 'PLATFORM',
+          groupTitleRu: 'ПЛАТФОРМА',
+          builder: (context, venueId) => widget.child,
+          isVisible: (_) => true,
+        ),
+        AdminNavItem(
+          key: 'venues',
+          title: 'All Venues',
+          titleRu: 'Все заведения',
+          icon: Icons.storefront_outlined,
+          builder: (context, venueId) => GlobalVenuesScreen(),
+          isVisible: (_) => true,
+        ),
+        AdminNavItem(
+          key: 'guests',
+          title: 'Global Guests',
+          titleRu: 'База гостей сети',
+          icon: Icons.people_alt_outlined,
+          builder: (context, venueId) => const GlobalGuestsScreen(),
+          isVisible: (_) => true,
+        ),
+        AdminNavItem(
+          key: 'analytics',
+          title: 'Platform Analytics',
+          titleRu: 'Аналитика SaaS',
+          icon: Icons.bar_chart_outlined,
+          builder: (context, venueId) => const AnalyticsModule(),
+          isVisible: (_) => true,
+        ),
+
+        // ── ACCESS & STAFF ──
+        AdminNavItem(
+          key: 'roles_assignment',
+          title: 'Role Assignment',
+          titleRu: 'Привязка к заведению',
+          icon: Icons.manage_accounts_outlined,
+          groupTitle: 'ACCESS & ROLES',
+          groupTitleRu: 'ПРАВА И ДОСТУП',
+          builder: (context, venueId) => const VenueRoleAssignmentScreen(),
+          isVisible: (_) => true,
+        ),
+        AdminNavItem(
+          key: 'staff',
+          title: 'Platform Team',
+          titleRu: 'Команда платформы',
+          icon: Icons.shield_outlined,
+          builder: (context, venueId) => const StaffManagementScreen(),
+          isVisible: (_) => true,
+        ),
+
+        // ── INFRASTRUCTURE ──
+        AdminNavItem(
+          key: 'email_setup',
+          title: 'Email & SMTP',
+          titleRu: 'Email & SMTP рассылки',
+          icon: Icons.email_outlined,
+          groupTitle: 'INFRASTRUCTURE',
+          groupTitleRu: 'ИНФРАСТРУКТУРА',
+          builder: (context, venueId) => GlobalEmailSettingsScreen(),
+          isVisible: (_) => true,
+        ),
+        AdminNavItem(
+          key: 'scan_logs',
+          title: 'Audit & Scan Logs',
+          titleRu: 'Журнал событий',
+          icon: CupertinoIcons.doc_text_search,
+          builder: (context, venueId) => const ScanLogsScreen(),
+          isVisible: (_) => true,
+        ),
+        AdminNavItem(
+          key: 'settings',
+          title: 'System Settings',
+          titleRu: 'Системные настройки',
+          icon: Icons.settings_outlined,
+          builder: (context, venueId) => GeneralSettingsScreen(),
+          isVisible: (_) => true,
+        ),
+      ];
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // 🏢 2. VENUE OPERATOR / OWNER: DYNAMIC BY ARCHETYPE
+    // ═══════════════════════════════════════════════════════════════════════
+    final isBatch = activeVenue != null && (
+      activeVenue.archetype == 'batch' ||
+      activeVenue.category.toLowerCase().contains('виза') ||
+      activeVenue.category.toLowerCase().contains('бордер') ||
+      activeVenue.category.toLowerCase().contains('трансфер')
+    );
+
+    final isServices = activeVenue != null && (
+      isBatch ||
+      activeVenue.archetype.startsWith('services') ||
+      activeVenue.archetype == 'personal_time' ||
+      activeVenue.category.toLowerCase().contains('сервис')
+    );
+
+    // ── CASE A: TRANSPORT & FLEET / VISARUN / SERVICES ──
+    if (isBatch || isServices) {
+      return [
+        AdminNavItem(
+          key: 'overview',
+          title: 'Overview',
+          titleRu: 'Сводка заведения',
+          icon: Icons.grid_view_outlined,
+          groupTitle: 'OPERATIONS',
+          groupTitleRu: 'ОПЕРАЦИИ',
+          builder: (context, venueId) => widget.child,
+          isVisible: (_) => true,
+        ),
+        AdminNavItem(
+          key: 'trip_dispatcher',
+          title: 'Trip Dispatcher',
+          titleRu: 'Диспетчер рейсов',
+          icon: CupertinoIcons.bus,
+          badgeText: 'LIVE',
+          builder: (context, venueId) => _VenueStreamWrapper(
+            venueId: venueId,
+            builder: (ctx, v) => TripDispatcherScreen(venueId: v.id, currency: v.currencySymbol),
+          ),
+          isVisible: (_) => true,
+        ),
+        AdminNavItem(
+          key: 'guests',
+          title: 'Passengers & Guests',
+          titleRu: 'Пассажиры & Гости',
+          icon: Icons.people_alt_outlined,
+          builder: (context, venueId) {
+            if (venueId == null || venueId.isEmpty) return _buildNoVenuePlaceholder(context);
+            return GuestListScreen(venueId: venueId);
+          },
+          isVisible: (_) => true,
+        ),
+
+        // ── FLEET & CATALOG ──
+        AdminNavItem(
+          key: 'fleet_management',
+          title: 'Fleet & Bus Models',
+          titleRu: 'Парк транспорта',
+          icon: Icons.directions_bus_filled_outlined,
+          groupTitle: 'FLEET & SERVICES',
+          groupTitleRu: 'ТРАНСПОРТ И УСЛУГИ',
+          builder: (context, venueId) => _VenueStreamWrapper(
+            venueId: venueId,
+            builder: (ctx, v) => FleetManagementScreen(venueId: v.id, currency: v.currencySymbol),
+          ),
+          isVisible: (role) => role == UserRole.owner || role == UserRole.admin,
+        ),
+        AdminNavItem(
+          key: 'services_catalog',
+          title: 'Services & Packages',
+          titleRu: 'Пакеты услуг (Визаран)',
+          icon: Icons.category_outlined,
+          builder: (context, venueId) => _VenueStreamWrapper(
+            venueId: venueId,
+            builder: (ctx, v) => ServicesCatalogScreen(
+              venueId: v.id,
+              currency: v.currencySymbol,
+              archetype: isBatch ? 'batch' : 'personal_time',
+            ),
+          ),
+          isVisible: (role) => role == UserRole.owner || role == UserRole.admin,
+        ),
+        AdminNavItem(
+          key: 'yield_rules',
+          title: 'Yield & Discounts',
+          titleRu: 'Логика скидок рейсов',
+          icon: Icons.trending_down_outlined,
+          builder: (context, venueId) => _VenueStreamWrapper(
+            venueId: venueId,
+            builder: (ctx, v) => YieldRulesScreen(
+              venueId: v.id,
+              currency: v.currencySymbol,
+              archetype: isBatch ? 'batch' : 'personal_time',
+            ),
+          ),
+          isVisible: (role) => role == UserRole.owner || role == UserRole.admin,
+        ),
+
+        // ── MANAGEMENT ──
+        AdminNavItem(
+          key: 'analytics',
+          title: 'Analytics & Revenue',
+          titleRu: 'Аналитика & Выручка',
+          icon: Icons.bar_chart_outlined,
+          groupTitle: 'MANAGEMENT',
+          groupTitleRu: 'УПРАВЛЕНИЕ',
+          builder: (context, venueId) => const OwnerAnalyticsScreen(),
+          isVisible: (role) => role != UserRole.manager,
+        ),
+        AdminNavItem(
+          key: 'staff',
+          title: 'Drivers & Team',
+          titleRu: 'Водители & Персонал',
+          icon: Icons.people_outline,
+          builder: (context, venueId) {
+            if (venueId == null || venueId.isEmpty) return _buildNoVenuePlaceholder(context);
+            return VenueStaffScreen(venueId: venueId);
+          },
+          isVisible: (role) => role == UserRole.owner || role == UserRole.admin,
+        ),
+        AdminNavItem(
+          key: 'regional_settings',
+          title: 'Venue Settings',
+          titleRu: 'Настройки заведения',
+          icon: CupertinoIcons.slider_horizontal_3,
+          builder: (context, venueId) {
+            if (venueId == null || venueId.isEmpty) return _buildNoVenuePlaceholder(context);
+            return VenueRegionalSettingsScreen(venueId: venueId);
+          },
+          isVisible: (role) => role == UserRole.owner || role == UserRole.admin,
+        ),
+        AdminNavItem(
+          key: 'billing',
+          title: 'Billing & Plan',
+          titleRu: 'Подписка & Биллинг',
+          icon: Icons.payments_outlined,
+          builder: (context, venueId) => const OwnerBillingScreen(),
+          isVisible: (role) => role == UserRole.owner,
+        ),
+        AdminNavItem(
+          key: 'settings',
+          title: 'General Settings',
+          titleRu: 'Общие настройки',
+          icon: Icons.settings_outlined,
+          builder: (context, venueId) => GeneralSettingsScreen(),
+          isVisible: (_) => true,
+        ),
+      ];
+    }
+
+    // ── CASE B: FOOD, CAFE & RESTAURANT DELIVERY ──
     return [
-      // ─── 1. MAIN / ОСНОВНОЕ ─────────────────────────────────────────────
       AdminNavItem(
         key: 'overview',
         title: 'Overview',
-        titleRu: 'Обзор',
+        titleRu: 'Сводка заведения',
         icon: Icons.grid_view_outlined,
-        groupTitle: 'MAIN',
-        groupTitleRu: 'ОСНОВНОЕ',
+        groupTitle: 'OPERATIONS',
+        groupTitleRu: 'ОПЕРАЦИИ',
         builder: (context, venueId) => widget.child,
-        isVisible: (role) => true,
+        isVisible: (_) => true,
+      ),
+      AdminNavItem(
+        key: 'orders',
+        title: 'Online Orders',
+        titleRu: 'Онлайн-заказы',
+        icon: Icons.receipt_long_outlined,
+        badgeText: 'LIVE',
+        builder: (context, venueId) {
+          if (venueId == null || venueId.isEmpty) return _buildNoVenuePlaceholder(context);
+          return OnlineOrdersManagerScreen(venueId: venueId);
+        },
+        isVisible: (_) => true,
       ),
       AdminNavItem(
         key: 'guests',
-        title: 'Guests',
+        title: 'Guests Database',
         titleRu: 'База гостей',
         icon: Icons.people_alt_outlined,
         builder: (context, venueId) {
-          if (widget.role == UserRole.superAdmin) {
-            return const GlobalGuestsScreen();
-          }
-          if (venueId == null || venueId.isEmpty) {
-            return _buildNoVenuePlaceholder(context);
-          }
+          if (venueId == null || venueId.isEmpty) return _buildNoVenuePlaceholder(context);
           return GuestListScreen(venueId: venueId);
         },
-        isVisible: (role) => true,
+        isVisible: (_) => true,
       ),
 
-      // ─── 2. DIRECT DELIVERY & FOOD APPS / ОНЛАЙН-ДОСТАВКА ────────────────
+      // ── CATALOG & DELIVERY ──
       AdminNavItem(
         key: 'delivery_menu',
         title: 'Menu & Scraper',
-        titleRu: 'Меню & Парсинг',
+        titleRu: 'Меню & Блюда',
         icon: Icons.restaurant_menu_outlined,
-        groupTitle: 'DIRECT DELIVERY',
-        groupTitleRu: 'ОНЛАЙН-ДОСТАВКА',
-        badgeText: 'NEW',
+        groupTitle: 'CATALOG & DELIVERY',
+        groupTitleRu: 'МЕНЮ И ДОСТАВКА',
         builder: (context, venueId) {
-          if (venueId == null || venueId.isEmpty) {
-            return _buildNoVenuePlaceholder(context);
-          }
+          if (venueId == null || venueId.isEmpty) return _buildNoVenuePlaceholder(context);
           return DeliveryMenuManagerScreen(venueId: venueId);
         },
         isVisible: (role) => role != UserRole.manager,
       ),
       AdminNavItem(
         key: 'delivery_loyalty',
-        title: 'Delivery Loyalty',
+        title: 'Discounts & Happy Hours',
         titleRu: 'Скидки & Happy Hours',
         icon: Icons.timer_outlined,
         builder: (context, venueId) {
-          if (venueId == null || venueId.isEmpty) {
-            return _buildNoVenuePlaceholder(context);
-          }
+          if (venueId == null || venueId.isEmpty) return _buildNoVenuePlaceholder(context);
           return DeliveryLoyaltyScreen(venueId: venueId);
         },
         isVisible: (role) => role != UserRole.manager,
       ),
       AdminNavItem(
         key: 'delivery_logistics',
-        title: 'Payments & Logistics',
+        title: 'Payments & Couriers',
         titleRu: 'Оплата & Курьеры',
         icon: Icons.local_shipping_outlined,
         builder: (context, venueId) {
-          if (venueId == null || venueId.isEmpty) {
-            return _buildNoVenuePlaceholder(context);
-          }
+          if (venueId == null || venueId.isEmpty) return _buildNoVenuePlaceholder(context);
           return DeliveryLogisticsPaymentScreen(venueId: venueId);
         },
         isVisible: (role) => role != UserRole.manager,
       ),
 
-      // ─── 3. INTELLIGENCE & GROWTH / ЛОЯЛЬНОСТЬ & РОСТ ───────────────────
-      AdminNavItem(
-        key: 'loyalty_rules',
-        title: 'Loyalty Rules',
-        titleRu: 'Правила лояльности',
-        icon: CupertinoIcons.infinite,
-        groupTitle: 'GROWTH & MARKETING',
-        groupTitleRu: 'ЛОЯЛЬНОСТЬ & РОСТ',
-        builder: (context, venueId) => RulesConfigScreen(venueId: venueId),
-        isVisible: (role) => role == UserRole.owner || role == UserRole.admin,
-      ),
+      // ── GROWTH & MARKETING ──
       AdminNavItem(
         key: 'deposits',
-        title: 'Deposit Analytics',
-        titleRu: 'Депозиты & Отчеты',
+        title: 'Deposits',
+        titleRu: 'Депозитная программа',
         icon: CupertinoIcons.money_dollar_circle,
+        groupTitle: 'GROWTH & LOYALTY',
+        groupTitleRu: 'ЛОЯЛЬНОСТЬ & РОСТ',
         builder: (context, venueId) => DepositAnalyticsScreen(venueId: venueId),
-        isVisible: (role) => role == UserRole.owner || role == UserRole.admin,
-      ),
-      AdminNavItem(
-        key: 'deposit_tiers',
-        title: 'Deposit Tiers',
-        titleRu: 'Тиры депозитов',
-        icon: Icons.credit_card_outlined,
-        builder: (context, venueId) {
-          if (venueId == null || venueId.isEmpty) {
-            return _buildNoVenuePlaceholder(context);
-          }
-          return DepositTiersSetupScreen(venueId: venueId);
-        },
         isVisible: (role) => role == UserRole.owner || role == UserRole.admin,
       ),
       AdminNavItem(
@@ -365,152 +588,71 @@ class _AdminShellState extends State<AdminShell> {
         titleRu: 'Маркетинг & Рассылки',
         icon: Icons.campaign_outlined,
         builder: (context, venueId) {
-          if (venueId == null || venueId.isEmpty) {
-            return _buildNoVenuePlaceholder(context);
-          }
+          if (venueId == null || venueId.isEmpty) return _buildNoVenuePlaceholder(context);
           return MarketingBlastScreen(venueId: venueId);
         },
         isVisible: (role) => role == UserRole.owner || role == UserRole.admin,
       ),
       AdminNavItem(
         key: 'pos_stickers',
-        title: 'POS Stickers',
-        titleRu: 'POS-наклейки',
+        title: 'POS Stickers & QR',
+        titleRu: 'QR-наклейки на столы',
         icon: CupertinoIcons.qrcode,
-        builder: (context, venueId) {
-          if (venueId == null || venueId.isEmpty) {
-            return _buildNoVenuePlaceholder(context);
-          }
-          return _VenueStreamWrapper(
-            venueId: venueId,
-            builder: (ctx, venue) => PosStickerScreen(venue: venue),
-          );
-        },
+        builder: (context, venueId) => _VenueStreamWrapper(
+          venueId: venueId,
+          builder: (ctx, v) => PosStickerScreen(venue: v),
+        ),
         isVisible: (role) => role == UserRole.owner || role == UserRole.admin,
       ),
 
-      // ─── 4. VENUE MANAGEMENT / УПРАВЛЕНИЕ ──────────────────────────────
+      // ── VENUE MANAGEMENT ──
       AdminNavItem(
         key: 'analytics',
         title: 'Analytics',
-        titleRu: 'Аналитика',
+        titleRu: 'Аналитика продаж',
         icon: Icons.bar_chart_outlined,
         groupTitle: 'MANAGEMENT',
         groupTitleRu: 'УПРАВЛЕНИЕ',
-        builder: (context, venueId) => widget.role == UserRole.superAdmin
-            ? const AnalyticsModule()
-            : const OwnerAnalyticsScreen(),
+        builder: (context, venueId) => const OwnerAnalyticsScreen(),
         isVisible: (role) => role != UserRole.manager,
       ),
       AdminNavItem(
-        key: 'venues',
-        title: 'Venues',
-        titleRu: 'Заведения',
-        icon: Icons.storefront_outlined,
-        builder: (context, venueId) => widget.role == UserRole.superAdmin
-            ? GlobalVenuesScreen()
-            : OwnerVenuesScreen(),
-        isVisible: (role) => true,
-      ),
-      AdminNavItem(
         key: 'staff',
-        title: 'Team & Staff',
-        titleRu: 'Команда & Персонал',
+        title: 'Staff & Roles',
+        titleRu: 'Персонал заведения',
         icon: Icons.people_outline,
         builder: (context, venueId) {
-          if (widget.role == UserRole.superAdmin) {
-            return StaffManagementScreen();
-          } else if (widget.role == UserRole.owner) {
-            if (venueId == null || venueId.isEmpty) {
-              return _buildNoVenuePlaceholder(context);
-            }
-            return VenueStaffScreen(venueId: venueId);
-          } else {
-            return const MyTeamScreen();
-          }
+          if (venueId == null || venueId.isEmpty) return _buildNoVenuePlaceholder(context);
+          return VenueStaffScreen(venueId: venueId);
         },
-        isVisible: (role) => true,
-      ),
-      AdminNavItem(
-        key: 'roles_assignment',
-        title: 'Role Assignment',
-        titleRu: 'Привязка к заведению',
-        icon: Icons.manage_accounts_outlined,
-        builder: (context, venueId) => const VenueRoleAssignmentScreen(),
-        isVisible: (role) => role == UserRole.superAdmin,
+        isVisible: (role) => role == UserRole.owner || role == UserRole.admin,
       ),
       AdminNavItem(
         key: 'regional_settings',
-        title: 'Venue Workspace',
+        title: 'Venue Settings',
         titleRu: 'Настройки заведения',
         icon: CupertinoIcons.slider_horizontal_3,
         builder: (context, venueId) {
-          if (venueId == null || venueId.isEmpty) {
-            return _buildNoVenuePlaceholder(context);
-          }
-          return _VenueStreamWrapper(
-            venueId: venueId,
-            builder: (ctx, venue) => SuperAdminVenueDetailScreen(
-              venue: venue,
-              showAppBar: false,
-            ),
-          );
+          if (venueId == null || venueId.isEmpty) return _buildNoVenuePlaceholder(context);
+          return VenueRegionalSettingsScreen(venueId: venueId);
         },
-        isVisible: (role) => true,
+        isVisible: (role) => role == UserRole.owner || role == UserRole.admin,
       ),
       AdminNavItem(
         key: 'billing',
-        title: 'Billing',
+        title: 'Billing & Plan',
         titleRu: 'Подписка & Биллинг',
         icon: Icons.payments_outlined,
         builder: (context, venueId) => const OwnerBillingScreen(),
         isVisible: (role) => role == UserRole.owner,
       ),
       AdminNavItem(
-        key: 'google_maps',
-        title: 'Google Maps & Reviews',
-        titleRu: 'Google Maps & Отзывы',
-        icon: CupertinoIcons.map,
-        builder: (context, venueId) {
-          if (venueId == null || venueId.isEmpty) {
-            return _buildNoVenuePlaceholder(context);
-          }
-          return _VenueStreamWrapper(
-            venueId: venueId,
-            builder: (ctx, venue) => GoogleMapsConfigScreen(venue: venue),
-          );
-        },
-        isVisible: (role) => role == UserRole.owner || role == UserRole.admin,
-      ),
-
-      // ─── 5. SUPERADMIN SPECIFIC / АДМИНИСТРИРОВАНИЕ ─────────────────────
-      AdminNavItem(
-        key: 'email_setup',
-        title: 'Email Setup',
-        titleRu: 'Email Setup',
-        icon: Icons.email_outlined,
-        groupTitle: 'ADMINISTRATION',
-        groupTitleRu: 'АДМИНИСТРИРОВАНИЕ',
-        builder: (context, venueId) => GlobalEmailSettingsScreen(),
-        isVisible: (role) => role == UserRole.superAdmin,
-      ),
-      AdminNavItem(
-        key: 'scan_logs',
-        title: 'Scan Logs',
-        titleRu: 'Журнал регистраций',
-        icon: CupertinoIcons.doc_text_search,
-        builder: (context, venueId) => const ScanLogsScreen(),
-        isVisible: (role) => role == UserRole.superAdmin,
-      ),
-
-      // ─── 6. SETTINGS / НАСТРОЙКИ ────────────────────────────────────────
-      AdminNavItem(
         key: 'settings',
-        title: 'Settings',
-        titleRu: 'Настройки',
+        title: 'General Settings',
+        titleRu: 'Общие настройки',
         icon: Icons.settings_outlined,
         builder: (context, venueId) => GeneralSettingsScreen(),
-        isVisible: (role) => true,
+        isVisible: (_) => true,
       ),
     ];
   }
@@ -518,7 +660,7 @@ class _AdminShellState extends State<AdminShell> {
   @override
   Widget build(BuildContext context) {
     // ── STRICT AUTH & RBAC GUARD ──
-    final currentUser = AuthService().currentUser;
+final currentUser = AuthService().currentUser;
     if (currentUser == null) {
       return const SuperAdminLoginScreen();
     }
@@ -587,14 +729,20 @@ class _AdminShellState extends State<AdminShell> {
     }
 
     final activeVenueId = roleProvider.venueId;
-    final allItems = _getNavItems();
-    final visibleItems = allItems.where((item) => item.isVisible(widget.role)).toList();
 
-    // Find the currently active item, fallback to first item
-    final activeItem = visibleItems.firstWhere(
-      (item) => item.key == _selectedKey,
-      orElse: () => visibleItems.first,
-    );
+    return StreamBuilder<VenueModel?>(
+      stream: activeVenueId != null && activeVenueId.isNotEmpty
+          ? VenueRepository().getVenueStream(activeVenueId)
+          : Stream<VenueModel?>.value(null),
+      builder: (context, venueSnap) {
+        final activeVenue = venueSnap.data;
+        final allItems = _getNavItems(activeVenue);
+        final visibleItems = allItems.where((item) => item.isVisible(widget.role)).toList();
+
+        final activeItem = visibleItems.firstWhere(
+          (item) => item.key == _selectedKey,
+          orElse: () => visibleItems.first,
+        );
 
     return AdminShellScope(
       selectTab: (key) {
@@ -651,18 +799,18 @@ class _AdminShellState extends State<AdminShell> {
                         title: const Text("REVOO", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)),
                       )
                     : null,
-                drawer: !isDesktop ? Drawer(child: _buildSidebar(isMobile: true)) : null,
+                drawer: !isDesktop ? Drawer(child: _buildSidebar(activeVenue, isMobile: true)) : null,
                 body: Row(
                   children: [
                     // Permanent Side Navigation (Desktop only)
-                    if (isDesktop) _buildSidebar(),
+                    if (isDesktop) _buildSidebar(activeVenue),
 
                     // Main Content Area
                     Expanded(
                       child: Column(
                         children: [
                           // Header Search & User Info & Venue Switcher
-                          _buildHeader(isDesktop: isDesktop),
+                          _buildHeader(activeVenue, isDesktop: isDesktop),
 
                           // Actual Screen Content
                           Expanded(
@@ -689,12 +837,14 @@ class _AdminShellState extends State<AdminShell> {
         },
       ),
     );
+      },
+    );
   }
 
-  Widget _buildSidebar({bool isMobile = false}) {
+  Widget _buildSidebar(VenueModel? activeVenue, {bool isMobile = false}) {
     final localeProvider = Provider.of<LocaleProvider>(context);
     final isRu = localeProvider.locale.languageCode == 'ru';
-    final allItems = _getNavItems();
+    final allItems = _getNavItems(activeVenue);
     final visibleItems = allItems.where((item) => item.isVisible(widget.role)).toList();
 
     return ClipRRect(
@@ -910,7 +1060,7 @@ class _AdminShellState extends State<AdminShell> {
     );
   }
 
-  Widget _buildHeader({bool isDesktop = true}) {
+  Widget _buildHeader(VenueModel? activeVenue, {bool isDesktop = true}) {
     final currentUser = AuthService().currentUser;
     final userEmail = currentUser?.email ?? 'Не авторизован';
 
@@ -923,10 +1073,141 @@ class _AdminShellState extends State<AdminShell> {
           padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 16),
           child: Row(
             children: [
-              // Venue Switcher Dropdown (when owner has multiple venues)
+              // Venue Switcher Dropdown & SuperAdmin Quick Cockpit
               Consumer<RoleProvider>(
                 builder: (context, roleProv, _) {
                   final activeId = roleProv.venueId;
+                  final isSuper = roleProv.isSuperAdmin;
+
+                  // ── SUPERADMIN VIEW: CAN INSPECT ALL VENUES IN PLATFORM ──
+                  if (isSuper) {
+                    return StreamBuilder<List<VenueModel>>(
+                      stream: VenueRepository().getVenuesStream(includeInactive: true),
+                      builder: (context, vSnap) {
+                        final allVenues = vSnap.data ?? [];
+                        if (allVenues.isEmpty) return const SizedBox.shrink();
+
+                        final currentVenue = allVenues.firstWhere(
+                          (v) => v.id == activeId,
+                          orElse: () => allVenues.first,
+                        );
+
+                        return Container(
+                          margin: const EdgeInsets.only(right: 16),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              PopupMenuButton<String>(
+                                tooltip: "Выбрать заведение для инспекции",
+                                offset: const Offset(0, 45),
+                                color: const Color(0xFF1C1C1E),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  side: BorderSide(color: Colors.white.withOpacity(0.15)),
+                                ),
+                                onSelected: (newId) {
+                                  roleProv.setActiveVenueId(newId);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentTeal.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: AppColors.accentTeal.withOpacity(0.4)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(CupertinoIcons.building_2_fill, size: 15, color: AppColors.accentTeal),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        currentVenue.name,
+                                        style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white, fontSize: 13),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Icon(CupertinoIcons.chevron_down, color: Colors.white.withOpacity(0.6), size: 12),
+                                    ],
+                                  ),
+                                ),
+                                itemBuilder: (context) => [
+                                  ...allVenues.map((v) => PopupMenuItem<String>(
+                                    value: v.id,
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          v.id == currentVenue.id ? CupertinoIcons.check_mark_circled_solid : CupertinoIcons.circle,
+                                          size: 16,
+                                          color: v.id == currentVenue.id ? AppColors.accentTeal : Colors.white38,
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: Text(
+                                            v.name,
+                                            style: TextStyle(
+                                              color: v.id == currentVenue.id ? Colors.white : Colors.white70,
+                                              fontWeight: v.id == currentVenue.id ? FontWeight.bold : FontWeight.normal,
+                                              fontSize: 13,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.08),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            v.archetype == 'batch' || v.category.contains('виза') || v.category.contains('трансфер') ? 'SERVICES' : 'HORECA',
+                                            style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )),
+                                ],
+                              ),
+                              const SizedBox(width: 10),
+                              // 🚀 1-Click Cockpit for Selected Venue
+                              InkWell(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => SuperAdminVenueDetailScreen(venue: currentVenue),
+                                    ),
+                                  );
+                                },
+                                borderRadius: BorderRadius.circular(20),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.accentOrange.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: AppColors.accentOrange.withOpacity(0.4)),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(CupertinoIcons.arrow_up_right_square, size: 14, color: AppColors.accentOrange),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        "Кабинет заведения ↗",
+                                        style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.accentOrange, fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  }
+
+                  // ── OWNER / ADMIN VIEW: ONLY ASSIGNED VENUES ──
                   final venueIds = roleProv.venueIds;
                   if (venueIds.isEmpty) return const SizedBox.shrink();
 
