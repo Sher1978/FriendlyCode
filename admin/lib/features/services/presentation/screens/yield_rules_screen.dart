@@ -12,7 +12,7 @@ class YieldRulesScreen extends StatefulWidget {
   const YieldRulesScreen({
     super.key,
     required this.venueId,
-    this.currency = '฿',
+    this.currency = '₫',
     this.archetype = 'batch',
   });
 

@@ -282,7 +282,11 @@ class _VenueRegionalSettingsScreenState extends State<VenueRegionalSettingsScree
 
                 // Section 3: Contact & Address
                 _buildContactLocationCard(),
-                const SizedBox(height: 40),
+                const SizedBox(height: 32),
+
+                // Bottom Save Action
+                _buildBottomSaveBar(),
+                const SizedBox(height: 50),
               ],
             ),
           ),
@@ -291,46 +295,74 @@ class _VenueRegionalSettingsScreenState extends State<VenueRegionalSettingsScree
     );
   }
 
-  Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "РЕГИОНАЛЬНЫЕ НАСТРОЙКИ",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -0.5,
-              ),
-            ),
-            SizedBox(height: 6),
-            Text(
-              "Язык заведения, валюта, расписание и часы работы, часовой пояс и контакты.",
-              style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 13),
-            ),
-          ],
-        ),
-        CupertinoButton(
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
-          color: AppColors.accentOrange,
-          borderRadius: BorderRadius.circular(12),
-          onPressed: _isSaving ? null : _saveSettings,
-          child: _isSaving
-              ? const CupertinoActivityIndicator(color: Colors.white)
-              : const Row(
-                  children: [
-                    Icon(CupertinoIcons.checkmark_alt, size: 18, color: Colors.white),
-                    SizedBox(width: 8),
-                    Text(
-                      "СОХРАНИТЬ",
-                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Colors.white, letterSpacing: 0.5),
-                    ),
-                  ],
+  Widget _buildBottomSaveBar() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.accentOrange.withOpacity(0.35)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Сохранить региональные настройки",
+                  style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                 ),
+                SizedBox(height: 4),
+                Text(
+                  "Выбранная валюта, язык, часовой пояс и график работы применятся для всех модулей и бота.",
+                  style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.accentOrange,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 4,
+            ),
+            icon: _isSaving 
+                ? const SizedBox(width: 18, height: 18, child: CupertinoActivityIndicator(color: Colors.white))
+                : const Icon(CupertinoIcons.checkmark_alt, size: 20, color: Colors.white),
+            label: Text(
+              _isSaving ? "СОХРАНЕНИЕ..." : "СОХРАНИТЬ",
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.8),
+            ),
+            onPressed: _isSaving ? null : _saveSettings,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "РЕГИОНАЛЬНЫЕ НАСТРОЙКИ",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
+        ),
+        SizedBox(height: 6),
+        Text(
+          "Язык заведения, валюта, расписание и часы работы, часовой пояс и контакты.",
+          style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 13),
         ),
       ],
     );

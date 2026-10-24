@@ -12,7 +12,7 @@ class ServicesCatalogScreen extends StatefulWidget {
   const ServicesCatalogScreen({
     super.key,
     required this.venueId,
-    this.currency = '฿',
+    this.currency = '₫',
     this.archetype = 'batch',
   });
 
@@ -80,7 +80,9 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
   Future<void> _openServiceEditor([ServiceItem? item]) async {
     final nameCtrl = TextEditingController(text: item?.name ?? '');
     final categoryCtrl = TextEditingController(text: item?.category ?? '');
-    final priceCtrl = TextEditingController(text: item != null ? item.price.toStringAsFixed(0) : '2900');
+    final isVnd = widget.currency == '₫' || widget.currency == 'VND';
+    final defaultPrice = isVnd ? '2200000' : '2900';
+    final priceCtrl = TextEditingController(text: item != null ? item.price.toStringAsFixed(0) : defaultPrice);
     final durationCtrl = TextEditingController(text: item != null ? item.durationMinutes.toString() : (_isBatch ? '600' : '45'));
     final descCtrl = TextEditingController(text: item?.description ?? '');
     final photoCtrl = TextEditingController(text: item?.photoUrl ?? '');
@@ -92,8 +94,18 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
         ? List<TripPackageTier>.from(item.packages)
         : (_isBatch
             ? [
-                const TripPackageTier(id: 'stamp_45d', name: '45 дней (Безвизовый штамп)', price: 2900, description: 'Трансфер туда-обратно, граница, обед'),
-                const TripPackageTier(id: 'visa_90d', name: '90 дней (Туристическая виза TR)', price: 4500, description: 'Трансфер, консульские сборы, оформление'),
+                TripPackageTier(
+                  id: 'stamp_45d',
+                  name: '45 дней (Безвизовый штамп)',
+                  price: isVnd ? 2200000 : 2900,
+                  description: 'Трансфер туда-обратно, граница, обед',
+                ),
+                TripPackageTier(
+                  id: 'visa_90d',
+                  name: '90 дней (Туристическая виза TR)',
+                  price: isVnd ? 3800000 : 4500,
+                  description: 'Трансфер, консульские сборы, оформление',
+                ),
               ]
             : []);
 

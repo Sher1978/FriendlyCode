@@ -398,6 +398,37 @@ class VenueModel {
       retentionRate: 0,
     );
 
+  String get currencySymbol {
+    switch (currency.toUpperCase()) {
+      case 'VND':
+      case '₫':
+        return '₫';
+      case 'THB':
+      case '฿':
+        return '฿';
+      case 'RUB':
+      case '₽':
+        return '₽';
+      case 'USD':
+      case '\$':
+        return '\$';
+      case 'EUR':
+      case '€':
+        return '€';
+      case 'AED':
+      case 'د.إ':
+        return 'AED';
+      case 'INR':
+      case '₹':
+        return '₹';
+      case 'IDR':
+      case 'RP':
+        return 'Rp';
+      default:
+        return currency.isNotEmpty ? currency : '₫';
+    }
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'ownerEmail': ownerEmail,

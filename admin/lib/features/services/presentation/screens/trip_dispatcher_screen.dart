@@ -13,7 +13,7 @@ class TripDispatcherScreen extends StatefulWidget {
   const TripDispatcherScreen({
     super.key,
     required this.venueId,
-    this.currency = '฿',
+    this.currency = '₫',
   });
 
   @override
@@ -889,7 +889,7 @@ class _TripDispatcherScreenState extends State<TripDispatcherScreen> {
                 style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
               ),
               Text(
-                seat.packageName.isNotEmpty ? seat.packageName : "${seat.finalPrice.toInt()} ฿",
+                seat.packageName.isNotEmpty ? seat.packageName : "${seat.finalPrice.toInt()} ${widget.currency}",
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: border, fontSize: 9),
@@ -1568,7 +1568,7 @@ class _TripDispatcherScreenState extends State<TripDispatcherScreen> {
                             Padding(padding: const EdgeInsets.all(6), child: Text(p.label, style: const TextStyle(color: AppColors.accentTeal, fontWeight: FontWeight.bold, fontSize: 11))),
                             Padding(padding: const EdgeInsets.all(6), child: Text(p.passengerName, style: const TextStyle(color: Colors.white, fontSize: 11))),
                             Padding(padding: const EdgeInsets.all(6), child: Text(p.passengerPassport.isNotEmpty ? p.passengerPassport : '—', style: const TextStyle(color: Colors.white70, fontSize: 11))),
-                            Padding(padding: const EdgeInsets.all(6), child: Text(p.packageName.isNotEmpty ? p.packageName : "${p.finalPrice.toInt()} ฿", style: const TextStyle(color: Colors.white70, fontSize: 11))),
+                            Padding(padding: const EdgeInsets.all(6), child: Text(p.packageName.isNotEmpty ? p.packageName : "${p.finalPrice.toInt()} ${widget.currency}", style: const TextStyle(color: Colors.white70, fontSize: 11))),
                           ],
                         )),
                       ],

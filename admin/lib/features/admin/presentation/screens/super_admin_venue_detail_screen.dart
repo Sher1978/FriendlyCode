@@ -225,13 +225,13 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
           case 0:
             return VenueThreeStageWorkspaceScreen(venue: venue, venueId: venue.id);
           case 1:
-            return FleetManagementScreen(venueId: venue.id);
+            return FleetManagementScreen(venueId: venue.id, currency: venue.currencySymbolSymbol);
           case 2:
-            return ServicesCatalogScreen(venueId: venue.id, currency: venue.currency, archetype: 'batch');
+            return ServicesCatalogScreen(venueId: venue.id, currency: venue.currencySymbol, archetype: 'batch');
           case 3:
-            return YieldRulesScreen(venueId: venue.id, currency: venue.currency, archetype: 'batch');
+            return YieldRulesScreen(venueId: venue.id, currency: venue.currencySymbol, archetype: 'batch');
           case 4:
-            return TripDispatcherScreen(venueId: venue.id, currency: venue.currency);
+            return TripDispatcherScreen(venueId: venue.id, currency: venue.currencySymbol);
           case 5:
             return _BatchDispatcherAndGuestsView(venue: venue);
           case 6:
@@ -247,7 +247,7 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
         case 1:
           return VenueEditorScreen(venue: venue);
         case 2:
-          return ServicesCatalogScreen(venueId: venue.id, currency: venue.currency, archetype: 'personal_time');
+          return ServicesCatalogScreen(venueId: venue.id, currency: venue.currencySymbol, archetype: 'personal_time');
         case 3:
           return StaffManagementScreen(venueId: venue.id);
         case 4:

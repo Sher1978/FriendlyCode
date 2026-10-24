@@ -33,7 +33,8 @@ class FleetTemplateItem {
 
 class FleetManagementScreen extends StatefulWidget {
   final String venueId;
-  const FleetManagementScreen({super.key, required this.venueId});
+  final String currency;
+  const FleetManagementScreen({super.key, required this.venueId, this.currency = '₫'});
 
   @override
   State<FleetManagementScreen> createState() => _FleetManagementScreenState();
@@ -460,7 +461,7 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
                       ),
                       if (priceMod != 0)
                         Text(
-                          priceMod > 0 ? "+$priceMod ฿" : "$priceMod ฿",
+                          priceMod > 0 ? "+$priceMod ${widget.currency}" : "$priceMod ${widget.currency}",
                           style: TextStyle(
                             color: priceMod > 0 ? AppColors.accentGreen : Colors.orangeAccent,
                             fontSize: 11,
