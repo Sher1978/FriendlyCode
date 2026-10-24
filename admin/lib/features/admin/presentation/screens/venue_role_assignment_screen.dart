@@ -79,21 +79,14 @@ class _VenueRoleAssignmentScreenState extends State<VenueRoleAssignmentScreen> {
     }
     setState(() => _isSaving = true);
     try {
+      String targetUserId;
       if (_userFound && _foundUserId != null) {
+        targetUserId = _foundUserId!;
         await _db.collection('users').doc(_foundUserId).update({
           'venueId': _selectedVenueId,
           'role': _selectedRole,
           'updatedAt': FieldValue.serverTimestamp(),
         });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$_foundUserName assigned as $_selectedRole to $_selectedVenueName'),
-              backgroundColor: AppColors.accentGreen.withOpacity(0.8),
-            ),
-          );
-          _reset();
-        }
       } else {
         final name = _nameCtrl.text.trim();
         if (name.isEmpty) {
@@ -101,23 +94,42 @@ class _VenueRoleAssignmentScreenState extends State<VenueRoleAssignmentScreen> {
           setState(() => _isSaving = false);
           return;
         }
-        await _db.collection('users').doc().set({
+        final newDocRef = _db.collection('users').doc();
+        targetUserId = newDocRef.id;
+        await newDocRef.set({
           'displayName': name,
+          'name': name,
           'email': email,
           'role': _selectedRole,
           'venueId': _selectedVenueId,
           'createdAt': FieldValue.serverTimestamp(),
           'updatedAt': FieldValue.serverTimestamp(),
         });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('New user "$name" created as $_selectedRole in $_selectedVenueName'),
-              backgroundColor: AppColors.accentGreen.withOpacity(0.8),
-            ),
-          );
-          _reset();
-        }
+      }
+
+      // Simultaneously link assignment to venue document
+      final venueUpdates = <String, dynamic>{
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      if (_selectedRole == 'owner') {
+        venueUpdates['ownerId'] = targetUserId;
+        venueUpdates['ownerEmail'] = email;
+      } else if (_selectedRole == 'admin') {
+        venueUpdates['assignedAdminId'] = targetUserId;
+      } else if (_selectedRole == 'manager') {
+        venueUpdates['assignedManagerId'] = targetUserId;
+      }
+      await _db.collection('venues').doc(_selectedVenueId).update(venueUpdates);
+
+      if (mounted) {
+        final displayName = _userFound ? (_foundUserName ?? email) : _nameCtrl.text.trim();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$displayName успешно назначен как $_selectedRole для заведения $_selectedVenueName'),
+            backgroundColor: AppColors.accentGreen.withOpacity(0.8),
+          ),
+        );
+        _reset();
       }
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));

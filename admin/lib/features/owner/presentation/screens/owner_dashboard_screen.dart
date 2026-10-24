@@ -30,6 +30,7 @@ import 'package:friendly_code/features/services/presentation/screens/services_ca
 import 'package:friendly_code/features/services/presentation/screens/staff_management_screen.dart';
 import 'package:friendly_code/features/services/presentation/screens/yield_rules_screen.dart';
 import 'package:friendly_code/features/services/presentation/screens/ai_concierge_config_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/super_admin_venue_detail_screen.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:friendly_code/core/services/visit_service.dart';
 import 'package:friendly_code/core/models/visit_model.dart';
@@ -1226,10 +1227,10 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
                   ),
                   IOSSettingsRow(
                     title: l10n.venueProfile,
-                    subtitle: l10n.venueProfileSub,
+                    subtitle: "Паспорт заведения, 3 этапа AI-онбординга и каталоги",
                     icon: CupertinoIcons.building_2_fill,
                     iconColor: AppColors.accentOrange,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => VenueEditorScreen(venue: venue))),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SuperAdminVenueDetailScreen(venue: venue))),
                   ),
                   IOSSettingsRow(
                     title: "Google Maps Pre-Landing",

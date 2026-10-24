@@ -7,6 +7,7 @@ import 'package:friendly_code/core/data/venue_repository.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/super_admin_venue_detail_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/venue_search_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/owner_dashboard_screen.dart';
 import 'package:friendly_code/l10n/app_localizations.dart';
@@ -183,7 +184,41 @@ class _OwnerVenuesScreenState extends State<OwnerVenuesScreen> {
                         ],
                       ),
                     ),
-                    const Icon(CupertinoIcons.chevron_right, color: AppColors.macosTextSecondary, size: 20),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CupertinoButton(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          color: AppColors.accentTeal.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => SuperAdminVenueDetailScreen(venue: venue),
+                              ),
+                            );
+                          },
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(CupertinoIcons.sparkles, size: 16, color: AppColors.accentTeal),
+                              SizedBox(width: 6),
+                              Text(
+                                "Настройки & AI",
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.accentTeal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Icon(CupertinoIcons.chevron_right, color: AppColors.macosTextSecondary, size: 20),
+                      ],
+                    ),
                   ],
                 ),
               ),

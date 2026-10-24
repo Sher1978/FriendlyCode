@@ -12,6 +12,7 @@ import 'package:friendly_code/features/owner/presentation/screens/marketing_blas
 import 'package:friendly_code/features/owner/presentation/screens/delivery_menu_manager_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/delivery_loyalty_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/delivery_logistics_payment_screen.dart';
+import 'package:friendly_code/features/owner/presentation/screens/venue_regional_settings_screen.dart';
 import 'package:friendly_code/features/services/presentation/screens/services_catalog_screen.dart';
 import 'package:friendly_code/features/services/presentation/screens/staff_management_screen.dart';
 import 'package:friendly_code/features/services/presentation/screens/fleet_management_screen.dart';
@@ -20,11 +21,14 @@ import 'package:friendly_code/features/services/presentation/screens/ai_concierg
 
 class SuperAdminVenueDetailScreen extends StatefulWidget {
   final VenueModel venue;
-  const SuperAdminVenueDetailScreen({super.key, required this.venue});
+  final bool showAppBar;
+  const SuperAdminVenueDetailScreen({super.key, required this.venue, this.showAppBar = true});
 
   @override
   State<SuperAdminVenueDetailScreen> createState() => _SuperAdminVenueDetailScreenState();
 }
+
+typedef VenueDetailWorkspaceScreen = SuperAdminVenueDetailScreen;
 
 class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScreen> {
   int _selectedTab = 0;
@@ -43,20 +47,25 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
           _TabItem(icon: CupertinoIcons.bus,                      label: 'Рейсы & Автопарк'),
           _TabItem(icon: CupertinoIcons.percent,                 label: 'Yield & Скидки'),
           _TabItem(icon: CupertinoIcons.person_2_fill,           label: 'Диспетчерская & Брони'),
+          _TabItem(icon: CupertinoIcons.slider_horizontal_3,     label: 'Региональные настройки'),
         ];
       }
       return const [
+        _TabItem(icon: CupertinoIcons.sparkles,                 label: 'Паспорт & AI (3 этапа)'),
         _TabItem(icon: CupertinoIcons.info_circle_fill,        label: 'Инфо'),
         _TabItem(icon: CupertinoIcons.sparkles,                 label: 'Услуги (Каталог)'),
         _TabItem(icon: CupertinoIcons.person_2_fill,           label: 'Мастера & Смены'),
         _TabItem(icon: CupertinoIcons.percent,                 label: 'Yield Доходность'),
         _TabItem(icon: CupertinoIcons.chat_bubble_2_fill,      label: 'AI-Консьерж'),
+        _TabItem(icon: CupertinoIcons.slider_horizontal_3,     label: 'Региональные настройки'),
         _TabItem(icon: CupertinoIcons.person_crop_circle_fill, label: 'Клиенты'),
         _TabItem(icon: CupertinoIcons.rocket_fill,             label: 'Маркетинг'),
       ];
     }
     return const [
+      _TabItem(icon: CupertinoIcons.sparkles,                 label: 'Паспорт & AI (3 этапа)'),
       _TabItem(icon: CupertinoIcons.info_circle_fill,        label: 'Info'),
+      _TabItem(icon: CupertinoIcons.slider_horizontal_3,     label: 'Региональные настройки'),
       _TabItem(icon: CupertinoIcons.percent,                 label: 'Loyalty'),
       _TabItem(icon: CupertinoIcons.creditcard_fill,         label: 'Deposits'),
       _TabItem(icon: CupertinoIcons.cart_fill,               label: 'Menu & Scraper'),
@@ -71,6 +80,18 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
   @override
   Widget build(BuildContext context) {
     final venue = widget.venue;
+
+    if (!widget.showAppBar) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        body: Column(
+          children: [
+            _buildTabBar(),
+            Expanded(child: _buildBody(venue)),
+          ],
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -206,6 +227,8 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
             return YieldRulesScreen(venueId: venue.id);
           case 3:
             return _BatchDispatcherAndGuestsView(venue: venue);
+          case 4:
+            return VenueRegionalSettingsScreen(venueId: venue.id);
           default:
             return VenueThreeStageWorkspaceScreen(venue: venue, venueId: venue.id);
         }
@@ -213,45 +236,53 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
 
       switch (_selectedTab) {
         case 0:
-          return VenueEditorScreen(venue: venue);
+          return VenueThreeStageWorkspaceScreen(venue: venue, venueId: venue.id);
         case 1:
-          return ServicesCatalogScreen(venueId: venue.id, currency: venue.currency, archetype: 'personal_time');
+          return VenueEditorScreen(venue: venue);
         case 2:
-          return StaffManagementScreen(venueId: venue.id);
+          return ServicesCatalogScreen(venueId: venue.id, currency: venue.currency, archetype: 'personal_time');
         case 3:
-          return YieldRulesScreen(venueId: venue.id);
+          return StaffManagementScreen(venueId: venue.id);
         case 4:
-          return AiConciergeConfigScreen(venueId: venue.id);
+          return YieldRulesScreen(venueId: venue.id);
         case 5:
-          return GuestListScreen(venueId: venue.id);
+          return AiConciergeConfigScreen(venueId: venue.id);
         case 6:
+          return VenueRegionalSettingsScreen(venueId: venue.id);
+        case 7:
+          return GuestListScreen(venueId: venue.id);
+        case 8:
           return MarketingBlastScreen(venueId: venue.id);
         default:
-          return VenueEditorScreen(venue: venue);
+          return VenueThreeStageWorkspaceScreen(venue: venue, venueId: venue.id);
       }
     }
 
     switch (_selectedTab) {
       case 0:
-        return VenueEditorScreen(venue: venue);
+        return VenueThreeStageWorkspaceScreen(venue: venue, venueId: venue.id);
       case 1:
-        return RulesConfigScreen(venueId: venue.id);
+        return VenueEditorScreen(venue: venue);
       case 2:
-        return DepositTiersSetupScreen(venueId: venue.id);
+        return VenueRegionalSettingsScreen(venueId: venue.id);
       case 3:
-        return DeliveryMenuManagerScreen(venueId: venue.id);
+        return RulesConfigScreen(venueId: venue.id);
       case 4:
-        return DeliveryLoyaltyScreen(venueId: venue.id);
+        return DepositTiersSetupScreen(venueId: venue.id);
       case 5:
-        return DeliveryLogisticsPaymentScreen(venueId: venue.id);
+        return DeliveryMenuManagerScreen(venueId: venue.id);
       case 6:
-        return VenueStaffScreen(venueId: venue.id);
+        return DeliveryLoyaltyScreen(venueId: venue.id);
       case 7:
-        return GuestListScreen(venueId: venue.id);
+        return DeliveryLogisticsPaymentScreen(venueId: venue.id);
       case 8:
+        return VenueStaffScreen(venueId: venue.id);
+      case 9:
+        return GuestListScreen(venueId: venue.id);
+      case 10:
         return MarketingBlastScreen(venueId: venue.id);
       default:
-        return VenueEditorScreen(venue: venue);
+        return VenueThreeStageWorkspaceScreen(venue: venue, venueId: venue.id);
     }
   }
 }

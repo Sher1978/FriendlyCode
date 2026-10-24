@@ -188,9 +188,7 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                                 ],
                                 rows: filteredVenues.map((v) => DataRow(
                                   onSelectChanged: (_) => Navigator.push(context, MaterialPageRoute(
-                                    builder: (_) => roleProvider.isSuperAdmin
-                                        ? SuperAdminVenueDetailScreen(venue: v)
-                                        : VenueEditorScreen(venue: v),
+                                    builder: (_) => SuperAdminVenueDetailScreen(venue: v),
                                   )),
                                   cells: [
                                     DataCell(
@@ -309,9 +307,7 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                                             icon: const Icon(Icons.edit_outlined, color: AppColors.body),
                                             tooltip: 'Manage venue',
                                             onPressed: () => Navigator.push(context, MaterialPageRoute(
-                                              builder: (_) => roleProvider.isSuperAdmin
-                                                  ? SuperAdminVenueDetailScreen(venue: v)
-                                                  : VenueEditorScreen(venue: v),
+                                              builder: (_) => SuperAdminVenueDetailScreen(venue: v),
                                             )),
                                           ),
                                         ],

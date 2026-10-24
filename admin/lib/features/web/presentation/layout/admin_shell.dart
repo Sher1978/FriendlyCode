@@ -17,6 +17,7 @@ import 'package:friendly_code/features/web/presentation/pages/super_admin_login_
 import 'package:friendly_code/features/admin/presentation/screens/global_email_settings_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/global_guests_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/global_venues_screen.dart';
+import 'package:friendly_code/features/admin/presentation/screens/super_admin_venue_detail_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/my_team_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/scan_logs_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/staff_management_screen.dart';
@@ -432,14 +433,20 @@ class _AdminShellState extends State<AdminShell> {
       ),
       AdminNavItem(
         key: 'regional_settings',
-        title: 'Venue Settings',
+        title: 'Venue Workspace',
         titleRu: 'Настройки заведения',
         icon: CupertinoIcons.slider_horizontal_3,
         builder: (context, venueId) {
           if (venueId == null || venueId.isEmpty) {
             return _buildNoVenuePlaceholder(context);
           }
-          return VenueRegionalSettingsScreen(venueId: venueId);
+          return _VenueStreamWrapper(
+            venueId: venueId,
+            builder: (ctx, venue) => SuperAdminVenueDetailScreen(
+              venue: venue,
+              showAppBar: false,
+            ),
+          );
         },
         isVisible: (role) => true,
       ),
