@@ -101,7 +101,7 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
               {'id': '4A', 'label': '4A', 'row': 4, 'col': 1, 'features': ['window']},
               {'id': '4B', 'label': '4B', 'row': 4, 'col': 2, 'features': []},
               {'id': '4C', 'label': '4C', 'row': 4, 'col': 3, 'features': []},
-              {'id': '4D', 'label': '4D', 'row': 4, 'col': 4, 'features': ['window']},
+              {'id': '4D', 'label': '4D', 'row': 4, 'col': 4, 'features': ['window', 'blocked']},
             ]
           }
         ],
@@ -139,7 +139,7 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
               'label': (i + 1).toString().padLeft(2, '0'),
               'row': (i ~/ 3) + 1,
               'col': (i % 3) + 1,
-              'features': (i % 3 != 1) ? ['window', 'usb'] : ['ac_shield', 'usb'],
+              'features': (i == 17) ? ['blocked', 'guide'] : ((i % 3 != 1) ? ['window', 'usb'] : ['ac_shield', 'usb']),
             }),
           },
           {
@@ -165,6 +165,38 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
     } catch (e) {
       setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _toggleSeatFeature(FleetTemplateItem item, String deckId, String seatId, String feature) async {
+    final updatedDecks = List<Map<String, dynamic>>.from(item.decks.map((deck) {
+      final d = Map<String, dynamic>.from(deck);
+      if (d['id'] == deckId) {
+        final seats = List<Map<String, dynamic>>.from((d['seats'] as List<dynamic>? ?? []).map((s) {
+          final sMap = Map<String, dynamic>.from(s);
+          if (sMap['id'] == seatId) {
+            final feats = List<String>.from(sMap['features'] as List<dynamic>? ?? []);
+            if (feats.contains(feature)) {
+              feats.remove(feature);
+            } else {
+              feats.add(feature);
+            }
+            sMap['features'] = feats;
+          }
+          return sMap;
+        }));
+        d['seats'] = seats;
+      }
+      return d;
+    }));
+
+    await FirebaseFirestore.instance
+        .collection('venues')
+        .doc(widget.venueId)
+        .collection('fleetTemplates')
+        .doc(item.id)
+        .update({'decks': updatedDecks});
+
+    _loadFleet();
   }
 
   Future<void> _deleteTemplate(String id) async {
@@ -196,12 +228,12 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Автопарк & Схемы посадки",
+                            "Автопарк & Шаблоны рассадки",
                             style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                           ),
                           SizedBox(height: 4),
                           Text(
-                            "Управление минивэнами, автобусами и ярусами рассадки по стандарту Dynamic Capacity SoT",
+                            "Оцифровка автобусов, этажей и блокировка служебных мест (для гидов и багажа). Нажмите на кресло для смены статуса.",
                             style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 13),
                           ),
                         ],
@@ -258,7 +290,7 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
                             ),
                             const SizedBox(height: 6),
                             const Text(
-                              "Добавьте первый шаблон транспорта, чтобы гости могли выбирать кресла на интерактивной карте.",
+                              "Создайте первый шаблон транспорта. Без него невозможно рассчитать вместимость и запустить рейсы.",
                               style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 13),
                             ),
                             const SizedBox(height: 18),
@@ -321,7 +353,7 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        "Вместимость: ${item.totalCapacity} мест • Ярусов: ${item.decks.length}",
+                        "Вместимость: ${item.totalCapacity} мест • Ярусов: ${item.decks.length} • Кликните на кресло для быстрой блокировки",
                         style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 12),
                       ),
                     ],
@@ -340,6 +372,7 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
 
           // Decks & Seat Maps
           ...item.decks.map((deck) {
+            final deckId = deck['id']?.toString() ?? 'main';
             final seats = List<Map<String, dynamic>>.from(deck['seats'] as List<dynamic>? ?? []);
             final badge = deck['badge']?.toString() ?? '';
             final priceMod = deck['priceModifier'] ?? 0;
@@ -390,53 +423,69 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Seat layout pills
+                  // Interactive Seat layout pills
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: seats.map((s) {
-                      final label = s['label']?.toString() ?? s['id']?.toString() ?? '';
+                      final seatId = s['id']?.toString() ?? '';
+                      final label = s['label']?.toString() ?? seatId;
                       final features = List<String>.from(s['features'] as List<dynamic>? ?? []);
+                      final isBlocked = features.contains('blocked') || features.contains('guide');
                       final isVip = features.contains('vip');
                       final isWindow = features.contains('window');
 
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: isVip 
-                              ? Colors.amber.withValues(alpha: 0.15) 
-                              : isWindow 
-                                  ? AppColors.accentTeal.withValues(alpha: 0.15)
-                                  : Colors.white.withValues(alpha: 0.05),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: isVip 
-                                ? Colors.amber.withValues(alpha: 0.5) 
-                                : isWindow 
-                                    ? AppColors.accentTeal.withValues(alpha: 0.4)
-                                    : Colors.white12,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              label,
-                              style: TextStyle(
-                                color: isVip ? Colors.amber : (isWindow ? AppColors.accentTeal : Colors.white),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
+                      return GestureDetector(
+                        onTap: () => _showSeatOptionsDialog(item, deckId, seatId, label, features),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: isBlocked
+                                ? Colors.red.withValues(alpha: 0.2)
+                                : isVip 
+                                    ? Colors.amber.withValues(alpha: 0.2) 
+                                    : isWindow 
+                                        ? AppColors.accentTeal.withValues(alpha: 0.15)
+                                        : Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isBlocked
+                                  ? Colors.redAccent.withValues(alpha: 0.6)
+                                  : isVip 
+                                      ? Colors.amber.withValues(alpha: 0.6) 
+                                      : isWindow 
+                                          ? AppColors.accentTeal.withValues(alpha: 0.4)
+                                          : Colors.white12,
                             ),
-                            if (isWindow) ...[
-                              const SizedBox(width: 4),
-                              const Text("🪟", style: TextStyle(fontSize: 10)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (isBlocked) ...[
+                                const Icon(CupertinoIcons.lock_fill, size: 10, color: Colors.redAccent),
+                                const SizedBox(width: 4),
+                              ],
+                              Text(
+                                label,
+                                style: TextStyle(
+                                  color: isBlocked
+                                      ? Colors.redAccent
+                                      : isVip ? Colors.amber : (isWindow ? AppColors.accentTeal : Colors.white),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  decoration: isBlocked ? TextDecoration.lineThrough : null,
+                                ),
+                              ),
+                              if (isWindow && !isBlocked) ...[
+                                const SizedBox(width: 4),
+                                const Text("🪟", style: TextStyle(fontSize: 10)),
+                              ],
+                              if (isVip && !isBlocked) ...[
+                                const SizedBox(width: 4),
+                                const Text("👑", style: TextStyle(fontSize: 10)),
+                              ],
                             ],
-                            if (isVip) ...[
-                              const SizedBox(width: 4),
-                              const Text("👑", style: TextStyle(fontSize: 10)),
-                            ],
-                          ],
+                          ),
                         ),
                       );
                     }).toList(),
@@ -446,6 +495,62 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
             );
           }),
         ],
+      ),
+    );
+  }
+
+  void _showSeatOptionsDialog(FleetTemplateItem item, String deckId, String seatId, String label, List<String> features) {
+    final isBlocked = features.contains('blocked');
+    final isVip = features.contains('vip');
+    final isWindow = features.contains('window');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text("Место $label", style: const TextStyle(color: Colors.white, fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(
+                isBlocked ? CupertinoIcons.lock_open : CupertinoIcons.lock_fill,
+                color: isBlocked ? Colors.green : Colors.redAccent,
+              ),
+              title: Text(
+                isBlocked ? "Разблокировать (в продажу)" : "Заблокировать (для гида/багажа)",
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+              ),
+              onTap: () {
+                Navigator.pop(ctx);
+                _toggleSeatFeature(item, deckId, seatId, 'blocked');
+              },
+            ),
+            ListTile(
+              leading: Icon(CupertinoIcons.star_fill, color: isVip ? Colors.amber : Colors.white54),
+              title: Text(
+                isVip ? "Снять статус VIP" : "Сделать VIP местом",
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+              ),
+              onTap: () {
+                Navigator.pop(ctx);
+                _toggleSeatFeature(item, deckId, seatId, 'vip');
+              },
+            ),
+            ListTile(
+              leading: Icon(CupertinoIcons.rectangle_grid_1x2, color: isWindow ? AppColors.accentTeal : Colors.white54),
+              title: Text(
+                isWindow ? "Снять отметку 'У окна'" : "Отметить 'У окна'",
+                style: const TextStyle(color: Colors.white, fontSize: 13),
+              ),
+              onTap: () {
+                Navigator.pop(ctx);
+                _toggleSeatFeature(item, deckId, seatId, 'window');
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

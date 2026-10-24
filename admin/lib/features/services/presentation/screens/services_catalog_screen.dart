@@ -23,18 +23,20 @@ class ServicesCatalogScreen extends StatefulWidget {
 class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
   bool _isLoading = true;
   List<ServiceItem> _services = [];
+  List<Map<String, dynamic>> _fleetTemplates = [];
 
   bool get _isBatch => widget.archetype == 'batch';
 
   @override
   void initState() {
     super.initState();
-    _loadServices();
+    _loadData();
   }
 
-  Future<void> _loadServices() async {
+  Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
+      // 1. Load Services
       final snap = await FirebaseFirestore.instance
           .collection('venues')
           .doc(widget.venueId)
@@ -42,8 +44,25 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
           .get();
 
       final list = snap.docs.map((d) => ServiceItem.fromMap(d.data(), d.id)).toList();
+
+      // 2. Load Fleet Templates if batch
+      List<Map<String, dynamic>> templates = [];
+      if (_isBatch) {
+        final fSnap = await FirebaseFirestore.instance
+            .collection('venues')
+            .doc(widget.venueId)
+            .collection('fleetTemplates')
+            .get();
+        templates = fSnap.docs.map((d) {
+          final data = d.data();
+          data['id'] = d.id;
+          return data;
+        }).toList();
+      }
+
       setState(() {
         _services = list;
+        _fleetTemplates = templates;
         _isLoading = false;
       });
     } catch (e) {
@@ -61,10 +80,22 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
   Future<void> _openServiceEditor([ServiceItem? item]) async {
     final nameCtrl = TextEditingController(text: item?.name ?? '');
     final categoryCtrl = TextEditingController(text: item?.category ?? '');
-    final priceCtrl = TextEditingController(text: item != null ? item.price.toStringAsFixed(0) : '');
+    final priceCtrl = TextEditingController(text: item != null ? item.price.toStringAsFixed(0) : '2900');
     final durationCtrl = TextEditingController(text: item != null ? item.durationMinutes.toString() : (_isBatch ? '600' : '45'));
     final descCtrl = TextEditingController(text: item?.description ?? '');
     final photoCtrl = TextEditingController(text: item?.photoUrl ?? '');
+
+    String? selectedTemplateId = item?.fleetTemplateId ?? (_fleetTemplates.isNotEmpty ? _fleetTemplates.first['id'] : null);
+
+    // Multi-tier packages
+    List<TripPackageTier> currentPackages = item?.packages != null && item!.packages.isNotEmpty
+        ? List<TripPackageTier>.from(item.packages)
+        : (_isBatch
+            ? [
+                const TripPackageTier(id: 'stamp_45d', name: '45 дней (Безвизовый штамп)', price: 2900, description: 'Трансфер туда-обратно, граница, обед'),
+                const TripPackageTier(id: 'visa_90d', name: '90 дней (Туристическая виза TR)', price: 4500, description: 'Трансфер, консульские сборы, оформление'),
+              ]
+            : []);
 
     await showDialog(
       context: context,
@@ -76,8 +107,8 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
             side: const BorderSide(color: AppColors.accentTeal, width: 1.5),
           ),
           child: Container(
-            width: 580,
-            constraints: const BoxConstraints(maxHeight: 720),
+            width: 620,
+            constraints: const BoxConstraints(maxHeight: 780),
             padding: const EdgeInsets.all(24),
             child: SingleChildScrollView(
               child: Column(
@@ -102,7 +133,7 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                       Expanded(
                         child: Text(
                           item == null 
-                              ? (_isBatch ? "Новый рейс / Тариф" : "Новая услуга")
+                              ? (_isBatch ? "Новый рейс & Тарифы" : "Новая услуга")
                               : (_isBatch ? "Редактировать рейс" : "Редактировать услугу"),
                           style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                         ),
@@ -115,6 +146,61 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                   ),
                   const SizedBox(height: 20),
 
+                  // FLEET TEMPLATE SELECTOR (MANDATORY FOR BATCH)
+                  if (_isBatch) ...[
+                    const Text(
+                      "Шаблон транспорта и схема мест",
+                      style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 6),
+                    if (_fleetTemplates.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(CupertinoIcons.exclamationmark_triangle_fill, color: Colors.amber, size: 16),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                "Нет созданных автобусов! Сначала добавьте шаблон во вкладке «Автопарк».",
+                                style: TextStyle(color: Colors.amber, fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.accentTeal.withValues(alpha: 0.5)),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: selectedTemplateId,
+                            isExpanded: true,
+                            dropdownColor: AppColors.surface,
+                            style: const TextStyle(color: Colors.white, fontSize: 14),
+                            items: _fleetTemplates.map((t) {
+                              return DropdownMenuItem<String>(
+                                value: t['id'] as String,
+                                child: Text("${t['name']} (${t['totalCapacity']} мест)"),
+                              );
+                            }).toList(),
+                            onChanged: (val) => setDialogState(() => selectedTemplateId = val),
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 16),
+                  ],
+
                   // Route / Service Name
                   Text(
                     _isBatch ? "Направление и название рейса" : "Название услуги",
@@ -124,7 +210,7 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                   CupertinoTextField(
                     controller: nameCtrl,
                     placeholder: _isBatch 
-                        ? "e.g. Бордер-ран в Камбоджу (Базовый) / VIP всё включено" 
+                        ? "e.g. Бордер-ран в Камбоджу Ban Laem (Экспресс)" 
                         : "e.g. Мужская стрижка + моделирование бороды",
                     placeholderStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 14),
                     style: const TextStyle(color: Colors.white, fontSize: 15),
@@ -146,7 +232,7 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                   CupertinoTextField(
                     controller: categoryCtrl,
                     placeholder: _isBatch 
-                        ? "e.g. Камбоджа Ban Laem, Малайзия Пенанг, Лаос Вьентьян" 
+                        ? "e.g. Камбоджа Ban Laem, Малайзия Пенанг, Лаос" 
                         : "e.g. Стрижки, Борода, Комплекс",
                     placeholderStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 14),
                     style: const TextStyle(color: Colors.white, fontSize: 15),
@@ -159,7 +245,101 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Price & Duration
+                  // MULTI-TIER PACKAGES (FOR BATCH / BORDER RUNS)
+                  if (_isBatch) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Пакетные тарифы (Штамп 45д / Виза 90д)",
+                          style: TextStyle(color: AppColors.accentTeal, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                        CupertinoButton(
+                          padding: EdgeInsets.zero,
+                          minSize: 24,
+                          child: const Row(
+                            children: [
+                              Icon(CupertinoIcons.plus_circle, color: AppColors.accentTeal, size: 14),
+                              SizedBox(width: 4),
+                              Text("Добавить тариф", style: TextStyle(color: AppColors.accentTeal, fontSize: 12)),
+                            ],
+                          ),
+                          onPressed: () {
+                            setDialogState(() {
+                              currentPackages.add(
+                                TripPackageTier(
+                                  id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
+                                  name: 'Новый пакет',
+                                  price: 3500,
+                                  description: 'Описание включенных опций',
+                                ),
+                              );
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ...List.generate(currentPackages.length, (idx) {
+                      final pkg = currentPackages[idx];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: CupertinoTextField(
+                                placeholder: "Название тарифа",
+                                placeholderStyle: const TextStyle(color: Colors.white24, fontSize: 12),
+                                style: const TextStyle(color: Colors.white, fontSize: 13),
+                                controller: TextEditingController(text: pkg.name),
+                                onChanged: (v) {
+                                  currentPackages[idx] = TripPackageTier(
+                                    id: pkg.id,
+                                    name: v,
+                                    price: pkg.price,
+                                    description: pkg.description,
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: CupertinoTextField(
+                                placeholder: "Цена (${widget.currency})",
+                                keyboardType: TextInputType.number,
+                                placeholderStyle: const TextStyle(color: Colors.white24, fontSize: 12),
+                                style: const TextStyle(color: AppColors.accentTeal, fontSize: 13, fontWeight: FontWeight.bold),
+                                controller: TextEditingController(text: pkg.price.toStringAsFixed(0)),
+                                onChanged: (v) {
+                                  currentPackages[idx] = TripPackageTier(
+                                    id: pkg.id,
+                                    name: pkg.name,
+                                    price: double.tryParse(v) ?? pkg.price,
+                                    description: pkg.description,
+                                  );
+                                },
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(CupertinoIcons.xmark_circle, color: Colors.redAccent, size: 16),
+                              onPressed: () => setDialogState(() => currentPackages.removeAt(idx)),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Base Price & Duration
                   Row(
                     children: [
                       Expanded(
@@ -167,7 +347,7 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Цена (${widget.currency})",
+                              _isBatch ? "Базовая цена места (${widget.currency})" : "Цена (${widget.currency})",
                               style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 13, fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 6),
@@ -219,7 +399,7 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
 
                   // Photo URL
                   Text(
-                    "Ссылка на фото рейса / маршрута",
+                    "Ссылка на фото рейса / автобуса",
                     style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 6),
@@ -229,31 +409,15 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                     placeholderStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 13),
                     style: const TextStyle(color: Colors.white, fontSize: 13),
                     padding: const EdgeInsets.all(12),
-                    onChanged: (val) => setDialogState(() {}),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.3),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppColors.macosDivider),
                     ),
                   ),
-                  if (photoCtrl.text.trim().isNotEmpty && photoCtrl.text.startsWith('http')) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      height: 100,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.macosDivider),
-                        image: DecorationImage(
-                          image: NetworkImage(photoCtrl.text.trim()),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                  ],
                   const SizedBox(height: 16),
 
-                  // Description / Package inclusions
+                  // Description
                   Text(
                     _isBatch ? "Что входит в стоимость (пакет опций)" : "Описание услуги",
                     style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 13, fontWeight: FontWeight.w600),
@@ -263,7 +427,7 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                     controller: descCtrl,
                     maxLines: 3,
                     placeholder: _isBatch 
-                        ? "Трансфер туда-обратно от кондо, визовые сборы Камбоджи, VIP-коридор без очередей, горячий обед, вода, кондиционер, Wi-Fi" 
+                        ? "Трансфер туда-обратно от кондо, визовые сборы Камбоджи, VIP-коридор без очередей, обед, вода, кондиционер, Wi-Fi" 
                         : "Подробное описание процедуры для гостя...",
                     placeholderStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 13),
                     style: const TextStyle(color: Colors.white, fontSize: 14),
@@ -295,7 +459,7 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                         onPressed: () async {
                           final name = nameCtrl.text.trim();
                           if (name.isEmpty) return;
-                          final price = double.tryParse(priceCtrl.text) ?? 0.0;
+                          final price = double.tryParse(priceCtrl.text) ?? 2900.0;
                           final duration = int.tryParse(durationCtrl.text) ?? (_isBatch ? 600 : 45);
 
                           Navigator.pop(ctx);
@@ -307,6 +471,8 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                             durationMinutes: duration,
                             description: descCtrl.text.trim(),
                             photoUrl: photoCtrl.text.trim(),
+                            fleetTemplateId: selectedTemplateId,
+                            packages: currentPackages,
                           );
                         },
                         child: Text(
@@ -333,6 +499,8 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
     required int durationMinutes,
     required String description,
     String? photoUrl,
+    String? fleetTemplateId,
+    List<TripPackageTier>? packages,
   }) async {
     try {
       final col = FirebaseFirestore.instance
@@ -350,6 +518,8 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
         'photoUrl': photoUrl,
         'currency': widget.currency,
         'isActive': true,
+        'fleetTemplateId': fleetTemplateId,
+        'packages': packages?.map((p) => p.toMap()).toList() ?? [],
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
@@ -358,7 +528,9 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
       } else {
         await col.add(data);
       }
-      _loadServices();
+
+      await _loadData();
+      _showToast("Рейс успешно сохранен");
     } catch (e) {
       _showToast("Ошибка сохранения: $e");
     }
@@ -372,9 +544,10 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
           .collection('services')
           .doc(id)
           .delete();
-      _loadServices();
+      await _loadData();
+      _showToast("Удалено");
     } catch (e) {
-      _showToast("Ошибка удаления: $e");
+      _showToast("Ошибка: $e");
     }
   }
 
@@ -389,7 +562,7 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header
+                  // Top Header
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -397,13 +570,13 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _isBatch ? "Рейсы & Тарифы" : "Каталог услуг",
+                            _isBatch ? "Маршруты & Пакетные тарифы" : "Каталог услуг",
                             style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             _isBatch 
-                                ? "Направления, пограничные КПП, пакеты опций и цены поездок" 
+                                ? "Направления, привязка к автобусам, пакеты (45 дней / 90 дней) и базовые тарифы" 
                                 : "Услуги заведения, длительность и стоимость",
                             style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 13),
                           ),
@@ -418,7 +591,7 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                         ),
                         icon: const Icon(CupertinoIcons.plus, size: 16),
                         label: Text(
-                          _isBatch ? "Новый рейс / Тариф" : "Добавить услугу",
+                          _isBatch ? "Новый маршрут" : "Добавить услугу",
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                         ),
                         onPressed: () => _openServiceEditor(),
@@ -445,13 +618,13 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              _isBatch ? "Рейсы еще не созданы" : "В каталоге пока нет услуг",
+                              _isBatch ? "Маршруты еще не созданы" : "В каталоге пока нет услуг",
                               style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 6),
                             Text(
                               _isBatch 
-                                  ? "Создайте первый рейс в Камбоджу, Малайзию или Лаос с описанием пакета." 
+                                  ? "Создайте первый маршрут в Камбоджу с тарифами на 45 и 90 дней." 
                                   : "Добавьте услуги, чтобы гости могли записываться онлайн.",
                               style: const TextStyle(color: AppColors.macosTextSecondary, fontSize: 13),
                             ),
@@ -466,7 +639,7 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                               onPressed: () => _openServiceEditor(),
                               icon: const Icon(CupertinoIcons.plus, size: 16),
                               label: Text(
-                                _isBatch ? "+ Создать первый рейс" : "+ Добавить услугу",
+                                _isBatch ? "+ Создать первый маршрут" : "+ Добавить услугу",
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
@@ -483,6 +656,15 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                         final item = _services[index];
                         final hasPhoto = item.photoUrl != null && item.photoUrl!.isNotEmpty;
 
+                        // Find template name
+                        String templateLabel = "Транспорт не выбран";
+                        for (final t in _fleetTemplates) {
+                          if (t['id'] == item.fleetTemplateId) {
+                            templateLabel = "${t['name']} (${t['totalCapacity']} мест)";
+                            break;
+                          }
+                        }
+
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(16),
@@ -492,10 +674,11 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                             border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
                           ),
                           child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Container(
-                                width: 48,
-                                height: 48,
+                                width: 52,
+                                height: 52,
                                 decoration: BoxDecoration(
                                   color: AppColors.accentTeal.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(12),
@@ -507,7 +690,7 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                                     ? Icon(
                                         _isBatch ? CupertinoIcons.bus : CupertinoIcons.scissors,
                                         color: AppColors.accentTeal,
-                                        size: 22,
+                                        size: 24,
                                       )
                                     : null,
                               ),
@@ -518,20 +701,44 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                                   children: [
                                     Text(
                                       item.name,
-                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       "${item.category} • ${item.durationMinutes} мин",
                                       style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 12),
                                     ),
-                                    if (item.description.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        item.description,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 11),
+                                    if (_isBatch) ...[
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        children: [
+                                          const Icon(CupertinoIcons.bus, size: 12, color: AppColors.accentTeal),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            templateLabel,
+                                            style: const TextStyle(color: AppColors.accentTeal, fontSize: 12, fontWeight: FontWeight.w600),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                    if (item.packages.isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 6,
+                                        children: item.packages.map((p) {
+                                          return Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withValues(alpha: 0.08),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              "${p.name}: ${p.price.toStringAsFixed(0)} ${widget.currency}",
+                                              style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                            ),
+                                          );
+                                        }).toList(),
                                       ),
                                     ],
                                   ],
@@ -542,7 +749,7 @@ class _ServicesCatalogScreenState extends State<ServicesCatalogScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    "${item.price.toStringAsFixed(0)} ${widget.currency}",
+                                    "от ${item.price.toStringAsFixed(0)} ${widget.currency}",
                                     style: const TextStyle(color: AppColors.accentTeal, fontWeight: FontWeight.bold, fontSize: 16),
                                   ),
                                   const SizedBox(height: 6),

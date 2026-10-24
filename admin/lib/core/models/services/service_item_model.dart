@@ -1,3 +1,5 @@
+import 'scheduled_trip_model.dart';
+
 class ServiceItem {
   final String id;
   final String name;
@@ -10,6 +12,9 @@ class ServiceItem {
   final bool isActive;
   final double? maxDiscountCap;
   final String? photoUrl;
+  final String? fleetTemplateId;
+  final String? yieldRuleId;
+  final List<TripPackageTier> packages;
 
   const ServiceItem({
     required this.id,
@@ -23,6 +28,9 @@ class ServiceItem {
     this.isActive = true,
     this.maxDiscountCap,
     this.photoUrl,
+    this.fleetTemplateId,
+    this.yieldRuleId,
+    this.packages = const [],
   });
 
   Map<String, dynamic> toMap() => {
@@ -37,21 +45,31 @@ class ServiceItem {
     'isActive': isActive,
     'maxDiscountCap': maxDiscountCap,
     'photoUrl': photoUrl,
+    'fleetTemplateId': fleetTemplateId,
+    'yieldRuleId': yieldRuleId,
+    'packages': packages.map((p) => p.toMap()).toList(),
   };
 
-  factory ServiceItem.fromMap(Map<String, dynamic> map, [String? docId]) => ServiceItem(
-    id: docId ?? map['id'] ?? '',
-    name: map['name'] ?? '',
-    category: map['category'] ?? '',
-    description: map['description'] ?? '',
-    price: (map['price'] as num?)?.toDouble() ?? 0.0,
-    durationMinutes: (map['durationMinutes'] as num?)?.toInt() ?? 45,
-    staffIds: (map['staffIds'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
-    externalServiceId: map['externalServiceId'] ?? '',
-    isActive: map['isActive'] ?? true,
-    maxDiscountCap: (map['maxDiscountCap'] as num?)?.toDouble(),
-    photoUrl: map['photoUrl'] as String? ?? map['imageUrl'] as String?,
-  );
+  factory ServiceItem.fromMap(Map<String, dynamic> map, [String? docId]) {
+    final rawPackages = map['packages'] as List<dynamic>? ?? [];
+
+    return ServiceItem(
+      id: docId ?? map['id'] ?? '',
+      name: map['name'] ?? '',
+      category: map['category'] ?? '',
+      description: map['description'] ?? '',
+      price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      durationMinutes: (map['durationMinutes'] as num?)?.toInt() ?? 45,
+      staffIds: (map['staffIds'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? const [],
+      externalServiceId: map['externalServiceId'] ?? '',
+      isActive: map['isActive'] ?? true,
+      maxDiscountCap: (map['maxDiscountCap'] as num?)?.toDouble(),
+      photoUrl: map['photoUrl'] as String? ?? map['imageUrl'] as String?,
+      fleetTemplateId: map['fleetTemplateId'] as String?,
+      yieldRuleId: map['yieldRuleId'] as String?,
+      packages: rawPackages.map((e) => TripPackageTier.fromMap(Map<String, dynamic>.from(e))).toList(),
+    );
+  }
 
   ServiceItem copyWith({
     String? id,
@@ -65,6 +83,9 @@ class ServiceItem {
     bool? isActive,
     double? maxDiscountCap,
     String? photoUrl,
+    String? fleetTemplateId,
+    String? yieldRuleId,
+    List<TripPackageTier>? packages,
   }) => ServiceItem(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -77,5 +98,8 @@ class ServiceItem {
     isActive: isActive ?? this.isActive,
     maxDiscountCap: maxDiscountCap ?? this.maxDiscountCap,
     photoUrl: photoUrl ?? this.photoUrl,
+    fleetTemplateId: fleetTemplateId ?? this.fleetTemplateId,
+    yieldRuleId: yieldRuleId ?? this.yieldRuleId,
+    packages: packages ?? this.packages,
   );
 }

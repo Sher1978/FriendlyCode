@@ -18,6 +18,7 @@ import 'package:friendly_code/features/services/presentation/screens/staff_manag
 import 'package:friendly_code/features/services/presentation/screens/fleet_management_screen.dart';
 import 'package:friendly_code/features/services/presentation/screens/yield_rules_screen.dart';
 import 'package:friendly_code/features/services/presentation/screens/ai_concierge_config_screen.dart';
+import 'package:friendly_code/features/services/presentation/screens/trip_dispatcher_screen.dart';
 
 class SuperAdminVenueDetailScreen extends StatefulWidget {
   final VenueModel venue;
@@ -44,9 +45,11 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
       if (_isBatch) {
         return const [
           _TabItem(icon: CupertinoIcons.sparkles,                 label: 'Паспорт & AI (3 этапа)'),
-          _TabItem(icon: CupertinoIcons.bus,                      label: 'Рейсы & Автопарк'),
+          _TabItem(icon: CupertinoIcons.bus,                      label: 'Автопарк & Шаблоны'),
+          _TabItem(icon: CupertinoIcons.map_fill,                 label: 'Маршруты & Тарифы'),
           _TabItem(icon: CupertinoIcons.percent,                 label: 'Yield & Скидки'),
-          _TabItem(icon: CupertinoIcons.person_2_fill,           label: 'Диспетчерская & Брони'),
+          _TabItem(icon: CupertinoIcons.airplane,                 label: 'Расписание & Диспетчерская'),
+          _TabItem(icon: CupertinoIcons.person_2_fill,            label: 'Пассажиры & Маркетинг'),
           _TabItem(icon: CupertinoIcons.slider_horizontal_3,     label: 'Региональные настройки'),
         ];
       }
@@ -222,12 +225,16 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
           case 0:
             return VenueThreeStageWorkspaceScreen(venue: venue, venueId: venue.id);
           case 1:
-            return _BatchProductsAndFleetView(venue: venue);
+            return FleetManagementScreen(venueId: venue.id);
           case 2:
-            return YieldRulesScreen(venueId: venue.id);
+            return ServicesCatalogScreen(venueId: venue.id, currency: venue.currency, archetype: 'batch');
           case 3:
-            return _BatchDispatcherAndGuestsView(venue: venue);
+            return YieldRulesScreen(venueId: venue.id, currency: venue.currency, archetype: 'batch');
           case 4:
+            return TripDispatcherScreen(venueId: venue.id, currency: venue.currency);
+          case 5:
+            return _BatchDispatcherAndGuestsView(venue: venue);
+          case 6:
             return VenueRegionalSettingsScreen(venueId: venue.id);
           default:
             return VenueThreeStageWorkspaceScreen(venue: venue, venueId: venue.id);
