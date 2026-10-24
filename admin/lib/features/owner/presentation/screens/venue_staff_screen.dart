@@ -2,8 +2,12 @@ import 'dart:ui';
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/features/admin/presentation/dialogs/telegram_staff_connect_dialog.dart';
+import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
 class VenueStaffScreen extends StatefulWidget {
   final String venueId;
@@ -724,53 +728,148 @@ class _VenueStaffScreenState extends State<VenueStaffScreen> {
 
   Widget _buildTelegramGuideCard() {
     final registerCmd = "/register_venue ${widget.venueId}";
-    return Container(
-      margin: const EdgeInsets.only(top: 24),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Row(
+    final oneClickUrl = "https://t.me/FriendIycode_bot?startgroup=reg_${widget.venueId}";
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _firestore.collection('venues').doc(widget.venueId).snapshots(),
+      builder: (context, snap) {
+        final data = snap.data?.data() as Map<String, dynamic>?;
+        final venueName = data?['name']?.toString() ?? 'Заведение';
+        final groupId = data?['telegramGroupId']?.toString() ?? data?['telegram_group_id']?.toString() ?? '';
+        final isConnected = groupId.trim().isNotEmpty;
+        final venueModel = VenueModel(id: widget.venueId, name: venueName, address: data?['address']?.toString() ?? '', telegramStaffChatId: groupId);
+
+        return Container(
+          margin: const EdgeInsets.only(top: 24),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: isConnected ? const Color(0xFF0F2520) : const Color(0xFF14202B),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isConnected ? AppColors.accentTeal.withValues(alpha: 0.5) : const Color(0xFF0088CC).withValues(alpha: 0.4),
+              width: 1.2,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.telegram, color: Colors.blue, size: 22),
-              SizedBox(width: 8),
-              Text(
-                "Подключение Telegram-бота и группы заведения",
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isConnected ? AppColors.accentTeal.withValues(alpha: 0.2) : const Color(0xFF0088CC).withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      isConnected ? CupertinoIcons.checkmark_seal_fill : CupertinoIcons.paperplane_fill,
+                      color: isConnected ? AppColors.accentTeal : const Color(0xFF0088CC),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isConnected ? "Группа команды в Telegram подключена!" : "Подключение Telegram-бота и группы заведения",
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          isConnected ? "Чат ID: $groupId • Прием заявок, бронирований и обучение ИИ активны" : "Добавьте бота в чат команды для доставки заявок и мгновенного обучения",
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.65), fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isConnected ? AppColors.accentTeal.withValues(alpha: 0.25) : const Color(0xFF0088CC),
+                      foregroundColor: isConnected ? AppColors.accentTeal : Colors.white,
+                      side: isConnected ? const BorderSide(color: AppColors.accentTeal) : BorderSide.none,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => TelegramStaffConnectDialog(venue: venueModel),
+                      );
+                    },
+                    icon: Icon(isConnected ? CupertinoIcons.gear_alt_fill : CupertinoIcons.rocket_fill, size: 14),
+                    label: Text(
+                      isConnected ? "Управление ботом" : "Запуск бота в 1 клик",
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.white12),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: SelectableText(
+                              registerCmd,
+                              style: const TextStyle(color: Colors.lightBlueAccent, fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: () {
+                              Clipboard.setData(ClipboardData(text: registerCmd));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("Команда скопирована! Вставьте в группу в Telegram"), backgroundColor: Color(0xFF1E2024)),
+                              );
+                            },
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                              child: Row(
+                                children: [
+                                  Icon(CupertinoIcons.doc_on_clipboard, color: Colors.white70, size: 13),
+                                  SizedBox(width: 4),
+                                  Text("Скопировать", style: TextStyle(color: Colors.white70, fontSize: 11)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF0088CC),
+                      side: const BorderSide(color: Color(0xFF0088CC)),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () async {
+                      final uri = Uri.parse(oneClickUrl);
+                      if (await url_launcher.canLaunchUrl(uri)) {
+                        await url_launcher.launchUrl(uri, mode: url_launcher.LaunchMode.externalApplication);
+                      }
+                    },
+                    icon: const Icon(CupertinoIcons.plus_circle, size: 14),
+                    label: const Text("Добавить в группу ↗", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          const Text(
-            "1. Добавьте бота @FriendIycode_bot в рабочую группу сотрудников.\n"
-            "2. Отправьте в группе команду привязки:",
-            style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 13),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.4),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white12),
-            ),
-            child: SelectableText(
-              registerCmd,
-              style: const TextStyle(color: Colors.lightBlueAccent, fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            "3. Укажите Telegram @username сотрудников в форме ниже, чтобы разрешить им проводить списания депозита.",
-            style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 13),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

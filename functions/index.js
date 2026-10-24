@@ -2038,7 +2038,16 @@ exports.telegramWebhook = onRequest(async (req, res) => {
             if (parts.length > 1) {
                 const param = parts[1].trim();
 
-                if (param.startsWith("debit_")) {
+                // Deep-link Group Registration: /start reg_<venueId> or /start venue_<venueId>
+                if (param.startsWith("reg_") || param.startsWith("venue_")) {
+                    const venueId = param.replace(/^(reg_|venue_)/, "").trim();
+                    const ok = await linkVenueTelegramGroup(db, venueId, chatId);
+                    if (!ok) {
+                        await sendTelegramMessage(chatId, `❌ <b>Ошибка:</b> Заведение с ID <code>${venueId}</code> не найдено в базе данных.`);
+                    }
+                    res.sendStatus(200);
+                    return;
+                } else if (param.startsWith("debit_")) {
                     const sessionId = param.replace("debit_", "").trim();
                     const sessionDoc = await db.collection("pos_sessions").doc(sessionId).get();
                     if (!sessionDoc.exists) {
@@ -2179,41 +2188,87 @@ exports.telegramWebhook = onRequest(async (req, res) => {
             return;
         }
 
+        // Helper: Link Telegram Group to Venue, send rich cheat-sheet and pin it
+        async function linkVenueTelegramGroup(db, venueId, chatId) {
+            const cleanVenueId = String(venueId || '').trim();
+            if (!cleanVenueId) return false;
+
+            let venueRef = db.collection("venues").doc(cleanVenueId);
+            let venueDoc = await venueRef.get();
+
+            if (!venueDoc.exists) {
+                const slugSnap = await db.collection("venues").where("slug", "==", cleanVenueId).limit(1).get();
+                if (!slugSnap.empty) {
+                    venueDoc = slugSnap.docs[0];
+                    venueRef = venueDoc.ref;
+                }
+            }
+
+            if (!venueDoc.exists) {
+                return false;
+            }
+
+            const venueData = venueDoc.data() || {};
+            const venueName = venueData.name || "Заведение";
+            const actualVenueId = venueDoc.id;
+
+            await venueRef.update({ 
+                telegramGroupId: String(chatId),
+                telegram_group_id: String(chatId),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+
+            const pinCheatSheet = 
+                `📌 <b>ШТАБ-ПАМЯТКА КОМАНДЫ ЗАВЕДЕНИЯ «${venueName}»</b>\n` +
+                `<i>(Рекомендуется закрепить это сообщение в группе)</i>\n\n` +
+                `🎉 <b>Группа успешно привязана к системе Revoo!</b>\n` +
+                `Сюда в режиме реального времени поступают:\n` +
+                `• 🚍 <b>Заявки на бронирование</b> с кнопками <code>[✅ Подтвердить]</code> и <code>[❌ Отклонить]</code>\n` +
+                `• 🛵 <b>Заказы доставки</b> с составом блюд, суммой и точкой в Google Maps\n` +
+                `• ❓ <b>Вопросы клиентов</b> от 24/7 AI-Консьержа\n\n` +
+                `────────────────────\n` +
+                `📋 <b>УПРАВЛЯЮЩИЕ КОМАНДЫ ДЛЯ КОМАНДЫ:</b>\n\n` +
+                `1️⃣ <b>Обучение AI-Консьержа:</b>\n` +
+                `<code>/learn [текст правила]</code>\n` +
+                `<i>Пример:</i> <code>/learn С 1 ноября точка сбора переносится на выход 2 Central Festival</code>\n` +
+                `<i>Или просто сделайте Reply на вопрос гостя — бот запомнит ответ навсегда!</i>\n\n` +
+                `2️⃣ <b>Проверка знаний AI-Консьержа:</b>\n` +
+                `<code>/test [вопрос]</code>\n` +
+                `<i>Пример:</i> <code>/test Где находится точка сбора и во сколько?</code>\n\n` +
+                `3️⃣ <b>Касса и депозиты гостей:</b>\n` +
+                `<code>/deposit [телефон/email/ID] [сумма]</code>\n` +
+                `<i>Пример:</i> <code>/deposit +6681234567 5000</code>\n\n` +
+                `4️⃣ <b>Справка:</b>\n` +
+                `<code>/help</code> — показать памятку по всем возможностям\n\n` +
+                `────────────────────\n` +
+                `💡 <i>Все сотрудники в этой группе могут подтверждать бронирования и отвечать гостям. Успешной работы!</i>`;
+
+            const keyboard = {
+                inline_keyboard: [
+                    [{ text: "🌐 Гостевая витрина", url: `https://www.revoo.win/?v=${actualVenueId}&source=tg_team_hub` }],
+                    [{ text: "📊 Панель управления", url: "https://www.revoo.win/admin/" }]
+                ]
+            };
+
+            const sent = await sendTelegramMessageWithKeyboard(chatId, pinCheatSheet, keyboard);
+            if (sent && sent.message_id) {
+                await pinTelegramMessage(chatId, sent.message_id);
+            }
+            logger.info(`Linked Telegram Group ${chatId} to Venue ${actualVenueId} and pinned cheat-sheet`);
+            return true;
+        }
+
         // 2b. COMMAND: /register_venue
         if (text.startsWith("/register_venue")) {
             const parts = text.split(" ");
             if (parts.length > 1) {
                 const venueId = parts[1].trim();
-                const venueRef = db.collection("venues").doc(venueId);
-                const venueDoc = await venueRef.get();
-
-                if (venueDoc.exists) {
-                    await venueRef.update({ 
-                        telegramGroupId: String(chatId),
-                        telegram_group_id: String(chatId)
-                    });
-                    
-                    const successMessage = `✅ <b>Группа успешно привязана к заведению: ${venueDoc.data().name}</b>!\n\n` +
-                        `📋 <b>Доступные команды бота:</b>\n` +
-                        `• <code>/deposit [телефон/email/ID] [сумма]</code> — Пополнить баланс депозита гостя.\n` +
-                        `• <code>/register_venue [ID_заведения]</code> — Перепривязать группу к другому заведению.\n` +
-                        `• <code>/help</code> — Показать список доступных команд.\n\n` +
-                        `🔔 Бот будет автоматически присылать уведомления в эту группу при каждом сканировании гостей, предлагая сотрудникам ввести сумму чека для применения скидки.`;
-                    
-                    await sendTelegramMessage(chatId, successMessage, {
-                        reply_markup: {
-                            inline_keyboard: [
-                                [{ text: "🌐 Страница заведения", url: `https://www.revoo.win/test?id=${venueId}` }],
-                                [{ text: "📊 Панель заведения", url: "https://www.revoo.win/guest-dashboard" }]
-                            ]
-                        }
-                    });
-                    logger.info(`Linked Telegram Group ${chatId} to Venue ${venueId}`);
-                } else {
-                    await sendTelegramMessage(chatId, `❌ <b>Error:</b> Venue ID not found.\nPlease check the ID and try again.`);
+                const ok = await linkVenueTelegramGroup(db, venueId, chatId);
+                if (!ok) {
+                    await sendTelegramMessage(chatId, `❌ <b>Ошибка:</b> Заведение с ID <code>${venueId}</code> не найдено.\nПожалуйста, проверьте ID заведения в панели управления и попробуйте снова.`);
                 }
             } else {
-                await sendTelegramMessage(chatId, "⚠️ Usage: `/register_venue <VENUE_ID>`");
+                await sendTelegramMessage(chatId, "⚠️ Использование: `/register_venue <ID_ЗАВЕДЕНИЯ>`");
             }
             res.sendStatus(200);
             return;
@@ -2752,12 +2807,18 @@ exports.sendBulkCampaign = onCall(async (request) => {
  */
 async function sendTelegramMessage(chatId, text) {
     const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
-    // Node.js 18+ has native fetch
-    await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'HTML' })
-    });
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'HTML' })
+        });
+        const data = await res.json();
+        return data?.result || null;
+    } catch (err) {
+        logger.warn("sendTelegramMessage error:", err);
+        return null;
+    }
 }
 
 /**
@@ -2765,11 +2826,34 @@ async function sendTelegramMessage(chatId, text) {
  */
 async function sendTelegramMessageWithKeyboard(chatId, text, keyboard) {
     const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`;
-    await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'HTML', reply_markup: keyboard })
-    });
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, text: text, parse_mode: 'HTML', reply_markup: keyboard })
+        });
+        const data = await res.json();
+        return data?.result || null;
+    } catch (err) {
+        logger.warn("sendTelegramMessageWithKeyboard error:", err);
+        return null;
+    }
+}
+
+/**
+ * Helper to pin a Telegram message in a group chat
+ */
+async function pinTelegramMessage(chatId, messageId) {
+    try {
+        const url = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/pinChatMessage`;
+        await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, message_id: messageId, disable_notification: false })
+        });
+    } catch (e) {
+        logger.warn("pinTelegramMessage note (bot may need pin admin permissions):", e);
+    }
 }
 
 /**

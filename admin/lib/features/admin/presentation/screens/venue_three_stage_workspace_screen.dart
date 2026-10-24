@@ -8,6 +8,7 @@ import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/models/services/ai_knowledge_profile_model.dart';
 import 'package:friendly_code/core/services/continuous_knowledge_service.dart';
 import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/features/admin/presentation/dialogs/telegram_staff_connect_dialog.dart';
 
 class VenueThreeStageWorkspaceScreen extends StatefulWidget {
   final VenueModel? venue;
@@ -2100,6 +2101,29 @@ class _VenueThreeStageWorkspaceScreenState extends State<VenueThreeStageWorkspac
                           children: [
                             const Text("Telegram Staff Group ID:", style: TextStyle(color: Colors.white70, fontSize: 11)),
                             const Spacer(),
+                            GestureDetector(
+                              onTap: () {
+                                final v = widget.venue ?? VenueModel(id: widget.venueId ?? '', name: _nameCtrl.text.trim(), address: '');
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => TelegramStaffConnectDialog(venue: v),
+                                ).then((_) {
+                                  final vId = widget.venueId ?? widget.venue?.id;
+                                  if (vId != null && vId.isNotEmpty) {
+                                    FirebaseFirestore.instance.collection('venues').doc(vId).get().then((snap) {
+                                      if (snap.exists) {
+                                        final gid = snap.data()?['telegramGroupId']?.toString() ?? snap.data()?['telegram_group_id']?.toString() ?? '';
+                                        if (gid.isNotEmpty && mounted) {
+                                          setState(() => _telegramStaffChatCtrl.text = gid);
+                                        }
+                                      }
+                                    });
+                                  }
+                                });
+                              },
+                              child: const Text("🚀 Запуск бота", style: TextStyle(color: AppColors.accentTeal, fontSize: 11, fontWeight: FontWeight.bold)),
+                            ),
+                            const SizedBox(width: 8),
                             GestureDetector(
                               onTap: _testTelegramPing,
                               child: const Text("🔔 Пинг", style: TextStyle(color: Color(0xFF2AABEE), fontSize: 11, fontWeight: FontWeight.bold)),

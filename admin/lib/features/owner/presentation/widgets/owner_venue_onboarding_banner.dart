@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/features/admin/presentation/dialogs/telegram_staff_connect_dialog.dart';
 import 'package:friendly_code/features/admin/presentation/widgets/venue_lifecycle_stepper.dart';
 import 'package:friendly_code/features/owner/presentation/screens/delivery_menu_manager_screen.dart';
 import 'package:friendly_code/features/owner/presentation/screens/venue_regional_settings_screen.dart';
@@ -52,6 +53,29 @@ class OwnerVenueOnboardingBanner extends StatelessWidget {
                 style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
               ),
             ),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: venue.telegramGroupId.isNotEmpty ? AppColors.accentTeal : const Color(0xFF0088CC),
+                side: BorderSide(color: venue.telegramGroupId.isNotEmpty ? AppColors.accentTeal : const Color(0xFF0088CC)),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => TelegramStaffConnectDialog(venue: venue),
+                );
+              },
+              icon: Icon(
+                venue.telegramGroupId.isNotEmpty ? CupertinoIcons.checkmark_seal_fill : CupertinoIcons.paperplane_fill,
+                size: 14,
+              ),
+              label: Text(
+                venue.telegramGroupId.isNotEmpty ? 'TG Штаб (✓)' : 'TG Штаб & Бот',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            ),
+            const SizedBox(width: 8),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accentTeal.withOpacity(0.18),
@@ -240,7 +264,30 @@ class OwnerVenueOnboardingBanner extends StatelessWidget {
           // Action Buttons: Launch Now!
           Row(
             children: [
-              ElevatedButton.icon(
+              OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: venue.telegramGroupId.isNotEmpty ? AppColors.accentTeal : const Color(0xFF0088CC),
+                side: BorderSide(color: venue.telegramGroupId.isNotEmpty ? AppColors.accentTeal : const Color(0xFF0088CC)),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => TelegramStaffConnectDialog(venue: venue),
+                );
+              },
+              icon: Icon(
+                venue.telegramGroupId.isNotEmpty ? CupertinoIcons.checkmark_seal_fill : CupertinoIcons.paperplane_fill,
+                size: 14,
+              ),
+              label: Text(
+                venue.telegramGroupId.isNotEmpty ? 'TG Штаб (✓)' : 'TG Штаб & Бот',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accentGreen,
                   foregroundColor: Colors.black,

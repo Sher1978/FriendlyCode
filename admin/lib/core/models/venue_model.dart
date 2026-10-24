@@ -327,6 +327,7 @@ class VenueModel {
   final String? coverPhotoUrl;
   final String? websiteUrl;
   final String telegramStaffChatId;
+  String get telegramGroupId => telegramStaffChatId;
   final String? masterKnowledgeDoc;
   final String conciergeName;
   final String? conciergeAvatarUrl;
@@ -535,7 +536,7 @@ class VenueModel {
       reviewCount: (map['reviewCount'] as num?)?.toInt() ?? (map['user_ratings_total'] as num?)?.toInt(),
       coverPhotoUrl: map['coverPhotoUrl'] ?? map['logoUrl'],
       websiteUrl: map['websiteUrl'] ?? map['linkUrl'],
-      telegramStaffChatId: map['telegramStaffChatId'] ?? map['telegram_group_id'] ?? map['telegramDispatchChatId'] ?? '',
+      telegramStaffChatId: map['telegramStaffChatId'] ?? map['telegram_group_id'] ?? map['telegramGroupId'] ?? map['telegramDispatchChatId'] ?? '',
       masterKnowledgeDoc: map['masterKnowledgeDoc'] ?? map['knowledgeBaseRaw'],
       conciergeName: map['conciergeName'] as String? ?? 'AI-Консьерж',
       conciergeAvatarUrl: map['conciergeAvatarUrl'] as String?,

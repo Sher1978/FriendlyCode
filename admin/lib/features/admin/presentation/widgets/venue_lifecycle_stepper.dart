@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/theme/colors.dart';
+import 'package:friendly_code/features/admin/presentation/dialogs/telegram_staff_connect_dialog.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart' as url_launcher;
 
@@ -265,6 +266,30 @@ class VenueLifecycleStepper extends StatelessWidget {
                   const Spacer(),
 
                   // Quick Action Buttons
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: venue.telegramGroupId.isNotEmpty ? AppColors.accentTeal : const Color(0xFF0088CC),
+                      side: BorderSide(color: venue.telegramGroupId.isNotEmpty ? AppColors.accentTeal : const Color(0xFF0088CC)),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => TelegramStaffConnectDialog(venue: venue),
+                      );
+                    },
+                    icon: Icon(
+                      venue.telegramGroupId.isNotEmpty ? CupertinoIcons.checkmark_seal_fill : CupertinoIcons.paperplane_fill,
+                      size: 14,
+                    ),
+                    label: Text(
+                      venue.telegramGroupId.isNotEmpty ? 'TG Штаб (✓)' : 'TG Штаб & Бот',
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
                   if (!isLive) ...[
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
