@@ -165,6 +165,17 @@ const GoogleMapsPreLanding = () => {
   const [isSubmittingOrder, setIsSubmittingOrder] = useState(false);
   const [completedOrder, setCompletedOrder] = useState(null);
 
+  // Synchronize default payment method with venue paymentConfig
+  useEffect(() => {
+    if (!venue) return;
+    const payCfg = venue.paymentConfig || {};
+    const isVND = (venue.currency || venueCurrency) === '₫' || (venue.currency || venueCurrency) === 'VND';
+    const isVietQrAllowed = payCfg.enableVietQr !== false && (isVND || payCfg.bankBin || payCfg.vietQrBankBin);
+    if (!isVietQrAllowed && selectedPaymentMethod === 'vietqr') {
+      setSelectedPaymentMethod('cash');
+    }
+  }, [venue, venueCurrency]);
+
   // PDF & Photo Menu State
   const [activeViewTab, setActiveViewTab] = useState('delivery'); // 'delivery' | 'pdf'
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(null);
@@ -530,7 +541,7 @@ const GoogleMapsPreLanding = () => {
       activeLoyaltyConfig,
       venueTimezone,
       isDayActive,
-      false, // In online order flow, deposit does NOT override discount: regular tier strictly applies!
+      depositBalance > 0, // When guest holds active deposit, unlock percDeposit tier per Revoo_Direct_Delivery_Architecture.md §4.3
       baseTierDiscount,
       depositBalance,
       isGrabBagActive,
@@ -578,44 +589,168 @@ const GoogleMapsPreLanding = () => {
       item => item.isPublished !== false && item.isAvailable !== false && item.price !== '0' && item.name !== 'Новый пункт'
     );
     if (items.length === 0) {
-      items = [
-        {
-          id: 'item_pho_bo',
-          name: 'Фо Бо Особенный (Phở Bò Đặc Biệt)',
-          category: 'Супы & Лапша',
-          description: 'Насыщенный говяжий бульон 12-часовой варки, мраморная говядина, рисовая лапша и свежая зелень',
-          price: '120000',
-          aggregatorPrice: '155000',
-          currency: venueCurrency,
-          imageUrl: 'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=500&auto=format&fit=crop&q=60',
-          isPublished: true,
-          isAvailable: true
-        },
-        {
-          id: 'item_nem_ran',
-          name: 'Немы с морепродуктами (Nem Rán)',
-          category: 'Закуски',
-          description: 'Хрустящие спринг-роллы с начинкой из креветок, кальмара, овощей и древесных грибов',
-          price: '85000',
-          aggregatorPrice: '110000',
-          currency: venueCurrency,
-          imageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=60',
-          isPublished: true,
-          isAvailable: true
-        },
-        {
-          id: 'item_ca_phe',
-          name: 'Вьетнамский яичный кофе (Cà Phê Trứng)',
-          category: 'Напитки',
-          description: 'Традиционный крепкий кофе робуста с густой взбитой яично-карамельной пенкой',
-          price: '50000',
-          aggregatorPrice: '65000',
-          currency: venueCurrency,
-          imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&auto=format&fit=crop&q=60',
-          isPublished: true,
-          isAvailable: true
-        }
-      ];
+      const isVND = venueCurrency === '₫' || venueCurrency === 'VND';
+      const isRUB = venueCurrency === '₽' || venueCurrency === 'RUB';
+      const isTHB = venueCurrency === '฿' || venueCurrency === 'THB';
+
+      if (isRUB) {
+        items = [
+          {
+            id: 'item_sample_burger',
+            name: 'Фирменный бургер с беконом',
+            category: 'Бургеры & Гриль',
+            description: 'Сочная котлета из мраморной говядины, сыр чеддер, хрустящий бекон и авторский соус на бриоши',
+            price: '520',
+            aggregatorPrice: '650',
+            currency: venueCurrency,
+            imageUrl: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&auto=format&fit=crop&q=60',
+            isPublished: true,
+            isAvailable: true
+          },
+          {
+            id: 'item_sample_pizza',
+            name: 'Пицца Пепперони на тонком тесте',
+            category: 'Пицца',
+            description: 'Пикантные колбаски пепперони, нежная моцарелла и фирменный томатный соус со свежим базиликом',
+            price: '690',
+            aggregatorPrice: '850',
+            currency: venueCurrency,
+            imageUrl: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=500&auto=format&fit=crop&q=60',
+            isPublished: true,
+            isAvailable: true
+          },
+          {
+            id: 'item_sample_drink',
+            name: 'Капучино Grande',
+            category: 'Напитки',
+            description: 'Классический капучино из свежеобжаренной 100% арабики с шелковистой молочной пенкой',
+            price: '280',
+            aggregatorPrice: '340',
+            currency: venueCurrency,
+            imageUrl: 'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?w=500&auto=format&fit=crop&q=60',
+            isPublished: true,
+            isAvailable: true
+          }
+        ];
+      } else if (isTHB) {
+        items = [
+          {
+            id: 'item_sample_tomyum',
+            name: 'Том Ям с тигровыми креветками (Tom Yum)',
+            category: 'Супы & Лапша',
+            description: 'Острый пряный суп на кокосовом молоке с лемонграссом, галангалом и королевскими креветками',
+            price: '180',
+            aggregatorPrice: '230',
+            currency: venueCurrency,
+            imageUrl: 'https://images.unsplash.com/photo-1548943487-a2e4e43b4853?w=500&auto=format&fit=crop&q=60',
+            isPublished: true,
+            isAvailable: true
+          },
+          {
+            id: 'item_sample_padthai',
+            name: 'Пад Тай с курицей и арахисом (Pad Thai)',
+            category: 'Основные блюда',
+            description: 'Жареная рисовая лапша с фермерской курицей, ростками сои, яйцом и дробленым арахисом',
+            price: '140',
+            aggregatorPrice: '180',
+            currency: venueCurrency,
+            imageUrl: 'https://images.unsplash.com/photo-1559847844-5315695dadae?w=500&auto=format&fit=crop&q=60',
+            isPublished: true,
+            isAvailable: true
+          },
+          {
+            id: 'item_sample_smoothie',
+            name: 'Манго-смузи из спелого манго',
+            category: 'Напитки',
+            description: 'Освежающий натуральный смузи из спелого тайского манго без добавления сахара',
+            price: '80',
+            aggregatorPrice: '110',
+            currency: venueCurrency,
+            imageUrl: 'https://images.unsplash.com/photo-1623065422902-30a2d299bbe4?w=500&auto=format&fit=crop&q=60',
+            isPublished: true,
+            isAvailable: true
+          }
+        ];
+      } else if (!isVND) {
+        // Universal International (AED, USD, EUR, etc.)
+        items = [
+          {
+            id: 'item_sample_special',
+            name: 'Signature Grill Steak / Bowl',
+            category: 'Main Courses',
+            description: 'Tender marinated steak served with seasonal roasted vegetables and chef specialty glaze',
+            price: '45',
+            aggregatorPrice: '60',
+            currency: venueCurrency,
+            imageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=60',
+            isPublished: true,
+            isAvailable: true
+          },
+          {
+            id: 'item_sample_starter',
+            name: 'Crispy Truffle Fries & Parmesan Dip',
+            category: 'Appetizers',
+            description: 'Golden fries infused with black truffle oil and freshly grated parmesan cheese',
+            price: '25',
+            aggregatorPrice: '35',
+            currency: venueCurrency,
+            imageUrl: 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?w=500&auto=format&fit=crop&q=60',
+            isPublished: true,
+            isAvailable: true
+          },
+          {
+            id: 'item_sample_coffee',
+            name: 'Artisan Cold Brew / Specialty Tea',
+            category: 'Beverages',
+            description: 'Slow-steeped single-origin coffee with smooth rich chocolate notes',
+            price: '18',
+            aggregatorPrice: '24',
+            currency: venueCurrency,
+            imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&auto=format&fit=crop&q=60',
+            isPublished: true,
+            isAvailable: true
+          }
+        ];
+      } else {
+        items = [
+          {
+            id: 'item_pho_bo',
+            name: 'Фо Бо Особенный (Phở Bò Đặc Biệt)',
+            category: 'Супы & Лапша',
+            description: 'Насыщенный говяжий бульон 12-часовой варки, мраморная говядина, рисовая лапша и свежая зелень',
+            price: '120000',
+            aggregatorPrice: '155000',
+            currency: venueCurrency,
+            imageUrl: 'https://images.unsplash.com/photo-1582878826629-29b7ad1cdc43?w=500&auto=format&fit=crop&q=60',
+            isPublished: true,
+            isAvailable: true
+          },
+          {
+            id: 'item_nem_ran',
+            name: 'Немы с морепродуктами (Nem Rán)',
+            category: 'Закуски',
+            description: 'Хрустящие спринг-роллы с начинкой из креветок, кальмара, овощей и древесных грибов',
+            price: '85000',
+            aggregatorPrice: '110000',
+            currency: venueCurrency,
+            imageUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=500&auto=format&fit=crop&q=60',
+            isPublished: true,
+            isAvailable: true
+          },
+          {
+            id: 'item_ca_phe',
+            name: 'Вьетнамский яичный кофе (Cà Phê Trứng)',
+            category: 'Напитки',
+            description: 'Традиционный крепкий кофе робуста с густой взбитой яично-карамельной пенкой',
+            price: '50000',
+            aggregatorPrice: '65000',
+            currency: venueCurrency,
+            imageUrl: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?w=500&auto=format&fit=crop&q=60',
+            isPublished: true,
+            isAvailable: true
+          }
+        ];
+      }
     }
     return items;
   }, [gmConfig.menuItems, venue?.menuItems, venueCurrency]);
@@ -696,9 +831,25 @@ const GoogleMapsPreLanding = () => {
     };
   }, [cart, currentDiscountRate, maxPossibleDiscount, isUserIdentified]);
 
-  // Delivery Fee & Threshold
-  const freeThreshold = Number(deliveryLoyaltyConfig?.freeDeliveryThreshold || 0);
-  const baseDeliveryFee = deliveryType === 'pickup' ? 0 : 25000;
+  // Delivery Fee & Threshold (dynamically configured per venue logisticsConfig)
+  const freeThreshold = Number(
+    deliveryLoyaltyConfig?.freeDeliveryThreshold ?? 
+    venue?.logisticsConfig?.freeDeliveryThreshold ?? 
+    0
+  );
+  const defaultFeeByCurrency = (venueCurrency === '₫' || venueCurrency === 'VND') 
+    ? 25000 
+    : (venueCurrency === '฿' || venueCurrency === 'THB') 
+      ? 40 
+      : (venueCurrency === '₽' || venueCurrency === 'RUB') 
+        ? 250 
+        : 5;
+  const configuredFee = Number(
+    venue?.logisticsConfig?.inHouseBaseFee ?? 
+    venue?.logisticsConfig?.baseDeliveryFee ?? 
+    defaultFeeByCurrency
+  );
+  const baseDeliveryFee = deliveryType === 'pickup' ? 0 : configuredFee;
   const isFreeDelivery = freeThreshold > 0 && discountedSubtotal >= freeThreshold;
   const deliveryFee = isFreeDelivery || deliveryType === 'pickup' ? 0 : baseDeliveryFee;
 
@@ -1307,11 +1458,11 @@ const GoogleMapsPreLanding = () => {
     return <ServiceStorefront venue={venue} />;
   }
 
-  // VietQR URL builder
+  // VietQR URL builder (supports both legacy and flutter venue_model naming)
   const paymentConfig = venue?.paymentConfig || {};
-  const bankBin = paymentConfig.bankBin || "970422";
-  const accNum = paymentConfig.accountNumber || "0901234567";
-  const accName = paymentConfig.accountName || venue?.name || 'REVOO VENUE';
+  const bankBin = paymentConfig.vietQrBankBin || paymentConfig.bankBin || "970422";
+  const accNum = paymentConfig.vietQrAccountNumber || paymentConfig.accountNumber || "0901234567";
+  const accName = paymentConfig.vietQrAccountName || paymentConfig.accountName || venue?.name || 'REVOO VENUE';
   const vietQrUrl = completedOrder && completedOrder.totalPayable > 0
     ? `https://img.vietqr.io/image/${bankBin}-${accNum}-compact2.png?amount=${completedOrder.totalPayable}&addInfo=${completedOrder.orderId}&accountName=${encodeURIComponent(accName)}`
     : null;
@@ -2251,35 +2402,113 @@ const GoogleMapsPreLanding = () => {
                   </div>
                 )}
 
-                {/* Payment Method Selector */}
+                {/* Dynamic Payment Method Selector */}
                 <div>
                   <label className="text-[11px] font-bold text-gray-300 uppercase block mb-1.5">Способ оплаты</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedPaymentMethod('vietqr')}
-                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-left flex items-center gap-2 ${
-                        selectedPaymentMethod === 'vietqr'
-                          ? 'bg-emerald-500/20 border-emerald-400 text-white'
-                          : 'bg-[#202124] border-[#3C4043] text-gray-400'
-                      }`}
-                    >
-                      <span>⚡</span>
-                      <span>VietQR (Napas247)</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedPaymentMethod('cash')}
-                      className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-left flex items-center gap-2 ${
-                        selectedPaymentMethod === 'cash'
-                          ? 'bg-emerald-500/20 border-emerald-400 text-white'
-                          : 'bg-[#202124] border-[#3C4043] text-gray-400'
-                      }`}
-                    >
-                      <span>💵</span>
-                      <span>Наличными курьеру</span>
-                    </button>
-                  </div>
+                  {useDeposit && finalOrderTotal === 0 ? (
+                    <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center gap-2.5 text-xs text-amber-300 font-semibold">
+                      <span>💰</span>
+                      <span>Заказ полностью покрыт списанием с вашего депозита ({formatPrice(depositDeduction, venueCurrency)})</span>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* VietQR */}
+                      {(paymentConfig.enableVietQr !== false && (venueCurrency === '₫' || venueCurrency === 'VND' || paymentConfig.bankBin || paymentConfig.vietQrBankBin)) && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPaymentMethod('vietqr')}
+                          className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-left flex items-center gap-2 ${
+                            selectedPaymentMethod === 'vietqr'
+                              ? 'bg-emerald-500/20 border-emerald-400 text-white'
+                              : 'bg-[#202124] border-[#3C4043] text-gray-400'
+                          }`}
+                        >
+                          <span>⚡</span>
+                          <span>VietQR (Napas247)</span>
+                        </button>
+                      )}
+
+                      {/* Cash */}
+                      {paymentConfig.cashOnDelivery !== false && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPaymentMethod('cash')}
+                          className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-left flex items-center gap-2 ${
+                            selectedPaymentMethod === 'cash'
+                              ? 'bg-emerald-500/20 border-emerald-400 text-white'
+                              : 'bg-[#202124] border-[#3C4043] text-gray-400'
+                          }`}
+                        >
+                          <span>💵</span>
+                          <span>Наличными {deliveryType === 'pickup' ? 'при получении' : 'курьеру'}</span>
+                        </button>
+                      )}
+
+                      {/* Card Terminal on Delivery */}
+                      {(paymentConfig.cardTerminalOnDelivery || paymentConfig.posTerminalOnDelivery) && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPaymentMethod('card_terminal')}
+                          className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-left flex items-center gap-2 ${
+                            selectedPaymentMethod === 'card_terminal'
+                              ? 'bg-emerald-500/20 border-emerald-400 text-white'
+                              : 'bg-[#202124] border-[#3C4043] text-gray-400'
+                          }`}
+                        >
+                          <span>💳</span>
+                          <span>Картой через терминал</span>
+                        </button>
+                      )}
+
+                      {/* Stripe Online Card */}
+                      {paymentConfig.enableStripe && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPaymentMethod('stripe')}
+                          className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-left flex items-center gap-2 ${
+                            selectedPaymentMethod === 'stripe'
+                              ? 'bg-emerald-500/20 border-emerald-400 text-white'
+                              : 'bg-[#202124] border-[#3C4043] text-gray-400'
+                          }`}
+                        >
+                          <span>💳</span>
+                          <span>Карта онлайн (Stripe)</span>
+                        </button>
+                      )}
+
+                      {/* Ziina Pay / Apple Pay */}
+                      {paymentConfig.enableZiina && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPaymentMethod('ziina')}
+                          className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-left flex items-center gap-2 ${
+                            selectedPaymentMethod === 'ziina'
+                              ? 'bg-emerald-500/20 border-emerald-400 text-white'
+                              : 'bg-[#202124] border-[#3C4043] text-gray-400'
+                          }`}
+                        >
+                          <span>⚡</span>
+                          <span>Ziina / Apple Pay</span>
+                        </button>
+                      )}
+
+                      {/* Razorpay UPI */}
+                      {(paymentConfig.enableRazorpayUpi || paymentConfig.enableUpi) && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPaymentMethod('upi')}
+                          className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-left flex items-center gap-2 ${
+                            selectedPaymentMethod === 'upi'
+                              ? 'bg-emerald-500/20 border-emerald-400 text-white'
+                              : 'bg-[#202124] border-[#3C4043] text-gray-400'
+                          }`}
+                        >
+                          <span>🇮🇳</span>
+                          <span>UPI / QR</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Price Breakdown */}

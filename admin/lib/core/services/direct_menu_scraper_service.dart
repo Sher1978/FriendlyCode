@@ -4,17 +4,11 @@ import 'package:http/http.dart' as http;
 import 'package:friendly_code/core/models/venue_model.dart';
 
 class DirectMenuScraperService {
-  // Decoded at runtime to adhere to repository secret scanning policies
-  static String get _primaryKey => utf8.decode(base64Decode("QVEuQWI4Uk42S1RuM2F1ZVZCRUpMRDhuT19sM1lxYVBQd0tZX1dJQjN5cnBQVV9WN2U0YlE="));
-  static String get _fallbackKey => utf8.decode(base64Decode("QVEuQWI4Uk42THZOTlBwaWp3elpndXFTVVZIem1yekRmVl9rY0RWbFA2X0N2VU1qcWlrNkE="));
-  static String get _groqKey => String.fromCharCodes(
-        const [
-          61, 41, 49, 5, 61, 35, 50, 55, 110, 25, 12, 22, 0, 50, 23, 106,
-          19, 16, 54, 104, 99, 32, 29, 43, 13, 29, 62, 35, 56, 105, 28, 3,
-          59, 55, 48, 12, 50, 3, 14, 50, 23, 11, 108, 34, 30, 53, 106, 9,
-          16, 60, 21, 99, 55, 50, 15, 56
-        ].map((c) => c ^ 0x5A),
-      );
+  static const List<String> _aiProxyEndpoints = [
+    '/api/ai-proxy',
+    'https://bot-lab-21910.web.app/api/ai-proxy',
+    'https://friendly-code-489513.web.app/api/ai-proxy',
+  ];
 
   /// Resolves mobile Grab short links (e.g. r.grab.com/g/6-...-5-C8CXRJNGHFDHR2)
   static String resolveTargetUrl(String inputUrl) {
@@ -51,7 +45,7 @@ class DirectMenuScraperService {
     throw Exception("Failed to fetch menu content from URL (HTTP ${response.statusCode})");
   }
 
-  /// Sends text to Gemini AI to extract structured menu items
+  /// Sends text to AI via server-side /api/ai-proxy to extract structured menu items
   static Future<List<GmMenuItem>> extractDishesWithGemini(String markdownText) async {
     final truncatedText = markdownText.length > 25000 ? markdownText.substring(0, 25000) : markdownText;
 
@@ -64,153 +58,64 @@ class DirectMenuScraperService {
         "- imageUrl: string (valid http/https image URL from markdown or empty)\n\n"
         "Return ONLY the raw JSON array without any markdown backticks or commentary.";
 
-    // Fast-path inference via Groq LPU (0.4s)
-    final groqModels = ["qwen/qwen3.8-27b", "openai/gpt-oss-120b"];
-    for (final gm in groqModels) {
+    Exception? lastError;
+    for (final endpoint in _aiProxyEndpoints) {
       try {
-        debugPrint("[DirectMenuScraper] Querying Groq LPU ($gm)...");
-        final uri = Uri.parse("https://api.groq.com/openai/v1/chat/completions");
-        final res = await http.post(
-          uri,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $_groqKey',
-            'User-Agent': 'RevooApp/1.0',
-          },
-          body: jsonEncode({
-            'model': gm,
-            'messages': [
-              {'role': 'user', 'content': "$prompt\n\n$truncatedText"}
-            ],
-            'temperature': 0.1,
-            'max_tokens': 3500,
-          }),
-        ).timeout(const Duration(seconds: 10));
+        debugPrint("[DirectMenuScraper] Querying AI Proxy ($endpoint)...");
+        final res = await http
+            .post(
+              Uri.parse(endpoint),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({
+                'mode': 'groq',
+                'prompt': "$prompt\n\n=== MENU CONTENT ===\n$truncatedText",
+                'maxTokens': 3500,
+              }),
+            )
+            .timeout(const Duration(seconds: 25));
 
         if (res.statusCode == 200) {
           final jsonResp = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-          final choices = jsonResp['choices'] as List<dynamic>?;
-          if (choices != null && choices.isNotEmpty) {
-            final content = choices[0]['message']?['content'] as String? ?? '';
-            final clean = content.replaceAll('```json', '').replaceAll('```', '').trim();
-            final decoded = jsonDecode(clean);
-            if (decoded is List) {
-              final items = <GmMenuItem>[];
-              for (int i = 0; i < decoded.length; i++) {
-                final map = decoded[i] as Map<String, dynamic>;
-                final name = map['name']?.toString() ?? 'Блюдо';
-                final desc = map['description']?.toString() ?? '';
-                final priceVal = map['price'];
-                final priceStr = priceVal != null ? priceVal.toString() : '0';
-                final category = map['category']?.toString() ?? 'General';
-                final imageUrl = map['imageUrl']?.toString() ?? '';
+          final content = jsonResp['text']?.toString() ?? '';
+          final clean = content.replaceAll('```json', '').replaceAll('```', '').trim();
+          final decoded = jsonDecode(clean);
+          if (decoded is List) {
+            final items = <GmMenuItem>[];
+            for (int i = 0; i < decoded.length; i++) {
+              final map = decoded[i] as Map<String, dynamic>;
+              final name = map['name']?.toString() ?? 'Блюдо';
+              final desc = map['description']?.toString() ?? '';
+              final priceVal = map['price'];
+              final priceStr = priceVal != null ? priceVal.toString() : '0';
+              final category = map['category']?.toString() ?? 'General';
+              final imageUrl = map['imageUrl']?.toString() ?? '';
 
-                items.add(GmMenuItem(
-                  id: "item_${DateTime.now().millisecondsSinceEpoch}_$i",
-                  name: name,
-                  description: desc,
-                  price: priceStr,
-                  aggregatorPrice: priceStr,
-                  category: category,
-                  imageUrl: imageUrl,
-                  isPublished: false,
-                ));
-              }
-              debugPrint("[DirectMenuScraper] Successfully extracted ${items.length} items via Groq ($gm)");
+              items.add(GmMenuItem(
+                id: "item_${DateTime.now().millisecondsSinceEpoch}_$i",
+                name: name,
+                description: desc,
+                price: priceStr,
+                aggregatorPrice: priceStr,
+                category: category,
+                imageUrl: imageUrl,
+                isPublished: false,
+              ));
+            }
+            if (items.isNotEmpty) {
+              debugPrint("[DirectMenuScraper] Successfully extracted ${items.length} items via AI Proxy");
               return items;
             }
           }
+        } else {
+          debugPrint("[DirectMenuScraper] AI Proxy returned HTTP ${res.statusCode}: ${res.body}");
         }
       } catch (e) {
-        debugPrint("[DirectMenuScraper] Groq ($gm) error: $e");
+        debugPrint("[DirectMenuScraper] Error with endpoint $endpoint: $e");
+        lastError = e is Exception ? e : Exception(e.toString());
       }
     }
 
-    final keys = [_primaryKey, _fallbackKey];
-    final models = [
-      "gemini-flash-lite-latest",
-      "gemini-3.5-flash-lite",
-      "gemini-3-flash-preview",
-      "gemini-flash-latest",
-      "gemini-2.5-flash",
-    ];
-
-    Exception? lastError;
-
-    for (final key in keys) {
-      for (final model in models) {
-        try {
-          debugPrint("[DirectMenuScraper] Querying Gemini ($model)...");
-          final uri = Uri.parse("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$key");
-          final res = await http.post(
-            uri,
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'contents': [
-                {
-                  'parts': [
-                    {'text': "$prompt\n\n$truncatedText"}
-                  ]
-                }
-              ]
-            }),
-          ).timeout(const Duration(seconds: 15));
-
-          if (res.statusCode == 200) {
-            final jsonResp = jsonDecode(res.body) as Map<String, dynamic>;
-            final candidates = jsonResp['candidates'] as List<dynamic>?;
-            if (candidates != null && candidates.isNotEmpty) {
-              final content = candidates[0]['content'] as Map<String, dynamic>?;
-              final parts = content?['parts'] as List<dynamic>?;
-              if (parts != null && parts.isNotEmpty) {
-                final textReply = parts[0]['text'] as String? ?? '';
-                final clean = textReply
-                    .replaceAll('```json', '')
-                    .replaceAll('```', '')
-                    .trim();
-
-                final decoded = jsonDecode(clean);
-                if (decoded is List) {
-                  final items = <GmMenuItem>[];
-                  for (int i = 0; i < decoded.length; i++) {
-                    final map = decoded[i] as Map<String, dynamic>;
-                    final name = map['name']?.toString() ?? 'Блюдо';
-                    final desc = map['description']?.toString() ?? '';
-                    final priceVal = map['price'];
-                    final priceStr = priceVal != null ? priceVal.toString() : '0';
-                    final category = map['category']?.toString() ?? 'General';
-                    final imageUrl = map['imageUrl']?.toString() ?? '';
-
-                    items.add(GmMenuItem(
-                      id: "item_${DateTime.now().millisecondsSinceEpoch}_$i",
-                      name: name,
-                      description: desc,
-                      price: priceStr,
-                      aggregatorPrice: priceStr,
-                      category: category,
-                      imageUrl: imageUrl,
-                      isPublished: false,
-                    ));
-                  }
-
-                  if (items.isNotEmpty) {
-                    debugPrint("[DirectMenuScraper] Successfully extracted ${items.length} items with Gemini!");
-                    return items;
-                  }
-                }
-              }
-            }
-          } else {
-            debugPrint("[DirectMenuScraper] Gemini $model HTTP ${res.statusCode}: ${res.body.substring(0, 150)}");
-          }
-        } catch (e) {
-          lastError = Exception(e.toString());
-          debugPrint("[DirectMenuScraper] Attempt with $model failed: $e");
-        }
-      }
-    }
-
-    throw lastError ?? Exception("Could not extract menu items with Gemini AI");
+    throw lastError ?? Exception("Could not extract menu items with AI Proxy");
   }
 
   /// Full end-to-end scraper pipeline directly in browser

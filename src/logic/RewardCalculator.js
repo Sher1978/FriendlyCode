@@ -287,9 +287,9 @@ export class RewardCalculator {
         const todayStr = this.getVenueDateString(currentTime, venueTimezone);
 
         // 1. DEPOSIT DISCOUNT:
-        // When ordering food online (isOnlineOrder = true), regular tier discounts strictly apply.
-        // The deposit is used solely as a payment method for debiting the order.
-        if (!isOnlineOrder && hasLockedDiscount && Number(depositBalance) > 0) {
+        // If guest has an active positive deposit balance or locked discount, they receive the deposit VIP tier (percDeposit).
+        // In accordance with Revoo_Direct_Delivery_Architecture.md §4.3, deposit holders enjoy the deposit discount tier.
+        if (hasLockedDiscount || Number(depositBalance) > 0) {
             return {
                 discount: norm.percDeposit,
                 status: 'deposit',

@@ -53,7 +53,7 @@ jobs:
           export GOOGLE_APPLICATION_CREDENTIALS="$GITHUB_WORKSPACE/gcp-key.json"
           cp gcp-key.json functions/gcp-key.json
           npm --prefix functions install
-          OUTPUT=$(npx --yes firebase-tools deploy --only functions:conciergeChatHttp,functions:telegramWebhook,functions:partnerPaymentWebhook,functions:whatsappWebhook,functions:scrapeMenuCallable,functions:onMenuScrapeJobCreated,functions:scrapeMenuHttp,functions:scheduledAggregatorSync,functions:onBookingCreated,functions:aiProxyHttp --project bot-lab-21910 --non-interactive 2>&1) && EXIT_CODE=0 || EXIT_CODE=$?
+          OUTPUT=$(npx --yes firebase-tools deploy --only functions:conciergeChatHttp,functions:telegramWebhook,functions:partnerPaymentWebhook,functions:whatsappWebhook,functions:scrapeMenuCallable,functions:onMenuScrapeJobCreated,functions:scrapeMenuHttp,functions:scheduledAggregatorSync,functions:onBookingCreated,functions:onOrderCreated,functions:aiProxyHttp --project bot-lab-21910 --non-interactive 2>&1) && EXIT_CODE=0 || EXIT_CODE=$?
           echo "$OUTPUT"
           rm -f gcp-key.json functions/gcp-key.json
           if [ $EXIT_CODE -ne 0 ]; then

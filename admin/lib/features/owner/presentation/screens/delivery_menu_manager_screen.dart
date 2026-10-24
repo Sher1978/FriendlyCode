@@ -1,8 +1,9 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/theme/colors.dart';
@@ -129,127 +130,25 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
       debugPrint("[DeliveryMenuManager] Job doc create error: $createErr");
     }
 
-    // Resilient progressive menu sync & item loader
-    Timer(const Duration(milliseconds: 500), () {
-      if (!mounted || !_isScraping) return;
-      setState(() {
-        _scrapeProgress = 0.40;
-        _scrapeStepText = "Подключение к GrabFood и получение категорий...";
-      });
-    });
-
-    Timer(const Duration(milliseconds: 1200), () {
-      if (!mounted || !_isScraping) return;
-      setState(() {
-        _scrapeProgress = 0.80;
-        _scrapeStepText = "Обработка 28 позиций с фото в высоком качестве...";
-      });
-    });
-
-    Timer(const Duration(milliseconds: 2000), () async {
-      if (!mounted || !_isScraping) return;
-      debugPrint("[DeliveryMenuManager] Checking scrape_jobs for dishes with photos...");
+    // Trigger Cloud Function backend menu scraper via /api/scrape-menu
+    () async {
       try {
-        List<GmMenuItem> parsed = [];
-
-        // 1. Check job_grab_live_svoi first (direct ID lookup, zero composite index needed)
-        try {
-          final specificDoc = await FirebaseFirestore.instance
-              .collection('venues')
-              .doc(widget.venueId)
-              .collection('scrape_jobs')
-              .doc('job_grab_live_svoi')
-              .get();
-          if (specificDoc.exists && specificDoc.data() != null) {
-            final rawItems = (specificDoc.data()!['items'] as List<dynamic>?) ?? [];
-            if (rawItems.isNotEmpty) {
-              parsed = rawItems.whereType<Map>().map((e) => GmMenuItem.fromMap(e)).toList();
-            }
-          }
-        } catch (specErr) {
-          debugPrint("[DeliveryMenuManager] Specific doc lookup error: $specErr");
-        }
-
-        // 2. Fallback query without composite index
-        if (parsed.isEmpty) {
-          try {
-            final querySnap = await FirebaseFirestore.instance
-                .collection('venues')
-                .doc(widget.venueId)
-                .collection('scrape_jobs')
-                .where('status', isEqualTo: 'completed')
-                .limit(10)
-                .get();
-            if (querySnap.docs.isNotEmpty) {
-              final docs = querySnap.docs.toList();
-              docs.sort((a, b) {
-                final aTime = (a.data()['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
-                final bTime = (b.data()['createdAt'] as Timestamp?)?.millisecondsSinceEpoch ?? 0;
-                return bTime.compareTo(aTime);
-              });
-              for (final doc in docs) {
-                final raw = (doc.data()['items'] as List<dynamic>?) ?? [];
-                if (raw.isNotEmpty) {
-                  parsed = raw.whereType<Map>().map((e) => GmMenuItem.fromMap(e)).toList();
-                  break;
-                }
-              }
-            }
-          } catch (qErr) {
-            debugPrint("[DeliveryMenuManager] Scrape fallback query note: $qErr");
-          }
-        }
-
-        if (parsed.isNotEmpty && mounted && _isScraping) {
-          _activeJobSubscription?.cancel();
-          setState(() {
-            _stagedItems = parsed;
-            _selectedStagedIndices.clear();
-            for (int i = 0; i < _stagedItems.length; i++) {
-              _selectedStagedIndices.add(i);
-            }
-            _scrapeProgress = 1.0;
-            _isScraping = false;
-            _scrapeStepText = "Синхронизация завершена! Получено ${_stagedItems.length} позиций с фото.";
-          });
-
-          // Persist to venue document
-          try {
-            await FirebaseFirestore.instance.collection('venues').doc(widget.venueId).update({
-              'stagedMenuItems': parsed.map((e) => e.toMap()).toList(),
-              'lastAggregatorSyncStatus': 'success',
-              'lastAggregatorSyncFound': parsed.length,
-              'lastAggregatorSyncAt': FieldValue.serverTimestamp(),
-            });
-          } catch (venueErr) {
-            debugPrint("[DeliveryMenuManager] Venue staged items update error: $venueErr");
-          }
-
-          // Complete the scrape job document
-          try {
-            await FirebaseFirestore.instance
-                .collection('venues')
-                .doc(widget.venueId)
-                .collection('scrape_jobs')
-                .doc(jobId)
-                .set({
-              'status': 'completed',
-              'progress': 100,
-              'currentStep': 'Синхронизация завершена успешно',
-              'itemsCount': parsed.length,
-              'items': parsed.map((e) => e.toMap()).toList(),
-              'completedAt': FieldValue.serverTimestamp(),
-            }, SetOptions(merge: true));
-          } catch (jobErr) {
-            debugPrint("[DeliveryMenuManager] Job completion set note: $jobErr");
-          }
-
-          _showToast("Готово! Загружено ${_stagedItems.length} реальных блюд с фото из GrabFood");
-        }
-      } catch (e) {
-        debugPrint("[DeliveryMenuManager] Sync pull error: $e");
+        final uri = Uri.parse('/api/scrape-menu');
+        await http.post(
+          uri,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'venueId': widget.venueId,
+            'url': url,
+            'jobId': jobId,
+            'autoPublish': false,
+            'mirrorImages': false,
+          }),
+        ).timeout(const Duration(seconds: 45));
+      } catch (httpErr) {
+        debugPrint("[DeliveryMenuManager] Direct HTTP scrape trigger note (Firestore onMenuScrapeJobCreated trigger is active): $httpErr");
       }
-    });
+    }();
 
     // 2. Real-time stream from Firestore scrape_jobs
     _activeJobSubscription?.cancel();
@@ -1534,7 +1433,7 @@ class _DeliveryMenuManagerScreenState extends State<DeliveryMenuManagerScreen> {
                     Text(
                       _scrapeStepText.isNotEmpty
                           ? _scrapeStepText
-                          : (_isScraping ? "Идет обработка данных..." : "Готово к утверждению"),
+                          : (_isScraping ? "Идет обработка ${_activeJobId ?? ''}..." : "Готово к утверждению"),
                       style: TextStyle(
                         color: isError ? Colors.redAccent.withOpacity(0.9) : AppColors.macosTextSecondary,
                         fontSize: 12,

@@ -19,6 +19,10 @@ const {
     syncScheduledTripSeatsOnDecision,
     handleNewBookingCreated
 } = require("./services/bookingTriggers");
+const {
+    handleNewOrderCreated,
+    handleOrderDecisionCallback
+} = require("./services/orderTriggers");
 const { handleAiProxyRequest } = require("./services/ai/aiProxy");
 
 // SuperAdmin Chat ID
@@ -86,21 +90,21 @@ async function calculateUserDiscountTier(userId, venueId) {
     let depositThreshold = 1000000;
     let percDeposit = 25;
 
-    // Fetch venue loyalty config
+    // Fetch venue loyalty config (checks deliveryLoyaltyConfig or loyaltyConfig)
     try {
         const venueDoc = await db.collection("venues").doc(venueId).get();
         if (venueDoc.exists) {
             const venueData = venueDoc.data();
-            const config = venueData.loyaltyConfig || {};
+            const config = venueData.deliveryLoyaltyConfig || venueData.loyaltyConfig || {};
             discountPercentage = Number(config.percBase ?? 5);
             percDeposit = Number(config.percDeposit ?? 25);
-            depositThreshold = Number(config.depositThreshold ?? 1000000);
+            depositThreshold = Number(config.depositThreshold ?? 0);
         }
     } catch (e) {
         logger.error("Error fetching venue base discount:", e);
     }
 
-    if (hasLockedDiscount || depositBalance >= depositThreshold) {
+    if (hasLockedDiscount || Number(depositBalance) > 0) {
         return { 
             tier_level: 1, 
             discount_percentage: percDeposit, 
@@ -1823,6 +1827,19 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                     }
                 }
 
+                res.sendStatus(200);
+                return;
+            }
+
+            // Handle Direct Delivery Order Actions (ORD_ACCEPT_, ORD_COURIER_, ORD_REJECT_)
+            if (callbackData.startsWith("ORD_ACCEPT_") || callbackData.startsWith("ORD_COURIER_") || callbackData.startsWith("ORD_REJECT_")) {
+                const reviewer = fromUser.username ? `@${fromUser.username}` : (fromUser.first_name || "Администратор");
+                const { success, badge } = await handleOrderDecisionCallback(db, callbackData, reviewer);
+                await answerCallbackQuery(callbackQueryId, badge, false);
+                if (success) {
+                    const origText = callbackQuery.message?.text || "";
+                    await editTelegramMessage(chatId, messageId, `${origText}\n\n────────────────\n<b>${badge}</b> сотрудником ${reviewer}`);
+                }
                 res.sendStatus(200);
                 return;
             }
@@ -5053,6 +5070,18 @@ exports.onBookingCreated = onDocumentCreated("bookings/{bookingId}", async (even
     const bookingId = event.params.bookingId;
     const bookingData = snap.data() || {};
     await handleNewBookingCreated(db, bookingId, bookingData);
+});
+
+/**
+ * Triggered whenever a new direct delivery order document is created in `orders/{orderId}`.
+ * Dispatches real-time Telegram cards to kitchen/courier staff and in-app notifications.
+ */
+exports.onOrderCreated = onDocumentCreated("orders/{orderId}", async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const orderId = event.params.orderId;
+    const orderData = snap.data() || {};
+    await handleNewOrderCreated(db, orderId, orderData);
 });
 
 /**
