@@ -366,7 +366,55 @@ class _FleetManagementScreenState extends State<FleetManagementScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 16),
+
+          // Blueprint Schematic Preview (Вид сверху)
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: Container(
+              height: 130,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F131D),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.accentTeal.withValues(alpha: 0.2)),
+              ),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(
+                    item.category == 'sleeper'
+                        ? 'assets/images/fleet_schematic_sleeper_topview.png'
+                        : 'assets/images/fleet_schematic_minivan_topview.png',
+                    fit: BoxFit.contain,
+                  ),
+                  Positioned(
+                    top: 8,
+                    left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.75),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: AppColors.accentTeal.withValues(alpha: 0.6)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(CupertinoIcons.compass, size: 10, color: AppColors.accentTeal),
+                          SizedBox(width: 4),
+                          Text(
+                            "АРХИТЕКТУРНАЯ СХЕМА КУЗОВА (ВИД СВЕРХУ)",
+                            style: TextStyle(color: AppColors.accentTeal, fontSize: 9, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           const Divider(color: AppColors.macosDivider, height: 1),
           const SizedBox(height: 16),
 

@@ -16,6 +16,76 @@ class TripInventoryService {
   CollectionReference _yieldRulesRef(String venueId) =>
       _firestore.collection('venues').doc(venueId).collection('yield_rules');
 
+  /// Create a single custom/floating trip on an exact date & time
+  Future<String> createSingleTrip({
+    required String venueId,
+    required ServiceItem route,
+    required Map<String, dynamic> fleetTemplateData,
+    required DateTime flightDateTime,
+  }) async {
+    final decks = List<Map<String, dynamic>>.from(
+      (fleetTemplateData['decks'] as List<dynamic>? ?? []).map((e) => Map<String, dynamic>.from(e)),
+    );
+    final totalCapacity = (fleetTemplateData['totalCapacity'] as num?)?.toInt() ?? 13;
+    final templateName = fleetTemplateData['name'] ?? 'Транспорт';
+
+    final initialSeats = <String, TripSeatState>{};
+    int initialBlocked = 0;
+
+    for (final deck in decks) {
+      final deckId = deck['id'] ?? 'main';
+      final seatsList = (deck['seats'] as List<dynamic>? ?? []);
+      for (final s in seatsList) {
+        final sMap = Map<String, dynamic>.from(s);
+        final seatId = sMap['id'] ?? '';
+        final label = sMap['label'] ?? seatId;
+        final features = (sMap['features'] as List<dynamic>? ?? []).map((f) => f.toString()).toList();
+        final isBlocked = features.contains('blocked') || features.contains('guide');
+
+        if (isBlocked) initialBlocked++;
+
+        initialSeats[seatId] = TripSeatState(
+          seatId: seatId,
+          label: label,
+          deckId: deckId,
+          row: (sMap['row'] as num?)?.toInt() ?? 1,
+          col: (sMap['col'] as num?)?.toInt() ?? 1,
+          status: isBlocked ? 'blocked' : 'available',
+          notes: isBlocked ? 'Служебное место' : '',
+        );
+      }
+    }
+
+    final dateStr = "${flightDateTime.year}-${flightDateTime.month.toString().padLeft(2, '0')}-${flightDateTime.day.toString().padLeft(2, '0')}";
+    final timeStr = "${flightDateTime.hour.toString().padLeft(2, '0')}${flightDateTime.minute.toString().padLeft(2, '0')}";
+    final tripDocId = "trip_${route.id}_${dateStr}_$timeStr";
+
+    final sellable = (totalCapacity - initialBlocked).clamp(1, totalCapacity);
+    final trip = ScheduledTrip(
+      id: tripDocId,
+      venueId: venueId,
+      serviceId: route.id,
+      serviceName: route.name,
+      fleetTemplateId: fleetTemplateData['id'] ?? (route.fleetTemplateId ?? 'default'),
+      fleetTemplateName: templateName,
+      departureTime: flightDateTime,
+      totalCapacity: totalCapacity,
+      blockedSeatsCount: initialBlocked,
+      sellableCapacity: sellable,
+      confirmedCount: 0,
+      reservedCount: 0,
+      occupancyRate: 0.0,
+      isYieldActive: false,
+      currentDynamicDiscount: 0.0,
+      packages: route.packages,
+      seats: initialSeats,
+      createdAt: DateTime.now(),
+    );
+
+    await _tripsRef(venueId).doc(tripDocId).set(trip.toMap(), SetOptions(merge: true));
+    return tripDocId;
+  }
+
   /// Generate trips for specified weekdays across the next [weeksCount] weeks
   Future<List<String>> generateWeeklyTrips({
     required String venueId,

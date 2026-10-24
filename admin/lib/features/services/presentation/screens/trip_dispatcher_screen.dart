@@ -157,6 +157,258 @@ class _TripDispatcherScreenState extends State<TripDispatcherScreen> {
     }
   }
 
+  void _showCreateSingleTripDialog() {
+    if (_routes.isEmpty) {
+      _showToast("Сначала создайте маршрут во вкладке «Маршруты и Тарифы»");
+      return;
+    }
+    if (_fleetTemplates.isEmpty) {
+      _showToast("Сначала добавьте шаблон автобуса во вкладке «Автопарк»");
+      return;
+    }
+
+    String selectedRouteId = _routes.first.id;
+    String selectedTemplateId = _routes.first.fleetTemplateId ?? _fleetTemplates.first['id'];
+    DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
+    TimeOfDay selectedTime = const TimeOfDay(hour: 6, minute: 0);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final currentRoute = _routes.firstWhere(
+            (r) => r.id == selectedRouteId,
+            orElse: () => _routes.first,
+          );
+          final currentTemplate = _fleetTemplates.firstWhere(
+            (t) => t['id'] == selectedTemplateId,
+            orElse: () => _fleetTemplates.first,
+          );
+
+          final dateFormatted = DateFormat('EEEE, d MMMM yyyy', 'ru').format(selectedDate);
+          final timeFormatted = "${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}";
+
+          return Dialog(
+            backgroundColor: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: const BorderSide(color: AppColors.accentTeal, width: 1.5),
+            ),
+            child: Container(
+              width: 520,
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.accentTeal.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(CupertinoIcons.calendar_badge_plus, color: AppColors.accentTeal, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Назначить разовый рейс", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                            Text("Плавающее расписание по загрузке", style: TextStyle(color: AppColors.macosTextSecondary, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(CupertinoIcons.xmark, color: Colors.white54, size: 20),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Route Selector
+                  const Text("Маршрут", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white24)),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedRouteId,
+                        isExpanded: true,
+                        dropdownColor: AppColors.surface,
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        items: _routes.map((r) => DropdownMenuItem(value: r.id, child: Text(r.name))).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            final r = _routes.firstWhere((e) => e.id == val);
+                            setDialogState(() {
+                              selectedRouteId = val;
+                              if (r.fleetTemplateId != null && r.fleetTemplateId!.isNotEmpty) {
+                                selectedTemplateId = r.fleetTemplateId!;
+                              }
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Vehicle Template Selector (allows override!)
+                  const Text("Транспорт на этот рейс", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white24)),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedTemplateId,
+                        isExpanded: true,
+                        dropdownColor: AppColors.surface,
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        items: _fleetTemplates.map((t) => DropdownMenuItem(value: t['id'] as String, child: Text("${t['name']} (${t['totalCapacity']} мест)"))).toList(),
+                        onChanged: (val) {
+                          if (val != null) setDialogState(() => selectedTemplateId = val);
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Date & Time pickers
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("Дата выезда", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            const SizedBox(height: 6),
+                            InkWell(
+                              onTap: () async {
+                                final d = await showDatePicker(
+                                  context: ctx,
+                                  initialDate: selectedDate,
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime.now().add(const Duration(days: 90)),
+                                );
+                                if (d != null) setDialogState(() => selectedDate = d);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white24)),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(dateFormatted, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                                    const Icon(CupertinoIcons.calendar, size: 16, color: AppColors.accentTeal),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("Время выезда", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            const SizedBox(height: 6),
+                            InkWell(
+                              onTap: () async {
+                                final t = await showTimePicker(
+                                  context: ctx,
+                                  initialTime: selectedTime,
+                                );
+                                if (t != null) setDialogState(() => selectedTime = t);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.white24)),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(timeFormatted, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                    const Icon(CupertinoIcons.time, size: 16, color: AppColors.accentTeal),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Actions
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      CupertinoButton(
+                        child: const Text("Отмена", style: TextStyle(color: Colors.white54)),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accentTeal,
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        child: const Text("Запустить рейс", style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: () async {
+                          Navigator.pop(ctx);
+                          final flightDateTime = DateTime(
+                            selectedDate.year,
+                            selectedDate.month,
+                            selectedDate.day,
+                            selectedTime.hour,
+                            selectedTime.minute,
+                          );
+
+                          setState(() => _isLoading = true);
+                          try {
+                            final newTripId = await _inventoryService.createSingleTrip(
+                              venueId: widget.venueId,
+                              route: currentRoute,
+                              fleetTemplateData: currentTemplate,
+                              flightDateTime: flightDateTime,
+                            );
+                            _showToast("Разовый рейс успешно создан");
+                            await _loadAll();
+                            final createdTrip = _upcomingTrips.firstWhere(
+                              (t) => t.id == newTripId,
+                              orElse: () => _upcomingTrips.first,
+                            );
+                            setState(() {
+                              _selectedTrip = createdTrip;
+                              _subTab = 1;
+                            });
+                          } catch (e) {
+                            setState(() => _isLoading = false);
+                            _showToast("Ошибка создания рейса: ${e}");
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   void _showToast(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), backgroundColor: AppColors.surface),
@@ -193,19 +445,35 @@ class _TripDispatcherScreenState extends State<TripDispatcherScreen> {
                     _buildSubTabButton(0, CupertinoIcons.calendar_badge_plus, "Генератор расписания на неделю"),
                   ],
                 ),
-                if (_selectedTrip != null && _subTab == 1) ...[
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.1),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                Row(
+                  children: [
+                    if (_selectedTrip != null && _subTab == 1) ...[
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white.withValues(alpha: 0.1),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        icon: const Icon(CupertinoIcons.printer, size: 14),
+                        label: const Text("Манифест водителю", style: TextStyle(fontSize: 12)),
+                        onPressed: () => _showManifestDialog(_selectedTrip!),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accentTeal,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      icon: const Icon(CupertinoIcons.plus_circle_fill, size: 14),
+                      label: const Text("Назначить разовый рейс", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      onPressed: _showCreateSingleTripDialog,
                     ),
-                    icon: const Icon(CupertinoIcons.printer, size: 14),
-                    label: const Text("Манифест водителю", style: TextStyle(fontSize: 12)),
-                    onPressed: () => _showManifestDialog(_selectedTrip!),
-                  ),
-                ],
+                  ],
+                ),
               ],
             ),
           ),
