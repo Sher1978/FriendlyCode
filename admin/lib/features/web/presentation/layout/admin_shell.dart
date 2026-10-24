@@ -432,6 +432,14 @@ class _AdminShellState extends State<AdminShell> {
         isVisible: (role) => true,
       ),
       AdminNavItem(
+        key: 'roles_assignment',
+        title: 'Role Assignment',
+        titleRu: 'Привязка к заведению',
+        icon: Icons.manage_accounts_outlined,
+        builder: (context, venueId) => const VenueRoleAssignmentScreen(),
+        isVisible: (role) => role == UserRole.superAdmin,
+      ),
+      AdminNavItem(
         key: 'regional_settings',
         title: 'Venue Workspace',
         titleRu: 'Настройки заведения',
@@ -484,14 +492,6 @@ class _AdminShellState extends State<AdminShell> {
         groupTitle: 'ADMINISTRATION',
         groupTitleRu: 'АДМИНИСТРИРОВАНИЕ',
         builder: (context, venueId) => GlobalEmailSettingsScreen(),
-        isVisible: (role) => role == UserRole.superAdmin,
-      ),
-      AdminNavItem(
-        key: 'roles_assignment',
-        title: 'Role Assignment',
-        titleRu: 'Назначение ролей',
-        icon: Icons.manage_accounts_outlined,
-        builder: (context, venueId) => const VenueRoleAssignmentScreen(),
         isVisible: (role) => role == UserRole.superAdmin,
       ),
       AdminNavItem(

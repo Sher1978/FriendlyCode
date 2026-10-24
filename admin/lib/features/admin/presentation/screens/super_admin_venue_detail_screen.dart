@@ -225,7 +225,7 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
           case 0:
             return VenueThreeStageWorkspaceScreen(venue: venue, venueId: venue.id);
           case 1:
-            return FleetManagementScreen(venueId: venue.id, currency: venue.currencySymbolSymbol);
+            return FleetManagementScreen(venueId: venue.id, currency: venue.currencySymbol);
           case 2:
             return ServicesCatalogScreen(venueId: venue.id, currency: venue.currencySymbol, archetype: 'batch');
           case 3:
