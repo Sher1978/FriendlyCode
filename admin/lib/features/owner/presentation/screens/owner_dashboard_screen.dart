@@ -28,6 +28,7 @@ import 'package:friendly_code/features/owner/presentation/screens/delivery_loyal
 import 'package:friendly_code/features/owner/presentation/screens/delivery_logistics_payment_screen.dart';
 import 'package:friendly_code/features/services/presentation/screens/services_catalog_screen.dart';
 import 'package:friendly_code/features/services/presentation/screens/staff_management_screen.dart';
+import 'package:friendly_code/features/owner/presentation/widgets/owner_venue_onboarding_banner.dart';
 import 'package:friendly_code/features/services/presentation/screens/yield_rules_screen.dart';
 import 'package:friendly_code/features/services/presentation/screens/ai_concierge_config_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/super_admin_venue_detail_screen.dart';
@@ -1048,6 +1049,8 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── JTBD 4-STAGE LIFECYCLE BANNER: ONBOARDING & LAUNCH STATUS ──
+              OwnerVenueOnboardingBanner(venue: venue),
 
               // ─── J1: Header + Subscription Badge ───────────────────────
               Row(
@@ -1664,41 +1667,6 @@ class _OwnerDashboardScreenState extends State<OwnerDashboardScreen> with Single
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildManagementLink(IconData icon, String title, String sub, VoidCallback tap) {
-    return InkWell(
-      onTap: tap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: AppColors.premiumSand, borderRadius: BorderRadius.circular(12)),
-              child: Icon(icon, color: AppColors.accentGreen, size: 20),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15, color: AppColors.title)),
-                  Text(sub, style: TextStyle(color: AppColors.body.withOpacity(0.7), fontSize: 12)),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.accentGreen),
-          ],
-        ),
       ),
     );
   }

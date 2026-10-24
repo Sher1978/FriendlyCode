@@ -4,10 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/data/venue_repository.dart';
-import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
 import 'package:friendly_code/features/admin/presentation/screens/super_admin_venue_detail_screen.dart';
 import 'package:friendly_code/core/auth/role_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:friendly_code/features/admin/presentation/dialogs/smart_venue_onboarding_wizard_dialog.dart';
+import 'package:friendly_code/features/admin/presentation/widgets/venue_lifecycle_stepper.dart';
 
 class GlobalVenuesScreen extends StatefulWidget {
   const GlobalVenuesScreen({super.key});
@@ -51,11 +53,20 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                   Text(roleProvider.isSuperAdmin ? "Manage all partner venues in the system." : "Manage your assigned venues.", style: const TextStyle(color: AppColors.body)),
                 ],
               ),
-              if (roleProvider.canManageVenues) // Defined in RoleProvider
+              if (roleProvider.canManageVenues)
                 ElevatedButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VenueEditorScreen())), 
-                  icon: const Icon(Icons.add), 
-                  label: const Text("REGISTER NEW VENUE"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accentTeal,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (_) => const SmartVenueOnboardingWizardDialog(),
+                  ), 
+                  icon: const Icon(Icons.add, size: 18), 
+                  label: const Text("СОЗДАТЬ ЗАВЕДЕНИЕ 🚀", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 ),
             ],
           ),
@@ -287,6 +298,12 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                                       Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
+                                          if (!v.isActive)
+                                            IconButton(
+                                              icon: const Icon(CupertinoIcons.rocket_fill, color: AppColors.accentGreen, size: 18),
+                                              tooltip: 'Запустить заведение онлайн',
+                                              onPressed: () => VenueLifecycleHelper.launchVenue(context, v),
+                                            ),
                                           IconButton(
                                             icon: const Icon(Icons.link, color: AppColors.accentTeal, size: 20),
                                             tooltip: 'Скопировать ссылку на витрину',
@@ -305,7 +322,7 @@ class _GlobalVenuesScreenState extends State<GlobalVenuesScreen> {
                                           ),
                                           IconButton(
                                             icon: const Icon(Icons.edit_outlined, color: AppColors.body),
-                                            tooltip: 'Manage venue',
+                                            tooltip: 'Управление заведением',
                                             onPressed: () => Navigator.push(context, MaterialPageRoute(
                                               builder: (_) => SuperAdminVenueDetailScreen(venue: v),
                                             )),

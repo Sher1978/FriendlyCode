@@ -1,6 +1,9 @@
 import 'package:friendly_code/features/admin/presentation/screens/venue_three_stage_workspace_screen.dart';
+import 'package:friendly_code/features/admin/presentation/widgets/venue_lifecycle_stepper.dart';
+import 'package:friendly_code/core/data/venue_repository.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:friendly_code/core/models/venue_model.dart';
 import 'package:friendly_code/core/theme/colors.dart';
 import 'package:friendly_code/features/admin/presentation/screens/venue_editor_screen.dart';
@@ -50,6 +53,7 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
           _TabItem(icon: CupertinoIcons.percent,                 label: 'Yield & Скидки'),
           _TabItem(icon: CupertinoIcons.airplane,                 label: 'Расписание & Диспетчерская'),
           _TabItem(icon: CupertinoIcons.person_2_fill,            label: 'Пассажиры & Маркетинг'),
+          _TabItem(icon: CupertinoIcons.person_badge_plus_fill,  label: 'Владелец & Доступ'),
           _TabItem(icon: CupertinoIcons.slider_horizontal_3,     label: 'Региональные настройки'),
         ];
       }
@@ -82,75 +86,90 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
 
   @override
   Widget build(BuildContext context) {
-    final venue = widget.venue;
+    return StreamBuilder<VenueModel?>(
+      stream: VenueRepository().getVenueStream(widget.venue.id),
+      builder: (context, snap) {
+        final venue = snap.data ?? widget.venue;
 
-    if (!widget.showAppBar) {
-      return Scaffold(
-        backgroundColor: AppColors.background,
-        body: Column(
-          children: [
-            _buildTabBar(),
-            Expanded(child: _buildBody(venue)),
-          ],
-        ),
-      );
-    }
-
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: CupertinoButton(
-          padding: EdgeInsets.zero,
-          child: const Icon(CupertinoIcons.chevron_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        if (!widget.showAppBar) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            body: Column(
               children: [
-                Text(
-                  venue.name,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17),
+                VenueLifecycleStepper(
+                  venue: venue,
+                  onSelectTab: (idx) => setState(() => _selectedTab = idx),
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _isServices 
-                        ? AppColors.accentTeal.withValues(alpha: 0.2) 
-                        : AppColors.accentOrange.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: _isServices ? AppColors.accentTeal : AppColors.accentOrange,
-                      width: 0.8,
+                _buildTabBar(),
+                Expanded(child: _buildBody(venue)),
+              ],
+            ),
+          );
+        }
+
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          appBar: AppBar(
+            backgroundColor: AppColors.background,
+            elevation: 0,
+            leading: CupertinoButton(
+              padding: EdgeInsets.zero,
+              child: const Icon(CupertinoIcons.chevron_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      venue.name,
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 17),
                     ),
-                  ),
-                  child: Text(
-                    _isServices ? 'SERVICES' : 'HORECA',
-                    style: TextStyle(
-                      color: _isServices ? AppColors.accentTeal : AppColors.accentOrange,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _isServices 
+                            ? AppColors.accentTeal.withValues(alpha: 0.2) 
+                            : AppColors.accentOrange.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: _isServices ? AppColors.accentTeal : AppColors.accentOrange,
+                          width: 0.8,
+                        ),
+                      ),
+                      child: Text(
+                        _isServices ? 'SERVICES' : 'HORECA',
+                        style: TextStyle(
+                          color: _isServices ? AppColors.accentTeal : AppColors.accentOrange,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
+                ),
+                Text(
+                  venue.ownerEmail ?? 'No owner email',
+                  style: const TextStyle(color: AppColors.tertiary, fontSize: 12),
                 ),
               ],
             ),
-            Text(
-              venue.ownerEmail ?? 'No owner email',
-              style: const TextStyle(color: AppColors.tertiary, fontSize: 12),
-            ),
-          ],
-        ),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(56),
-          child: _buildTabBar(),
-        ),
-      ),
-      body: _buildBody(venue),
+          ),
+          body: Column(
+            children: [
+              // ── JTBD 4-STAGE INTERACTIVE LIFECYCLE STEPPER ──
+              VenueLifecycleStepper(
+                venue: venue,
+                onSelectTab: (idx) => setState(() => _selectedTab = idx),
+              ),
+              _buildTabBar(),
+              Expanded(child: _buildBody(venue)),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -235,6 +254,8 @@ class _SuperAdminVenueDetailScreenState extends State<SuperAdminVenueDetailScree
           case 5:
             return _BatchDispatcherAndGuestsView(venue: venue);
           case 6:
+            return _VenueTeamAndAccessView(venue: venue);
+          case 7:
             return VenueRegionalSettingsScreen(venueId: venue.id);
           default:
             return VenueThreeStageWorkspaceScreen(venue: venue, venueId: venue.id);
@@ -427,6 +448,212 @@ class _BatchDispatcherAndGuestsViewState extends State<_BatchDispatcherAndGuests
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+
+class _VenueTeamAndAccessView extends StatelessWidget {
+  final VenueModel venue;
+  const _VenueTeamAndAccessView({required this.venue});
+
+  @override
+  Widget build(BuildContext context) {
+    final origin = Uri.base.origin;
+    final inviteUrl = "$origin/?v=${venue.id}";
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 850),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(CupertinoIcons.person_badge_plus_fill, color: AppColors.accentTeal, size: 28),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("Управление доступом и командой", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                        Text("Назначение владельца (Owner), администраторов и сотрудников заведения", style: TextStyle(color: Colors.white54, fontSize: 13)),
+                      ],
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.accentTeal,
+                      foregroundColor: Colors.black,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => VenueTeamOwnershipDialog(venue: venue),
+                      );
+                    },
+                    icon: const Icon(Icons.person_add, size: 16),
+                    label: const Text("Назначить / Сменить", style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1C1C1E),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: (venue.ownerEmail != null && venue.ownerEmail!.isNotEmpty)
+                        ? AppColors.accentGreen.withOpacity(0.5)
+                        : AppColors.accentYellow.withOpacity(0.5),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: (venue.ownerEmail != null && venue.ownerEmail!.isNotEmpty)
+                            ? AppColors.accentGreen.withOpacity(0.2)
+                            : AppColors.accentYellow.withOpacity(0.2),
+                      ),
+                      child: Icon(
+                        CupertinoIcons.shield_lefthalf_fill,
+                        color: (venue.ownerEmail != null && venue.ownerEmail!.isNotEmpty)
+                            ? AppColors.accentGreen
+                            : AppColors.accentYellow,
+                        size: 26,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Text("ВЛАДЕЛЕЦ ЗАВЕДЕНИЯ (OWNER)", style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: (venue.ownerEmail != null && venue.ownerEmail!.isNotEmpty)
+                                      ? AppColors.accentGreen.withOpacity(0.15)
+                                      : AppColors.accentYellow.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  (venue.ownerEmail != null && venue.ownerEmail!.isNotEmpty) ? "АКТИВЕН" : "НЕ НАЗНАЧЕН ⚠️",
+                                  style: TextStyle(
+                                    color: (venue.ownerEmail != null && venue.ownerEmail!.isNotEmpty)
+                                        ? AppColors.accentGreen
+                                        : AppColors.accentYellow,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            venue.ownerEmail ?? "Владелец пока не назначен",
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          if (venue.ownerId != null)
+                            Text("User ID: ${venue.ownerId}", style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 11)),
+                        ],
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.accentTeal,
+                        side: BorderSide(color: AppColors.accentTeal.withOpacity(0.5)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: inviteUrl));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Ссылка-приглашение скопирована в буфер!"), backgroundColor: AppColors.accentTeal),
+                        );
+                      },
+                      icon: const Icon(CupertinoIcons.doc_on_clipboard, size: 14),
+                      label: const Text("Инвайт-ссылка", style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1C1C1E),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("АДМИНИСТРАТОР (ADMIN)", style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 6),
+                          Text(
+                            venue.assignedAdminId != null ? "Назначен ID: ${venue.assignedAdminId}" : "Не назначен",
+                            style: TextStyle(color: venue.assignedAdminId != null ? Colors.white : Colors.white38, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1C1C1E),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text("МЕНЕДЖЕР (MANAGER)", style: TextStyle(color: Colors.white54, fontSize: 11, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 6),
+                          Text(
+                            venue.assignedManagerId != null ? "Назначен ID: ${venue.assignedManagerId}" : "Не назначен",
+                            style: TextStyle(color: venue.assignedManagerId != null ? Colors.white : Colors.white38, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              const Text("ПЕРСОНАЛ И СОТРУДНИКИ ЗАВЕДЕНИЯ", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 400,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: VenueStaffScreen(venueId: venue.id),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
