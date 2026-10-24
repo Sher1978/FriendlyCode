@@ -88,8 +88,17 @@ class _SmartVenueOnboardingWizardDialogState extends State<SmartVenueOnboardingW
       } else if (_archetype == 'horeca') {
         categoryTitle = 'Ресторан & Доставка';
         businessType = 'horeca';
+      } else if (_archetype == 'currency_exchange') {
+        categoryTitle = 'Обмен валют & Крипто';
+        businessType = 'services';
+      } else if (_archetype == 'space_rental') {
+        categoryTitle = 'Аренда жилья & Кондо';
+        businessType = 'services';
+      } else if (_archetype == 'vehicle_rental') {
+        categoryTitle = 'Аренда байков & Авто';
+        businessType = 'services';
       } else {
-        categoryTitle = 'Персональные услуги';
+        categoryTitle = 'Салон & Персональные услуги';
         businessType = 'services';
       }
 
@@ -233,17 +242,56 @@ class _SmartVenueOnboardingWizardDialogState extends State<SmartVenueOnboardingW
               ),
               const SizedBox(height: 16),
 
-              // Archetype Selector Cards
+              // Archetype Selector Cards (Смысловые пули / Ключевые действия бизнеса)
               const Text("Тип / Архетип бизнеса *", style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
+
+              // Ряд 1: Финансы, Недвижимость, Аренда транспорта
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildArchetypeCard(
+                      id: 'currency_exchange',
+                      title: 'Обмен валют',
+                      subtitle: 'Курсы, наличные, крипто',
+                      icon: CupertinoIcons.money_dollar,
+                      imageAsset: 'assets/images/archetype_currency_exchange.png',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildArchetypeCard(
+                      id: 'space_rental',
+                      title: 'Аренда жилья',
+                      subtitle: 'Кондо, виллы, просмотры',
+                      icon: CupertinoIcons.house_alt,
+                      imageAsset: 'assets/images/archetype_condo_rental.png',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildArchetypeCard(
+                      id: 'vehicle_rental',
+                      title: 'Аренда байков',
+                      subtitle: 'Скутеры, авто, залог',
+                      icon: CupertinoIcons.compass,
+                      imageAsset: 'assets/images/archetype_bike_rental.png',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Ряд 2: Перевозки, Доставка еды, Индивидуальные услуги
               Row(
                 children: [
                   Expanded(
                     child: _buildArchetypeCard(
                       id: 'batch',
                       title: 'Трансферы & Визаран',
-                      subtitle: 'Рейсы, автопарк, рассадка',
+                      subtitle: 'Рейсы, автопарк, места',
                       icon: CupertinoIcons.bus,
+                      imageAsset: 'assets/images/archetype_transfers_batch.png',
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -253,15 +301,17 @@ class _SmartVenueOnboardingWizardDialogState extends State<SmartVenueOnboardingW
                       title: 'Ресторан & Доставка',
                       subtitle: 'Меню блюд, курьеры',
                       icon: CupertinoIcons.cart_fill,
+                      imageAsset: 'assets/images/archetype_horeca_delivery.png',
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: _buildArchetypeCard(
                       id: 'personal_time',
-                      title: 'Услуги по времени',
+                      title: 'Услуги & Мастера',
                       subtitle: 'Мастера, слоты записи',
                       icon: CupertinoIcons.scissors,
+                      imageAsset: 'assets/images/archetype_personal_services.png',
                     ),
                   ),
                 ],
@@ -465,41 +515,139 @@ class _SmartVenueOnboardingWizardDialogState extends State<SmartVenueOnboardingW
     required String title,
     required String subtitle,
     required IconData icon,
+    required String imageAsset,
   }) {
     final isSelected = _archetype == id;
     return InkWell(
       onTap: () => setState(() => _archetype = id),
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(14),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.all(12),
+        duration: const Duration(milliseconds: 200),
+        height: 105,
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.accentTeal.withOpacity(0.15) : Colors.black.withOpacity(0.25),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isSelected ? AppColors.accentTeal : Colors.white.withOpacity(0.1),
-            width: isSelected ? 1.5 : 1,
+            color: isSelected ? AppColors.accentTeal : Colors.white.withValues(alpha: 0.12),
+            width: isSelected ? 2.0 : 1.0,
           ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.accentTeal.withValues(alpha: 0.35),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ]
+              : null,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 20, color: isSelected ? AppColors.accentTeal : Colors.white54),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.white70,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(13),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // 1. Смысловая пуля: фоновое изображение ключевого действия
+              Image.asset(
+                imageAsset,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: const Color(0xFF1E2024),
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 10),
-            ),
-          ],
+
+              // 2. Кинематографичный градиент для контрастности и читаемости текста
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: isSelected
+                        ? [
+                            Colors.black.withValues(alpha: 0.25),
+                            Colors.black.withValues(alpha: 0.65),
+                            const Color(0xFF04201A).withValues(alpha: 0.95),
+                          ]
+                        : [
+                            Colors.black.withValues(alpha: 0.35),
+                            Colors.black.withValues(alpha: 0.70),
+                            Colors.black.withValues(alpha: 0.94),
+                          ],
+                  ),
+                ),
+              ),
+
+              // 3. Индикатор выбора
+              if (isSelected)
+                Positioned(
+                  top: 7,
+                  right: 7,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: const BoxDecoration(
+                      color: AppColors.accentTeal,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      CupertinoIcons.checkmark,
+                      size: 10,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+
+              // 4. Текстовый блок и иконка
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppColors.accentTeal.withValues(alpha: 0.25)
+                            : Colors.black.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(7),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.accentTeal.withValues(alpha: 0.6)
+                              : Colors.white.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Icon(
+                        icon,
+                        size: 14,
+                        color: isSelected ? AppColors.accentTeal : Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isSelected ? AppColors.accentTeal.withValues(alpha: 0.9) : Colors.white70,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

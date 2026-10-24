@@ -24,12 +24,31 @@ class VenuesService {
   /// Seeds demo starter services, top master, yield rules and AI FAQ profile for quick-start testing.
   Future<void> seedServicesStarterPack(String venueId, {String category = 'Барбершоп', String currency = '₽'}) async {
     final batch = _firestore.batch();
+    final catLower = category.toLowerCase();
+    final bool isExchange = catLower.contains('обмен') || catLower.contains('валют');
+    final bool isCondo = catLower.contains('жиль') || catLower.contains('кондо') || catLower.contains('вилл');
+    final bool isBike = catLower.contains('байк') || catLower.contains('мото') || catLower.contains('авто');
     
     // 1. Staff Master
     final staffRef = _firestore.collection(_collection).doc(venueId).collection('staff').doc('master_1');
+    final String masterName = isExchange
+        ? 'Кассир-оператор (Касса 1)'
+        : isCondo
+            ? 'Сергей (Менеджер аренды)'
+            : isBike
+                ? 'Диспетчер проката'
+                : 'Алексей (Топ-мастер)';
+    final String masterRole = isExchange
+        ? 'Валютный кассир'
+        : isCondo
+            ? 'Риэлтор по аренде'
+            : isBike
+                ? 'Менеджер автопарка'
+                : 'Топ-барбер';
+
     batch.set(staffRef, {
-      'name': 'Алексей (Топ-мастер)',
-      'role': 'Топ-барбер',
+      'name': masterName,
+      'role': masterRole,
       'avatarUrl': 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
       'services': ['srv_1', 'srv_2', 'srv_3'],
       'rating': 4.9,
@@ -51,46 +70,158 @@ class VenuesService {
 
     // 2. Services
     final s1Ref = _firestore.collection(_collection).doc(venueId).collection('services').doc('srv_1');
-    batch.set(s1Ref, {
-      'title': 'Мужская стрижка',
-      'description': 'Мытье головы, индивидуальный подбор формы, укладка премиум-стайлингом.',
-      'category': 'Стрижки',
-      'price': 2000,
-      'durationMinutes': 45,
-      'bufferMinutes': 10,
-      'assignedStaffIds': ['master_1'],
-      'isActive': true,
-      'sortOrder': 1,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
     final s2Ref = _firestore.collection(_collection).doc(venueId).collection('services').doc('srv_2');
-    batch.set(s2Ref, {
-      'title': 'Моделирование бороды',
-      'description': 'Оформление контуров бритвой, распаривание горячим полотенцем, уход маслом.',
-      'category': 'Борода',
-      'price': 1500,
-      'durationMinutes': 30,
-      'bufferMinutes': 5,
-      'assignedStaffIds': ['master_1'],
-      'isActive': true,
-      'sortOrder': 2,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
-
     final s3Ref = _firestore.collection(_collection).doc(venueId).collection('services').doc('srv_3');
-    batch.set(s3Ref, {
-      'title': 'Комплекс: Стрижка + Борода',
-      'description': 'Полный образ: авторская стрижка и моделирование бороды с уходом.',
-      'category': 'Комплексы',
-      'price': 3200,
-      'durationMinutes': 75,
-      'bufferMinutes': 15,
-      'assignedStaffIds': ['master_1'],
-      'isActive': true,
-      'sortOrder': 3,
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+
+    if (isExchange) {
+      batch.set(s1Ref, {
+        'title': 'Обмен USD / THB (Наличные)',
+        'description': 'Выгодный курс для наличных купюр нового образца 50/100 USD. Моментальная выдача батов.',
+        'category': 'Наличная валюта',
+        'price': 100,
+        'durationMinutes': 10,
+        'bufferMinutes': 5,
+        'assignedStaffIds': ['master_1'],
+        'isActive': true,
+        'sortOrder': 1,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      batch.set(s2Ref, {
+        'title': 'Обмен USDT / Наличные баты',
+        'description': 'Выплата наличных бат в офисе или курьером при переводе USDT TRC20 / ERC20.',
+        'category': 'Криптовалюта',
+        'price': 500,
+        'durationMinutes': 15,
+        'bufferMinutes': 5,
+        'assignedStaffIds': ['master_1'],
+        'isActive': true,
+        'sortOrder': 2,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      batch.set(s3Ref, {
+        'title': 'Перевод СБП (Рубли на Баты)',
+        'description': 'Прием рублей с любых банков РФ (Сбер, Т-Банк, ВТБ) с получением наличных бат в Таиланде.',
+        'category': 'Банковские переводы',
+        'price': 1000,
+        'durationMinutes': 15,
+        'bufferMinutes': 5,
+        'assignedStaffIds': ['master_1'],
+        'isActive': true,
+        'sortOrder': 3,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } else if (isCondo) {
+      batch.set(s1Ref, {
+        'title': 'Аренда 1BR Кондо (Месяц)',
+        'description': 'Современный кондоминиум с бассейном, спортзалом и охраной. Полностью меблирован.',
+        'category': 'Кондоминиумы',
+        'price': 15000,
+        'durationMinutes': 60,
+        'bufferMinutes': 15,
+        'assignedStaffIds': ['master_1'],
+        'isActive': true,
+        'sortOrder': 1,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      batch.set(s2Ref, {
+        'title': 'Аренда Виллы с приватным бассейном',
+        'description': 'Вилла 2-3 спальни, закрытая территория, зона барбекю. Посуточная или помесячная аренда.',
+        'category': 'Виллы',
+        'price': 6500,
+        'durationMinutes': 60,
+        'bufferMinutes': 15,
+        'assignedStaffIds': ['master_1'],
+        'isActive': true,
+        'sortOrder': 2,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      batch.set(s3Ref, {
+        'title': 'Организация живого просмотра кондо',
+        'description': 'Трансфер на объект с агентом, показ территории, проверка договора и депозита.',
+        'category': 'Просмотры',
+        'price': 0,
+        'durationMinutes': 45,
+        'bufferMinutes': 15,
+        'assignedStaffIds': ['master_1'],
+        'isActive': true,
+        'sortOrder': 3,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } else if (isBike) {
+      batch.set(s1Ref, {
+        'title': 'Аренда Honda Click 125cc (Сутки)',
+        'description': 'Экономичный и маневренный скутер, 2 чистых шлема и держатель для телефона включены.',
+        'category': 'Скутеры 125cc',
+        'price': 250,
+        'durationMinutes': 20,
+        'bufferMinutes': 10,
+        'assignedStaffIds': ['master_1'],
+        'isActive': true,
+        'sortOrder': 1,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      batch.set(s2Ref, {
+        'title': 'Аренда Honda PCX 160cc (Сутки)',
+        'description': 'Комфортный макси-скутер с ABS, идеален для поездок вдвоем по острову.',
+        'category': 'Макси-скутеры',
+        'price': 450,
+        'durationMinutes': 20,
+        'bufferMinutes': 10,
+        'assignedStaffIds': ['master_1'],
+        'isActive': true,
+        'sortOrder': 2,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      batch.set(s3Ref, {
+        'title': 'Аренда Yamaha NMAX 155cc (Месяц)',
+        'description': 'Помесячная аренда по спецтарифу со скидкой. Бесплатное ТО и доставка к кондо.',
+        'category': 'Помесячная аренда',
+        'price': 6500,
+        'durationMinutes': 30,
+        'bufferMinutes': 10,
+        'assignedStaffIds': ['master_1'],
+        'isActive': true,
+        'sortOrder': 3,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } else {
+      batch.set(s1Ref, {
+        'title': 'Мужская стрижка',
+        'description': 'Мытье головы, индивидуальный подбор формы, укладка премиум-стайлингом.',
+        'category': 'Стрижки',
+        'price': 2000,
+        'durationMinutes': 45,
+        'bufferMinutes': 10,
+        'assignedStaffIds': ['master_1'],
+        'isActive': true,
+        'sortOrder': 1,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      batch.set(s2Ref, {
+        'title': 'Моделирование бороды',
+        'description': 'Оформление контуров бритвой, распаривание горячим полотенцем, уход маслом.',
+        'category': 'Борода',
+        'price': 1500,
+        'durationMinutes': 30,
+        'bufferMinutes': 5,
+        'assignedStaffIds': ['master_1'],
+        'isActive': true,
+        'sortOrder': 2,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      batch.set(s3Ref, {
+        'title': 'Комплекс: Стрижка + Борода',
+        'description': 'Полный образ: авторская стрижка и моделирование бороды с уходом.',
+        'category': 'Комплексы',
+        'price': 3200,
+        'durationMinutes': 75,
+        'bufferMinutes': 15,
+        'assignedStaffIds': ['master_1'],
+        'isActive': true,
+        'sortOrder': 3,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
 
     // 3. Yield Rules
     final y1Ref = _firestore.collection(_collection).doc(venueId).collection('yield_rules').doc('rule_offpeak');
