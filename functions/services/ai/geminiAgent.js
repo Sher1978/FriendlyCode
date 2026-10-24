@@ -12,6 +12,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const admin = require('firebase-admin');
 const { toolsDefinition, groqToolsDefinition } = require('./toolsDefinition');
 const { VirtualSlotCalculator } = require('../adapters/virtualSlotCalculator');
+const { extractVenueTelegramTargets } = require('../bookingTriggers');
 
 function getGroqApiKey() {
   if (process.env.GROQ_API_KEY) return process.env.GROQ_API_KEY;
@@ -68,6 +69,18 @@ class GeminiConciergeAgent {
     const profileDoc = await this.db.collection('venues').doc(venueId).collection('ai_knowledge').doc('profile').get();
     const profile = profileDoc.exists ? profileDoc.data() : {};
 
+    // Load Master Knowledge Doc fallback from subcollection if not directly on venue
+    let masterKnowledgeDoc = venue.masterKnowledgeDoc || '';
+    if (!masterKnowledgeDoc) {
+      try {
+        const masterDocSnap = await this.db.collection('venues').doc(venueId).collection('ai_knowledge').doc('master_doc').get();
+        if (masterDocSnap.exists) {
+          const mData = masterDocSnap.data();
+          masterKnowledgeDoc = mData.raw_markdown || mData.content || '';
+        }
+      } catch (_) {}
+    }
+
     // Load services
     const servicesSnap = await this.db.collection('venues').doc(venueId).collection('services').get();
     const services = servicesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -101,24 +114,34 @@ class GeminiConciergeAgent {
       }
     }
 
-    return { venue, profile, services, staff, yieldRules, knowledgeDocs };
+    return { venue, profile, masterKnowledgeDoc, services, staff, yieldRules, knowledgeDocs };
   }
 
   /**
    * Build complete prompt instructions with HITL rules and verified FAQ facts.
    */
-  _buildSystemInstruction({ venue, profile, services, staff, yieldRules, knowledgeDocs = [] }) {
+  _buildSystemInstruction({ venue, profile, masterKnowledgeDoc = '', services = [], staff = [], yieldRules = [], knowledgeDocs = [] }) {
     const venueName = venue.name || 'Наш салон';
     const conciergeName = profile.conciergeName || venue.conciergeName || 'AI-консьерж';
     const address = venue.address || '';
     const currency = venue.currency || 'RUB';
     const isInformal = profile.toneOfVoice === 'friendly_informal';
 
+    const servicesSummaryBlock = services.length > 0
+      ? `=== ДОСТУПНЫЕ УСЛУГИ И ТАРИФЫ ===\n` + services.map((s) =>
+          `• ${s.name}: ${s.price || 0} ${currency}${s.durationMinutes ? ` (${s.durationMinutes} мин)` : ''}${s.description ? ` — ${s.description}` : ''}`
+        ).join('\n') + `\n\n`
+      : '';
+
+    const masterDocBlock = masterKnowledgeDoc && masterKnowledgeDoc.trim().length > 0
+      ? `=== ЕДИНЫЙ МАСТЕР-ДОКУМЕНТ ЗНАНИЙ ЗАВЕДЕНИЯ ===\n${masterKnowledgeDoc.trim()}\n\n`
+      : '';
+
     const knowledgePromptBlock = knowledgeDocs.length > 0
       ? knowledgeDocs.map((k, i) => 
           `[ФАКТ #${i+1} | ${k.category || 'Общее'}] Тема: ${k.question}\nОтвет: ${k.answer}${k.criticalNote ? `\nВАЖНОЕ ПРАВИЛО: ${k.criticalNote}` : ''}`
         ).join('\n\n')
-      : 'Специфических регламентов пока не добавлено. Опирайся на список услуг и базовые правила.';
+      : (masterDocBlock ? '' : 'Специфических регламентов пока не добавлено. Опирайся на список услуг и базовые правила.');
 
     return `
 Ты — ${conciergeName}, вежливый, заботливый цифровой AI-консьерж заведения "${venueName}".
@@ -129,7 +152,7 @@ class GeminiConciergeAgent {
 Тон общения: ${isInformal ? "дружеский на «ты»" : "подчеркнуто уважительный и сервисный на «вы»"}.
 
 МОДЕЛЬ РАБОТЫ — СТРОГИЙ HUMAN-IN-THE-LOOP (HITL) И НУЛЕВЫЕ ГАЛЛЮЦИНАЦИИ:
-1. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО выдумывать маршруты, цены, правила проезда границ, визовые требования или брать информацию в интернете. Ты имеешь право сообщать факты ТОЛЬКО из предоставленной базы знаний (FAQ, список услуг).
+1. КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО выдумывать маршруты, цены, правила проезда границ, визовые требования или брать информацию в интернете. Ты имеешь право сообщать факты ТОЛЬКО из предоставленной базы знаний (Единый Мастер-Документ, FAQ, список услуг).
 2. ЕСЛИ В БАЗЕ НЕТ ТОЧНОГО ОТВЕТА на вопрос гостя (например: нестандартные животные, специфические документы, особые точки забора):
    - Ни в коем случае не фантазируй и не строй догадок!
    - ОБЯЗАТЕЛЬНО вызови инструмент askHumanManager, передав вопрос гостя живому дежурному диспетчеру заведения.
@@ -144,7 +167,7 @@ class GeminiConciergeAgent {
 5. Для проверки свободных слотов вызывай getAvailableSlots. При вопросах о парковке, правилах или документах вызывай getVenueFAQ.
 6. Предоплата НЕ ТРЕБУЕТСЯ. Оплата производится на месте при посадке/визите.
 
-=== ВЕРИФИЦИРОВАННАЯ БАЗА ЗНАНИЙ (РЕГЛАМЕНТЫ, ПРАВИЛА, ВИЗЫ, ДОКУМЕНТЫ) ===
+${servicesSummaryBlock}${masterDocBlock}=== ВЕРИФИЦИРОВАННАЯ БАЗА ЗНАНИЙ (РЕГЛАМЕНТЫ, ПРАВИЛА, ВИЗЫ, ДОКУМЕНТЫ) ===
 ${knowledgePromptBlock}
 `;
   }
@@ -462,11 +485,121 @@ ${knowledgePromptBlock}
 
   async _handleGetAvailableSlots({ venueId, dateStr, serviceName, staffName, services, staff, yieldRules }) {
     const targetService = services.find(s => 
-      s.name.toLowerCase().includes((serviceName || '').toLowerCase())
-    ) || services[0] || { price: 1500, durationMinutes: 45 };
+      (s.name || '').toLowerCase().includes((serviceName || '').toLowerCase())
+    ) || services[0] || { name: serviceName || 'Услуга', price: 1500, durationMinutes: 45 };
 
-    // Fetch busy intervals
+    // 1. Check if venue has real scheduled_trips for this date (transport / tour dispatcher)
+    try {
+      const tripsSnap = await this.db.collection('venues').doc(venueId)
+        .collection('scheduled_trips')
+        .get();
+
+      if (!tripsSnap.empty) {
+        const trips = tripsSnap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(t => {
+            if (t.status === 'cancelled') return false;
+            if (t.dateStr === dateStr) return true;
+            if (t.id && String(t.id).includes(dateStr)) return true;
+            if (t.departureTime && typeof t.departureTime.toDate === 'function') {
+              const dtStr = t.departureTime.toDate().toISOString().split('T')[0];
+              if (dtStr === dateStr) return true;
+            }
+            return false;
+          });
+
+        if (trips.length > 0) {
+          const matchingTrips = trips.filter(t =>
+            !serviceName ||
+            !t.serviceName ||
+            t.serviceName.toLowerCase().includes((serviceName || '').toLowerCase()) ||
+            (targetService.id && t.serviceId === targetService.id)
+          );
+          const listToUse = matchingTrips.length > 0 ? matchingTrips : trips;
+
+          const availableTripSlots = [];
+          for (const t of listToUse) {
+            const seatsArr = Array.isArray(t.seats)
+              ? t.seats
+              : (t.seats && typeof t.seats === 'object' ? Object.values(t.seats) : []);
+            const seatsLeft = seatsArr.length > 0
+              ? seatsArr.filter(s => !s.status || s.status === 'available').length
+              : (typeof t.sellableCapacity === 'number'
+                  ? Math.max(0, t.sellableCapacity - (t.confirmedCount || 0) - (t.reservedCount || 0))
+                  : 10);
+
+            let timeFormatted = t.timeStr || '07:00';
+            if (t.departureTime && typeof t.departureTime.toDate === 'function') {
+              const dt = t.departureTime.toDate();
+              timeFormatted = `${String(dt.getHours()).padStart(2, '0')}:${String(dt.getMinutes()).padStart(2, '0')}`;
+            } else if (typeof t.departureTime === 'string') {
+              timeFormatted = t.departureTime;
+            }
+
+            if (seatsLeft > 0) {
+              availableTripSlots.push({
+                tripId: t.id,
+                time: timeFormatted,
+                price: t.basePrice || targetService.price || 1500,
+                seatsLeft,
+                vehicleName: t.fleetTemplateName || t.templateName || t.vehicleName || ''
+              });
+            }
+          }
+          if (availableTripSlots.length > 0) {
+            return {
+              date: dateStr,
+              service: targetService.name,
+              availableSlots: availableTripSlots
+            };
+          }
+        }
+      }
+    } catch (tripErr) {
+      console.warn('[ConciergeAgent] scheduled_trips lookup warning:', tripErr.message);
+    }
+
+    // 2. Fetch real busy intervals from bookings collection for this venue & dateStr
     const busy = [];
+    try {
+      const bookingsSnap = await this.db.collection('bookings')
+        .where('venueId', '==', venueId)
+        .get();
+
+      for (const bDoc of bookingsSnap.docs) {
+        const b = bDoc.data();
+        if (b.status === 'cancelled' || b.status === 'rejected') continue;
+        let bDateStr = b.dateStr || '';
+        let startMins = null;
+        let endMins = null;
+
+        if (b.startTime && typeof b.startTime.toDate === 'function') {
+          const dt = b.startTime.toDate();
+          bDateStr = dt.toISOString().split('T')[0];
+          startMins = dt.getUTCHours() * 60 + dt.getUTCMinutes();
+        } else if (b.dateStr && b.timeStr) {
+          bDateStr = b.dateStr;
+          const parts = String(b.timeStr).split(':').map(Number);
+          if (parts.length >= 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+            startMins = parts[0] * 60 + parts[1];
+          }
+        }
+
+        if (bDateStr !== dateStr || startMins === null) continue;
+
+        if (b.endTime && typeof b.endTime.toDate === 'function') {
+          const edt = b.endTime.toDate();
+          endMins = edt.getUTCHours() * 60 + edt.getUTCMinutes();
+        } else {
+          endMins = startMins + (Number(b.durationMinutes) || Number(targetService.durationMinutes) || 45);
+        }
+
+        busy.push({ startMinutes: startMins, endMinutes: endMins });
+      }
+    } catch (busyErr) {
+      console.warn('[ConciergeAgent] bookings busy intervals lookup warning:', busyErr.message);
+    }
+
     const slots = VirtualSlotCalculator.generateVirtualSlots({
       shiftStart: "10:00",
       shiftEnd: "21:00",
@@ -498,6 +631,8 @@ ${knowledgePromptBlock}
       clientPhone: args.clientPhone,
       serviceName: args.serviceName,
       staffName: args.staffName || 'Любой свободный рейс / экипаж',
+      dateStr: args.dateStr || '',
+      timeStr: args.timeStr || '',
       startTime: admin.firestore.Timestamp.fromDate(new Date(`${args.dateStr}T${args.timeStr}:00Z`)),
       endTime: admin.firestore.Timestamp.fromDate(new Date(new Date(`${args.dateStr}T${args.timeStr}:00Z`).getTime() + 60 * 60000)),
       status: 'pending_confirmation',
@@ -509,14 +644,21 @@ ${knowledgePromptBlock}
 
     const ref = await this.db.collection('bookings').add(bookingDoc);
 
+    // Create in-app notification for Admin / Owner Bell
+    try {
+      await this.db.collection('notifications').add({
+        venueId,
+        type: 'new_booking',
+        title: `Новая бронь (AI): ${args.serviceName || 'Услуга'}`,
+        message: `${args.clientName || 'Гость'} (${args.clientPhone || ''}) — ${args.dateStr} ${args.timeStr}`,
+        bookingId: ref.id,
+        isRead: false,
+        timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } catch (_) {}
+
     // Human-in-the-Loop: Dispatch interactive Telegram confirmation card
-    const targetChatIds = [];
-    if (venue.authorizedTelegramChatIds && Array.isArray(venue.authorizedTelegramChatIds)) {
-      targetChatIds.push(...venue.authorizedTelegramChatIds);
-    }
-    if (venue.telegramGroupId && !targetChatIds.includes(venue.telegramGroupId)) {
-      targetChatIds.push(venue.telegramGroupId);
-    }
+    const targetChatIds = extractVenueTelegramTargets(venue);
 
     const tgCardText = 
       `🚨 <b>НОВАЯ ЗАЯВКА НА СОГЛАСОВАНИЕ!</b>\n` +
@@ -559,13 +701,7 @@ ${knowledgePromptBlock}
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    const targetChatIds = [];
-    if (venue.authorizedTelegramChatIds && Array.isArray(venue.authorizedTelegramChatIds)) {
-      targetChatIds.push(...venue.authorizedTelegramChatIds);
-    }
-    if (venue.telegramGroupId && !targetChatIds.includes(venue.telegramGroupId)) {
-      targetChatIds.push(venue.telegramGroupId);
-    }
+    const targetChatIds = extractVenueTelegramTargets(venue);
 
     const tgAlertText = 
       `❓ <b>ВОПРОС ОТ ГОСТЯ В ЧАТЕ (ТРЕБУЕТСЯ ОТВЕТ ДИСПЕТЧЕРА)</b>\n` +

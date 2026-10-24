@@ -113,12 +113,15 @@ export const BookingModal = ({
 
       const bookingPayload = {
         venueId: venue?.id || 'default_venue',
+        tripId: slot?.tripId || slot?.trip?.id || null,
         clientName,
         clientPhone,
         serviceId: service.id,
         serviceName: service.title || service.name || 'Услуга',
         staffId: staff?.id || 'any',
         staffName: staff?.name || (archetype === 'batch' ? 'Рейсовый борт' : 'Любой свободный мастер'),
+        dateStr: dateStr || '',
+        timeStr: slot?.time || '',
         startTime: startDateTime.toISOString(),
         endTime: endDateTime.toISOString(),
         originalPrice: (slot.basePrice || 0) * seatCount,
@@ -130,7 +133,7 @@ export const BookingModal = ({
         seatDescriptions,
         seatCount,
         notes,
-        source: 'google_maps'
+        source: isFromMessenger ? (channel || 'telegram_mini_app') : 'google_maps'
       };
 
       const result = await onConfirmSuccess(bookingPayload);

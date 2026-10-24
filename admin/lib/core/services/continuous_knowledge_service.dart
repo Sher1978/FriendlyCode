@@ -45,18 +45,37 @@ class IngestedKnowledgeResult {
 class ContinuousKnowledgeService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  static String get _primaryKey =>
-      utf8.decode(base64Decode("QVEuQWI4Uk42S1RuM2F1ZVZCRUpMRDhuT19sM1lxYVBQd0tZX1dJQjN5cnBQVV9WN2U0YlE="));
-  static String get _fallbackKey =>
-      utf8.decode(base64Decode("QVEuQWI4Uk42THZOTlBwaWp3elpndXFTVVZIem1yekRmVl9rY0RWbFA2X0N2VU1qcWlrNkE="));
-  static String get _groqKey => String.fromCharCodes(
-        const [
-          61, 41, 49, 5, 61, 35, 50, 55, 110, 25, 12, 22, 0, 50, 23, 106,
-          19, 16, 54, 104, 99, 32, 29, 43, 13, 29, 62, 35, 56, 105, 28, 3,
-          59, 55, 48, 12, 50, 3, 14, 50, 23, 11, 108, 34, 30, 53, 106, 9,
-          16, 60, 21, 99, 55, 50, 15, 56
-        ].map((c) => c ^ 0x5A),
-      );
+  static const List<String> _aiProxyEndpoints = [
+    '/api/ai-proxy',
+    'https://bot-lab-21910.web.app/api/ai-proxy',
+    'https://friendly-code-489513.web.app/api/ai-proxy',
+  ];
+
+  static Future<Map<String, dynamic>> _postAiProxy(Map<String, dynamic> payload) async {
+    Exception? lastErr;
+    for (final endpoint in _aiProxyEndpoints) {
+      try {
+        final res = await http
+            .post(
+              Uri.parse(endpoint),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode(payload),
+            )
+            .timeout(const Duration(seconds: 25));
+        if (res.statusCode == 200) {
+          final decoded = jsonDecode(utf8.decode(res.bodyBytes));
+          if (decoded is Map<String, dynamic>) {
+            return decoded;
+          }
+        } else {
+          lastErr = Exception('AI Proxy HTTP ${res.statusCode}');
+        }
+      } catch (e) {
+        lastErr = e is Exception ? e : Exception(e.toString());
+      }
+    }
+    throw lastErr ?? Exception('Не удалось связаться с серверным AI-прокси.');
+  }
 
   static const String _prompt = """
 Ты — старший аналитик базы знаний для сервисной компании (бордер-раны, виза-раны, трансферы, клиники, спа).
@@ -225,9 +244,8 @@ class ContinuousKnowledgeService {
     return rawMime.isNotEmpty ? rawMime : 'application/pdf';
   }
 
-  /// Multimodal and text parts generator via Gemini (multimodal) or Groq LPU (pure text)
+  /// Multimodal and text parts generator via server-side AI Proxy (Gemini / Groq LPU)
   static Future<String> _callGeminiWithParts(List<Map<String, dynamic>> parts) async {
-    // If request contains NO images/PDFs (pure text), route to Groq LPU first for 0.4s response time
     final hasInlineData = parts.any((p) => p.containsKey('inline_data'));
     if (!hasInlineData) {
       try {
@@ -243,54 +261,15 @@ class ContinuousKnowledgeService {
       }
     }
 
-    final body = {
-      'contents': [
-        {
-          'parts': parts,
-        }
-      ]
-    };
-    final keys = [_primaryKey, _fallbackKey];
-    final models = [
-      "gemini-flash-lite-latest",
-      "gemini-3.5-flash-lite",
-      "gemini-3-flash-preview",
-      "gemini-flash-latest",
-      "gemini-2.5-flash",
-    ];
-    Exception? lastError;
-
-    for (final key in keys) {
-      for (final model in models) {
-        try {
-          final uri =
-              Uri.parse("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$key");
-          final res = await http
-              .post(
-                uri,
-                headers: {'Content-Type': 'application/json'},
-                body: jsonEncode(body),
-              )
-              .timeout(const Duration(seconds: 15));
-
-          if (res.statusCode == 200) {
-            final jsonResp = jsonDecode(res.body) as Map<String, dynamic>;
-            final candidates = jsonResp['candidates'] as List<dynamic>?;
-            if (candidates != null && candidates.isNotEmpty) {
-              final content = candidates[0]['content'] as Map<String, dynamic>?;
-              final rParts = content?['parts'] as List<dynamic>?;
-              if (rParts != null && rParts.isNotEmpty) {
-                return (rParts[0]['text'] as String? ?? '').trim();
-              }
-            }
-          }
-        } catch (e) {
-          debugPrint("[ContinuousKnowledge] Error: $e");
-          lastError = e is Exception ? e : Exception(e.toString());
-        }
-      }
+    final resp = await _postAiProxy({
+      'mode': 'gemini',
+      'parts': parts,
+    });
+    final text = resp['text']?.toString() ?? '';
+    if (text.trim().isNotEmpty) {
+      return text.trim();
     }
-    throw lastError ?? Exception("Не удалось получить ответ от AI-провайдеров.");
+    throw Exception("Не удалось получить ответ от AI-провайдеров.");
   }
 
   /// Low-level text generator via Groq LPU (0.4s) with Gemini Flash fallback
@@ -303,60 +282,21 @@ class ContinuousKnowledgeService {
     }
   }
 
-  /// Ultra-fast text completion via Groq LPU (0.4s)
+  /// Ultra-fast text completion via server-side Groq LPU proxy
   static Future<String> _callGroqChat({
     required String prompt,
     String? systemPrompt,
     int maxTokens = 3500,
   }) async {
-    final models = [
-      "qwen/qwen3.8-27b",
-      "openai/gpt-oss-120b",
-      "openai/gpt-oss-20b",
-    ];
-
-    for (final model in models) {
-      try {
-        final uri = Uri.parse("https://api.groq.com/openai/v1/chat/completions");
-        final messages = <Map<String, String>>[];
-        if (systemPrompt != null && systemPrompt.isNotEmpty) {
-          messages.add({'role': 'system', 'content': systemPrompt});
-        }
-        messages.add({'role': 'user', 'content': prompt});
-
-        final body = {
-          'model': model,
-          'messages': messages,
-          'temperature': 0.2,
-          'max_tokens': maxTokens,
-        };
-
-        final res = await http.post(
-          uri,
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer $_groqKey',
-            'User-Agent': 'RevooApp/1.0',
-          },
-          body: jsonEncode(body),
-        ).timeout(const Duration(seconds: 10));
-
-        if (res.statusCode == 200) {
-          final jsonResp = jsonDecode(utf8.decode(res.bodyBytes)) as Map<String, dynamic>;
-          final choices = jsonResp['choices'] as List<dynamic>?;
-          if (choices != null && choices.isNotEmpty) {
-            final message = choices[0]['message'] as Map<String, dynamic>?;
-            final content = message?['content'] as String?;
-            if (content != null && content.trim().isNotEmpty) {
-              return content.trim();
-            }
-          }
-        } else {
-          debugPrint("[ContinuousKnowledge] Groq ($model) HTTP ${res.statusCode}: ${res.body}");
-        }
-      } catch (e) {
-        debugPrint("[ContinuousKnowledge] Groq ($model) error: $e");
-      }
+    final resp = await _postAiProxy({
+      'mode': 'groq',
+      'prompt': prompt,
+      if (systemPrompt != null && systemPrompt.isNotEmpty) 'systemPrompt': systemPrompt,
+      'maxTokens': maxTokens,
+    });
+    final text = resp['text']?.toString() ?? '';
+    if (text.trim().isNotEmpty) {
+      return text.trim();
     }
     throw Exception("Все модели Groq недоступны или превышен таймаут.");
   }
@@ -592,7 +532,7 @@ $currentDoc
     return updated.replaceAll('```markdown', '').replaceAll('```', '').trim();
   }
 
-  /// Sends a test ping message to the venue's Telegram Staff group
+  /// Sends a test ping message to the venue's Telegram Staff group via server-side proxy
   static Future<bool> sendTelegramTestPing({
     required String chatId,
     required String venueName,
@@ -600,38 +540,15 @@ $currentDoc
     final cleanChatId = chatId.trim();
     if (cleanChatId.isEmpty) return false;
 
-    const token = "8750420325:AAHHz4Y3583OezjjEQ-n7AYD7_c-feVBeO4";
-    final url = Uri.parse("https://api.telegram.org/bot$token/sendMessage");
-
-    final text = """
-🤖 <b>Revoo AI-Консьерж: Проверка связи</b>
-
-🏢 Заведение: <b>$venueName</b>
-✅ Статус: <b>Канал диспетчеров успешно подключен!</b>
-
-Сюда будут поступать все уведомления о бронированиях мест, запросах пассажиров и горячих слотах.
-<i>Human-in-the-Loop режим активен:</i> для ответа гостю просто отправьте <b>Reply</b> на сообщение бота в этой группе.
-""";
-
     try {
-      final res = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'chat_id': cleanChatId,
-          'text': text,
-          'parse_mode': 'HTML',
-        }),
-      ).timeout(const Duration(seconds: 10));
-
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        return data['ok'] == true;
-      }
-      debugPrint("[sendTelegramTestPing] Failed: \${res.statusCode} \${res.body}");
-      return false;
+      final resp = await _postAiProxy({
+        'mode': 'telegram_test_ping',
+        'chatId': cleanChatId,
+        'venueName': venueName,
+      });
+      return resp['ok'] == true;
     } catch (e) {
-      debugPrint("[sendTelegramTestPing] Error: \$e");
+      debugPrint("[sendTelegramTestPing] Error: $e");
       return false;
     }
   }
@@ -1195,57 +1112,27 @@ ${jsonEncode(currentJson)}
       }
     }
 
-    final keys = [_primaryKey, _fallbackKey];
-    final models = [
-      "gemini-flash-lite-latest",
-      "gemini-3.5-flash-lite",
-      "gemini-3-flash-preview",
-      "gemini-flash-latest",
-      "gemini-2.5-flash",
-    ];
-    Exception? lastError;
+    try {
+      final resp = await _postAiProxy({
+        'mode': 'gemini',
+        'contents': body['contents'],
+      });
+      final textReply = resp['text']?.toString() ?? '';
+      if (textReply.isNotEmpty) {
+        final clean = textReply.replaceAll('```json', '').replaceAll('```', '').trim();
+        final decoded = jsonDecode(clean) as Map<String, dynamic>;
 
-    for (final key in keys) {
-      for (final model in models) {
-        try {
-          final uri =
-              Uri.parse("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$key");
-          final res = await http
-              .post(
-                uri,
-                headers: {'Content-Type': 'application/json'},
-                body: jsonEncode(body),
-              )
-              .timeout(const Duration(seconds: 15));
+        final summary = decoded['summary'] as String? ?? 'База знаний обновлена';
+        final rawFacts = decoded['facts'] as List<dynamic>? ?? [];
+        final facts = rawFacts.map((e) => ExtractedKnowledgeItem.fromMap(Map<String, dynamic>.from(e))).toList();
 
-          if (res.statusCode == 200) {
-            final jsonResp = jsonDecode(res.body) as Map<String, dynamic>;
-            final candidates = jsonResp['candidates'] as List<dynamic>?;
-            if (candidates != null && candidates.isNotEmpty) {
-              final content = candidates[0]['content'] as Map<String, dynamic>?;
-              final parts = content?['parts'] as List<dynamic>?;
-              if (parts != null && parts.isNotEmpty) {
-                final textReply = parts[0]['text'] as String? ?? '';
-                final clean = textReply.replaceAll('```json', '').replaceAll('```', '').trim();
-                final decoded = jsonDecode(clean) as Map<String, dynamic>;
-
-                final summary = decoded['summary'] as String? ?? 'База знаний обновлена';
-                final rawFacts = decoded['facts'] as List<dynamic>? ?? [];
-                final facts = rawFacts.map((e) => ExtractedKnowledgeItem.fromMap(Map<String, dynamic>.from(e))).toList();
-
-                return IngestedKnowledgeResult(summary: summary, facts: facts);
-              }
-            }
-          } else {
-            debugPrint("[ContinuousKnowledge] Gemini HTTP ${res.statusCode}: ${res.body}");
-          }
-        } catch (e) {
-          debugPrint("[ContinuousKnowledge] Error: $e");
-          lastError = e is Exception ? e : Exception(e.toString());
-        }
+        return IngestedKnowledgeResult(summary: summary, facts: facts);
       }
+    } catch (e) {
+      debugPrint("[ContinuousKnowledge] Error: $e");
+      throw e is Exception ? e : Exception(e.toString());
     }
 
-    throw lastError ?? Exception("Не удалось проанализировать документ с помощью Gemini AI.");
+    throw Exception("Не удалось проанализировать документ с помощью Gemini AI.");
   }
 }

@@ -667,8 +667,7 @@ final currentUser = AuthService().currentUser;
 
     final roleProvider = Provider.of<RoleProvider>(context);
 
-    final isKnownSuperAdmin = roleProvider.isSuperAdmin ||
-        (currentUser.email?.trim().toLowerCase() == '0451611@gmail.com');
+    final isKnownSuperAdmin = roleProvider.isSuperAdmin;
 
     // If route requires SuperAdmin, strictly enforce SuperAdmin role
     if (widget.role == UserRole.superAdmin && !isKnownSuperAdmin) {

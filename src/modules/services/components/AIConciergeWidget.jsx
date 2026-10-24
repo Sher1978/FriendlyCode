@@ -83,7 +83,8 @@ export const AIConciergeWidget = ({ venue, onOpenBooking }) => {
       }).catch(() => null);
 
       let botReply = '';
-      if (res && res.ok) {
+      const contentType = res?.headers?.get('content-type') || '';
+      if (res && res.ok && contentType.includes('application/json')) {
         const data = await res.json();
         botReply = data.reply;
       } else {

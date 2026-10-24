@@ -16,6 +16,8 @@ export const ServiceStorefront = ({ venue }) => {
   const [services, setServices] = useState([]);
   const [staff, setStaff] = useState([]);
   const [yieldRules, setYieldRules] = useState([]);
+  const [fleetTemplates, setFleetTemplates] = useState([]);
+  const [scheduledTrips, setScheduledTrips] = useState([]);
   const [busyIntervals, setBusyIntervals] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -52,22 +54,26 @@ export const ServiceStorefront = ({ venue }) => {
     return 'personal';
   }, [venue]);
 
-  // 1. Initial Load: Services, Staff, Yield Rules
+  // 1. Initial Load: Services, Staff, Yield Rules, Fleet Templates, Scheduled Trips
   useEffect(() => {
     let isMounted = true;
     async function loadData() {
       try {
         setIsLoading(true);
-        const [loadedServices, loadedStaff, loadedRules] = await Promise.all([
+        const [loadedServices, loadedStaff, loadedRules, loadedFleet, loadedTrips] = await Promise.all([
           bookingApiService.getServices(venueId, venue?.gmConfig?.services || []),
           bookingApiService.getStaff(venueId),
-          bookingApiService.getYieldRules(venueId)
+          bookingApiService.getYieldRules(venueId),
+          bookingApiService.getFleetTemplates(venueId),
+          bookingApiService.getScheduledTrips(venueId)
         ]);
 
         if (isMounted) {
           setServices(loadedServices);
           setStaff(loadedStaff);
           setYieldRules(loadedRules);
+          setFleetTemplates(loadedFleet);
+          setScheduledTrips(loadedTrips);
         }
       } catch (err) {
         console.error('ServiceStorefront: failed to load catalog:', err);
@@ -97,9 +103,55 @@ export const ServiceStorefront = ({ venue }) => {
     return () => { isMounted = false; };
   }, [venueId, selectedStaff?.id, selectedDateStr]);
 
-  // 3. Compute Virtual Slots on the fly using ServiceYieldCalculator
+  // 3. Compute Slots from Scheduled Trips (if configured in Admin) OR Virtual Slots using ServiceYieldCalculator
   const computedSlots = useMemo(() => {
     if (!selectedService || !selectedDateStr) return [];
+
+    // Check if there are scheduled trips for this date
+    const dateTrips = scheduledTrips.filter(t => {
+      if (t.status === 'cancelled') return false;
+      if (t.dateStr !== selectedDateStr) return false;
+      if (t.serviceId && selectedService.id && t.serviceId === selectedService.id) return true;
+      if (t.serviceName && (selectedService.title || selectedService.name)) {
+        const sName = String(selectedService.title || selectedService.name).toLowerCase();
+        if (String(t.serviceName).toLowerCase().includes(sName) || sName.includes(String(t.serviceName).toLowerCase())) {
+          return true;
+        }
+      }
+      return !t.serviceId;
+    });
+
+    if (dateTrips.length > 0) {
+      return dateTrips
+        .filter(t => t.seatsLeft > 0)
+        .map(t => {
+          const basePrice = Number(t.basePrice || selectedService.price) || 1500;
+          const dynDisc = Number(t.currentDynamicDiscount) || 0;
+          const hasDiscount = Boolean(t.isYieldActive && dynDisc > 0);
+          const discountAmount = hasDiscount ? Math.round((basePrice * dynDisc) / 100) : 0;
+          const finalPrice = Math.max(0, basePrice - discountAmount);
+          const matchedTemplate = fleetTemplates.find(ft => ft.id === t.fleetTemplateId) ||
+            fleetTemplates.find(ft => ft.id === selectedService.fleetTemplateId) ||
+            fleetTemplates[0] ||
+            null;
+
+          return {
+            time: t.timeStr || '07:00',
+            durationMinutes: selectedService.durationMinutes || 600,
+            basePrice,
+            finalPrice,
+            discountAmount,
+            discountType: 'percent',
+            hasDiscount,
+            appliedRuleName: hasDiscount ? `Горящий рейс (-${dynDisc}%)` : null,
+            seatsLeft: t.seatsLeft,
+            tripId: t.id,
+            trip: t,
+            fleetTemplate: matchedTemplate
+          };
+        })
+        .sort((a, b) => a.time.localeCompare(b.time));
+    }
 
     const now = new Date();
     const nowDateStr = now.toISOString().split('T')[0];
@@ -117,11 +169,66 @@ export const ServiceStorefront = ({ venue }) => {
       nowDateStr,
       nowMinutes
     });
-  }, [selectedService, selectedStaff, selectedDateStr, busyIntervals, yieldRules]);
+  }, [selectedService, selectedStaff, selectedDateStr, busyIntervals, yieldRules, scheduledTrips, fleetTemplates]);
 
   // 4. Hot Flash Deals Scroller (Распродажа слотов с максимальными скидками)
   const hotDeals = useMemo(() => {
     if (!services || services.length === 0) return [];
+
+    const nowStr = new Date().toISOString().split('T')[0];
+    const formatRuDateLabel = (dStr) => {
+      try {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        if (dStr === nowStr) return 'Сегодня';
+        if (dStr === tomorrowStr) return 'Завтра';
+        const d = new Date(`${dStr}T12:00:00`);
+        return new Intl.DateTimeFormat('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' })
+          .format(d)
+          .replace('.', '');
+      } catch (_) {
+        return dStr;
+      }
+    };
+
+    // Priority 1: Use real upcoming scheduled_trips if available
+    const upcomingTrips = scheduledTrips
+      .filter(t => t.dateStr >= nowStr && t.seatsLeft > 0 && t.status !== 'cancelled')
+      .sort((a, b) => `${a.dateStr}_${a.timeStr}`.localeCompare(`${b.dateStr}_${b.timeStr}`));
+
+    if (upcomingTrips.length > 0) {
+      return upcomingTrips.slice(0, 4).map((t, idx) => {
+        const matchedSrv = services.find(s => s.id === t.serviceId) || services[0];
+        const orig = Number(t.basePrice || matchedSrv?.price) || 2900;
+        const discPercent = (t.isYieldActive && t.currentDynamicDiscount > 0)
+          ? Math.round(t.currentDynamicDiscount)
+          : (yieldRules[0]?.discountValue && yieldRules[0]?.discountType !== 'fixed'
+              ? Number(yieldRules[0].discountValue)
+              : [20, 25, 15, 30][idx % 4]);
+        const discAmt = Math.round((orig * discPercent) / 100);
+        const matchedTemplate = fleetTemplates.find(ft => ft.id === t.fleetTemplateId) || fleetTemplates[0] || null;
+
+        return {
+          id: `deal_trip_${t.id}`,
+          tripId: t.id,
+          trip: t,
+          fleetTemplate: matchedTemplate,
+          serviceId: matchedSrv?.id || t.serviceId,
+          serviceName: t.serviceName || matchedSrv?.title || matchedSrv?.name || 'Рейс',
+          dateStr: t.dateStr,
+          dateLabel: formatRuDateLabel(t.dateStr),
+          slotTime: t.timeStr || '07:00',
+          vehicleId: t.fleetTemplateId || staff[0]?.id || 'master_1',
+          vehicleName: t.fleetTemplateName || matchedTemplate?.name || staff[0]?.name || 'VIP Трансфер',
+          discountPercent: discPercent,
+          originalPrice: orig,
+          finalPrice: Math.max(0, orig - discAmt),
+          discountAmount: discAmt,
+          seatsLeft: t.seatsLeft
+        };
+      });
+    }
 
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -130,6 +237,7 @@ export const ServiceStorefront = ({ venue }) => {
     const dayAfter = new Date();
     dayAfter.setDate(dayAfter.getDate() + 2);
     const dayAfterStr = dayAfter.toISOString().split('T')[0];
+    const dayAfterLabel = formatRuDateLabel(dayAfterStr);
 
     const deals = [];
 
@@ -147,7 +255,7 @@ export const ServiceStorefront = ({ venue }) => {
         dateLabel: 'Завтра',
         slotTime: '10:00',
         vehicleId: staff[0]?.id || 'master_1',
-        vehicleName: staff[0]?.name || (archetype === 'batch' ? 'Toyota Commuter VIP' : 'Топ-мастер'),
+        vehicleName: fleetTemplates[0]?.name || staff[0]?.name || (archetype === 'batch' ? 'Toyota Commuter VIP' : 'Топ-мастер'),
         discountPercent: discPercent,
         originalPrice: orig,
         finalPrice: orig - discAmt,
@@ -170,7 +278,7 @@ export const ServiceStorefront = ({ venue }) => {
         dateLabel: 'Завтра',
         slotTime: '10:30',
         vehicleId: staff[1]?.id || 'master_2',
-        vehicleName: staff[1]?.name || (archetype === 'batch' ? 'VIP Спринтер #2' : 'Ведущий специалист'),
+        vehicleName: fleetTemplates[1]?.name || staff[1]?.name || (archetype === 'batch' ? 'VIP Спринтер #2' : 'Ведущий специалист'),
         discountPercent: discPercent,
         originalPrice: orig,
         finalPrice: orig - discAmt,
@@ -190,7 +298,7 @@ export const ServiceStorefront = ({ venue }) => {
         serviceId: s2.id,
         serviceName: s2.title || s2.name,
         dateStr: dayAfterStr,
-        dateLabel: 'Вс, 25 окт',
+        dateLabel: dayAfterLabel,
         slotTime: '07:00',
         vehicleId: staff[2]?.id || staff[0]?.id || 'master_3',
         vehicleName: staff[2]?.name || (archetype === 'batch' ? 'Слипер-бас #3 (2 этажа)' : 'Специалист'),
@@ -203,7 +311,7 @@ export const ServiceStorefront = ({ venue }) => {
     }
 
     return deals;
-  }, [services, staff, archetype]);
+  }, [services, staff, archetype, scheduledTrips, fleetTemplates, yieldRules]);
 
   // Handlers
   const handleSelectService = (service) => {
@@ -211,13 +319,38 @@ export const ServiceStorefront = ({ venue }) => {
     setSelectedSlot(null);
     setSelectedSeats([]);
     setIsSelectingSeat(false);
+
+    // If service has an assigned fleetTemplateId from Flutter Admin, bind it to selectedStaff
+    if (service?.fleetTemplateId && fleetTemplates.length > 0) {
+      const ft = fleetTemplates.find(t => t.id === service.fleetTemplateId);
+      if (ft) {
+        setSelectedStaff({
+          id: ft.id,
+          name: ft.name,
+          decks: ft.decks,
+          layoutType: ft.category === 'sleeper' ? 'sleeper' : 'seat'
+        });
+      }
+    }
+
     setCurrentStep('slots');
     window.scrollTo({ top: 320, behavior: 'smooth' });
   };
 
   const handleSelectHotDeal = (deal) => {
     const matchedService = services.find(s => s.id === deal.serviceId) || services[0];
-    const matchedStaff = staff.find(st => st.id === deal.vehicleId) || staff[0] || { id: 'any', name: deal.vehicleName };
+    const matchedTemplate = deal.fleetTemplate ||
+      fleetTemplates.find(ft => ft.id === deal.vehicleId) ||
+      fleetTemplates.find(ft => ft.id === matchedService?.fleetTemplateId) ||
+      null;
+    const matchedStaff = matchedTemplate
+      ? {
+          id: matchedTemplate.id,
+          name: matchedTemplate.name,
+          decks: matchedTemplate.decks,
+          layoutType: matchedTemplate.category === 'sleeper' ? 'sleeper' : 'seat'
+        }
+      : (staff.find(st => st.id === deal.vehicleId) || staff[0] || { id: 'any', name: deal.vehicleName });
 
     setSelectedService(matchedService);
     setSelectedStaff(matchedStaff);
@@ -231,7 +364,10 @@ export const ServiceStorefront = ({ venue }) => {
       discountAmount: deal.discountAmount,
       discountType: 'percent',
       hasDiscount: true,
-      appliedRuleName: `Горящее предложение (-${deal.discountPercent}%)`
+      appliedRuleName: `Горящее предложение (-${deal.discountPercent}%)`,
+      tripId: deal.tripId || null,
+      trip: deal.trip || null,
+      fleetTemplate: matchedTemplate
     };
     setSelectedSlot(syntheticSlot);
     setSelectedSeats([]);
@@ -246,6 +382,18 @@ export const ServiceStorefront = ({ venue }) => {
   };
 
   const handleSelectSlot = (slot) => {
+    const tpl = slot?.fleetTemplate ||
+      fleetTemplates.find(ft => ft.id === selectedService?.fleetTemplateId) ||
+      fleetTemplates[0] ||
+      null;
+    if (tpl && archetype === 'batch') {
+      setSelectedStaff({
+        id: tpl.id,
+        name: tpl.name,
+        decks: tpl.decks,
+        layoutType: tpl.category === 'sleeper' ? 'sleeper' : 'seat'
+      });
+    }
     setSelectedSlot(slot);
     setSelectedSeats([]);
     if (archetype === 'batch') {
@@ -263,6 +411,12 @@ export const ServiceStorefront = ({ venue }) => {
 
   const handleConfirmBooking = async (payload) => {
     const result = await bookingApiService.createBooking(payload);
+    // Refresh scheduled trips after booking so reserved seats update in real time
+    if (venueId) {
+      bookingApiService.getScheduledTrips(venueId).then(updatedTrips => {
+        setScheduledTrips(updatedTrips);
+      }).catch(() => {});
+    }
     return result;
   };
 

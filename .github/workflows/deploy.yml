@@ -37,12 +37,12 @@ jobs:
           mkdir -p dist/admin
           cp -r admin/build/web/* dist/admin/
         
-      - name: Deploy Firestore Rules
+      - name: Deploy Firestore Rules & Indexes
         run: |
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_BOT_LAB_21910 }}' > gcp-key.json
           export GOOGLE_APPLICATION_CREDENTIALS=gcp-key.json
           node -e 'try { const k = JSON.parse(process.env.GCP_KEY || "{}"); console.log("Using Service Account:", k.client_email); } catch(e){}'
-          npx --yes firebase-tools deploy --only firestore:rules --project bot-lab-21910 --non-interactive || echo "⚠️ Firestore rules deployment requires IAM permissions"
+          npx --yes firebase-tools deploy --only firestore:rules,firestore:indexes --project bot-lab-21910 --non-interactive || echo "⚠️ Firestore rules/indexes deployment requires IAM permissions"
           rm -f gcp-key.json
         env:
           GCP_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_BOT_LAB_21910 }}
@@ -53,7 +53,7 @@ jobs:
           export GOOGLE_APPLICATION_CREDENTIALS="$GITHUB_WORKSPACE/gcp-key.json"
           cp gcp-key.json functions/gcp-key.json
           npm --prefix functions install
-          OUTPUT=$(npx --yes firebase-tools deploy --only functions:conciergeChatHttp,functions:telegramWebhook,functions:partnerPaymentWebhook,functions:whatsappWebhook,functions:scrapeMenuCallable,functions:onMenuScrapeJobCreated,functions:scrapeMenuHttp,functions:scheduledAggregatorSync --project bot-lab-21910 --non-interactive 2>&1) && EXIT_CODE=0 || EXIT_CODE=$?
+          OUTPUT=$(npx --yes firebase-tools deploy --only functions:conciergeChatHttp,functions:telegramWebhook,functions:partnerPaymentWebhook,functions:whatsappWebhook,functions:scrapeMenuCallable,functions:onMenuScrapeJobCreated,functions:scrapeMenuHttp,functions:scheduledAggregatorSync,functions:onBookingCreated,functions:aiProxyHttp --project bot-lab-21910 --non-interactive 2>&1) && EXIT_CODE=0 || EXIT_CODE=$?
           echo "$OUTPUT"
           rm -f gcp-key.json functions/gcp-key.json
           if [ $EXIT_CODE -ne 0 ]; then

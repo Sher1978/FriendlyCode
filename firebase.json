@@ -42,6 +42,26 @@
         }
       },
       {
+        "source": "/conciergeChatHttp",
+        "function": "conciergeChatHttp"
+      },
+      {
+        "source": "/onboardingInterviewHttp",
+        "function": "onboardingInterviewHttp"
+      },
+      {
+        "source": "/reviewFeedbackHttp",
+        "function": "reviewFeedbackHttp"
+      },
+      {
+        "source": "/partnerPaymentWebhook",
+        "function": "partnerPaymentWebhook"
+      },
+      {
+        "source": "/api/ai-proxy",
+        "function": "aiProxyHttp"
+      },
+      {
         "source": "/deposit",
         "destination": "/admin/index.html"
       },

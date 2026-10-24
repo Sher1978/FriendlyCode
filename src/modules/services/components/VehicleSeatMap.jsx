@@ -196,24 +196,106 @@ export const VehicleSeatMap = ({
   onProceed,
   onBack
 }) => {
-  // Transport layout is strictly determined by the Administrator (assigned vehicle / template)
+  // Transport layout is strictly determined by the Administrator (assigned vehicle / template / scheduled_trip)
   const activeLayout = useMemo(() => {
-    // 1. If vehicle provides explicit custom decks/layout from Firestore
-    if (vehicle?.decks && Array.isArray(vehicle.decks) && vehicle.decks.length > 0) {
+    const rawTemplate = slot?.fleetTemplate || (vehicle?.decks ? vehicle : null);
+    const tripSeatsRaw = slot?.trip?.seats;
+    const tripSeatsLookup = {};
+    if (Array.isArray(tripSeatsRaw)) {
+      tripSeatsRaw.forEach(ts => {
+        const k = ts.seatId || ts.id || ts.label;
+        if (k) tripSeatsLookup[k] = ts;
+      });
+    } else if (tripSeatsRaw && typeof tripSeatsRaw === 'object') {
+      Object.entries(tripSeatsRaw).forEach(([k, ts]) => {
+        tripSeatsLookup[k] = ts;
+        if (ts?.label) tripSeatsLookup[ts.label] = ts;
+      });
+    }
+
+    const mapSeatStatus = (seat) => {
+      const liveState = tripSeatsLookup[seat.id] || tripSeatsLookup[seat.label];
+      const features = Array.isArray(seat.features) ? seat.features : [];
+      let status = seat.status || 'available';
+      if (features.includes('blocked') || features.includes('guide')) {
+        status = 'locked';
+      }
+      if (liveState?.status) {
+        if (liveState.status === 'confirmed' || liveState.status === 'reserved' || liveState.status === 'occupied') {
+          status = 'occupied';
+        } else if (liveState.status === 'blocked' || liveState.status === 'locked') {
+          status = 'locked';
+        } else {
+          status = 'available';
+        }
+      }
       return {
-        id: vehicle.id || 'custom_vehicle',
-        name: vehicle.name || 'Транспорт',
-        type: vehicle.layoutType || (vehicle.decks.length > 1 ? 'sleeper' : 'seat'),
-        decks: vehicle.decks
+        ...seat,
+        type: seat.type || (features.includes('vip') ? 'vip' : (features.includes('window') ? 'window' : 'center')),
+        status,
+        features,
+        priceModifier: Number(seat.priceModifier) || 0
+      };
+    };
+
+    const normalizeDecks = (decks) => {
+      return decks.map(deck => {
+        // Case A: deck.rows is already an array of { rowNumber, seats }
+        if (Array.isArray(deck.rows)) {
+          return {
+            ...deck,
+            rows: deck.rows.map(r => ({
+              ...r,
+              seats: (r.seats || []).map(mapSeatStatus)
+            }))
+          };
+        }
+        // Case B: deck.seats is a flat array from Flutter Admin fleetTemplates
+        const flatSeats = Array.isArray(deck.seats) ? deck.seats : [];
+        const rowsMap = new Map();
+        flatSeats.forEach(s => {
+          const rNum = Number(s.row) || 1;
+          if (!rowsMap.has(rNum)) rowsMap.set(rNum, []);
+          rowsMap.get(rNum).push(mapSeatStatus(s));
+        });
+        const groupedRows = Array.from(rowsMap.entries())
+          .sort((a, b) => a[0] - b[0])
+          .map(([rowNumber, seats]) => ({
+            rowNumber,
+            seats: seats.sort((a, b) => (Number(a.col) || 1) - (Number(b.col) || 1))
+          }));
+
+        return {
+          ...deck,
+          rows: groupedRows
+        };
+      });
+    };
+
+    // 1. If vehicle or slot provides explicit custom decks/layout from Firestore
+    if (rawTemplate?.decks && Array.isArray(rawTemplate.decks) && rawTemplate.decks.length > 0) {
+      return {
+        id: rawTemplate.id || 'custom_vehicle',
+        name: rawTemplate.name || vehicle?.name || 'Транспорт',
+        type: rawTemplate.layoutType || (rawTemplate.category === 'sleeper' || rawTemplate.decks.length > 1 ? 'sleeper' : 'seat'),
+        decks: normalizeDecks(rawTemplate.decks)
       };
     }
 
     // 2. Otherwise determine layout preset from assigned vehicle name / role / metadata
-    const str = `${vehicle?.name || ''} ${vehicle?.role || ''} ${vehicle?.id || ''}`.toLowerCase();
+    const str = `${vehicle?.name || ''} ${vehicle?.role || ''} ${vehicle?.id || ''} ${slot?.trip?.fleetTemplateName || ''}`.toLowerCase();
     const isSleeper = str.includes('слипер') || str.includes('sleeper') || str.includes('ночной') || str.includes('этаж');
+    const preset = isSleeper ? SLEEPER_BUS_PRESET : MINIVAN_VIP_PRESET;
 
-    return isSleeper ? SLEEPER_BUS_PRESET : MINIVAN_VIP_PRESET;
-  }, [vehicle]);
+    if (Object.keys(tripSeatsLookup).length > 0) {
+      return {
+        ...preset,
+        decks: normalizeDecks(preset.decks)
+      };
+    }
+
+    return preset;
+  }, [vehicle, slot]);
 
   // Current active Deck/Zone tab (e.g. 'lower' or 'upper')
   const [activeDeckId, setActiveDeckId] = useState(() => activeLayout.decks[0]?.id || 'lower');

@@ -14,6 +14,12 @@ const { Resend } = require("resend");
 const resend = new Resend(process.env.RESEND_API_KEY || "re_fallback_key_for_firebase_analysis");
 
 const { sendTelegramVoucher, buildEmailVoucherHtml } = require("./voucherDelivery");
+const {
+    findVenueByTelegramChatId,
+    syncScheduledTripSeatsOnDecision,
+    handleNewBookingCreated
+} = require("./services/bookingTriggers");
+const { handleAiProxyRequest } = require("./services/ai/aiProxy");
 
 // SuperAdmin Chat ID
 const SUPER_ADMIN_CHAT_ID = process.env.SUPER_ADMIN_CHAT_ID || "260669598";
@@ -1275,15 +1281,14 @@ exports.telegramWebhook = onRequest(async (req, res) => {
             try {
                 const { GeminiConciergeAgent } = require('./services/ai/geminiAgent');
                 const concierge = new GeminiConciergeAgent();
-                if (concierge.genAI) {
-                    const result = await concierge.processGuestMessage({
-                        venueId,
-                        userMessage: text,
-                        senderPhone: fromUser.username ? `@${fromUser.username}` : ''
-                    });
-                    if (result && result.replyText) {
-                        aiReply = result.replyText;
-                    }
+                const result = await concierge.processGuestMessage({
+                    venueId,
+                    userMessage: text,
+                    senderPhone: fromUser.username ? `@${fromUser.username}` : ''
+                });
+                const replyStr = typeof result === 'string' ? result : result?.replyText;
+                if (replyStr && replyStr.trim().length > 0) {
+                    aiReply = replyStr;
                 }
             } catch (aiErr) {
                 logger.warn("[AI_CONCIERGE] Gemini fallback error:", aiErr);
@@ -1552,13 +1557,10 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                 let vId = 'test_borderrun_pattaya';
                 let vName = 'Бовиза Ранум';
                 try {
-                    let vSnap = await db.collection("venues").where("telegram_group_id", "==", String(chatId)).get();
-                    if (vSnap.empty) vSnap = await db.collection("venues").where("telegramGroupId", "==", String(chatId)).get();
-                    if (vSnap.empty) vSnap = await db.collection("venues").where("telegram_group_id", "==", Number(chatId)).get();
-                    if (vSnap.empty) vSnap = await db.collection("venues").where("telegramGroupId", "==", Number(chatId)).get();
-                    if (!vSnap.empty) {
-                        vId = vSnap.docs[0].id;
-                        vName = vSnap.docs[0].data().name || vName;
+                    const matchedDoc = await findVenueByTelegramChatId(db, chatId);
+                    if (matchedDoc) {
+                        vId = matchedDoc.id;
+                        vName = matchedDoc.data().name || vName;
                     }
                 } catch (e) {
                     logger.warn("Staff chat venue lookup failed:", e);
@@ -1601,9 +1603,8 @@ exports.telegramWebhook = onRequest(async (req, res) => {
 
                 let vId = 'test_borderrun_pattaya';
                 try {
-                    let vSnap = await db.collection("venues").where("telegram_group_id", "==", String(chatId)).get();
-                    if (vSnap.empty) vSnap = await db.collection("venues").where("telegramGroupId", "==", String(chatId)).get();
-                    if (!vSnap.empty) vId = vSnap.docs[0].id;
+                    const matchedDoc = await findVenueByTelegramChatId(db, chatId);
+                    if (matchedDoc) vId = matchedDoc.id;
                 } catch (e) {}
 
                 let aiReply = "Не удалось сгенерировать ответ. Попробуйте еще раз.";
@@ -1635,9 +1636,8 @@ exports.telegramWebhook = onRequest(async (req, res) => {
             if (lowerText === '/rules' || lowerText === '/база' || lowerText === '/правила') {
                 let vId = 'test_borderrun_pattaya';
                 try {
-                    let vSnap = await db.collection("venues").where("telegram_group_id", "==", String(chatId)).get();
-                    if (vSnap.empty) vSnap = await db.collection("venues").where("telegramGroupId", "==", String(chatId)).get();
-                    if (!vSnap.empty) vId = vSnap.docs[0].id;
+                    const matchedDoc = await findVenueByTelegramChatId(db, chatId);
+                    if (matchedDoc) vId = matchedDoc.id;
                 } catch (e) {}
 
                 let rulesSnap = null;
@@ -1729,45 +1729,16 @@ exports.telegramWebhook = onRequest(async (req, res) => {
             const fromUser = callbackQuery.from;
             const username = (fromUser.username || "").toLowerCase();
 
-            if (!username) {
-                await answerCallbackQuery(callbackQueryId, "⛔️ Access Denied: Telegram Username required.", true);
-                res.sendStatus(200);
-                return;
-            }
+            // Identify Venue (supports telegramStaffChatId, telegramGroupId, telegram_group_id, authorizedTelegramChatIds)
+            const venueDoc = await findVenueByTelegramChatId(db, chatId);
 
-            // Identify Venue
-            let venueSnap = await db.collection("venues").where("telegram_group_id", "==", String(chatId)).get();
-            if (venueSnap.empty) {
-                venueSnap = await db.collection("venues").where("telegramGroupId", "==", String(chatId)).get();
-            }
-            if (venueSnap.empty) {
-                venueSnap = await db.collection("venues").where("telegram_group_id", "==", Number(chatId)).get();
-            }
-            if (venueSnap.empty) {
-                venueSnap = await db.collection("venues").where("telegramGroupId", "==", Number(chatId)).get();
-            }
-
-            if (venueSnap.empty) {
+            if (!venueDoc) {
                 await answerCallbackQuery(callbackQueryId, "⛔️ Error: Group chat is not linked to any venue.", true);
                 res.sendStatus(200);
                 return;
             }
 
-            const venueDoc = venueSnap.docs[0];
             const venueId = venueDoc.id;
-
-            // Security Check: Validate staff
-            const staffSnap = await db.collection("users")
-                .where("role", "==", "staff")
-                .where("venueId", "==", venueId)
-                .where("telegram_username", "==", username)
-                .get();
-
-            if (staffSnap.empty) {
-                await answerCallbackQuery(callbackQueryId, "⛔️ Access Denied: Your Telegram username is not registered in Revoo staff settings.", true);
-                res.sendStatus(200);
-                return;
-            }
 
             // ── HUMAN-IN-THE-LOOP (HITL) BOOKING CONFIRMATION ──
             if (callbackData.startsWith("BKG_CONFIRM_") || callbackData.startsWith("BKG_REJECT_")) {
@@ -1792,6 +1763,8 @@ exports.telegramWebhook = onRequest(async (req, res) => {
                 });
 
                 const bookingData = bookingSnap.data() || {};
+                await syncScheduledTripSeatsOnDecision(db, bookingData, isConfirm, reviewer);
+
                 const badge = isConfirm ? "✅ ПОДТВЕРЖДЕНО" : "❌ ОТКЛОНЕНО";
                 await answerCallbackQuery(callbackQueryId, isConfirm ? "Бронь подтверждена!" : "Бронь отклонена.", false);
 
@@ -5060,9 +5033,33 @@ exports.partnerPaymentWebhook = onRequest(async (req, res) => {
             await sendTelegramMessageWithKeyboard(bData.telegramChatId, paidTicketMsg, keyboard);
         }
 
+        await syncScheduledTripSeatsOnDecision(db, bData, true, provider || 'online_payment');
+
         res.json({ success: true, bookingId, status: 'paid_confirmed' });
     } catch (err) {
         logger.error('partnerPaymentWebhook error:', err);
         res.status(500).json({ error: err.message });
     }
 });
+
+/**
+ * Triggered whenever a new booking document is created in `bookings/{bookingId}`.
+ * Dispatches Human-in-the-Loop (HITL) Telegram confirmation cards + in-app notifications
+ * for Web / SeatMap bookings.
+ */
+exports.onBookingCreated = onDocumentCreated("bookings/{bookingId}", async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const bookingId = event.params.bookingId;
+    const bookingData = snap.data() || {};
+    await handleNewBookingCreated(db, bookingId, bookingData);
+});
+
+/**
+ * Server-side AI & Telegram Proxy for Flutter Admin Web and React B2C.
+ * Isolates Groq, Gemini, and Telegram Bot credentials on the backend.
+ */
+exports.aiProxyHttp = onRequest({ cors: true }, async (req, res) => {
+    await handleAiProxyRequest(req, res);
+});
+
