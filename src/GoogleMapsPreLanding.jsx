@@ -18,6 +18,7 @@ import { findAndMergeUserByEmail } from './logic/userDeduplication';
 import { logVenueClick } from './logic/analytics';
 import { RewardCalculator } from './logic/RewardCalculator';
 import { ServiceStorefront } from './modules/services';
+import DeliveryLocationPickerModal from './DeliveryLocationPickerModal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInstagram, faTiktok, faYoutube, faTelegram, faWhatsapp, faGoogle } from '@fortawesome/free-brands-svg-icons';
 import { faMapLocationDot, faEnvelope, faPaperPlane, faPhone, faArrowLeft, faCheckCircle, faSpinner } from '@fortawesome/free-solid-svg-icons';
@@ -157,6 +158,7 @@ const GoogleMapsPreLanding = () => {
   });
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState(null);
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
   const [orderComment, setOrderComment] = useState('');
   const [useDeposit, setUseDeposit] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('vietqr');
@@ -1045,6 +1047,35 @@ const GoogleMapsPreLanding = () => {
         maximumAge: 10000
       }
     );
+  };
+
+  // Venue coordinates fallback for map picker
+  const venueCoords = useMemo(() => {
+    if (venue?.latitude && venue?.longitude) {
+      return { latitude: Number(venue.latitude), longitude: Number(venue.longitude) };
+    }
+    if (venue?.location?.latitude && venue?.location?.longitude) {
+      return { latitude: Number(venue.location.latitude), longitude: Number(venue.location.longitude) };
+    }
+    return null;
+  }, [venue]);
+
+  // Handle precise location selected from manual map picker
+  const handleLocationSelectedFromMap = (locData) => {
+    const dataToSave = {
+      latitude: locData.latitude,
+      longitude: locData.longitude,
+      accuracy: 5, // manual pin precision
+      googleMapsUrl: locData.googleMapsUrl,
+      isManualPin: true,
+      updatedAt: new Date().toISOString()
+    };
+    setGuestLocation(dataToSave);
+    safeStorage.setItem('guestLocation', JSON.stringify(dataToSave));
+    if (locData.address) {
+      setDeliveryAddress(locData.address);
+      safeStorage.setItem('deliveryAddress', locData.address);
+    }
   };
 
   // Submit Direct Delivery Order
@@ -2062,36 +2093,48 @@ const GoogleMapsPreLanding = () => {
                     <div className="space-y-2 pt-1">
                       <div className="flex items-center justify-between">
                         <label className="text-[11px] font-bold text-gray-300 uppercase block">Адрес доставки</label>
-                        <button
-                          type="button"
-                          onClick={handleShareLocation}
-                          disabled={isLocating}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all active:scale-95 disabled:opacity-50 ${
-                            guestLocation
-                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
-                              : 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-md shadow-emerald-500/20'
-                          }`}
-                        >
-                          {isLocating ? (
-                            <>
-                              <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
-                              <span>GPS поиск...</span>
-                            </>
-                          ) : guestLocation ? (
-                            <>
-                              <span>📍</span>
-                              <span>Обновить GPS</span>
-                            </>
-                          ) : (
-                            <>
-                              <span>📍</span>
-                              <span>Поделиться локацией</span>
-                            </>
-                          )}
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={handleShareLocation}
+                            disabled={isLocating}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all active:scale-95 disabled:opacity-50 ${
+                              guestLocation && !guestLocation.isManualPin
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                                : 'bg-[#2a2b2f] hover:bg-[#34353a] text-gray-200 border border-white/10'
+                            }`}
+                            title="Быстро определить координаты по спутникам GPS"
+                          >
+                            {isLocating ? (
+                              <>
+                                <span className="w-2.5 h-2.5 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                                <span>GPS...</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>🎯</span>
+                                <span>Авто GPS</span>
+                              </>
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setIsMapPickerOpen(true)}
+                            className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all active:scale-95 ${
+                              guestLocation?.isManualPin
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                                : 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-md shadow-emerald-500/20'
+                            }`}
+                            title="Открыть карту и пальцем/мышью уточнить точку входа или ворот"
+                          >
+                            <span>🗺</span>
+                            <span>Точка на карте</span>
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Active GPS status banner for courier */}
+                      {/* Active GPS / Manual Pin status banner for courier */}
                       {guestLocation && (
                         <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-2.5 flex items-center justify-between gap-2 text-xs">
                           <div className="space-y-0.5 min-w-0">
@@ -2100,26 +2143,40 @@ const GoogleMapsPreLanding = () => {
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                               </span>
-                              <span className="truncate">Точная геопозиция передается курьеру</span>
-                              {guestLocation.accuracy && (
+                              <span className="truncate">
+                                {guestLocation.isManualPin
+                                  ? 'Точка доставки уточнена на карте'
+                                  : 'Точные координаты передаются курьеру'}
+                              </span>
+                              {guestLocation.accuracy && !guestLocation.isManualPin && (
                                 <span className="text-[10px] text-gray-400 font-normal shrink-0">
                                   (±{guestLocation.accuracy}м)
                                 </span>
                               )}
                             </div>
                             <p className="text-[10px] text-gray-300 leading-tight">
-                              Курьер поедет прямо к вашей точке на карте Google Maps.
+                              Курьер поедет прямо к указанной вами точке в Google Maps.
                             </p>
                           </div>
-                          <a
-                            href={guestLocation.googleMapsUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-2 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-300 text-[10px] font-bold shrink-0 border border-emerald-500/30"
-                            title="Открыть точку в Google Maps"
-                          >
-                            Карта ↗
-                          </a>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => setIsMapPickerOpen(true)}
+                              className="px-2 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold"
+                              title="Уточнить или подвинуть точку на карте"
+                            >
+                              Изменить ✏️
+                            </button>
+                            <a
+                              href={guestLocation.googleMapsUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-300 text-[10px] font-bold border border-emerald-500/30"
+                              title="Открыть точку в Google Maps"
+                            >
+                              ↗
+                            </a>
+                          </div>
                         </div>
                       )}
 
@@ -2150,8 +2207,10 @@ const GoogleMapsPreLanding = () => {
                         />
                         <p className="text-[10px] text-gray-400 mt-1">
                           {guestLocation
-                            ? "Дополните номер квартиры, этаж или название отеля для курьера"
-                            : "Укажите адрес или нажмите «Поделиться локацией» для передачи GPS курьеру"}
+                            ? (guestLocation.isManualPin 
+                                ? "Метка зафиксирована. Дополните номер квартиры, этаж или название отеля" 
+                                : "GPS зафиксирован. Дополните номер квартиры или нажмите «Точка на карте» для точной метки")
+                            : "Укажите адрес или нажмите «Точка на карте» для указания точного входа"}
                         </p>
                       </div>
                     </div>
@@ -3132,6 +3191,16 @@ const GoogleMapsPreLanding = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Telegram-style Interactive Map Pin Picker Modal */}
+      <DeliveryLocationPickerModal
+        isOpen={isMapPickerOpen}
+        onClose={() => setIsMapPickerOpen(false)}
+        onSelectLocation={handleLocationSelectedFromMap}
+        initialCoords={guestLocation ? { latitude: guestLocation.latitude, longitude: guestLocation.longitude } : null}
+        venueCoords={venueCoords}
+        initialAddress={deliveryAddress}
+      />
 
     </div>
   );
