@@ -366,6 +366,15 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
                 nextDay.setUTCHours(6, 0, 0, 0);
                 const scheduledFor = admin.firestore.Timestamp.fromDate(nextDay);
                 
+                // Determine next-day voucher discount based on venue's loyalty configuration
+                const loyalty = venueData.loyaltyConfig || {};
+                const voucherDiscount = Number(loyalty.percVip) || 
+                                       (venueData.tiers && venueData.tiers.length > 0 ? Number(venueData.tiers[0].discountPercent) : null) || 
+                                       Number(loyalty.percBase) || 
+                                       Number(venueData.maxDiscount) || 
+                                       Number(venueData.baseDiscount) || 
+                                       7;
+
                 await db.collection("scheduled_vouchers").add({
                     visitId: event.params.visitId,
                     venueId: venueId,
@@ -374,7 +383,7 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
                     guestIdentifier: guestId,
                     guestName: guestName,
                     guestEmail: visitGuestEmail || null,
-                    discount: venueData.baseDiscount || venueData.maxDiscount || 20,
+                    discount: voucherDiscount,
                     scheduledFor: scheduledFor,
                     status: "pending",
                     createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -408,18 +417,32 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
         // 4a. Guest Loyalty Perk Reminder Email
         if (visitGuestEmail && emailControls.enableWelcomeEmails !== false) {
             try {
-                // Determine Tiers
+                // Determine Tiers from loyaltyConfig or legacy tiers
                 let sortedTiers = [];
-                if (venueData.tiers && Array.isArray(venueData.tiers)) {
+                const guestLoyalty = venueData.loyaltyConfig;
+                if (guestLoyalty && (guestLoyalty.percVip || guestLoyalty.percBase)) {
+                    sortedTiers.push({
+                        discountPercent: Number(guestLoyalty.percVip || 7),
+                        maxHours: (guestLoyalty.vipWindowDays || 1) * 24
+                    });
+                    if (Array.isArray(guestLoyalty.decayStages)) {
+                        guestLoyalty.decayStages.forEach(s => {
+                            sortedTiers.push({
+                                discountPercent: Number(s.discount),
+                                maxHours: (s.days || 7) * 24
+                            });
+                        });
+                    }
+                    sortedTiers.sort((a, b) => b.discountPercent - a.discountPercent);
+                } else if (venueData.tiers && Array.isArray(venueData.tiers) && venueData.tiers.length > 0) {
                     sortedTiers = [...venueData.tiers].sort((a, b) => b.discountPercent - a.discountPercent);
                 }
 
                 // Default Tiers if none or empty (Safety fallback)
                 if (sortedTiers.length === 0) {
                     sortedTiers = [
-                        { discountPercent: 20, maxHours: 24 },
-                        { discountPercent: 15, maxHours: 72 },
-                        { discountPercent: 10, maxHours: 168 }
+                        { discountPercent: 7, maxHours: 24 },
+                        { discountPercent: 5, maxHours: 120 }
                     ];
                 }
 
@@ -431,9 +454,9 @@ exports.onVisitCreated = onDocumentCreated("visits/{visitId}", async (event) => 
                 };
 
                 const topTier = sortedTiers[0];
-                const secondTier = sortedTiers[1] || { discountPercent: 10, maxHours: 168 }; // Specific fallbacks
-                const thirdTier = sortedTiers[2] || { discountPercent: 7, maxHours: 336 };
-                const minimalTier = venueData.baseDiscount || 5;
+                const secondTier = sortedTiers[1] || { discountPercent: topTier.discountPercent, maxHours: 120 };
+                const thirdTier = sortedTiers[2] || secondTier;
+                const minimalTier = guestLoyalty?.percBase || venueData.baseDiscount || 5;
 
                 const { data: loyaltyData, error: loyaltyError } = await resend.emails.send({
                     from: "Friendly Code <no-reply@friendlycode.fun>",

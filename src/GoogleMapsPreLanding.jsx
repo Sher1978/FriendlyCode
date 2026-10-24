@@ -444,13 +444,14 @@ const GoogleMapsPreLanding = () => {
         if (!safeStorage.getItem(grabLogKey)) {
           safeStorage.setItem(grabLogKey, 'true');
           const sessionUid = user?.uid || safeStorage.getItem('effectiveUid') || RewardCalculator.getBrowserSessionUid();
+          const grabDiscount = Number(venue?.deliveryLoyaltyConfig?.percVip ?? venue?.loyaltyConfig?.percVip ?? 7);
           addDoc(collection(db, 'visits'), {
             uid: sessionUid,
             userId: sessionUid,
             guestName: effectiveDisplayName || 'Grab Guest',
             guestEmail: (effectiveEmail || 'guest').toLowerCase(),
             venueId,
-            discount: 20,
+            discount: grabDiscount,
             timestamp: serverTimestamp(),
             status: 'vip',
             source: 'grab_bag_qr',
