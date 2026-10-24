@@ -324,6 +324,10 @@ class _OnlineOrdersManagerScreenState extends State<OnlineOrdersManagerScreen> {
   // ── TELEGRAM DISPATCH FORMATTING ─────────────────────────────────────────
   void _shareToTelegram(Map<String, dynamic> order) {
     final customer = (order['customer'] as Map<String, dynamic>?) ?? {};
+    final guestLoc = (order['guestLocation'] as Map<String, dynamic>?) ?? {};
+    final locationUrl = guestLoc['googleMapsUrl']?.toString() ??
+        customer['locationUrl']?.toString() ??
+        '';
     final orderId = order['orderId'] ?? 'REV';
     final name = customer['name'] ?? 'Гость';
     final phone = customer['phone'] ?? '-';
@@ -337,6 +341,9 @@ class _OnlineOrdersManagerScreenState extends State<OnlineOrdersManagerScreen> {
     sb.writeln('🛎 НОВЫЙ ОНЛАЙН-ЗАКАЗ #$orderId');
     sb.writeln('👤 Гость: $name ($phone)');
     sb.writeln('📍 Адрес: $address');
+    if (locationUrl.isNotEmpty) {
+      sb.writeln('🗺 Навигация для курьера (Google Maps): $locationUrl');
+    }
     if (comment.isNotEmpty) sb.writeln('💬 Комментарий: $comment');
     sb.writeln('🍽 Состав:');
     for (var it in items) {
@@ -592,6 +599,11 @@ class _OnlineOrdersManagerScreenState extends State<OnlineOrdersManagerScreen> {
     final currency = (order['currency'] ?? '₫').toString();
 
     final customer = (order['customer'] as Map<String, dynamic>?) ?? {};
+    final guestLoc = (order['guestLocation'] as Map<String, dynamic>?) ?? {};
+    final locationUrl = guestLoc['googleMapsUrl']?.toString() ??
+        customer['locationUrl']?.toString() ??
+        '';
+    final locationAccuracy = guestLoc['accuracy'];
     final customerUid = customer['uid']?.toString() ?? '';
     final customerName = customer['name']?.toString() ?? 'Гость';
     final customerPhone = customer['phone']?.toString() ?? '';
@@ -732,6 +744,45 @@ class _OnlineOrdersManagerScreenState extends State<OnlineOrdersManagerScreen> {
                             customerAddress,
                             style: const TextStyle(color: Colors.white70, fontSize: 13),
                           ),
+                          if (locationUrl.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            InkWell(
+                              onTap: () async {
+                                final uri = Uri.parse(locationUrl);
+                                if (await url_launcher.canLaunchUrl(uri)) {
+                                  await url_launcher.launchUrl(uri, mode: url_launcher.LaunchMode.externalApplication);
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.accentTeal.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: AppColors.accentTeal.withOpacity(0.4)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(CupertinoIcons.location_fill, size: 13, color: AppColors.accentTeal),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      locationAccuracy != null
+                                          ? 'Навигация курьеру (GPS ±$locationAccuracyм)'
+                                          : 'Навигация для курьера (Google Карты)',
+                                      style: const TextStyle(
+                                        color: AppColors.accentTeal,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(CupertinoIcons.arrow_up_right, size: 10, color: AppColors.accentTeal),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                           if (customerComment.isNotEmpty) ...[
                             const SizedBox(height: 4),
                             Container(
@@ -864,6 +915,19 @@ class _OnlineOrdersManagerScreenState extends State<OnlineOrdersManagerScreen> {
                     ),
                     Row(
                       children: [
+                        if (locationUrl.isNotEmpty) ...[
+                          IconButton(
+                            tooltip: 'Открыть точку на карте в Google Maps для курьера',
+                            icon: const Icon(CupertinoIcons.location_circle_fill, color: AppColors.accentTeal, size: 22),
+                            onPressed: () async {
+                              final uri = Uri.parse(locationUrl);
+                              if (await url_launcher.canLaunchUrl(uri)) {
+                                await url_launcher.launchUrl(uri, mode: url_launcher.LaunchMode.externalApplication);
+                              }
+                            },
+                          ),
+                          const SizedBox(width: 4),
+                        ],
                         // Telegram share
                         IconButton(
                           tooltip: 'Отправить чек в Telegram',

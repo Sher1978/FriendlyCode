@@ -147,6 +147,16 @@ const GoogleMapsPreLanding = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [deliveryType, setDeliveryType] = useState('delivery'); // 'delivery' | 'pickup'
   const [deliveryAddress, setDeliveryAddress] = useState(() => safeStorage.getItem('deliveryAddress') || '');
+  const [guestLocation, setGuestLocation] = useState(() => {
+    try {
+      const saved = safeStorage.getItem('guestLocation');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationError, setLocationError] = useState(null);
   const [orderComment, setOrderComment] = useState('');
   const [useDeposit, setUseDeposit] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('vietqr');
@@ -954,6 +964,89 @@ const GoogleMapsPreLanding = () => {
     setIsProfileModalOpen(false);
   };
 
+  // Share Live Location for Delivery Courier & Navigation
+  const handleShareLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Геолокация не поддерживается вашим браузером');
+      return;
+    }
+    setIsLocating(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const accuracy = Math.round(position.coords.accuracy || 0);
+          const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+
+          const locData = {
+            latitude: lat,
+            longitude: lng,
+            accuracy,
+            googleMapsUrl: mapsUrl,
+            updatedAt: new Date().toISOString()
+          };
+
+          setGuestLocation(locData);
+          safeStorage.setItem('guestLocation', JSON.stringify(locData));
+
+          // Reverse geocoding via OpenStreetMap Nominatim for street address convenience
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`, {
+              headers: { 'Accept-Language': 'ru,en;q=0.8' }
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data.address) {
+                const addr = data.address;
+                const road = addr.road || addr.street || addr.pedestrian || addr.footway || '';
+                const house = addr.house_number || '';
+                const suburb = addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || '';
+                const city = addr.city || addr.town || addr.village || addr.county || '';
+
+                let composed = [road, house, suburb, city].filter(Boolean).join(', ');
+                if (!composed && data.display_name) {
+                  composed = data.display_name.split(',').slice(0, 3).join(', ').trim();
+                }
+
+                if (composed && (!deliveryAddress || deliveryAddress.trim() === '')) {
+                  setDeliveryAddress(composed);
+                  safeStorage.setItem('deliveryAddress', composed);
+                }
+              }
+            }
+          } catch (fetchErr) {
+            console.warn("Reverse geocode fetch note:", fetchErr);
+          }
+        } catch (procErr) {
+          console.warn("Location processing error:", procErr);
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      (err) => {
+        console.warn('Geolocation error:', err);
+        let msg = 'Не удалось определить местоположение.';
+        if (err.code === 1) { // PERMISSION_DENIED
+          msg = 'Доступ к геолокации отклонен браузером. Разрешите доступ к GPS в настройках или введите адрес вручную.';
+        } else if (err.code === 2) { // POSITION_UNAVAILABLE
+          msg = 'Геопозиция недоступна. Убедитесь, что GPS включен.';
+        } else if (err.code === 3) { // TIMEOUT
+          msg = 'Время ожидания GPS истекло. Пожалуйста, попробуйте еще раз.';
+        }
+        setLocationError(msg);
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 10000
+      }
+    );
+  };
+
   // Submit Direct Delivery Order
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
@@ -962,14 +1055,16 @@ const GoogleMapsPreLanding = () => {
       setIsAuthModalOpen(true);
       return;
     }
-    if (deliveryType === 'delivery' && !deliveryAddress.trim()) {
-      alert("Укажите адрес доставки");
+    if (deliveryType === 'delivery' && !deliveryAddress.trim() && !guestLocation) {
+      alert("Укажите адрес доставки или поделитесь локацией");
       return;
     }
 
     setIsSubmittingOrder(true);
     try {
-      safeStorage.setItem('deliveryAddress', deliveryAddress);
+      if (deliveryAddress.trim()) {
+        safeStorage.setItem('deliveryAddress', deliveryAddress);
+      }
       const orderId = `REV-${Date.now().toString().slice(-6)}`;
 
       const itemsList = Object.values(cart).map(({ item, count }) => ({
@@ -979,6 +1074,10 @@ const GoogleMapsPreLanding = () => {
         aggregatorPrice: parseFloat(String(item.aggregatorPrice || 0).replace(/[^0-9.]/g, '')) || 0,
         count
       }));
+
+      const finalAddress = deliveryType === 'delivery' 
+        ? (deliveryAddress.trim() || (guestLocation ? `Координаты GPS: ${guestLocation.latitude.toFixed(6)}, ${guestLocation.longitude.toFixed(6)}` : 'Адрес не указан'))
+        : 'Самовывоз';
 
       const orderData = {
         orderId,
@@ -990,9 +1089,17 @@ const GoogleMapsPreLanding = () => {
           phone: guestPhone || '',
           email: effectiveEmail || '',
           telegram: effectiveTelegram || '',
-          address: deliveryType === 'delivery' ? deliveryAddress : 'Самовывоз',
+          address: finalAddress,
+          locationUrl: guestLocation?.googleMapsUrl || null,
           comment: orderComment
         },
+        guestLocation: guestLocation ? {
+          latitude: guestLocation.latitude,
+          longitude: guestLocation.longitude,
+          accuracy: guestLocation.accuracy || null,
+          googleMapsUrl: guestLocation.googleMapsUrl || `https://www.google.com/maps?q=${guestLocation.latitude},${guestLocation.longitude}`,
+          addressHint: deliveryAddress || ''
+        } : null,
         deliveryType,
         items: itemsList,
         subtotal: cartSubtotal,
@@ -1952,15 +2059,101 @@ const GoogleMapsPreLanding = () => {
                   </div>
 
                   {deliveryType === 'delivery' && (
-                    <div>
-                      <label className="text-[11px] font-bold text-gray-300 uppercase block mb-1">Адрес доставки</label>
-                      <input 
-                        type="text" 
-                        value={deliveryAddress} 
-                        onChange={(e) => setDeliveryAddress(e.target.value)}
-                        placeholder="Улица, дом, квартира / номер отеля" 
-                        className="w-full bg-[#202124] border border-[#3C4043] focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
-                      />
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-bold text-gray-300 uppercase block">Адрес доставки</label>
+                        <button
+                          type="button"
+                          onClick={handleShareLocation}
+                          disabled={isLocating}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all active:scale-95 disabled:opacity-50 ${
+                            guestLocation
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                              : 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-md shadow-emerald-500/20'
+                          }`}
+                        >
+                          {isLocating ? (
+                            <>
+                              <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+                              <span>GPS поиск...</span>
+                            </>
+                          ) : guestLocation ? (
+                            <>
+                              <span>📍</span>
+                              <span>Обновить GPS</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>📍</span>
+                              <span>Поделиться локацией</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Active GPS status banner for courier */}
+                      {guestLocation && (
+                        <div className="bg-emerald-950/40 border border-emerald-500/40 rounded-xl p-2.5 flex items-center justify-between gap-2 text-xs">
+                          <div className="space-y-0.5 min-w-0">
+                            <div className="flex items-center gap-1.5 font-bold text-emerald-300 text-[11px]">
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                              </span>
+                              <span className="truncate">Точная геопозиция передается курьеру</span>
+                              {guestLocation.accuracy && (
+                                <span className="text-[10px] text-gray-400 font-normal shrink-0">
+                                  (±{guestLocation.accuracy}м)
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-gray-300 leading-tight">
+                              Курьер поедет прямо к вашей точке на карте Google Maps.
+                            </p>
+                          </div>
+                          <a
+                            href={guestLocation.googleMapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/40 text-emerald-300 text-[10px] font-bold shrink-0 border border-emerald-500/30"
+                            title="Открыть точку в Google Maps"
+                          >
+                            Карта ↗
+                          </a>
+                        </div>
+                      )}
+
+                      {/* Location error warning */}
+                      {locationError && (
+                        <div className="bg-amber-950/50 border border-amber-500/40 rounded-xl p-2.5 text-[11px] text-amber-200 flex items-start justify-between gap-2">
+                          <div className="flex items-start gap-1.5">
+                            <span className="text-amber-400 shrink-0">⚠️</span>
+                            <span className="leading-tight">{locationError}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setLocationError(null)}
+                            className="text-gray-400 hover:text-white text-xs px-1"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+
+                      <div>
+                        <input 
+                          type="text" 
+                          value={deliveryAddress} 
+                          onChange={(e) => setDeliveryAddress(e.target.value)}
+                          placeholder="Улица, дом, квартира / номер отеля" 
+                          className="w-full bg-[#202124] border border-[#3C4043] focus:border-emerald-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          {guestLocation
+                            ? "Дополните номер квартиры, этаж или название отеля для курьера"
+                            : "Укажите адрес или нажмите «Поделиться локацией» для передачи GPS курьеру"}
+                        </p>
+                      </div>
                     </div>
                   )}
 
@@ -2852,10 +3045,26 @@ const GoogleMapsPreLanding = () => {
                 </div>
               )}
 
-              <div className="bg-[#202124] rounded-xl p-3 text-xs text-left text-gray-300 space-y-1">
+              <div className="bg-[#202124] rounded-xl p-3 text-xs text-left text-gray-300 space-y-1.5">
                 <div>Сумма: <span className="font-bold text-white">{formatPrice(completedOrder.totalPayable, completedOrder.currency)}</span></div>
                 <div>Тип: <span className="font-bold text-white">{completedOrder.deliveryType === 'delivery' ? '🚗 Доставка' : '🛍️ Самовывоз'}</span></div>
                 <div>Адрес: <span className="font-bold text-white">{completedOrder.customer?.address}</span></div>
+                {completedOrder.guestLocation && (
+                  <div className="flex items-center justify-between text-emerald-400 pt-1 border-t border-white/5">
+                    <span className="flex items-center gap-1.5 text-[11px]">
+                      <span>📍</span> Точные GPS координаты:
+                    </span>
+                    <a 
+                      href={completedOrder.guestLocation.googleMapsUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="underline font-bold text-[11px] hover:text-emerald-300 flex items-center gap-0.5"
+                    >
+                      <span>Google Карты</span>
+                      <span>↗</span>
+                    </a>
+                  </div>
+                )}
               </div>
 
               <button
