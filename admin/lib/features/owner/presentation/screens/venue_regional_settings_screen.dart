@@ -705,6 +705,10 @@ class _VenueRegionalSettingsScreenState extends State<VenueRegionalSettingsScree
           Column(
             children: _daysOrder.map((dayKey) {
               final schedule = _scheduleMap[dayKey] ?? const DaySchedule();
+              final isRoundTheClock = schedule.isOpen &&
+                  schedule.openTime == '00:00' &&
+                  (schedule.closeTime == '23:59' || schedule.closeTime == '00:00');
+
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -745,6 +749,7 @@ class _VenueRegionalSettingsScreenState extends State<VenueRegionalSettingsScree
                       const SizedBox(width: 8),
                       _buildTimePickerDropdown(
                         value: schedule.openTime,
+                        isCloseTime: false,
                         onChanged: (newTime) {
                           setState(() {
                             _scheduleMap[dayKey] = schedule.copyWith(openTime: newTime);
@@ -756,12 +761,40 @@ class _VenueRegionalSettingsScreenState extends State<VenueRegionalSettingsScree
                       const SizedBox(width: 8),
                       _buildTimePickerDropdown(
                         value: schedule.closeTime,
+                        isCloseTime: true,
                         onChanged: (newTime) {
                           setState(() {
                             _scheduleMap[dayKey] = schedule.copyWith(closeTime: newTime);
                           });
                         },
                       ),
+                      if (isRoundTheClock) ...[
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF34C759).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFF34C759).withOpacity(0.4)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(CupertinoIcons.sparkles, color: Color(0xFF34C759), size: 12),
+                              SizedBox(width: 4),
+                              Text(
+                                "24/7",
+                                style: TextStyle(
+                                  color: Color(0xFF34C759),
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       const Spacer(),
                       IconButton(
                         icon: const Icon(CupertinoIcons.doc_on_doc, color: Colors.white38, size: 16),
@@ -794,14 +827,31 @@ class _VenueRegionalSettingsScreenState extends State<VenueRegionalSettingsScree
     );
   }
 
-  Widget _buildTimePickerDropdown({required String value, required Function(String) onChanged}) {
+  Widget _buildTimePickerDropdown({
+    required String value,
+    required Function(String) onChanged,
+    bool isCloseTime = false,
+  }) {
     final List<String> times = [];
     for (int h = 0; h < 24; h++) {
       times.add("${h.toString().padLeft(2, '0')}:00");
       times.add("${h.toString().padLeft(2, '0')}:30");
     }
 
-    String effectiveVal = times.contains(value) ? value : "10:00";
+    // Always include canonical end-of-day 23:59 for round-the-clock and day closure
+    if (!times.contains("23:59")) {
+      times.add("23:59");
+    }
+
+    // If a custom or existing value is not in the list, preserve it
+    if (value.isNotEmpty && !times.contains(value)) {
+      times.add(value);
+      times.sort();
+    }
+
+    final String effectiveVal = times.contains(value)
+        ? value
+        : (isCloseTime ? "23:59" : "10:00");
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -816,9 +866,17 @@ class _VenueRegionalSettingsScreenState extends State<VenueRegionalSettingsScree
           dropdownColor: const Color(0xFF2C2C2E),
           isDense: true,
           items: times.map((t) {
+            final String label = (t == "23:59") ? "23:59 (24ч)" : t;
             return DropdownMenuItem<String>(
               value: t,
-              child: Text(t, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
             );
           }).toList(),
           onChanged: (val) {
